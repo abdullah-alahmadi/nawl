@@ -22,7 +22,7 @@ real PDF preview (Tectonic) shows the exact output.
 | PDF preview | pdf.js |
 | Rust ↔ TS types | ts-rs (`cargo test` writes `src/bindings/`) |
 | TeX engine | Tectonic, bundled as a sidecar binary (may move to the crate later) |
-| Bibliography | hayagriva (CSL) → `thebibliography` (no biber dependency) |
+| Bibliography | BibTeX, run automatically by Tectonic (IEEEtran / plain / natbib + apalike); `biblatex` crate parses entries for the editor |
 | Codegen | Plain Rust string building (Jinja-style `{{ }}`/`{% %}` collide with TeX braces and `%` comments) |
 | Tests | insta (snapshots of generated LaTeX), Playwright (UI) |
 
@@ -33,7 +33,6 @@ crates/
   core/      texloom-core: Document + Template models, placeholders, validation. No UI, no TeX.
   codegen/   texloom-codegen: Template → .cls, Document → .tex
   compile/   texloom-compile: Tectonic runner, log parsing → friendly errors
-  biblio/    hayagriva wrapper (Phase 5)
   cli/       texloom-cli: `render doc.loom -t template.json`, `export`, `check`
 templates/   built-in templates (senior-design/template.json is the reference)
 examples/    sample documents
@@ -142,10 +141,19 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [ ] Snapping to other items / margins; multi-select; undo
 
 ### Phase 5: Structure and academic features (~3–4 weeks)
-- [ ] Skeleton sections (required/locked), metadata form generated from `fields`
-- [ ] Front matter, TOC/LoF/LoT, roman → arabic page numbering
-- [ ] Labels + cross-references; citations from .bib with CSL styles; appendices
+- [x] Chapter skeleton in the template (designer "Chapter list"); New document starts
+      from it; missing required chapters are flagged; metadata form from `fields`
+- [x] Front matter, TOC/LoF/LoT, roman → arabic page numbering (Phases 1–2)
+- [x] Cross-references with stable ids (headings, figures, tables, equations): picker,
+      on-screen numbers matching the PDF, broken references shown as "??" and flagged
+- [x] Citations from BibTeX: References manager (import/paste .bib), citation picker,
+      IEEE / numeric / author–year styles, reference list before the appendices
+- [x] Appendices marker: chapters lettered A, B… with their own label ("Appendix {n}")
+- [x] Document checks shown in the app: required fields and chapters, broken
+      references, citations missing from the references
+- [ ] Locked sections; cross-reference text options ("Fig. 3" vs "3"); citation page numbers
 - [ ] **Milestone:** full senior design report from a template made entirely in the designer
+      (all pieces exist; needs an end-to-end walkthrough in the native app)
 
 ### Phase 6: Polish and distribution (ongoing)
 - [ ] Bundled TeX package cache so it works offline; installers; auto-update

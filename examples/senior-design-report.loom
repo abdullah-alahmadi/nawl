@@ -23,7 +23,8 @@
       {
         "type": "heading",
         "attrs": {
-          "level": 1
+          "level": 1,
+          "id": "h-introduction"
         },
         "content": [
           {
@@ -44,7 +45,8 @@
       {
         "type": "heading",
         "attrs": {
-          "level": 2
+          "level": 2,
+          "id": "h-problem-statement"
         },
         "content": [
           {
@@ -65,7 +67,8 @@
       {
         "type": "heading",
         "attrs": {
-          "level": 2
+          "level": 2,
+          "id": "h-objectives"
         },
         "content": [
           {
@@ -127,7 +130,8 @@
       {
         "type": "heading",
         "attrs": {
-          "level": 1
+          "level": 1,
+          "id": "h-background"
         },
         "content": [
           {
@@ -174,7 +178,8 @@
       {
         "type": "heading",
         "attrs": {
-          "level": 2
+          "level": 2,
+          "id": "h-related-work"
         },
         "content": [
           {
@@ -188,14 +193,28 @@
         "content": [
           {
             "type": "text",
-            "text": "Earlier student projects used Wi-Fi modules that drew too much power for solar operation. We use LoRa radios instead, trading bandwidth for range and battery life."
+            "text": "Earlier student projects used Wi-Fi modules that drew too much power for solar operation "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "smith2021",
+                "lora2019"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". We use LoRa radios instead, trading bandwidth for range and battery life."
           }
         ]
       },
       {
         "type": "heading",
         "attrs": {
-          "level": 1
+          "level": 1,
+          "id": "h-system-design"
         },
         "content": [
           {
@@ -208,8 +227,14 @@
         "type": "paragraph",
         "content": [
           {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-system"
+            }
+          },
+          {
             "type": "text",
-            "text": "Figure 3.1 shows the main parts of the system and how they connect."
+            "text": " shows the main parts of the system and how they connect."
           }
         ]
       },
@@ -217,7 +242,8 @@
         "type": "figure",
         "attrs": {
           "src": "figures/system-diagram.png",
-          "widthPercent": 85
+          "widthPercent": 85,
+          "id": "fig-system"
         },
         "content": [
           {
@@ -234,7 +260,8 @@
       {
         "type": "heading",
         "attrs": {
-          "level": 2
+          "level": 2,
+          "id": "h-water-balance-model"
         },
         "content": [
           {
@@ -248,14 +275,27 @@
         "content": [
           {
             "type": "text",
-            "text": "The controller estimates the soil water deficit each hour from evapotranspiration and rainfall:"
+            "text": "The controller estimates the soil water deficit each hour from evapotranspiration "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "allen1998"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " and rainfall:"
           }
         ]
       },
       {
         "type": "equation",
         "attrs": {
-          "latex": "D_t = D_{t-1} + ET_c - P_{\\mathrm{eff}} - I_t"
+          "latex": "D_t = D_{t-1} + ET_c - P_{\\mathrm{eff}} - I_t",
+          "id": "eq-balance"
         }
       },
       {
@@ -263,7 +303,17 @@
         "content": [
           {
             "type": "text",
-            "text": "Irrigation starts when the deficit exceeds the management allowed depletion, computed from the root-zone depth "
+            "text": "Irrigation starts when the deficit in "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-balance"
+            }
+          },
+          {
+            "type": "text",
+            "text": " exceeds the management allowed depletion, computed from the root-zone depth "
           },
           {
             "type": "text",
@@ -283,13 +333,15 @@
       {
         "type": "equation",
         "attrs": {
-          "latex": "\\mathrm{MAD} = p \\cdot \\theta_{AW} \\cdot Z_r"
+          "latex": "\\mathrm{MAD} = p \\cdot \\theta_{AW} \\cdot Z_r",
+          "id": "eq-mad"
         }
       },
       {
         "type": "heading",
         "attrs": {
-          "level": 3
+          "level": 3,
+          "id": "h-sensor-calibration"
         },
         "content": [
           {
@@ -310,7 +362,8 @@
       {
         "type": "heading",
         "attrs": {
-          "level": 2
+          "level": 2,
+          "id": "h-hardware"
         },
         "content": [
           {
@@ -384,8 +437,24 @@
         "type": "paragraph",
         "content": [
           {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-bom"
+            }
+          },
+          {
             "type": "text",
-            "text": "Table 3.1 lists the parts and their cost for one zone."
+            "text": " lists the parts and their cost for one zone; the design criteria are in "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "h-design-criteria"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
           }
         ]
       },
@@ -754,12 +823,16 @@
               }
             ]
           }
-        ]
+        ],
+        "attrs": {
+          "id": "tab-bom"
+        }
       },
       {
         "type": "heading",
         "attrs": {
-          "level": 1
+          "level": 1,
+          "id": "h-conclusion"
         },
         "content": [
           {
@@ -776,7 +849,80 @@
             "text": "The prototype reduced water use by 34% over a four-week field trial while keeping soil moisture within the target band. Future work includes weather-forecast integration and a mobile dashboard."
           }
         ]
+      },
+      {
+        "type": "appendixStart"
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "h-design-criteria"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Design Criteria"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The controller had to meet these criteria, agreed with the project sponsor at the start of the semester:"
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Run for 12 months on solar power without maintenance."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Report soil moisture at least every 15 minutes."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Survive outdoor temperatures from −5 °C to 50 °C."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     ]
-  }
+  },
+  "bibliography": "@article{allen1998,\n  author  = {Allen, Richard G. and Pereira, Luis S. and Raes, Dirk and Smith, Martin},\n  title   = {Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements},\n  journal = {FAO Irrigation and Drainage Paper},\n  volume  = {56},\n  year    = {1998},\n  publisher = {FAO}\n}\n\n@inproceedings{smith2021,\n  author    = {Smith, Jane and Okafor, Chidi},\n  title     = {Low-Power Soil Sensing for Smallholder Farms},\n  booktitle = {Proceedings of the IEEE Global Humanitarian Technology Conference},\n  pages     = {112--118},\n  year      = {2021}\n}\n\n@misc{lora2019,\n  author       = {{LoRa Alliance}},\n  title        = {{LoRaWAN} Specification v1.0.3},\n  year         = {2019},\n  howpublished = {LoRa Alliance Technical Committee}\n}\n"
 }

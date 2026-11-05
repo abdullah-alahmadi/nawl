@@ -113,7 +113,8 @@ pub fn copy_relative(files: &[String], from: &Path, to: &Path) -> Result<(), App
 /// folder once saved, a temporary folder before that.
 pub struct DocumentFolder {
     dir: Mutex<PathBuf>,
-    _scratch: tempfile::TempDir,
+    /// Temporary folders for unsaved documents, kept until the app exits.
+    scratch: Mutex<Vec<tempfile::TempDir>>,
 }
 
 impl DocumentFolder {
@@ -127,7 +128,15 @@ impl DocumentFolder {
             }
             std::fs::write(dest, bytes)?;
         }
-        Ok(Self { dir: Mutex::new(scratch.path().to_path_buf()), _scratch: scratch })
+        Ok(Self { dir: Mutex::new(scratch.path().to_path_buf()), scratch: Mutex::new(vec![scratch]) })
+    }
+
+    /// Switches to a fresh temporary folder (for a new, unsaved document).
+    pub fn reset(&self) -> std::io::Result<()> {
+        let scratch = tempfile::Builder::new().prefix("texloom-unsaved-").tempdir()?;
+        self.set(scratch.path().to_path_buf());
+        self.scratch.lock().expect("folder lock").push(scratch);
+        Ok(())
     }
 
     pub fn get(&self) -> PathBuf {

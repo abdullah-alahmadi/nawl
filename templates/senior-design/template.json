@@ -46,7 +46,8 @@
     "tocDepth": 2,
     "frontMatterPageNumbers": "lowerRoman",
     "mainPageNumbers": "arabic",
-    "perChapterNumbering": true
+    "perChapterNumbering": true,
+    "appendixLabel": "Appendix {n}"
   },
   "headings": {
     "levels": [
@@ -129,6 +130,33 @@
     "size": "small",
     "align": "center"
   },
+  "bibliography": {
+    "style": "ieee",
+    "title": "References",
+    "inToc": true
+  },
+  "skeleton": [
+    {
+      "title": "Introduction",
+      "required": true
+    },
+    {
+      "title": "Background",
+      "required": true
+    },
+    {
+      "title": "System Design",
+      "required": true
+    },
+    {
+      "title": "Testing and Results",
+      "required": false
+    },
+    {
+      "title": "Conclusion",
+      "required": true
+    }
+  ],
   "titlePage": {
     "items": [
       {

@@ -269,6 +269,9 @@ export function StructureSection({ t, edit, issues }: SectionProps) {
           <Select value={s.mainPageNumbers} options={PAGE_NUMBERS} onChange={(v) => edit((d) => void (d.structure.mainPageNumbers = v))} />
         </span>
       </Row>
+      <Row label="Appendix label" hint="{n} is the letter" issues={issuesAt(issues, "structure.appendixLabel")}>
+        <input value={s.appendixLabel} onChange={(e) => edit((d) => void (d.structure.appendixLabel = e.target.value))} />
+      </Row>
       {s.topLevel === "chapter" && (
         <Row label="Equations, figures, tables">
           <Select

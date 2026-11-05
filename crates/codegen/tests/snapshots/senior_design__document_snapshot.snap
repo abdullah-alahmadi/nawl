@@ -19,15 +19,15 @@ expression: "texloom_codegen::document_to_tex(&template(), &document().document)
 \texloomfrontmatter
 \texloommainmatter
 
-\chapter{Introduction}
+\chapter{Introduction}\label{tl:h-introduction}
 
 Small farms waste a large share of their water because irrigation runs on fixed timers that ignore soil conditions and weather. This project designs a low-cost controller that waters only when the soil needs it.
 
-\section{Problem Statement}
+\section{Problem Statement}\label{tl:h-problem-statement}
 
 Commercial smart controllers cost more than most small farms can justify, and they depend on cloud services that rural areas cannot reach reliably.
 
-\section{Objectives}
+\section{Objectives}\label{tl:h-objectives}
 
 \begin{enumerate}
 \item Measure soil moisture at three depths every 10 minutes.
@@ -35,43 +35,43 @@ Commercial smart controllers cost more than most small farms can justify, and th
 \item Keep the bill of materials under \$60 per zone.
 \end{enumerate}
 
-\chapter{Background}
+\chapter{Background}\label{tl:h-background}
 
 Soil moisture sensing falls into two families: \emph{resistive} probes, which are cheap but corrode, and \emph{capacitive} probes, which last longer and are the choice for this design.
 
-\section{Related Work}
+\section{Related Work}\label{tl:h-related-work}
 
-Earlier student projects used Wi-Fi modules that drew too much power for solar operation. We use LoRa radios instead, trading bandwidth for range and battery life.
+Earlier student projects used Wi-Fi modules that drew too much power for solar operation \cite{smith2021,lora2019}. We use LoRa radios instead, trading bandwidth for range and battery life.
 
-\chapter{System Design}
+\chapter{System Design}\label{tl:h-system-design}
 
-Figure 3.1 shows the main parts of the system and how they connect.
+Figure~\ref{tl:fig-system} shows the main parts of the system and how they connect.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/system-diagram.png}
-\caption{System block diagram: probes report to the controller, which drives the valve.}
+\caption{System block diagram: probes report to the controller, which drives the valve.}\label{tl:fig-system}
 \end{figure}
 
-\section{Water Balance Model}
+\section{Water Balance Model}\label{tl:h-water-balance-model}
 
-The controller estimates the soil water deficit each hour from evapotranspiration and rainfall:
+The controller estimates the soil water deficit each hour from evapotranspiration \cite{allen1998} and rainfall:
 
-\begin{equation}
+\begin{equation}\label{tl:eq-balance}
 D_t = D_{t-1} + ET_c - P_{\mathrm{eff}} - I_t
 \end{equation}
 
-Irrigation starts when the deficit exceeds the management allowed depletion, computed from the root-zone depth \texttt{Z\_r} and the available water capacity:
+Irrigation starts when the deficit in \eqref{tl:eq-balance} exceeds the management allowed depletion, computed from the root-zone depth \texttt{Z\_r} and the available water capacity:
 
-\begin{equation}
+\begin{equation}\label{tl:eq-mad}
 \mathrm{MAD} = p \cdot \theta_{AW} \cdot Z_r
 \end{equation}
 
-\subsection{Sensor Calibration}
+\subsection{Sensor Calibration}\label{tl:h-sensor-calibration}
 
 Each probe was calibrated against oven-dried samples; the fitted curve has an R² of 0.97.
 
-\section{Hardware}
+\section{Hardware}\label{tl:h-hardware}
 
 \begin{itemize}
 \item Microcontroller: low-power ARM Cortex-M0+
@@ -80,11 +80,11 @@ Each probe was calibrated against oven-dried samples; the fitted curve has an R�
 \item Actuator: 12 V latching solenoid valve
 \end{itemize}
 
-Table 3.1 lists the parts and their cost for one zone.
+Table~\ref{tl:tab-bom} lists the parts and their cost for one zone; the design criteria are in Appendix~\ref{tl:h-design-criteria}.
 
 \begin{table}[htbp]
 \centering
-\caption{Bill of materials for one irrigation zone}
+\caption{Bill of materials for one irrigation zone}\label{tl:tab-bom}
 \begin{tabularx}{\linewidth}{|L|L|L|}
 \hline
 {\bfseries Component} & {\bfseries Part} & {\bfseries Cost (USD)} \\ \hline
@@ -96,8 +96,22 @@ Power & 6 W solar panel and Li-ion cell & 13.20 \\ \hline
 \end{tabularx}
 \end{table}
 
-\chapter{Conclusion}
+\chapter{Conclusion}\label{tl:h-conclusion}
 
 The prototype reduced water use by 34\% over a four-week field trial while keeping soil moisture within the target band. Future work includes weather-forecast integration and a mobile dashboard.
+
+\texloombibliography
+
+\texloomappendix
+
+\chapter{Design Criteria}\label{tl:h-design-criteria}
+
+The controller had to meet these criteria, agreed with the project sponsor at the start of the semester:
+
+\begin{itemize}
+\item Run for 12 months on solar power without maintenance.
+\item Report soil moisture at least every 15 minutes.
+\item Survive outdoor temperatures from −5 °C to 50 °C.
+\end{itemize}
 
 \end{document}

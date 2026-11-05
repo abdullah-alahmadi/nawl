@@ -9,7 +9,7 @@
 use std::fmt::Write;
 
 use texloom_core::{
-    Anchor, BuiltinFont, CaptionAlign, CaptionSeparator, CaptionSize, FontChoice, FrontMatterItem, HeadingLayout, LineSpacing, PageNumberStyle,
+    Anchor, BibStyle, BuiltinFont, CaptionAlign, CaptionSeparator, CaptionSize, FontChoice, FrontMatterItem, HeadingLayout, LineSpacing, PageNumberStyle,
     PageStyle, Paper, Template, TitleContent, TopLevel,
 };
 
@@ -163,28 +163,7 @@ pub fn template_to_cls(t: &Template) -> String {
     w!(o, "% Headings");
     w!(o, "\\RequirePackage{{titlesec}}");
     for (style, cmd) in t.headings.levels.iter().zip(cmds) {
-        let shape = match style.layout {
-            HeadingLayout::Display => "display",
-            HeadingLayout::Inline => "hang",
-        };
-        let fill = match style.text.align {
-            texloom_core::Align::Left => "\\filright",
-            texloom_core::Align::Center => "\\filcenter",
-            texloom_core::Align::Right => "\\filleft",
-        };
-        let number = format!("\\the{cmd}");
-        let mut label = render_placeholders(&style.label, PlaceholderContext { number: Some(&number) });
-        let mut before = String::new();
-        if style.text.uppercase {
-            label = format!("\\MakeUppercase{{{label}}}");
-            before.push_str("\\MakeUppercase");
-        }
-        w!(
-            o,
-            "\\titleformat{{\\{cmd}}}[{shape}]{{\\normalfont{}{fill}}}{{{label}}}{{{}pt}}{{{before}}}",
-            font_commands(&style.text),
-            num(style.label_gap_pt)
-        );
+        w!(o, "{}", title_format(style, cmd, &style.label));
         w!(o, "\\titlespacing*{{\\{cmd}}}{{0pt}}{{{}pt}}{{{}pt}}", num(style.space_before_pt), num(style.space_after_pt));
     }
     w!(o);
@@ -268,6 +247,37 @@ pub fn template_to_cls(t: &Template) -> String {
     w!(o, "\\AtBeginDocument{{\\pagestyle{{texloommain}}\\tl@marks}}");
     w!(o);
 
+    // ---- bibliography (BibTeX, run automatically by the TeX engine)
+    let bib = &t.bibliography;
+    let bst = match bib.style {
+        BibStyle::Ieee => "IEEEtran",
+        BibStyle::Numeric => "plain",
+        BibStyle::AuthorYear => "apalike",
+    };
+    let list_name = if chapters { "bibname" } else { "refname" };
+    w!(o, "% Bibliography: refs.bib next to the document");
+    if bib.style == BibStyle::AuthorYear {
+        w!(o, "\\RequirePackage[round]{{natbib}}");
+    }
+    let toc = if bib.in_toc {
+        format!("\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}", escape(&bib.title))
+    } else {
+        String::new()
+    };
+    let bib_page = if chapters { new_page } else { "" };
+    w!(
+        o,
+        "\\newcommand\\texloombibliography{{{bib_page}{toc}\\renewcommand\\{list_name}{{{}}}\\bibliographystyle{{{bst}}}\\bibliography{{refs}}}}",
+        escape(&bib.title)
+    );
+    w!(o);
+
+    // ---- appendices: lettered, with their own label ("Appendix A")
+    w!(o, "% Appendices");
+    let top_style = &t.headings.levels[0];
+    w!(o, "\\newcommand\\texloomappendix{{{new_page}\\appendix{}}}", title_format(top_style, cmds[0], &t.structure.appendix_label));
+    w!(o);
+
     // hyperref goes last, as it patches many of the packages above.
     w!(o, "\\RequirePackage[hidelinks]{{hyperref}}");
 
@@ -278,6 +288,31 @@ pub fn template_to_cls(t: &Template) -> String {
     }
     w!(o, "\\endinput");
     o
+}
+
+/// `\titleformat` for one heading level with the given number label.
+fn title_format(style: &texloom_core::HeadingStyle, cmd: &str, label_template: &str) -> String {
+    let shape = match style.layout {
+        HeadingLayout::Display => "display",
+        HeadingLayout::Inline => "hang",
+    };
+    let fill = match style.text.align {
+        texloom_core::Align::Left => "\\filright",
+        texloom_core::Align::Center => "\\filcenter",
+        texloom_core::Align::Right => "\\filleft",
+    };
+    let number = format!("\\the{cmd}");
+    let mut label = render_placeholders(label_template, PlaceholderContext { number: Some(&number) });
+    let mut before = String::new();
+    if style.text.uppercase {
+        label = format!("\\MakeUppercase{{{label}}}");
+        before.push_str("\\MakeUppercase");
+    }
+    format!(
+        "\\titleformat{{\\{cmd}}}[{shape}]{{\\normalfont{}{fill}}}{{{label}}}{{{}pt}}{{{before}}}",
+        font_commands(&style.text),
+        num(style.label_gap_pt)
+    )
 }
 
 fn font_line(cmd: &str, choice: &FontChoice) -> Option<String> {

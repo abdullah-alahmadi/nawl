@@ -110,6 +110,43 @@ export function templateCss(t: Template, scope = ".page"): string {
   // A level-1 chapter starts a new page in the PDF; show a little more space on screen.
   if (chapters) rules.push(`${scope} h1:not(:first-child){margin-top:${px(t.headings.levels[0]?.spaceBeforePt + 36)}}`);
 
+  // Appendices: the marker restarts top-level numbering, shown as letters.
+  const appendixLabel = (i: number) => {
+    const expr = Array.from({ length: i + 1 }, (_, j) => (j === 0 ? "counter(tl-h1, upper-alpha)" : `counter(tl-h${j + 1})`)).join(' "." ');
+    return expr;
+  };
+  rules.push(`${scope} .appendix-divider{counter-set:tl-h1 0 tl-h2 0 tl-h3 0 tl-h4 0}`);
+  const top = t.headings.levels[0];
+  if (top) {
+    const label = t.structure.appendixLabel
+      .split(/(\{n\})/)
+      .filter((p) => p !== "")
+      .map((p) => (p === "{n}" ? appendixLabel(0) : q(p)))
+      .join(" ");
+    rules.push(
+      `${scope} .appendix-divider ~ h1::before{content:${label || '""'};${top.layout === "display" ? `display:block;margin-bottom:${px(top.labelGapPt)}` : `margin-right:${px(top.labelGapPt)}`}}`,
+    );
+  }
+  t.headings.levels.slice(1, 4).forEach((h, k) => {
+    const i = k + 1;
+    if (i < t.structure.numberedDepth && h.label.trim() !== "") {
+      const content = h.label
+        .split(/(\{n\})/)
+        .filter((p) => p !== "")
+        .map((p) => (p === "{n}" ? appendixLabel(i) : q(p)))
+        .join(" ");
+      rules.push(`${scope} .appendix-divider ~ h${i + 1}::before{content:${content}}`);
+    }
+  });
+  if (perChapter) {
+    const prefixA = 'counter(tl-h1, upper-alpha) "." ';
+    rules.push(
+      `${scope} .appendix-divider ~ .node-figure figure.figure figcaption::before{content:${q(t.captions.figureLabel + " ")} ${prefixA}counter(tl-figure) ${q(sep)}}`,
+      `${scope} .appendix-divider ~ .table-figure figcaption::before{content:${q(t.captions.tableLabel + " ")} ${prefixA}counter(tl-table) ${q(sep)}}`,
+      `${scope} .appendix-divider ~ .node-equation .equation-number::after{content:"(" ${prefixA}counter(tl-equation) ")"}`,
+    );
+  }
+
   rules.push(
     `${scope} figure.figure{counter-increment:tl-figure}`,
     `${scope} .table-figure{counter-increment:tl-table}`,

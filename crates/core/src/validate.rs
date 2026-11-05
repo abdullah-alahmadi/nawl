@@ -226,6 +226,16 @@ impl Template {
             }
         }
 
+        if t.bibliography.title.trim().is_empty() {
+            c.error("bibliography.title", "must not be empty");
+        }
+        c.placeholders("structure.appendixLabel", &t.structure.appendix_label, true);
+        for (i, sec) in t.skeleton.iter().enumerate() {
+            if sec.title.trim().is_empty() {
+                c.error(format!("skeleton[{i}].title"), "must not be empty");
+            }
+        }
+
         let mut has_title_page = false;
         for (i, item) in t.front_matter.iter().enumerate() {
             match item {
@@ -245,6 +255,42 @@ impl Template {
         }
 
         c.issues
+    }
+
+    /// Checks a whole document: metadata, required chapters, broken cross-references
+    /// and (when `known_keys` is given) citations of unknown bibliography entries.
+    pub fn check_document(
+        &self,
+        doc: &crate::Document,
+        known_keys: Option<&HashSet<String>>,
+    ) -> Vec<Issue> {
+        let warn = |path: String, message: String| Issue { severity: Severity::Warning, path, message };
+        let mut issues = self.check_metadata(&doc.metadata);
+        let titles: Vec<String> = doc.body.top_level_titles().iter().map(|t| t.trim().to_lowercase()).collect();
+        let level = if self.structure.top_level == crate::TopLevel::Chapter { "chapter" } else { "section" };
+        for sec in self.skeleton.iter().filter(|s| s.required) {
+            if !titles.contains(&sec.title.trim().to_lowercase()) {
+                issues.push(warn(
+                    "document.skeleton".into(),
+                    format!("Required {level} \"{}\" is missing", sec.title.trim()),
+                ));
+            }
+        }
+        let broken = doc.body.broken_refs().len();
+        if broken > 0 {
+            issues.push(warn(
+                "document.refs".into(),
+                format!("{broken} cross-reference{} point{} to something that was deleted", if broken > 1 { "s" } else { "" }, if broken > 1 { "" } else { "s" }),
+            ));
+        }
+        if let Some(known) = known_keys {
+            for key in doc.body.cited_keys() {
+                if !known.contains(&key) {
+                    issues.push(warn("document.citations".into(), format!("Citation \"{key}\" isn't in the references")));
+                }
+            }
+        }
+        issues
     }
 
     /// Checks a document's metadata against this template's fields.

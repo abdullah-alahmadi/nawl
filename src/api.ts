@@ -17,9 +17,24 @@ export interface TemplateInfo {
   warnings: Issue[];
 }
 
+export interface BibEntry {
+  key: string;
+  kind: string;
+  authors: string[];
+  year: string | null;
+  title: string;
+}
+
+export interface BibInfo {
+  entries: BibEntry[];
+  error: string | null;
+}
+
 export interface OpenedDocument {
   doc: JSONContent;
   metadata: Metadata;
+  /** BibTeX source. */
+  bibliography: string;
   /** The template the document was saved with, now active (absent for old files). */
   template?: TemplateInfo | null;
 }
@@ -60,15 +75,22 @@ export const importTemplateAsset = (source: string) => invoke<string>("import_te
 export const readTemplateAsset = (asset: string) => invoke<ArrayBuffer>("read_template_asset", { asset });
 export const importFigure = (source: string) => invoke<string>("import_figure", { source });
 export const readDocumentFile = (path: string) => invoke<ArrayBuffer>("read_document_file", { path });
-export const exportPdf = (path: string, doc: JSONContent, metadata: Metadata) =>
-  invoke<void>("export_pdf", { path, doc, metadata });
+export const exportPdf = (path: string, d: DocState) => invoke<void>("export_pdf", { path, ...d });
 export const listSystemFonts = () => invoke<string[]>("list_system_fonts");
 export const sampleDocument = () => invoke<OpenedDocument>("sample_document");
-export const checkMetadata = (metadata: Metadata) => invoke<Issue[]>("check_metadata", { metadata });
-export const renderPdf = (doc: JSONContent, metadata: Metadata) => invoke<ArrayBuffer>("render_pdf", { doc, metadata });
-export const toLatex = (doc: JSONContent, metadata: Metadata) => invoke<string>("to_latex", { doc, metadata });
-export const saveDocument = (path: string, doc: JSONContent, metadata: Metadata) =>
-  invoke<void>("save_document", { path, doc, metadata });
+/** Everything about the open document that the backend needs to generate it. */
+export interface DocState {
+  doc: JSONContent;
+  metadata: Metadata;
+  bibliography: string;
+}
+
+export const checkDocument = (d: DocState) => invoke<Issue[]>("check_document", { ...d });
+export const renderPdf = (d: DocState) => invoke<ArrayBuffer>("render_pdf", { ...d });
+export const toLatex = (d: DocState) => invoke<string>("to_latex", { ...d });
+export const saveDocument = (path: string, d: DocState) => invoke<void>("save_document", { path, ...d });
+export const parseBibliography = (source: string) => invoke<BibInfo>("parse_bibliography", { source });
+export const readBibFile = (path: string) => invoke<string>("read_bib_file", { path });
+export const newDocument = () => invoke<OpenedDocument>("new_document");
 export const openDocument = (path: string) => invoke<OpenedDocument>("open_document", { path });
-export const exportTex = (path: string, doc: JSONContent, metadata: Metadata) =>
-  invoke<void>("export_tex", { path, doc, metadata });
+export const exportTex = (path: string, d: DocState) => invoke<void>("export_tex", { path, ...d });

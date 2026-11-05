@@ -37,6 +37,49 @@ fn figures_and_tables() {
 }
 
 #[test]
+fn references_citations_and_appendix() {
+    let tex = texloom_codegen::document_to_tex(&template(), &document().document);
+    assert!(tex.contains("\\label{tl:fig-system}"));
+    assert!(tex.contains("Figure~\\ref{tl:fig-system} shows"));
+    assert!(tex.contains("\\eqref{tl:eq-balance}"));
+    assert!(tex.contains("Appendix~\\ref{tl:h-design-criteria}"));
+    assert!(tex.contains("\\cite{smith2021,lora2019}"));
+    // The reference list comes right before the appendices.
+    let bib = tex.find("\\texloombibliography").unwrap();
+    let app = tex.find("\\texloomappendix").unwrap();
+    assert!(bib < app);
+}
+
+#[test]
+fn document_checks() {
+    let t = template();
+    let doc = document().document;
+    let keys: std::collections::HashSet<String> =
+        ["allen1998", "smith2021", "lora2019"].iter().map(|s| s.to_string()).collect();
+    assert!(t.check_document(&doc, Some(&keys)).is_empty(), "{:#?}", t.check_document(&doc, Some(&keys)));
+
+    // Remove a required chapter, break a reference, cite an unknown key.
+    let mut broken = doc.clone();
+    broken.body.content.retain(|b| {
+        !matches!(b, texloom_core::Block::Heading { attrs, .. } if attrs.id.as_deref() == Some("h-background"))
+    });
+    broken.body.content.retain(|b| !matches!(b, texloom_core::Block::Figure { .. }));
+    let fewer: std::collections::HashSet<String> = ["allen1998"].iter().map(|s| s.to_string()).collect();
+    let issues: Vec<String> = t.check_document(&broken, Some(&fewer)).into_iter().map(|i| i.message).collect();
+    assert!(issues.iter().any(|m| m.contains("Required chapter \"Background\" is missing")), "{issues:?}");
+    assert!(issues.iter().any(|m| m.contains("1 cross-reference points to something that was deleted")), "{issues:?}");
+    assert!(issues.iter().any(|m| m.contains("\"smith2021\" isn't in the references")), "{issues:?}");
+}
+
+#[test]
+fn no_reference_list_without_citations() {
+    let mut doc = document().document;
+    doc.body.content.retain(|b| !matches!(b, texloom_core::Block::Paragraph { .. }));
+    assert!(!texloom_codegen::has_bibliography(&doc));
+    assert!(!texloom_codegen::document_to_tex(&template(), &doc).contains("texloombibliography"));
+}
+
+#[test]
 fn missing_required_fields_show_labels() {
     let mut doc = document().document;
     doc.metadata.remove("advisor");
@@ -55,12 +98,16 @@ fn missing_required_fields_show_labels() {
 fn compiles_to_pdf() {
     let g = texloom_codegen::generate(&template(), &document().document);
     let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
-    let cls = g.cls_file_name();
     let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
     let figures: Vec<(String, Vec<u8>)> =
         g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).expect("figure exists"))).collect();
-    let mut files = vec![texloom_compile::Asset { path: &cls, bytes: g.cls.as_bytes() }];
-    files.extend(figures.iter().map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }));
+    let support = g.support_files();
+    assert!(support.iter().any(|(p, _)| p == "refs.bib"));
+    let files: Vec<texloom_compile::Asset> = support
+        .iter()
+        .chain(figures.iter())
+        .map(|(p, b)| texloom_compile::Asset { path: p, bytes: b })
+        .collect();
     let out = compiler.compile(&g.tex, &files).unwrap_or_else(|e| panic!("{e:?}"));
     assert!(out.pdf.starts_with(b"%PDF"));
 }

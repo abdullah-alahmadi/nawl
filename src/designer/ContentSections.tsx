@@ -204,3 +204,70 @@ export function FrontMatterSection({ t, edit, issues }: SectionProps) {
     </>
   );
 }
+
+const BIB_STYLES = [
+  { value: "ieee", label: "IEEE — [1], numbered in order of citation" },
+  { value: "numeric", label: "Numeric — [1], list sorted by author" },
+  { value: "authorYear", label: "Author–year — (Smith, 2021), APA-like" },
+] as const;
+
+export function BibliographySection({ t, edit, issues }: SectionProps) {
+  const b = t.bibliography;
+  return (
+    <>
+      <Row label="Citation style">
+        <Select value={b.style} options={[...BIB_STYLES]} onChange={(v) => edit((d) => void (d.bibliography.style = v))} />
+      </Row>
+      <Row label="List heading" issues={issuesAt(issues, "bibliography.title")}>
+        <input value={b.title} onChange={(e) => edit((d) => void (d.bibliography.title = e.target.value))} />
+      </Row>
+      <Row label="Contents">
+        <Toggle checked={b.inToc} label="List it in the table of contents" onChange={(v) => edit((d) => void (d.bibliography.inToc = v))} />
+      </Row>
+      <p className="d-note">
+        The reference list appears after the last chapter (before any appendices) when the document cites something.
+        References are formatted by BibTeX, so they follow the chosen style exactly.
+      </p>
+    </>
+  );
+}
+
+export function SkeletonSection({ t, edit, issues }: SectionProps) {
+  const level = t.structure.topLevel === "chapter" ? "chapter" : "section";
+  return (
+    <>
+      <p className="d-note">
+        A new document starts with these {level}s. Required ones are checked: authors see a warning if one is missing.
+      </p>
+      <div className="d-table">
+        <div className="d-table-head skeleton">
+          <span>Title</span>
+          <span>Required</span>
+          <span />
+        </div>
+        {t.skeleton.map((sec, i) => (
+          <div key={i} className="d-table-row-wrap">
+            <div className="d-table-row skeleton">
+              <input value={sec.title} aria-label="Title" onChange={(e) => edit((d) => void (d.skeleton[i].title = e.target.value))} />
+              <input type="checkbox" aria-label="Required" checked={sec.required} onChange={(e) => edit((d) => void (d.skeleton[i].required = e.target.checked))} />
+              <RowButtons
+                index={i}
+                count={t.skeleton.length}
+                onMove={(to) => edit((d) => move(d.skeleton, i, to))}
+                onRemove={() => edit((d) => void d.skeleton.splice(i, 1))}
+              />
+            </div>
+            {issuesAt(issues, `skeleton[${i}]`).map((iss, n) => (
+              <div key={n} className="d-error">
+                {iss.message}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <button type="button" className="d-add" onClick={() => edit((d) => void d.skeleton.push({ title: `New ${level}`, required: false }))}>
+        + Add {level}
+      </button>
+    </>
+  );
+}

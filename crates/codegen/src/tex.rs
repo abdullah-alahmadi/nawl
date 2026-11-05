@@ -1,11 +1,19 @@
 //! Document → LaTeX source (`.tex`) that uses the template's generated class.
 
+use std::collections::HashMap;
+
 use texloom_core::{
-    Block, Caption, Document, FieldKind, FieldValue, Inline, ListItem, Mark, TableFigurePart, TableRow, Template,
+    BibStyle, Block, Caption, Document, FieldKind, FieldValue, Inline, ListItem, Mark, TableFigurePart, TableRow,
+    TargetKind, Template, TopLevel,
 };
 
 use crate::cls::heading_commands;
 use crate::latex::{escape, escape_url};
+
+/// Whether the document produces a reference list (it cites something and has entries).
+pub fn has_bibliography(doc: &Document) -> bool {
+    !doc.bibliography.trim().is_empty() && !doc.body.cited_keys().is_empty()
+}
 
 pub fn document_to_tex(t: &Template, doc: &Document) -> String {
     let mut o = String::new();
@@ -24,8 +32,14 @@ pub fn document_to_tex(t: &Template, doc: &Document) -> String {
     }
 
     o.push_str("\n\\begin{document}\n\\texloomfrontmatter\n\\texloommainmatter\n\n");
-    let mut w = BodyWriter { out: &mut o, commands: heading_commands(t.structure.top_level) };
+    let ctx = Ctx {
+        commands: heading_commands(t.structure.top_level),
+        targets: doc.body.targets(),
+        t,
+    };
+    let mut w = BodyWriter { out: &mut o, ctx: &ctx, bibliography_pending: has_bibliography(doc) };
     w.blocks(&doc.body.content);
+    w.emit_bibliography();
     o.push_str("\\end{document}\n");
     o
 }
@@ -56,12 +70,113 @@ fn field_value(kind: FieldKind, v: &FieldValue) -> String {
     }
 }
 
-struct BodyWriter<'a> {
-    out: &'a mut String,
+/// What every part of the body writer needs to know.
+struct Ctx<'a> {
     commands: [&'static str; 4],
+    targets: HashMap<String, TargetKind>,
+    t: &'a Template,
 }
 
-impl BodyWriter<'_> {
+/// `\label{tl:<id>}` for ids made of safe characters.
+fn label(id: &Option<String>) -> String {
+    match id {
+        Some(id) if is_safe_id(id) => format!("\\label{{tl:{id}}}"),
+        _ => String::new(),
+    }
+}
+
+fn is_safe_id(id: &str) -> bool {
+    !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// Citation keys BibTeX accepts without escaping problems.
+fn is_safe_key(key: &str) -> bool {
+    !key.is_empty() && key.chars().all(|c| c.is_ascii_alphanumeric() || "-_:./+".contains(c))
+}
+
+/// The word used when referring to a heading: "Chapter" from a label like
+/// "Chapter {n}", or a sensible default when the label is just the number.
+fn heading_word(t: &Template, level: u8, appendix: bool) -> String {
+    let idx = usize::from(level.clamp(1, 4)) - 1;
+    let label = if appendix && level == 1 {
+        t.structure.appendix_label.as_str()
+    } else {
+        t.headings.levels.get(idx).map(|h| h.label.as_str()).unwrap_or("")
+    };
+    let word: String = label.replace("{n}", "").trim_matches(|c: char| !c.is_alphanumeric()).to_string();
+    if !word.is_empty() {
+        word
+    } else if level == 1 && appendix {
+        "Appendix".into()
+    } else if level == 1 && t.structure.top_level == TopLevel::Chapter {
+        "Chapter".into()
+    } else {
+        "Section".into()
+    }
+}
+
+struct BodyWriter<'a> {
+    out: &'a mut String,
+    ctx: &'a Ctx<'a>,
+    /// The reference list still has to be written (before appendices, or at the end).
+    bibliography_pending: bool,
+}
+
+impl<'a> BodyWriter<'a> {
+    /// A writer for nested content (list items, table cells) sharing the context.
+    fn nested<'b>(&'b self, out: &'b mut String) -> BodyWriter<'b>
+    where
+        'a: 'b,
+    {
+        BodyWriter { out, ctx: self.ctx, bibliography_pending: false }
+    }
+
+    fn emit_bibliography(&mut self) {
+        if std::mem::take(&mut self.bibliography_pending) {
+            self.out.push_str("\\texloombibliography\n\n");
+        }
+    }
+
+    fn inlines(&self, content: &[Inline]) -> String {
+        let mut s = String::new();
+        for i in content {
+            match i {
+                Inline::Text { text, marks } => s.push_str(&apply_marks(escape(text), marks)),
+                Inline::HardBreak => s.push_str("\\newline\n"),
+                Inline::InlineMath { attrs } => {
+                    if !attrs.latex.trim().is_empty() {
+                        s.push_str(&format!("${}$", attrs.latex.trim()));
+                    }
+                }
+                Inline::Ref { attrs } => s.push_str(&self.reference(&attrs.target)),
+                Inline::Citation { attrs } => {
+                    let keys: Vec<&str> = attrs.keys.iter().map(String::as_str).filter(|k| is_safe_key(k)).collect();
+                    if !keys.is_empty() {
+                        let cmd = if self.ctx.t.bibliography.style == BibStyle::AuthorYear { "citep" } else { "cite" };
+                        s.push_str(&format!("\\{cmd}{{{}}}", keys.join(",")));
+                    }
+                }
+                Inline::Unknown => {}
+            }
+        }
+        s
+    }
+
+    /// "Figure~\ref{tl:x}", "\eqref{tl:x}", "Chapter~\ref{tl:x}"…; "??" when the target is gone.
+    fn reference(&self, target: &str) -> String {
+        let t = self.ctx.t;
+        match self.ctx.targets.get(target) {
+            Some(_) if !is_safe_id(target) => "\\textbf{??}".into(),
+            Some(TargetKind::Figure) => format!("{}~\\ref{{tl:{target}}}", escape(&t.captions.figure_label)),
+            Some(TargetKind::Table) => format!("{}~\\ref{{tl:{target}}}", escape(&t.captions.table_label)),
+            Some(TargetKind::Equation) => format!("\\eqref{{tl:{target}}}"),
+            Some(TargetKind::Heading { level, appendix }) => {
+                format!("{}~\\ref{{tl:{target}}}", escape(&heading_word(t, *level, *appendix)))
+            }
+            None => "\\textbf{??}".into(),
+        }
+    }
+
     fn blocks(&mut self, blocks: &[Block]) {
         for b in blocks {
             self.block(b);
@@ -71,17 +186,18 @@ impl BodyWriter<'_> {
     fn block(&mut self, b: &Block) {
         match b {
             Block::Paragraph { content } => {
-                let text = inlines(content);
+                let text = self.inlines(content);
                 if !text.trim().is_empty() {
                     self.out.push_str(&text);
                     self.out.push_str("\n\n");
                 }
             }
             Block::Heading { attrs, content } => {
-                let text = inlines(content);
+                let text = self.inlines(content);
                 if !text.trim().is_empty() {
                     let level = usize::from(attrs.level.clamp(1, 4)) - 1;
-                    self.out.push_str(&format!("\\{}{{{}}}\n\n", self.commands[level], text.trim()));
+                    let cmd = self.ctx.commands[level];
+                    self.out.push_str(&format!("\\{cmd}{{{}}}{}\n\n", text.trim(), label(&attrs.id)));
                 }
             }
             Block::BulletList { content } => self.list("itemize", None, content),
@@ -101,7 +217,7 @@ impl BodyWriter<'_> {
             Block::Equation { attrs } => {
                 let latex = attrs.latex.trim();
                 if !latex.is_empty() {
-                    self.out.push_str(&format!("\\begin{{equation}}\n{latex}\n\\end{{equation}}\n\n"));
+                    self.out.push_str(&format!("\\begin{{equation}}{}\n{latex}\n\\end{{equation}}\n\n", label(&attrs.id)));
                 }
             }
             Block::Figure { attrs, content } => {
@@ -115,11 +231,15 @@ impl BodyWriter<'_> {
                         "\\fbox{{\\parbox[c][4cm][c]{{{width}\\linewidth}}{{\\centering\\textit{{No image}}}}}}\n"
                     ));
                 }
-                self.out.push_str(&format!("\\caption{{{}}}\n\\end{{figure}}\n\n", caption_text(content)));
+                self.out.push_str(&format!(
+                    "\\caption{{{}}}{}\n\\end{{figure}}\n\n",
+                    self.caption_text(content),
+                    label(&attrs.id)
+                ));
             }
-            Block::TableFigure { content } => {
+            Block::TableFigure { attrs, content } => {
                 let caption = content.iter().find_map(|p| match p {
-                    TableFigurePart::Caption { content } => Some(inlines(content)),
+                    TableFigurePart::Caption { content } => Some(self.inlines(content)),
                     _ => None,
                 });
                 let rows = content.iter().find_map(|p| match p {
@@ -127,7 +247,7 @@ impl BodyWriter<'_> {
                     _ => None,
                 });
                 self.out.push_str("\\begin{table}[htbp]\n\\centering\n");
-                self.out.push_str(&format!("\\caption{{{}}}\n", caption.unwrap_or_default().trim()));
+                self.out.push_str(&format!("\\caption{{{}}}{}\n", caption.unwrap_or_default().trim(), label(&attrs.id)));
                 self.table(rows.unwrap_or(&[]));
                 self.out.push_str("\\end{table}\n\n");
             }
@@ -136,8 +256,17 @@ impl BodyWriter<'_> {
                 self.table(content);
                 self.out.push_str("\\end{center}\n\n");
             }
+            Block::AppendixStart => {
+                // The reference list comes before the appendices.
+                self.emit_bibliography();
+                self.out.push_str("\\texloomappendix\n\n");
+            }
             Block::Unknown => {}
         }
+    }
+
+    fn caption_text(&self, content: &[Caption]) -> String {
+        content.iter().map(|c| self.inlines(&c.content)).collect::<Vec<_>>().join(" ").trim().to_string()
     }
 
     /// A grid table that always fits the text width; long cell text wraps.
@@ -156,7 +285,7 @@ impl BodyWriter<'_> {
             let mut used = 0;
             for cell in &row.content {
                 let mut inner = String::new();
-                BodyWriter { out: &mut inner, commands: self.commands }.blocks(&cell.content);
+                self.nested(&mut inner).blocks(&cell.content);
                 let mut text = inner.trim().replace("\n\n", "\\par ");
                 if cell.is_header() && !text.is_empty() {
                     text = format!("{{\\bfseries {text}}}");
@@ -183,17 +312,13 @@ impl BodyWriter<'_> {
         }
         for item in items {
             let mut inner = String::new();
-            BodyWriter { out: &mut inner, commands: self.commands }.blocks(&item.content);
+            self.nested(&mut inner).blocks(&item.content);
             self.out.push_str("\\item ");
             self.out.push_str(inner.trim_end());
             self.out.push('\n');
         }
         self.out.push_str(&format!("\\end{{{env}}}\n\n"));
     }
-}
-
-fn caption_text(content: &[Caption]) -> String {
-    content.iter().map(|c| inlines(&c.content)).collect::<Vec<_>>().join(" ").trim().to_string()
 }
 
 /// `0.8` for 80 %, clamped to a sensible range.
@@ -209,23 +334,6 @@ fn is_safe_relative(path: &str) -> bool {
         && !path.contains('\\')
         && path.split('/').all(|s| !s.is_empty() && s != "..")
         && !path.chars().any(|c| matches!(c, '{' | '}' | '%' | '#' | '$' | '&' | '~' | '^'))
-}
-
-fn inlines(content: &[Inline]) -> String {
-    let mut s = String::new();
-    for i in content {
-        match i {
-            Inline::Text { text, marks } => s.push_str(&apply_marks(escape(text), marks)),
-            Inline::HardBreak => s.push_str("\\newline\n"),
-            Inline::InlineMath { attrs } => {
-                if !attrs.latex.trim().is_empty() {
-                    s.push_str(&format!("${}$", attrs.latex.trim()));
-                }
-            }
-            Inline::Unknown => {}
-        }
-    }
-    s
 }
 
 fn apply_marks(mut text: String, marks: &[Mark]) -> String {

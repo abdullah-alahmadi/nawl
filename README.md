@@ -24,6 +24,12 @@ caption below it) and **Table** (caption above; row/column buttons appear while 
 cursor is in the table). The **Outline** on the left lists headings, figures and tables.
 Figure images are stored in a `figures/` folder next to the `.loom` file.
 
+**↗ Ref** inserts a cross-reference ("Figure 3.1", "Chapter 2", "(3.2)") that stays
+correct as things move; **❞ Cite** inserts a citation from **References**, where you
+import or paste BibTeX (e.g. exported from Zotero). **Appendices** starts the
+appendices; chapters after it are lettered. **New** starts a document from the
+template's chapter list, and the yellow bar above the preview lists anything to check.
+
 ## Making a template
 
 Switch to **Template** mode (top left). The designer has panels for template info,

@@ -34,6 +34,9 @@ pub struct Document {
     pub metadata: Metadata,
     #[serde(rename = "doc")]
     pub body: Body,
+    /// BibTeX source for citations.
+    #[serde(default)]
+    pub bibliography: String,
 }
 
 /// Values for the template's metadata fields, by field id.
@@ -107,8 +110,12 @@ pub enum Block {
     /// A table with a caption above it: content is `[caption, table]`.
     TableFigure {
         #[serde(default)]
+        attrs: IdAttrs,
+        #[serde(default)]
         content: Vec<TableFigurePart>,
     },
+    /// Everything after this marker is an appendix (chapters lettered A, B…).
+    AppendixStart,
     /// A table without a caption (e.g. pasted).
     Table {
         #[serde(default)]
@@ -127,6 +134,16 @@ pub struct FigureAttrs {
     /// Image width as a percentage of the text width.
     #[serde(default = "default_width")]
     pub width_percent: f32,
+    /// Stable id that cross-references point at.
+    #[serde(default)]
+    pub id: Option<String>,
+}
+
+/// Just a stable id, for nodes that cross-references can point at.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct IdAttrs {
+    #[serde(default)]
+    pub id: Option<String>,
 }
 
 fn default_width() -> f32 {
@@ -200,6 +217,8 @@ pub struct ListItem {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HeadingAttrs {
     pub level: u8,
+    #[serde(default)]
+    pub id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -218,7 +237,120 @@ fn one() -> u32 {
     1
 }
 
+/// Calls `f` for every block, including blocks nested in lists, quotes and table cells.
+pub fn walk_blocks<'a>(blocks: &'a [Block], f: &mut impl FnMut(&'a Block)) {
+    for b in blocks {
+        f(b);
+        match b {
+            Block::Blockquote { content } => walk_blocks(content, f),
+            Block::BulletList { content } | Block::OrderedList { content, .. } => {
+                content.iter().for_each(|li| walk_blocks(&li.content, f))
+            }
+            Block::TableFigure { content, .. } => {
+                for part in content {
+                    if let TableFigurePart::Table { content: rows } = part {
+                        rows.iter().flat_map(|r| &r.content).for_each(|c| walk_blocks(&c.content, f));
+                    }
+                }
+            }
+            Block::Table { content } => content.iter().flat_map(|r| &r.content).for_each(|c| walk_blocks(&c.content, f)),
+            _ => {}
+        }
+    }
+}
+
+/// Calls `f` for every inline node in the document (paragraphs, headings, captions, cells…).
+pub fn walk_inlines<'a>(blocks: &'a [Block], f: &mut impl FnMut(&'a Inline)) {
+    walk_blocks(blocks, &mut |b| {
+        let inl: Vec<&'a [Inline]> = match b {
+            Block::Paragraph { content } | Block::Heading { content, .. } | Block::CodeBlock { content } => vec![content],
+            Block::Figure { content, .. } => content.iter().map(|c| c.content.as_slice()).collect(),
+            Block::TableFigure { content, .. } => content
+                .iter()
+                .filter_map(|p| match p {
+                    TableFigurePart::Caption { content } => Some(content.as_slice()),
+                    _ => None,
+                })
+                .collect(),
+            _ => vec![],
+        };
+        inl.into_iter().flatten().for_each(&mut *f);
+    });
+}
+
 impl Body {
+    /// Everything a cross-reference can point at, by id.
+    pub fn targets(&self) -> std::collections::HashMap<String, TargetKind> {
+        let mut out = std::collections::HashMap::new();
+        let mut appendix = false;
+        walk_blocks(&self.content, &mut |b| {
+            let (id, kind) = match b {
+                Block::AppendixStart => {
+                    appendix = true;
+                    return;
+                }
+                Block::Heading { attrs, .. } => (&attrs.id, TargetKind::Heading { level: attrs.level.clamp(1, 4), appendix }),
+                Block::Figure { attrs, .. } => (&attrs.id, TargetKind::Figure),
+                Block::TableFigure { attrs, .. } => (&attrs.id, TargetKind::Table),
+                Block::Equation { attrs } => (&attrs.id, TargetKind::Equation),
+                _ => return,
+            };
+            if let Some(id) = id.as_ref().filter(|i| !i.is_empty()) {
+                out.entry(id.clone()).or_insert(kind);
+            }
+        });
+        out
+    }
+
+    /// Citation keys in order of first use, without duplicates.
+    pub fn cited_keys(&self) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        walk_inlines(&self.content, &mut |i| {
+            if let Inline::Citation { attrs } = i {
+                for k in &attrs.keys {
+                    if !k.is_empty() && !out.contains(k) {
+                        out.push(k.clone());
+                    }
+                }
+            }
+        });
+        out
+    }
+
+    /// Ids that references point at but that don't exist (deleted targets).
+    pub fn broken_refs(&self) -> Vec<String> {
+        let targets = self.targets();
+        let mut out = Vec::new();
+        walk_inlines(&self.content, &mut |i| {
+            if let Inline::Ref { attrs } = i
+                && !targets.contains_key(&attrs.target)
+                && !out.contains(&attrs.target)
+            {
+                out.push(attrs.target.clone());
+            }
+        });
+        out
+    }
+
+    /// Titles of level-1 headings (chapters or top-level sections).
+    pub fn top_level_titles(&self) -> Vec<String> {
+        self.content
+            .iter()
+            .filter_map(|b| match b {
+                Block::Heading { attrs, content } if attrs.level == 1 => Some(
+                    content
+                        .iter()
+                        .filter_map(|i| match i {
+                            Inline::Text { text, .. } => Some(text.as_str()),
+                            _ => None,
+                        })
+                        .collect::<String>(),
+                ),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Image paths used by figures anywhere in the document, without duplicates.
     pub fn figure_sources(&self) -> Vec<String> {
         fn walk(blocks: &[Block], out: &mut Vec<String>) {
@@ -245,6 +377,8 @@ impl Body {
 pub struct MathAttrs {
     #[serde(default)]
     pub latex: String,
+    #[serde(default)]
+    pub id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -260,8 +394,40 @@ pub enum Inline {
         #[serde(default)]
         attrs: MathAttrs,
     },
+    /// "Figure 3.1": a reference to a heading, figure, table or equation by id.
+    Ref {
+        #[serde(default)]
+        attrs: RefAttrs,
+    },
+    /// A citation of one or more bibliography entries.
+    Citation {
+        #[serde(default)]
+        attrs: CitationAttrs,
+    },
     #[serde(other)]
     Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct RefAttrs {
+    #[serde(default)]
+    pub target: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct CitationAttrs {
+    #[serde(default)]
+    pub keys: Vec<String>,
+}
+
+/// What a cross-reference can point at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TargetKind {
+    /// Heading level 1–4; `appendix` when it comes after the appendix marker.
+    Heading { level: u8, appendix: bool },
+    Figure,
+    Table,
+    Equation,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -332,10 +498,36 @@ mod tests {
         ]}))
         .unwrap();
         assert!(matches!(&body.content[0], Block::Figure { attrs, .. } if attrs.width_percent == 60.0));
-        let Block::TableFigure { content } = &body.content[1] else { panic!() };
+        let Block::TableFigure { content, .. } = &body.content[1] else { panic!() };
         let TableFigurePart::Table { content: rows } = &content[1] else { panic!() };
         assert!(rows[0].content[0].is_header());
         assert_eq!(body.figure_sources(), vec!["figures/a.png".to_string()]);
+    }
+
+    #[test]
+    fn finds_targets_refs_and_citations() {
+        let body: Body = serde_json::from_value(json!({"type": "doc", "content": [
+            {"type": "heading", "attrs": {"level": 1, "id": "h1"}, "content": [{"type": "text", "text": "Intro"}]},
+            {"type": "paragraph", "content": [
+                {"type": "text", "text": "See "},
+                {"type": "ref", "attrs": {"target": "f1"}},
+                {"type": "ref", "attrs": {"target": "gone"}},
+                {"type": "citation", "attrs": {"keys": ["b", "a"]}},
+                {"type": "citation", "attrs": {"keys": ["a"]}}
+            ]},
+            {"type": "figure", "attrs": {"src": "x.png", "id": "f1"},
+             "content": [{"type": "caption", "content": [{"type": "citation", "attrs": {"keys": ["c"]}}]}]},
+            {"type": "appendixStart"},
+            {"type": "equation", "attrs": {"latex": "x", "id": "e1"}}
+        ]}))
+        .unwrap();
+        let t = body.targets();
+        assert_eq!(t["h1"], TargetKind::Heading { level: 1, appendix: false });
+        assert_eq!(t["f1"], TargetKind::Figure);
+        assert_eq!(t["e1"], TargetKind::Equation);
+        assert_eq!(body.broken_refs(), vec!["gone".to_string()]);
+        assert_eq!(body.cited_keys(), vec!["b", "a", "c"]);
+        assert_eq!(body.top_level_titles(), vec!["Intro"]);
     }
 
     #[test]

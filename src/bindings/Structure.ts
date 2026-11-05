@@ -19,4 +19,8 @@ tocDepth: number, frontMatterPageNumbers: PageNumberStyle, mainPageNumbers: Page
  * With chapters: number equations, figures and tables per chapter ("2.3")
  * instead of continuously ("7").
  */
-perChapterNumbering: boolean, };
+perChapterNumbering: boolean, 
+/**
+ * Label for appendix chapters (or top-level sections); `{n}` is the letter.
+ */
+appendixLabel: string, };

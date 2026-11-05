@@ -62,9 +62,12 @@ fn run(cli: Cli) -> Result<()> {
         Command::Render { document, template, output } => {
             let (generated, template_dir, doc_dir) = prepare(&document, &template)?;
             let assets = load_assets(&generated, &template_dir, &doc_dir)?;
-            let cls_name = generated.cls_file_name();
-            let mut files = vec![texloom_compile::Asset { path: &cls_name, bytes: generated.cls.as_bytes() }];
-            files.extend(assets.iter().map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }));
+            let support = generated.support_files();
+            let files: Vec<texloom_compile::Asset> = support
+                .iter()
+                .chain(assets.iter())
+                .map(|(p, b)| texloom_compile::Asset { path: p, bytes: b })
+                .collect();
 
             let compiler = texloom_compile::Compiler::locate(&tectonic_candidates())?;
             let out = match compiler.compile(&generated.tex, &files) {
@@ -91,8 +94,7 @@ fn run(cli: Cli) -> Result<()> {
             let stem = document.file_stem().and_then(|s| s.to_str()).unwrap_or("document");
             let tex_path = out_dir.join(format!("{stem}.tex"));
             std::fs::write(&tex_path, &generated.tex)?;
-            std::fs::write(out_dir.join(generated.cls_file_name()), &generated.cls)?;
-            for (rel, bytes) in &assets {
+            for (rel, bytes) in generated.support_files().iter().chain(assets.iter()) {
                 let dest = out_dir.join(rel);
                 if let Some(parent) = dest.parent() {
                     std::fs::create_dir_all(parent)?;

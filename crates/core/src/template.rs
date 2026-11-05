@@ -20,6 +20,12 @@ pub struct Template {
     /// How figure and table captions look. Older templates get the defaults.
     #[serde(default)]
     pub captions: CaptionStyle,
+    /// How citations and the reference list look. Older templates get the defaults.
+    #[serde(default)]
+    pub bibliography: BibliographySettings,
+    /// Chapters a new document starts with; `required` ones are checked.
+    #[serde(default)]
+    pub skeleton: Vec<SkeletonSection>,
     pub title_page: TitlePage,
     /// Metadata the document author fills in (title, team members, advisor…).
     pub fields: Vec<MetadataField>,
@@ -182,6 +188,13 @@ pub struct Structure {
     /// With chapters: number equations, figures and tables per chapter ("2.3")
     /// instead of continuously ("7").
     pub per_chapter_numbering: bool,
+    /// Label for appendix chapters (or top-level sections); `{n}` is the letter.
+    #[serde(default = "default_appendix_label")]
+    pub appendix_label: String,
+}
+
+fn default_appendix_label() -> String {
+    "Appendix {n}".into()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -367,6 +380,45 @@ pub enum CaptionAlign {
     Left,
     /// Centered when the caption fits on one line, justified otherwise.
     Justified,
+}
+
+// ---------------------------------------------------------------- bibliography
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct BibliographySettings {
+    pub style: BibStyle,
+    /// Heading of the reference list.
+    pub title: String,
+    pub in_toc: bool,
+}
+
+impl Default for BibliographySettings {
+    fn default() -> Self {
+        Self { style: BibStyle::Ieee, title: "References".into(), in_toc: true }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum BibStyle {
+    /// [1], [2] in order of first citation; IEEE reference format.
+    Ieee,
+    /// [1], [2] with the list sorted by author.
+    Numeric,
+    /// (Author, 2020), APA-like list sorted by author.
+    AuthorYear,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SkeletonSection {
+    pub title: String,
+    #[serde(default)]
+    pub required: bool,
 }
 
 // ---------------------------------------------------------------- title page

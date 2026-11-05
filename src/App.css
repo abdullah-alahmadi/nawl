@@ -344,3 +344,66 @@ select option, select optgroup { color: var(--text); background-color: var(--pan
 .page .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(47, 111, 222, 0.15); pointer-events: none; }
 .table-tools { display: inline-flex; align-items: center; gap: 2px; }
 .d-sample-figure { margin: 4px auto 8px; width: 60%; padding: 18px 0; text-align: center; color: #888; background: #f1f3f5; border-radius: 4px; font: 12px system-ui, sans-serif; }
+
+/* Cross-references and citations in the text */
+.page .ref, .page .citation { color: #1f4fa8; cursor: default; border-radius: 3px; padding: 0 1px; white-space: nowrap; }
+.page .ref:hover, .page .citation:hover { background: #e8eefb; }
+.page .ref.is-selected, .page .citation.is-selected { background: #d4e1fa; }
+.page .ref.broken, .page .citation.broken { color: #c0362c; background: #fdecea; }
+
+/* Appendices marker */
+.page .appendix-divider {
+  margin: 2em 0 1em; padding: 6px 10px; border: 1px dashed #9aa3ad; border-radius: 6px; text-align: center;
+  font: 12px system-ui, sans-serif; color: #5b6570; text-transform: uppercase; letter-spacing: 0.05em; user-select: none;
+}
+.page .appendix-divider.ProseMirror-selectednode { border-color: var(--accent); color: var(--accent); }
+.outline-appendix .outline-number { color: var(--accent); }
+
+/* Pickers */
+.editor-pane { position: relative; }
+.picker-anchor { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 20; }
+.picker {
+  width: min(520px, 90vw); max-height: 60vh; display: flex; flex-direction: column; gap: 6px; padding: 10px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.picker-head { display: flex; justify-content: space-between; align-items: center; }
+.picker input {
+  font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
+}
+.picker input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.picker-list { overflow: auto; display: flex; flex-direction: column; gap: 1px; min-height: 0; }
+.picker-list button { display: grid; text-align: left; gap: 1px; padding: 6px 8px; }
+.picker-list button.active { background: var(--accent-soft); }
+.picker-main { font-weight: 500; }
+.picker-sub { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-empty { padding: 12px 8px; color: var(--muted); font-size: 13px; }
+.picker-foot { border-top: 1px solid var(--border); padding-top: 6px; }
+.picker-foot button { color: var(--accent); }
+
+/* References manager */
+.refs-panel {
+  position: absolute; inset: 12px; z-index: 15; display: flex; flex-direction: column; gap: 10px; padding: 16px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.refs-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.refs-head h2 { margin: 0 0 4px; font-size: 16px; }
+.refs-head p { margin: 0; font-size: 13px; }
+.refs-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px; }
+.refs-source {
+  font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px; resize: none; min-height: 0;
+}
+.refs-entries { overflow: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.refs-entry { display: grid; gap: 1px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); }
+.refs-entry.cited { border-color: var(--accent); }
+.refs-entry code { font-size: 12px; color: var(--accent); }
+
+/* Document checks */
+.checks { margin: 12px 16px 0; padding: 6px 10px; border-radius: 6px; background: #fff6e0; color: #8a5a00; border: 1px solid #f0d28a; font-size: 13px; }
+.checks-toggle { color: inherit; padding: 0; }
+.checks ul { margin: 6px 0 2px; padding-left: 20px; }
+@media (prefers-color-scheme: dark) {
+  .checks { background: #3a2f17; color: #f3cf7a; border-color: #6b5422; }
+}
+.d-table-head.skeleton, .d-table-row.skeleton { grid-template-columns: 1fr 70px 92px; }
+.refs-head .group button { white-space: nowrap; }

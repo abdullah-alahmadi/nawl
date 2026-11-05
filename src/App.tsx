@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, useEditorState, EditorContent, type Editor, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TableKit } from "@tiptap/extension-table";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { Equation } from "./editor/Equation";
 import { MetadataForm } from "./editor/MetadataForm";
 import { Caption, CaptionedTable, Figure, pickFigureImage } from "./editor/Figures";
 import { Outline } from "./editor/Outline";
+import { AppendixStart, Citation, CrossRef, TexloomIds, setTexloomContext } from "./editor/Academic";
+import { CitePicker, ReferencesPanel, RefPicker } from "./editor/Pickers";
 import { PAGE_WIDTH_PX, templateCss } from "./editor/templateStyle";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
 import { PdfPreview } from "./preview/PdfPreview";
@@ -61,6 +63,13 @@ export default function App() {
   const [issues, setIssues] = useState<api.Issue[]>([]);
   // Refs give debounced callbacks the latest values without re-subscribing.
   const metadataRef = useRef<api.Metadata>({});
+  // The document's BibTeX and what it parses to.
+  const [bibliography, setBibliographyState] = useState("");
+  const bibRef = useRef("");
+  const [bibInfo, setBibInfo] = useState<api.BibInfo>({ entries: [], error: null });
+  const [showRefs, setShowRefs] = useState(false);
+  const [picker, setPicker] = useState<null | "ref" | "cite">(null);
+  const [showChecks, setShowChecks] = useState(false);
   const editorRef = useRef<Editor | null>(null);
   const requestId = useRef(0);
   const timer = useRef<number | undefined>(undefined);
@@ -73,8 +82,10 @@ export default function App() {
     if (!editor) return;
     const id = ++requestId.current;
     setStatus({ state: "compiling" });
+    const state: api.DocState = { doc: editor.getJSON(), metadata: metadataRef.current, bibliography: bibRef.current };
+    api.checkDocument(state).then(setIssues, () => setIssues([]));
     try {
-      const bytes = await api.renderPdf(editor.getJSON(), metadataRef.current);
+      const bytes = await api.renderPdf(state);
       if (id !== requestId.current) return; // a newer compile superseded this one
       setPdf(bytes);
       setStatus({ state: "ok" });
@@ -91,12 +102,34 @@ export default function App() {
   const setMetadata = useCallback((m: api.Metadata) => {
     metadataRef.current = m;
     setMetadataState(m);
-    api.checkMetadata(m).then(setIssues, () => setIssues([]));
+  }, []);
+
+  /** Everything the backend needs about the open document. */
+  const docState = (): api.DocState => ({
+    doc: editorRef.current?.getJSON() ?? EMPTY_DOC,
+    metadata: metadataRef.current,
+    bibliography: bibRef.current,
+  });
+
+  // Bibliography changes: parse for the citation picker and on-screen labels.
+  const setBibliography = useCallback((source: string) => {
+    bibRef.current = source;
+    setBibliographyState(source);
+    api.parseBibliography(source).then((info) => {
+      if (bibRef.current !== source) return; // a newer edit superseded this one
+      setBibInfo(info);
+      const editor = editorRef.current;
+      if (editor && !info.error) setTexloomContext(editor, { bibEntries: info.entries });
+    });
   }, []);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
+      TexloomIds,
+      CrossRef,
+      Citation,
+      AppendixStart,
       Equation,
       Caption,
       Figure,
@@ -129,11 +162,24 @@ export default function App() {
         setTemplateInfo(t);
         setDraft(t.template);
         setMetadata(sample.metadata);
+        setBibliography(sample.bibliography ?? "");
         loadDocument(editor, sample.doc);
         compile();
       })
       .catch((e) => setStatus({ state: "error", error: api.asAppError(e) }));
-  }, [editor, compile, setMetadata]);
+  }, [editor, compile, setMetadata, setBibliography]);
+
+  // Node views (references, citations) read the template from the editor.
+  const activeTemplate = templateInfo?.template ?? null;
+  useEffect(() => {
+    if (editor && activeTemplate) setTexloomContext(editor, { template: activeTemplate });
+  }, [editor, activeTemplate]);
+
+  const onBibliographyChange = (source: string) => {
+    setBibliography(source);
+    setDirty(true);
+    scheduleCompile();
+  };
 
   // A new active template: refresh everything that depends on it.
   const applyTemplate = useCallback(
@@ -245,7 +291,7 @@ export default function App() {
   // Keep the LaTeX source view current while it's open.
   useEffect(() => {
     if (!showLatex || !editor) return;
-    const refresh = () => api.toLatex(editor.getJSON(), metadataRef.current).then(setLatex);
+    const refresh = () => api.toLatex(docState()).then(setLatex);
     refresh();
     editor.on("update", refresh);
     return () => void editor.off("update", refresh);
@@ -257,7 +303,7 @@ export default function App() {
     if (!editor) return;
     const target = await save({ filters: DOC_FILTER, defaultPath: path ?? "report.loom" });
     if (!target) return;
-    await api.saveDocument(target, editor.getJSON(), metadataRef.current).then(() => {
+    await api.saveDocument(target, docState()).then(() => {
       setPath(target);
       setDirty(false);
     }, report);
@@ -266,7 +312,7 @@ export default function App() {
   const saveDoc = useCallback(async () => {
     if (!editor) return;
     if (!path) return saveAs();
-    await api.saveDocument(path, editor.getJSON(), metadataRef.current).then(() => setDirty(false), report);
+    await api.saveDocument(path, docState()).then(() => setDirty(false), report);
   }, [editor, path, saveAs]);
 
   const openDoc = async () => {
@@ -276,6 +322,7 @@ export default function App() {
     try {
       const opened = await api.openDocument(target);
       loadDocument(editor, opened.doc);
+      setBibliography(opened.bibliography ?? "");
       metadataRef.current = opened.metadata;
       setPath(target);
       setDirty(false);
@@ -293,13 +340,30 @@ export default function App() {
     if (!editor) return;
     const name = (path ? path.split(/[\\/]/).pop()!.replace(/\.loom$/, "") : "report") + ".pdf";
     const target = await save({ filters: [{ name: "PDF", extensions: ["pdf"] }], defaultPath: name });
-    if (target) await api.exportPdf(target, editor.getJSON(), metadataRef.current).catch(report);
+    if (target) await api.exportPdf(target, docState()).catch(report);
   };
 
   const exportLatex = async () => {
     if (!editor) return;
     const target = await save({ filters: [{ name: "LaTeX", extensions: ["tex"] }], defaultPath: "report.tex" });
-    if (target) await api.exportTex(target, editor.getJSON(), metadataRef.current).catch(report);
+    if (target) await api.exportTex(target, docState()).catch(report);
+  };
+
+  const newDoc = async () => {
+    if (!editor) return;
+    if (dirty && !(await ask("Discard unsaved changes and start a new document?", { title: "New document", kind: "warning" }))) return;
+    try {
+      const fresh = await api.newDocument();
+      loadDocument(editor, fresh.doc);
+      setMetadata({});
+      setBibliography("");
+      setPath(null);
+      setDirty(false);
+      setShowInfo(true); // a new document starts with its title, authors…
+      compile();
+    } catch (e) {
+      report(e);
+    }
   };
 
   useEffect(() => {
@@ -333,6 +397,9 @@ export default function App() {
           </button>
         </div>
         <div className="group">
+          <button onClick={newDoc} title="New document from the template's chapter list">
+            New
+          </button>
           <button onClick={openDoc}>Open</button>
           <button onClick={saveDoc} title="Ctrl+S">Save</button>
           <button onClick={saveAs} title="Ctrl+Shift+S">Save As</button>
@@ -341,7 +408,7 @@ export default function App() {
             Export .tex
           </button>
         </div>
-        {editor && mode === "document" && <FormatBar editor={editor} onError={report} />}
+        {editor && mode === "document" && <FormatBar editor={editor} onError={report} onPicker={setPicker} />}
         <div className="group right">
           <div className="menu-anchor">
             <button
@@ -368,6 +435,10 @@ export default function App() {
               </div>
             )}
           </div>
+          <button hidden={mode !== "document"} className={showRefs ? "active" : ""} onClick={() => setShowRefs((v) => !v)} title="Bibliography (BibTeX)">
+            References{bibInfo.entries.length > 0 && ` (${bibInfo.entries.length})`}
+            {bibInfo.error && <span className="badge">!</span>}
+          </button>
           <button hidden={mode !== "document"} className={showOutline ? "active" : ""} onClick={() => setShowOutline((v) => !v)}>
             Outline
           </button>
@@ -410,13 +481,23 @@ export default function App() {
         {/* Kept mounted (just hidden) in template mode so the editor keeps its state. */}
         <section className={`editor-pane${showOutline ? " with-outline" : ""}`} hidden={mode !== "document"}>
           {template && <style>{templateCss(template, ".page")}</style>}
-          {showOutline && editor && template && (
-            <Outline
-              editor={editor}
-              numberedDepth={template.structure.numberedDepth}
-              perChapter={template.structure.topLevel === "chapter" && template.structure.perChapterNumbering}
-              figureLabel={template.captions.figureLabel}
-              tableLabel={template.captions.tableLabel}
+          {showOutline && editor && template && <Outline editor={editor} />}
+          {picker && editor && (
+            <div className="picker-anchor">
+              {picker === "ref" ? (
+                <RefPicker editor={editor} onClose={() => setPicker(null)} />
+              ) : (
+                <CitePicker editor={editor} entries={bibInfo.entries} onClose={() => setPicker(null)} onManage={() => setShowRefs(true)} />
+              )}
+            </div>
+          )}
+          {showRefs && (
+            <ReferencesPanel
+              source={bibliography}
+              info={bibInfo}
+              cited={citedKeys(editor)}
+              onChange={onBibliographyChange}
+              onClose={() => setShowRefs(false)}
             />
           )}
           <div className="editor-scroll" ref={editorScroll} style={{ ["--page-zoom" as string]: pageZoom }}>
@@ -430,6 +511,20 @@ export default function App() {
         </section>
         <section className="preview-pane">
           {templateProblem && <TemplateProblemPanel problem={templateProblem} onDismiss={() => setTemplateProblem(null)} />}
+          {mode === "document" && issues.length > 0 && (
+            <div className="checks">
+              <button className="checks-toggle" onClick={() => setShowChecks((v) => !v)} aria-expanded={showChecks}>
+                ⚠ {issues.length} thing{issues.length > 1 ? "s" : ""} to check {showChecks ? "▴" : "▾"}
+              </button>
+              {showChecks && (
+                <ul>
+                  {issues.map((i, n) => (
+                    <li key={n}>{i.message}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           {status.state === "error" && <ErrorPanel error={status.error} />}
           {showLatex ? <pre className="latex-source">{latex}</pre> : <PdfPreview pdf={pdf} />}
         </section>
@@ -438,7 +533,15 @@ export default function App() {
   );
 }
 
-function FormatBar({ editor, onError }: { editor: Editor; onError: (e: unknown) => void }) {
+function FormatBar({
+  editor,
+  onError,
+  onPicker,
+}: {
+  editor: Editor;
+  onError: (e: unknown) => void;
+  onPicker: (p: "ref" | "cite") => void;
+}) {
   // Re-render only when the formatting state at the cursor changes.
   const s = useEditorState({
     editor,
@@ -490,6 +593,10 @@ function FormatBar({ editor, onError }: { editor: Editor; onError: (e: unknown) 
         }
       />
       <B label="▦ Table" title="Insert a table with a caption" run={() => c().insertCaptionedTable(3, 3).run()} />
+      <span className="sep" />
+      <B label="↗ Ref" title="Insert a cross-reference (“see Figure 3.1”)" run={() => onPicker("ref")} />
+      <B label="❞ Cite" title="Insert a citation" run={() => onPicker("cite")} />
+      <B label="Appendices" title="Start the appendices here (chapters after it are A, B…)" run={() => c().insertAppendices().run()} />
       {s.inTable && (
         <span className="table-tools" role="group" aria-label="Table">
           <span className="sep" />
@@ -570,4 +677,13 @@ function ErrorPanel({ error }: { error: AppError }) {
       <strong>{error.kind === "tectonicMissing" ? "Tectonic not found" : "Error"}:</strong> {error.message}
     </div>
   );
+}
+
+/** Keys cited anywhere in the document, in order of first use. */
+function citedKeys(editor: Editor | null): string[] {
+  const keys: string[] = [];
+  editor?.state.doc.descendants((n) => {
+    if (n.type.name === "citation") for (const k of n.attrs.keys as string[]) if (!keys.includes(k)) keys.push(k);
+  });
+  return keys;
 }

@@ -6,6 +6,7 @@ macro_rules! log {
     }};
 }
 
+mod bib;
 mod files;
 mod templates;
 
@@ -74,6 +75,9 @@ struct OpenedDocument {
     doc: Value,
     #[serde(default)]
     metadata: Metadata,
+    /// BibTeX source.
+    #[serde(default)]
+    bibliography: String,
     #[serde(default, skip_deserializing)]
     template: Option<TemplateInfo>,
 }
@@ -100,9 +104,9 @@ fn tectonic_candidates() -> Vec<PathBuf> {
     v
 }
 
-fn to_document(doc: Value, metadata: Metadata) -> Result<Document, AppError> {
+fn to_document(doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<Document, AppError> {
     let body: Body = serde_json::from_value(doc).map_err(|e| AppError::other(format!("Unreadable document: {e}")))?;
-    Ok(Document { metadata, body })
+    Ok(Document { metadata, body, bibliography: bibliography.unwrap_or_default() })
 }
 
 #[tauri::command]
@@ -199,29 +203,82 @@ fn sample_document() -> Result<OpenedDocument, AppError> {
     serde_json::from_str(SAMPLE_DOCUMENT).map_err(AppError::other)
 }
 
+/// Warnings about the document: required fields and chapters, broken
+/// cross-references, citations missing from the references.
 #[tauri::command]
-fn check_metadata(state: State<'_, AppState>, metadata: Metadata) -> Vec<Issue> {
-    state.templates.current().template.check_metadata(&metadata)
+fn check_document(
+    state: State<'_, AppState>,
+    doc: Value,
+    metadata: Metadata,
+    bibliography: Option<String>,
+) -> Result<Vec<Issue>, AppError> {
+    let document = to_document(doc, metadata, bibliography)?;
+    let keys = bib::keys(&document.bibliography);
+    Ok(state.templates.current().template.check_document(&document, keys.as_ref()))
+}
+
+/// Entries of a BibTeX source, for the citation picker and on-screen labels.
+#[tauri::command]
+fn parse_bibliography(source: String) -> bib::BibInfo {
+    bib::parse(&source)
+}
+
+/// Reads a `.bib` file to import its entries.
+#[tauri::command]
+fn read_bib_file(path: String) -> Result<String, AppError> {
+    if !path.to_lowercase().ends_with(".bib") {
+        return Err(AppError::other("Choose a .bib file"));
+    }
+    Ok(std::fs::read_to_string(path)?)
+}
+
+/// A new, unsaved document started from the template's chapter skeleton.
+#[tauri::command]
+fn new_document(state: State<'_, AppState>) -> Result<OpenedDocument, AppError> {
+    let template = state.templates.current().template;
+    let mut content: Vec<Value> = Vec::new();
+    for (i, sec) in template.skeleton.iter().enumerate() {
+        content.push(serde_json::json!({
+            "type": "heading",
+            "attrs": { "level": 1, "id": format!("h-new-{i}") },
+            "content": [{ "type": "text", "text": sec.title }],
+        }));
+        content.push(serde_json::json!({ "type": "paragraph" }));
+    }
+    if content.is_empty() {
+        content.push(serde_json::json!({ "type": "paragraph" }));
+    }
+    state.doc_folder.reset()?;
+    Ok(OpenedDocument {
+        doc: serde_json::json!({ "type": "doc", "content": content }),
+        metadata: Metadata::new(),
+        bibliography: String::new(),
+        template: None,
+    })
 }
 
 /// Generates LaTeX for the document and compiles it. Returns raw PDF bytes
 /// (an ArrayBuffer on the JS side, avoiding a huge JSON number array).
 #[tauri::command]
-async fn render_pdf(state: State<'_, AppState>, doc: Value, metadata: Metadata) -> Result<Response, AppError> {
-    Ok(Response::new(compile_document(&state, doc, metadata).await?))
+async fn render_pdf(state: State<'_, AppState>, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<Response, AppError> {
+    Ok(Response::new(compile_document(&state, doc, metadata, bibliography).await?))
 }
 
 /// Generates and compiles the document with the active template; returns PDF bytes.
-async fn compile_document(state: &AppState, doc: Value, metadata: Metadata) -> Result<Vec<u8>, AppError> {
+async fn compile_document(
+    state: &AppState,
+    doc: Value,
+    metadata: Metadata,
+    bibliography: Option<String>,
+) -> Result<Vec<u8>, AppError> {
     let compiler = state.compiler.clone().map_err(|message| AppError::TectonicMissing { message })?;
     let active = state.templates.current();
-    let generated = texloom_codegen::generate(&active.template, &to_document(doc, metadata)?);
+    let generated = texloom_codegen::generate(&active.template, &to_document(doc, metadata, bibliography)?);
     let mut assets = active.load_assets(&generated.assets)?;
     assets.extend(state.doc_folder.load(&generated.figures)?);
     let out = tauri::async_runtime::spawn_blocking(move || {
-        let cls_name = generated.cls_file_name();
-        let mut files = vec![Asset { path: &cls_name, bytes: generated.cls.as_bytes() }];
-        files.extend(assets.iter().map(|(p, b)| Asset { path: p, bytes: b }));
+        let support = generated.support_files();
+        let files: Vec<Asset> = support.iter().chain(assets.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
         compiler.compile(&generated.tex, &files)
     })
     .await
@@ -231,19 +288,19 @@ async fn compile_document(state: &AppState, doc: Value, metadata: Metadata) -> R
 
 /// The generated `.tex` followed by the class, for the source view.
 #[tauri::command]
-fn to_latex(state: State<'_, AppState>, doc: Value, metadata: Metadata) -> Result<String, AppError> {
-    let g = texloom_codegen::generate(&state.templates.current().template, &to_document(doc, metadata)?);
+fn to_latex(state: State<'_, AppState>, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<String, AppError> {
+    let g = texloom_codegen::generate(&state.templates.current().template, &to_document(doc, metadata, bibliography)?);
     Ok(format!("{}\n%%%%%%%%%%%%%%%% {} %%%%%%%%%%%%%%%%\n\n{}", g.tex, g.cls_file_name(), g.cls))
 }
 
 /// Saves the document with a copy of its template, so it opens the same way
 /// even if the template file later moves or changes.
 #[tauri::command]
-fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata) -> Result<(), AppError> {
+fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<(), AppError> {
     let active = state.templates.current();
     // Saving to another folder takes the figures along.
     let new_dir = Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default();
-    let figures = to_document(doc.clone(), Metadata::new())?.body.figure_sources();
+    let figures = to_document(doc.clone(), Metadata::new(), None)?.body.figure_sources();
     files::copy_relative(&figures, &state.doc_folder.get(), &new_dir)?;
     // The editor's JSON is written as-is so node types this version doesn't know survive.
     let file = serde_json::json!({
@@ -252,6 +309,7 @@ fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata:
         "template": *active.template,
         "templatePath": active.path,
         "metadata": metadata,
+        "bibliography": bibliography.unwrap_or_default(),
         "doc": doc,
     });
     std::fs::write(&path, serde_json::to_string_pretty(&file).map_err(AppError::other)?)?;
@@ -302,8 +360,8 @@ fn read_document_file(state: State<'_, AppState>, path: String) -> Result<Respon
 
 /// Compiles the document and writes the PDF to `path`.
 #[tauri::command]
-async fn export_pdf(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata) -> Result<(), AppError> {
-    let pdf = compile_document(&state, doc, metadata).await?;
+async fn export_pdf(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<(), AppError> {
+    let pdf = compile_document(&state, doc, metadata, bibliography).await?;
     std::fs::write(path, pdf)?;
     Ok(())
 }
@@ -311,16 +369,15 @@ async fn export_pdf(state: State<'_, AppState>, path: String, doc: Value, metada
 /// Writes the `.tex` file, the class and the template's assets next to each other,
 /// ready to compile anywhere.
 #[tauri::command]
-fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata) -> Result<(), AppError> {
+fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<(), AppError> {
     let active = state.templates.current();
-    let g = texloom_codegen::generate(&active.template, &to_document(doc, metadata)?);
+    let g = texloom_codegen::generate(&active.template, &to_document(doc, metadata, bibliography)?);
     let mut assets = active.load_assets(&g.assets)?;
     assets.extend(state.doc_folder.load(&g.figures)?);
     let path = Path::new(&path);
     std::fs::write(path, &g.tex)?;
-    std::fs::write(path.with_file_name(g.cls_file_name()), &g.cls)?;
     let dir = path.parent().unwrap_or(Path::new("."));
-    for (rel, bytes) in assets {
+    for (rel, bytes) in g.support_files().into_iter().chain(assets) {
         let dest = dir.join(rel);
         if let Some(parent) = dest.parent() {
             std::fs::create_dir_all(parent)?;
@@ -375,7 +432,10 @@ pub fn run() {
             export_pdf,
             read_template_asset,
             sample_document,
-            check_metadata,
+            check_document,
+            parse_bibliography,
+            read_bib_file,
+            new_document,
             render_pdf,
             to_latex,
             save_document,
@@ -395,7 +455,7 @@ mod tests {
         let template = ActiveTemplate::builtin().template;
         assert!(template.validate().is_empty());
         let sample = sample_document().unwrap();
-        let doc = to_document(sample.doc, sample.metadata).unwrap();
+        let doc = to_document(sample.doc, sample.metadata, Some(sample.bibliography)).unwrap();
         assert!(template.check_metadata(&doc.metadata).is_empty());
         assert!(texloom_codegen::generate(&template, &doc).tex.contains("\\chapter{Introduction}"));
     }
@@ -404,7 +464,7 @@ mod tests {
     fn sample_document_figures_are_available() {
         let folder = files::DocumentFolder::new(SAMPLE_FILES).unwrap();
         let sample = sample_document().unwrap();
-        let doc = to_document(sample.doc, sample.metadata).unwrap();
+        let doc = to_document(sample.doc, sample.metadata, Some(sample.bibliography)).unwrap();
         let figures = doc.body.figure_sources();
         assert!(!figures.is_empty());
         let loaded = folder.load(&figures).unwrap();
