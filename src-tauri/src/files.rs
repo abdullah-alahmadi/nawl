@@ -23,9 +23,19 @@ pub fn is_safe_relative(path: &str) -> bool {
 /// the copy gets a numbered name instead. 16-bit PNGs are converted to 8-bit, which
 /// the TeX engine's PDF writer handles reliably.
 pub fn import_image(root: &Path, subdir: &str, source: &Path) -> Result<String, AppError> {
+    import_file(root, subdir, source, IMAGE_EXTENSIONS, "Images must be PNG, JPEG or PDF")
+}
+
+/// Files a publisher's LaTeX kit may contain: class, packages, styles, logos, fonts.
+pub const CLASS_KIT_EXTENSIONS: &[&str] =
+    &["cls", "sty", "bst", "clo", "cfg", "def", "fd", "png", "jpg", "jpeg", "pdf", "eps", "otf", "ttf"];
+
+/// Like [`import_image`] for any of the `allowed` extensions (names are kept as-is
+/// apart from unsafe characters, since LaTeX loads class files by name).
+pub fn import_file(root: &Path, subdir: &str, source: &Path, allowed: &[&str], what: &str) -> Result<String, AppError> {
     let ext = source.extension().and_then(|e| e.to_str()).map(str::to_lowercase).unwrap_or_default();
-    if !IMAGE_EXTENSIONS.contains(&ext.as_str()) {
-        return Err(AppError::other(format!("Images must be PNG, JPEG or PDF (got .{ext})")));
+    if !allowed.contains(&ext.as_str()) {
+        return Err(AppError::other(format!("{what} (got .{ext})")));
     }
     let mut bytes = std::fs::read(source)?;
     if ext == "png" {

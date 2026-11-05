@@ -155,6 +155,17 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [ ] **Milestone:** full senior design report from a template made entirely in the designer
       (all pieces exist; needs an end-to-end walkthrough in the native app)
 
+### Journal and conference templates
+- [x] Templates can be built on a publisher's official class (`base`): wrapper `.cls`,
+      publisher-specific title block (IEEE journal/conference, Elsevier, ACM, LNCS,
+      REVTeX), the publisher's BibTeX style; designer hides class-defined panels
+- [x] Built-in: IEEE Journal, IEEE Conference, Elsevier, ACM, Springer LNCS, APS;
+      each compiles the sample article (tests/journals.rs)
+- [x] Bring your own class: import a publisher kit (.cls/.sty/.bst/logos) into a
+      template; kit files are placed next to the document when compiling
+- [ ] More publishers once their classes are freely available; two-column preview
+      in the editor; per-publisher author fields (ORCID, corresponding author)
+
 ### Phase 6: Polish and distribution (ongoing)
 - [ ] Bundled TeX package cache so it works offline; installers; auto-update
 - [ ] Template import/export and gallery; autosave and crash recovery

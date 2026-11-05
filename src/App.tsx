@@ -50,6 +50,7 @@ export default function App() {
   // Set when the template file on disk has errors; the last valid version stays in use.
   const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const [builtins, setBuiltins] = useState<api.BuiltinTemplate[]>([]);
   const [mode, setMode] = useState<"document" | "template">("document");
   // The designer edits a draft; valid drafts become the active template right away.
   const [draft, setDraft] = useState<api.Template | null>(null);
@@ -169,6 +170,10 @@ export default function App() {
       .catch((e) => setStatus({ state: "error", error: api.asAppError(e) }));
   }, [editor, compile, setMetadata, setBibliography]);
 
+  useEffect(() => {
+    api.listBuiltinTemplates().then(setBuiltins, () => setBuiltins([]));
+  }, []);
+
   // Node views (references, citations) read the template from the editor.
   const activeTemplate = templateInfo?.template ?? null;
   useEffect(() => {
@@ -218,9 +223,13 @@ export default function App() {
     }
   };
 
-  const switchToBuiltin = async () => {
+  const switchToBuiltin = async (id: string) => {
     setShowTemplateMenu(false);
-    applyTemplate(await api.switchToBuiltinTemplate());
+    try {
+      applyTemplate(await api.switchToBuiltinTemplate(id));
+    } catch (e) {
+      report(e);
+    }
   };
 
   // Designer edits: validate after a pause; valid drafts go live in the preview.
@@ -429,9 +438,29 @@ export default function App() {
                 <button role="menuitem" onClick={openTemplateFile}>
                   Open template file…
                 </button>
-                <button role="menuitem" onClick={switchToBuiltin}>
-                  Use built-in “Senior Design Report”
-                </button>
+                {[
+                  { title: "Reports", items: builtins.filter((b) => !b.class) },
+                  { title: "Journals & conferences", items: builtins.filter((b) => b.class) },
+                ].map(
+                  (group) =>
+                    group.items.length > 0 && (
+                      <div key={group.title} className="menu-group">
+                        <div className="menu-group-title">{group.title}</div>
+                        {group.items.map((b) => (
+                          <button
+                            key={b.id}
+                            role="menuitem"
+                            className={!templateInfo?.path && template?.meta.id === b.id ? "current" : ""}
+                            onClick={() => switchToBuiltin(b.id)}
+                            title={b.description}
+                          >
+                            <span>{b.name}</span>
+                            {b.class && <span className="menu-badge">{b.class}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    ),
+                )}
               </div>
             )}
           </div>

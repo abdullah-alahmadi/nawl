@@ -23,7 +23,7 @@ expression: "texloom_codegen::template_to_cls(&template())"
 %   \end{document}
 % List fields separate entries with \texloomsep.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{senior-design}[v0.1.0 Texloom template: Senior Design Report]
+\ProvidesClass{senior-design}
 
 \LoadClass[12pt,oneside,openany]{report}
 

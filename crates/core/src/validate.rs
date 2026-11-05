@@ -226,6 +226,33 @@ impl Template {
             }
         }
 
+        if let Some(base) = &t.base {
+            let name_ok = !base.class.is_empty()
+                && base.class.chars().all(|ch| ch.is_ascii_alphanumeric() || "-_./".contains(ch))
+                && !base.class.contains("..");
+            if !name_ok {
+                c.error("base.class", "class names may only contain letters, digits, '-', '_', '.', '/'");
+            }
+            if base.bib_style.trim().is_empty() || base.bib_style.contains(['{', '}', '\\']) {
+                c.error("base.bibStyle", "needs a BibTeX style name such as IEEEtran");
+            }
+            for (i, o) in base.options.iter().enumerate() {
+                if o.contains(['{', '}', '\\', ',', ']']) || o.trim().is_empty() {
+                    c.error(format!("base.options[{i}]"), format!("invalid class option {o:?}"));
+                }
+            }
+            for (i, f) in base.files.iter().enumerate() {
+                let safe = !f.starts_with('/') && !f.contains('\\') && f.split('/').all(|s| !s.is_empty() && s != "..");
+                if !safe {
+                    c.error(format!("base.files[{i}]"), "must be a relative path inside the template");
+                }
+            }
+            for id in ["title", "authors"] {
+                if t.field(id).is_none() {
+                    c.error("fields", format!("templates built on a publisher class need a {id:?} field"));
+                }
+            }
+        }
         if t.bibliography.title.trim().is_empty() {
             c.error("bibliography.title", "must not be empty");
         }

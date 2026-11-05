@@ -1,5 +1,7 @@
 // Designer panels: metadata fields, front matter, title page summary.
 import { useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { importTemplateFile } from "../api";
 import type { FieldKind } from "../bindings/FieldKind";
 import type { FrontMatterItem } from "../bindings/FrontMatterItem";
 import { Row, Select, Toggle, issuesAt } from "./controls";
@@ -268,6 +270,105 @@ export function SkeletonSection({ t, edit, issues }: SectionProps) {
       <button type="button" className="d-add" onClick={() => edit((d) => void d.skeleton.push({ title: `New ${level}`, required: false }))}>
         + Add {level}
       </button>
+    </>
+  );
+}
+
+const FRONT_STYLES = [
+  { value: "ieeeJournal", label: "IEEE journal (affiliations in a footnote)" },
+  { value: "ieeeConference", label: "IEEE conference (author blocks)" },
+  { value: "elsevier", label: "Elsevier (frontmatter, numbered affiliations)" },
+  { value: "acm", label: "ACM (per-author affiliation)" },
+  { value: "lncs", label: "Springer LNCS (institutes)" },
+  { value: "revtex", label: "APS REVTeX (per-author affiliation)" },
+] as const;
+
+/** Settings for templates built on a publisher's official class. */
+export function PublisherSection({
+  t,
+  edit,
+  issues,
+  canImport,
+}: SectionProps & { canImport: boolean }) {
+  const base = t.base;
+  const [problem, setProblem] = useState<string | null>(null);
+  if (!base) return null;
+  const importFiles = async () => {
+    setProblem(null);
+    const picked = await open({
+      multiple: true,
+      directory: false,
+      filters: [{ name: "LaTeX kit files", extensions: ["cls", "sty", "bst", "clo", "cfg", "def", "fd", "png", "jpg", "jpeg", "pdf", "eps", "otf", "ttf"] }],
+    });
+    const files = Array.isArray(picked) ? picked : picked ? [picked] : [];
+    const added: string[] = [];
+    for (const f of files) {
+      try {
+        added.push(await importTemplateFile(f));
+      } catch (e) {
+        setProblem(String((e as { message?: string }).message ?? e));
+      }
+    }
+    if (added.length === 0) return;
+    edit((d) => {
+      if (!d.base) return;
+      for (const a of added) if (!d.base.files.includes(a)) d.base.files.push(a);
+      // Importing a single class: use it.
+      const cls = added.find((a) => a.endsWith(".cls"));
+      if (cls) d.base.class = cls.split("/").pop()!.replace(/\.cls$/, "");
+    });
+  };
+  return (
+    <>
+      <p className="d-note">
+        This template uses the publisher’s official LaTeX class, so page layout, fonts, headings and captions follow
+        the publisher exactly and can’t be changed here. Authors are entered one per line as{" "}
+        <code>Name | Affiliation | Email</code>.
+      </p>
+      <Row label="Class" issues={issuesAt(issues, "base.class")}>
+        <input className="mono" value={base.class} onChange={(e) => edit((d) => void (d.base && (d.base.class = e.target.value.trim())))} />
+      </Row>
+      <Row label="Class options" hint="Comma-separated" issues={issuesAt(issues, "base.options")}>
+        <input
+          className="mono"
+          value={base.options.join(", ")}
+          onChange={(e) =>
+            edit((d) => {
+              if (d.base) d.base.options = e.target.value.split(",").map((o) => o.trim()).filter(Boolean);
+            })
+          }
+        />
+      </Row>
+      <Row label="Title block style">
+        <Select value={base.frontMatter} options={[...FRONT_STYLES]} onChange={(v) => edit((d) => void (d.base && (d.base.frontMatter = v)))} />
+      </Row>
+      <Row label="BibTeX style" issues={issuesAt(issues, "base.bibStyle")}>
+        <input className="mono" value={base.bibStyle} onChange={(e) => edit((d) => void (d.base && (d.base.bibStyle = e.target.value.trim())))} />
+      </Row>
+      <Row label="Publisher files" hint="From the publisher's LaTeX kit" issues={issuesAt(issues, "base.files")}>
+        <div className="d-control">
+          {base.files.length === 0 && <span className="muted">None: the class comes with the TeX engine.</span>}
+          {base.files.map((f, i) => (
+            <span key={f} className="d-inline">
+              <code>{f}</code>
+              <button type="button" className="danger" onClick={() => edit((d) => void d.base?.files.splice(i, 1))}>
+                Remove
+              </button>
+            </span>
+          ))}
+          <button type="button" className="d-add" onClick={importFiles} disabled={!canImport} title={canImport ? "" : "Save the template first"}>
+            + Import class files…
+          </button>
+          {!canImport && <span className="d-hint">Save the template first (Save as…) so the files have a folder.</span>}
+          {problem && <span className="d-error">{problem}</span>}
+        </div>
+      </Row>
+      <p className="d-note">
+        <strong>Journals not built in</strong> (IEEE Access, Springer Nature, MDPI, Taylor &amp; Francis…): download the
+        publisher’s LaTeX template, start from the closest built-in template, choose <em>New copy</em> and{" "}
+        <em>Save as…</em>, then import the publisher’s <code>.cls</code> (and any <code>.sty</code>/<code>.bst</code>{" "}
+        files) here.
+      </p>
     </>
   );
 }

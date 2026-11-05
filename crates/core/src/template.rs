@@ -12,6 +12,12 @@ use ts_rs::TS;
 #[ts(export)]
 pub struct Template {
     pub meta: TemplateMeta,
+    /// Build on a publisher's official class (IEEEtran, elsarticle…) instead of
+    /// Texloom's own layout. The class then decides page layout, fonts, headings and
+    /// captions; the rest of the template only styles the on-screen editor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub base: Option<ClassBase>,
     pub page: PageSetup,
     pub fonts: Fonts,
     pub structure: Structure,
@@ -50,6 +56,46 @@ pub struct TemplateMeta {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub author: Option<String>,
+}
+
+// ---------------------------------------------------------------- publisher classes
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ClassBase {
+    /// LaTeX class name, e.g. `IEEEtran`, `elsarticle`, or one shipped in `files`.
+    pub class: String,
+    /// Class options, e.g. `["journal"]` or `["sigconf"]`.
+    #[serde(default)]
+    pub options: Vec<String>,
+    /// How the title block, authors, abstract and keywords are written for this class.
+    pub front_matter: FrontMatterStyle,
+    /// BibTeX style, e.g. `IEEEtran`, `elsarticle-num`.
+    pub bib_style: String,
+    /// Extra files from the template's folder copied next to the document when it
+    /// compiles (a publisher's .cls/.sty/.bst/logos), e.g. `assets/ieeeaccess.cls`.
+    #[serde(default)]
+    pub files: Vec<String>,
+}
+
+/// Title-block conventions of the supported publisher classes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum FrontMatterStyle {
+    /// IEEE journals: authors in one line, affiliations in a \thanks footnote.
+    IeeeJournal,
+    /// IEEE conferences: one author block per author.
+    IeeeConference,
+    /// Elsevier elsarticle: frontmatter environment, numbered affiliations.
+    Elsevier,
+    /// ACM acmart: per-author affiliation and e-mail.
+    Acm,
+    /// Springer LNCS: authors joined by \and, \institute with \inst marks.
+    Lncs,
+    /// APS REVTeX: per-author affiliation, abstract before \maketitle.
+    Revtex,
 }
 
 // ---------------------------------------------------------------- page

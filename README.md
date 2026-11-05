@@ -30,6 +30,30 @@ import or paste BibTeX (e.g. exported from Zotero). **Appendices** starts the
 appendices; chapters after it are lettered. **New** starts a document from the
 template's chapter list, and the yellow bar above the preview lists anything to check.
 
+## Built-in templates
+
+**Template ▾** lists the templates that ship with Texloom:
+
+| Template | Built on |
+|---|---|
+| Senior Design Report | Texloom's own layout (fully editable in the designer) |
+| IEEE Journal / Transactions | `IEEEtran` (journal) |
+| IEEE Conference | `IEEEtran` (conference) |
+| Elsevier Journal Article | `elsarticle` (options `1p`/`3p`/`5p` for journal layouts) |
+| ACM Conference Paper | `acmart` (`sigconf`; use `acmsmall` for ACM journals) |
+| Springer LNCS | `llncs` |
+| APS Physical Review | `revtex4-2` (`pra`; use `prl` for Letters) |
+
+Journal templates use the publisher's official class, so layout, fonts and captions
+are exactly the publisher's; Texloom writes the title block, authors (one per line:
+`Name | Affiliation | Email`), abstract, keywords and the bibliography in each
+publisher's format. Start one with **Template ▾** → choose it → **New**.
+
+Journals whose class isn't part of the TeX distribution (IEEE Access, Springer Nature,
+MDPI, Taylor & Francis…): download the publisher's LaTeX kit, start from the closest
+built-in template, **New copy** → **Save as…**, then import the publisher's `.cls`
+(and `.sty`/`.bst` files) under **Publisher class**.
+
 ## Making a template
 
 Switch to **Template** mode (top left). The designer has panels for template info,

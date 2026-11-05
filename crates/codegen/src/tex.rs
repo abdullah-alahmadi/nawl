@@ -31,7 +31,15 @@ pub fn document_to_tex(t: &Template, doc: &Document) -> String {
         o.push_str(&format!("\\texloomfield{{{}}}{{{rendered}}}\n", f.id));
     }
 
-    o.push_str("\n\\begin{document}\n\\texloomfrontmatter\n\\texloommainmatter\n\n");
+    match &t.base {
+        // Publisher classes: their own title block, written from the metadata.
+        Some(base) => {
+            o.push_str("\n\\begin{document}\n");
+            o.push_str(&crate::publisher::front_matter(t, base, doc));
+            o.push('\n');
+        }
+        None => o.push_str("\n\\begin{document}\n\\texloomfrontmatter\n\\texloommainmatter\n\n"),
+    }
     let ctx = Ctx {
         commands: heading_commands(t.structure.top_level),
         targets: doc.body.targets(),
@@ -152,7 +160,8 @@ impl<'a> BodyWriter<'a> {
                 Inline::Citation { attrs } => {
                     let keys: Vec<&str> = attrs.keys.iter().map(String::as_str).filter(|k| is_safe_key(k)).collect();
                     if !keys.is_empty() {
-                        let cmd = if self.ctx.t.bibliography.style == BibStyle::AuthorYear { "citep" } else { "cite" };
+                        let author_year = self.ctx.t.base.is_none() && self.ctx.t.bibliography.style == BibStyle::AuthorYear;
+                        let cmd = if author_year { "citep" } else { "cite" };
                         s.push_str(&format!("\\{cmd}{{{}}}", keys.join(",")));
                     }
                 }
@@ -306,9 +315,10 @@ impl<'a> BodyWriter<'a> {
         if items.is_empty() {
             return;
         }
-        match start {
-            Some(s) => self.out.push_str(&format!("\\begin{{{env}}}[start={s}]\n")),
-            None => self.out.push_str(&format!("\\begin{{{env}}}\n")),
+        self.out.push_str(&format!("\\begin{{{env}}}\n"));
+        // Works without enumitem, which some publisher classes don't get along with.
+        if let Some(s) = start {
+            self.out.push_str(&format!("\\setcounter{{enumi}}{{{}}}\n", s.saturating_sub(1)));
         }
         for item in items {
             let mut inner = String::new();

@@ -6,10 +6,12 @@
 
 mod cls;
 mod latex;
+mod publisher;
 mod tex;
 
 pub use cls::template_to_cls;
 pub use latex::escape;
+pub use publisher::{parse_authors, Author};
 pub use tex::{document_to_tex, has_bibliography};
 
 use texloom_core::{Document, Template, TitleContent};
@@ -24,8 +26,16 @@ pub struct Generated {
     pub tex: String,
     pub assets: Vec<String>,
     pub figures: Vec<String>,
+    /// A publisher's kit files (paths relative to the template folder). They go next
+    /// to the main file, flattened, because classes load their companions by name.
+    pub kit_files: Vec<String>,
     /// Contents of `refs.bib`, when the document has a reference list.
     pub bibliography: Option<String>,
+}
+
+/// Where a kit file goes in the build folder: its file name only.
+pub fn kit_destination(rel: &str) -> String {
+    rel.rsplit('/').next().unwrap_or(rel).to_string()
 }
 
 impl Generated {
@@ -45,12 +55,12 @@ impl Generated {
 
 /// Callers should run [`Template::validate`] first; generation assumes a valid template.
 pub fn generate(template: &Template, doc: &Document) -> Generated {
-    let assets = template
+    let assets: Vec<String> = template
         .title_page
         .items
         .iter()
         .filter_map(|i| match &i.content {
-            TitleContent::Image { asset, .. } => Some(asset.clone()),
+            TitleContent::Image { asset, .. } if template.base.is_none() => Some(asset.clone()),
             _ => None,
         })
         .collect();
@@ -60,6 +70,7 @@ pub fn generate(template: &Template, doc: &Document) -> Generated {
         tex: document_to_tex(template, doc),
         assets,
         figures: doc.body.figure_sources(),
+        kit_files: template.base.as_ref().map(|b| b.files.clone()).unwrap_or_default(),
         bibliography: has_bibliography(doc).then(|| doc.bibliography.clone()),
     }
 }

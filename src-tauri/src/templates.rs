@@ -17,6 +17,43 @@ use crate::AppError;
 /// The built-in template until the designer (Phase 3) can create new ones.
 pub const BUILTIN_TEMPLATE: &str = include_str!("../../templates/senior-design/template.json");
 
+/// Templates that ship with Texloom, by id (the first is the default).
+pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
+    ("senior-design", BUILTIN_TEMPLATE),
+    ("ieee-journal", include_str!("../../templates/ieee-journal/template.json")),
+    ("ieee-conference", include_str!("../../templates/ieee-conference/template.json")),
+    ("elsevier-article", include_str!("../../templates/elsevier-article/template.json")),
+    ("acm-conference", include_str!("../../templates/acm-conference/template.json")),
+    ("springer-lncs", include_str!("../../templates/springer-lncs/template.json")),
+    ("aps-physical-review", include_str!("../../templates/aps-physical-review/template.json")),
+];
+
+/// A built-in template, for the template gallery.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuiltinInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    /// The publisher class it's built on, if any (e.g. "IEEEtran").
+    pub class: Option<String>,
+}
+
+pub fn builtin_list() -> Vec<BuiltinInfo> {
+    BUILTIN_TEMPLATES
+        .iter()
+        .map(|(id, json)| {
+            let t: Template = serde_json::from_str(json).expect("built-in template parses");
+            BuiltinInfo {
+                id: (*id).to_string(),
+                name: t.meta.name,
+                description: t.meta.description,
+                class: t.base.map(|b| b.class),
+            }
+        })
+        .collect()
+}
+
 /// Event sent when the watched template file changes.
 pub const RELOADED_EVENT: &str = "template-reloaded";
 
@@ -31,8 +68,13 @@ pub struct ActiveTemplate {
 
 impl ActiveTemplate {
     pub fn builtin() -> Self {
-        let template: Template = serde_json::from_str(BUILTIN_TEMPLATE).expect("built-in template parses");
-        Self { template: Arc::new(template), path: None, warnings: Vec::new() }
+        Self::builtin_by_id("senior-design").expect("default template exists")
+    }
+
+    pub fn builtin_by_id(id: &str) -> Option<Self> {
+        let (_, json) = BUILTIN_TEMPLATES.iter().find(|(i, _)| *i == id)?;
+        let template: Template = serde_json::from_str(json).expect("built-in template parses");
+        Some(Self { template: Arc::new(template), path: None, warnings: Vec::new() })
     }
 
     /// Loads the template's image assets (title-page logos…) for a compile.
@@ -53,6 +95,12 @@ impl ActiveTemplate {
                 Ok((rel.clone(), bytes))
             })
             .collect()
+    }
+
+    /// A publisher's kit files, placed next to the main file (by file name).
+    pub fn load_kit_files(&self, files: &[String]) -> Result<Vec<(String, Vec<u8>)>, AppError> {
+        let loaded = self.load_assets(files)?;
+        Ok(loaded.into_iter().map(|(rel, bytes)| (texloom_codegen::kit_destination(&rel), bytes)).collect())
     }
 
     pub fn info(&self) -> TemplateInfo {

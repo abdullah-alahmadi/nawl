@@ -160,6 +160,10 @@ fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path) -> Result<Vec
     for rel in &g.figures {
         out.push(from(doc_dir, rel, "figure image")?);
     }
+    for rel in &g.kit_files {
+        let (_, bytes) = from(template_dir, rel, "class kit file")?;
+        out.push((texloom_codegen::kit_destination(rel), bytes));
+    }
     Ok(out)
 }
 

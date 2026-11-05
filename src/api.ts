@@ -63,7 +63,17 @@ export function asAppError(e: unknown): AppError {
 
 export const getTemplate = () => invoke<TemplateInfo>("get_template");
 export const openTemplate = (path: string) => invoke<TemplateInfo>("open_template", { path });
-export const switchToBuiltinTemplate = () => invoke<TemplateInfo>("use_builtin_template");
+export interface BuiltinTemplate {
+  id: string;
+  name: string;
+  description: string;
+  /** Publisher class it's built on (e.g. "IEEEtran"); null for Texloom layouts. */
+  class: string | null;
+}
+export const listBuiltinTemplates = () => invoke<BuiltinTemplate[]>("list_builtin_templates");
+export const switchToBuiltinTemplate = (id?: string) => invoke<TemplateInfo>("use_builtin_template", { id: id ?? null });
+/** Copies a publisher kit file (.cls, .sty, .bst…) into the template's assets/. */
+export const importTemplateFile = (source: string) => invoke<string>("import_template_file", { source });
 /** Fires when the open template file changes on disk. Returns an unsubscribe function. */
 export const onTemplateReloaded = (cb: (e: TemplateReloadEvent) => void) =>
   listen<TemplateReloadEvent>("template-reloaded", (event) => cb(event.payload));

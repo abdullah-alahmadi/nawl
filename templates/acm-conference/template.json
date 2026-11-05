@@ -1,0 +1,238 @@
+{
+  "meta": {
+    "id": "acm-conference",
+    "name": "ACM Conference Paper",
+    "description": "ACM conference paper (sigconf) using the official acmart class. Use the acmsmall option for ACM journals.",
+    "version": "1.0.0"
+  },
+  "base": {
+    "class": "acmart",
+    "options": [
+      "sigconf"
+    ],
+    "frontMatter": "acm",
+    "bibStyle": "ACM-Reference-Format",
+    "files": []
+  },
+  "page": {
+    "paper": {
+      "kind": "letter"
+    },
+    "margins": {
+      "topMm": 19,
+      "bottomMm": 19,
+      "innerMm": 19,
+      "outerMm": 19
+    },
+    "twoSided": false,
+    "bindingOffsetMm": 0,
+    "lineSpacing": {
+      "kind": "single"
+    },
+    "paragraph": {
+      "indentMm": 4,
+      "spacingPt": 0
+    }
+  },
+  "fonts": {
+    "baseSizePt": 10,
+    "main": {
+      "kind": "builtin",
+      "font": "latinModern"
+    },
+    "sans": {
+      "kind": "builtin",
+      "font": "heros"
+    },
+    "mono": {
+      "kind": "builtin",
+      "font": "latinModern"
+    }
+  },
+  "structure": {
+    "topLevel": "section",
+    "numberedDepth": 3,
+    "tocDepth": 2,
+    "frontMatterPageNumbers": "arabic",
+    "mainPageNumbers": "arabic",
+    "perChapterNumbering": false,
+    "appendixLabel": "Appendix {n}"
+  },
+  "headings": {
+    "levels": [
+      {
+        "text": {
+          "sizePt": 11,
+          "bold": true,
+          "italic": false,
+          "smallCaps": false,
+          "uppercase": true,
+          "align": "left"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 8,
+        "spaceBeforePt": 12,
+        "spaceAfterPt": 4
+      },
+      {
+        "text": {
+          "sizePt": 10,
+          "bold": true,
+          "italic": false,
+          "smallCaps": false,
+          "uppercase": false,
+          "align": "left"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 8,
+        "spaceBeforePt": 8,
+        "spaceAfterPt": 3
+      },
+      {
+        "text": {
+          "sizePt": 10,
+          "bold": false,
+          "italic": true,
+          "smallCaps": false,
+          "uppercase": false,
+          "align": "left"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 8,
+        "spaceBeforePt": 6,
+        "spaceAfterPt": 3
+      },
+      {
+        "text": {
+          "sizePt": 10,
+          "bold": false,
+          "italic": true,
+          "smallCaps": false,
+          "uppercase": false,
+          "align": "left"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 8,
+        "spaceBeforePt": 6,
+        "spaceAfterPt": 3
+      }
+    ]
+  },
+  "headerFooter": {
+    "frontMatter": {
+      "header": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "footer": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "headerRulePt": 0,
+      "footerRulePt": 0
+    },
+    "main": {
+      "header": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "footer": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "headerRulePt": 0,
+      "footerRulePt": 0
+    },
+    "chapterOpening": {
+      "header": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "footer": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "headerRulePt": 0,
+      "footerRulePt": 0
+    }
+  },
+  "captions": {
+    "figureLabel": "Figure",
+    "tableLabel": "Table",
+    "separator": "colon",
+    "labelBold": true,
+    "size": "footnote",
+    "align": "center"
+  },
+  "bibliography": {
+    "style": "numeric",
+    "title": "References",
+    "inToc": false
+  },
+  "skeleton": [
+    {
+      "title": "Introduction",
+      "required": true
+    },
+    {
+      "title": "Related Work",
+      "required": false
+    },
+    {
+      "title": "Methods",
+      "required": true
+    },
+    {
+      "title": "Results",
+      "required": true
+    },
+    {
+      "title": "Discussion",
+      "required": false
+    },
+    {
+      "title": "Conclusion",
+      "required": true
+    }
+  ],
+  "titlePage": {
+    "items": []
+  },
+  "fields": [
+    {
+      "id": "title",
+      "label": "Title",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "authors",
+      "label": "Authors (Name | Affiliation | Email)",
+      "kind": "list",
+      "required": true
+    },
+    {
+      "id": "abstract",
+      "label": "Abstract",
+      "kind": "paragraphs",
+      "required": true
+    },
+    {
+      "id": "keywords",
+      "label": "Keywords (comma-separated)",
+      "kind": "text",
+      "required": false
+    }
+  ],
+  "frontMatter": []
+}

@@ -125,12 +125,40 @@ fn open_template(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
     Ok(info)
 }
 
+/// The templates that ship with Texloom (report, IEEE, Elsevier, ACM, Springer, APS).
 #[tauri::command]
-fn use_builtin_template(app: AppHandle, state: State<'_, AppState>) -> TemplateInfo {
-    let t = ActiveTemplate::builtin();
+fn list_builtin_templates() -> Vec<templates::BuiltinInfo> {
+    templates::builtin_list()
+}
+
+/// Switches to a built-in template (the default one when `id` is absent).
+#[tauri::command]
+fn use_builtin_template(app: AppHandle, state: State<'_, AppState>, id: Option<String>) -> Result<TemplateInfo, AppError> {
+    let t = match id.as_deref() {
+        Some(id) => ActiveTemplate::builtin_by_id(id).ok_or_else(|| AppError::other(format!("No built-in template {id:?}")))?,
+        None => ActiveTemplate::builtin(),
+    };
     let info = t.info();
     state.templates.set(&app, t);
-    info
+    Ok(info)
+}
+
+/// Copies a file from a publisher's LaTeX kit (.cls, .sty, .bst, logos…) into the
+/// active template's `assets/` folder; returns its path for `base.files`.
+#[tauri::command]
+fn import_template_file(state: State<'_, AppState>, source: String) -> Result<String, AppError> {
+    let file = state
+        .templates
+        .current()
+        .path
+        .ok_or_else(|| AppError::other("Save the template first (Save as…) so its files have a folder to live in."))?;
+    files::import_file(
+        file.parent().unwrap_or(Path::new(".")),
+        "assets",
+        Path::new(&source),
+        files::CLASS_KIT_EXTENSIONS,
+        "Choose a file from the publisher's LaTeX kit (.cls, .sty, .bst, images or fonts)",
+    )
 }
 
 /// Live edits from the template designer: validates the draft and, if it has no
@@ -275,6 +303,7 @@ async fn compile_document(
     let active = state.templates.current();
     let generated = texloom_codegen::generate(&active.template, &to_document(doc, metadata, bibliography)?);
     let mut assets = active.load_assets(&generated.assets)?;
+    assets.extend(active.load_kit_files(&generated.kit_files)?);
     assets.extend(state.doc_folder.load(&generated.figures)?);
     let out = tauri::async_runtime::spawn_blocking(move || {
         let support = generated.support_files();
@@ -373,6 +402,7 @@ fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Me
     let active = state.templates.current();
     let g = texloom_codegen::generate(&active.template, &to_document(doc, metadata, bibliography)?);
     let mut assets = active.load_assets(&g.assets)?;
+    assets.extend(active.load_kit_files(&g.kit_files)?);
     assets.extend(state.doc_folder.load(&g.figures)?);
     let path = Path::new(&path);
     std::fs::write(path, &g.tex)?;
@@ -423,6 +453,8 @@ pub fn run() {
             get_template,
             open_template,
             use_builtin_template,
+            list_builtin_templates,
+            import_template_file,
             set_template,
             save_template,
             list_system_fonts,
@@ -449,6 +481,15 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn all_builtin_templates_are_valid() {
+        for info in templates::builtin_list() {
+            let t = ActiveTemplate::builtin_by_id(&info.id).unwrap().template;
+            assert!(t.validate().is_empty(), "{}: {:?}", info.id, t.validate());
+        }
+        assert!(templates::builtin_list().iter().any(|t| t.class.as_deref() == Some("IEEEtran")));
+    }
 
     #[test]
     fn builtin_template_and_sample_load() {

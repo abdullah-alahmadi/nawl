@@ -1,0 +1,364 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "metadata": {
+    "title": "Sensor-Driven Irrigation over Long-Range Radio for Small Farms",
+    "authors": [
+      "Sara Ahmed | Department of Electrical Engineering, Example University | sara.ahmed@example.edu",
+      "Omar Khalid | Department of Electrical Engineering, Example University",
+      "Maria Lopez | Institute of Agricultural Engineering, Sample Polytechnic, Spain | m.lopez@example.org"
+    ],
+    "abstract": "We present a low-cost soil-moisture-driven irrigation controller that communicates over LoRa. A four-week field trial shows a 34% reduction in water use compared with a fixed timer, at under 60 USD per zone.",
+    "keywords": "irrigation, LoRa, soil moisture, embedded systems"
+  },
+  "bibliography": "@article{allen1998,\n  author  = {Allen, Richard G. and Pereira, Luis S. and Raes, Dirk and Smith, Martin},\n  title   = {Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements},\n  journal = {FAO Irrigation and Drainage Paper},\n  volume  = {56},\n  year    = {1998},\n  publisher = {FAO}\n}\n\n@inproceedings{smith2021,\n  author    = {Smith, Jane and Okafor, Chidi},\n  title     = {Low-Power Soil Sensing for Smallholder Farms},\n  booktitle = {Proceedings of the IEEE Global Humanitarian Technology Conference},\n  pages     = {112--118},\n  year      = {2021}\n}\n\n@misc{lora2019,\n  author       = {{LoRa Alliance}},\n  title        = {{LoRaWAN} Specification v1.0.3},\n  year         = {2019},\n  howpublished = {LoRa Alliance Technical Committee}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "s-intro"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Introduction"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Low-power wide-area networks make it possible to monitor farms far from cellular coverage "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "lora2019"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". This article evaluates a soil-moisture controller built on such a network; "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "s-results"
+            }
+          },
+          {
+            "type": "text",
+            "text": " reports a field trial."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "s-methods"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Methods"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Water demand follows the FAO-56 crop model "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "allen1998"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ", which estimates the daily deficit as in "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-deficit"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "D_t = D_{t-1} + ET_c - P_{\\mathrm{eff}} - I_t",
+          "id": "eq-deficit"
+        }
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/system-diagram.png",
+          "widthPercent": 95,
+          "id": "fig-system"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "Architecture of the controller."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The hardware is shown in "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-system"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "s-results"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Results"
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-trial"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "Water use during the four-week trial"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Schedule"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Water (m³)"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Fixed timer"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "41.2"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Sensor-driven"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "27.1"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "As "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-trial"
+            }
+          },
+          {
+            "type": "text",
+            "text": " shows, the controller used 34% less water than a fixed timer, consistent with earlier small-scale results "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "smith2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "s-conc"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Conclusion"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Sensor-driven irrigation over long-range radio is practical and cheap for small farms."
+          }
+        ]
+      }
+    ]
+  }
+}

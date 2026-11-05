@@ -1,0 +1,232 @@
+{
+  "meta": {
+    "id": "springer-lncs",
+    "name": "Springer LNCS",
+    "description": "Springer Lecture Notes in Computer Science proceedings paper using the official llncs class.",
+    "version": "1.0.0"
+  },
+  "base": {
+    "class": "llncs",
+    "options": [],
+    "frontMatter": "lncs",
+    "bibStyle": "splncs04",
+    "files": []
+  },
+  "page": {
+    "paper": {
+      "kind": "a4"
+    },
+    "margins": {
+      "topMm": 52,
+      "bottomMm": 52,
+      "innerMm": 44,
+      "outerMm": 44
+    },
+    "twoSided": false,
+    "bindingOffsetMm": 0,
+    "lineSpacing": {
+      "kind": "single"
+    },
+    "paragraph": {
+      "indentMm": 4,
+      "spacingPt": 0
+    }
+  },
+  "fonts": {
+    "baseSizePt": 10,
+    "main": {
+      "kind": "builtin",
+      "font": "latinModern"
+    },
+    "sans": {
+      "kind": "builtin",
+      "font": "heros"
+    },
+    "mono": {
+      "kind": "builtin",
+      "font": "latinModern"
+    }
+  },
+  "structure": {
+    "topLevel": "section",
+    "numberedDepth": 3,
+    "tocDepth": 2,
+    "frontMatterPageNumbers": "arabic",
+    "mainPageNumbers": "arabic",
+    "perChapterNumbering": false,
+    "appendixLabel": "Appendix {n}"
+  },
+  "headings": {
+    "levels": [
+      {
+        "text": {
+          "sizePt": 12,
+          "bold": true,
+          "italic": false,
+          "smallCaps": false,
+          "uppercase": false,
+          "align": "left"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 14,
+        "spaceAfterPt": 6
+      },
+      {
+        "text": {
+          "sizePt": 10,
+          "bold": true,
+          "italic": false,
+          "smallCaps": false,
+          "uppercase": false,
+          "align": "left"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 10,
+        "spaceAfterPt": 4
+      },
+      {
+        "text": {
+          "sizePt": 10,
+          "bold": true,
+          "italic": true,
+          "smallCaps": false,
+          "uppercase": false,
+          "align": "left"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 8,
+        "spaceAfterPt": 3
+      },
+      {
+        "text": {
+          "sizePt": 10,
+          "bold": false,
+          "italic": true,
+          "smallCaps": false,
+          "uppercase": false,
+          "align": "left"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 6,
+        "spaceAfterPt": 3
+      }
+    ]
+  },
+  "headerFooter": {
+    "frontMatter": {
+      "header": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "footer": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "headerRulePt": 0,
+      "footerRulePt": 0
+    },
+    "main": {
+      "header": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "footer": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "headerRulePt": 0,
+      "footerRulePt": 0
+    },
+    "chapterOpening": {
+      "header": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "footer": {
+        "left": "",
+        "center": "",
+        "right": ""
+      },
+      "headerRulePt": 0,
+      "footerRulePt": 0
+    }
+  },
+  "captions": {
+    "figureLabel": "Figure",
+    "tableLabel": "Table",
+    "separator": "colon",
+    "labelBold": true,
+    "size": "footnote",
+    "align": "center"
+  },
+  "bibliography": {
+    "style": "ieee",
+    "title": "References",
+    "inToc": false
+  },
+  "skeleton": [
+    {
+      "title": "Introduction",
+      "required": true
+    },
+    {
+      "title": "Related Work",
+      "required": false
+    },
+    {
+      "title": "Approach",
+      "required": true
+    },
+    {
+      "title": "Evaluation",
+      "required": true
+    },
+    {
+      "title": "Conclusion",
+      "required": true
+    }
+  ],
+  "titlePage": {
+    "items": []
+  },
+  "fields": [
+    {
+      "id": "title",
+      "label": "Title",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "authors",
+      "label": "Authors (Name | Affiliation | Email)",
+      "kind": "list",
+      "required": true
+    },
+    {
+      "id": "abstract",
+      "label": "Abstract",
+      "kind": "paragraphs",
+      "required": true
+    },
+    {
+      "id": "keywords",
+      "label": "Keywords (comma-separated)",
+      "kind": "text",
+      "required": false
+    }
+  ],
+  "frontMatter": []
+}

@@ -407,3 +407,8 @@ select option, select optgroup { color: var(--text); background-color: var(--pan
 }
 .d-table-head.skeleton, .d-table-row.skeleton { grid-template-columns: 1fr 70px 92px; }
 .refs-head .group button { white-space: nowrap; }
+.menu-group { display: grid; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
+.menu-group-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 4px 8px 2px; }
+.menu-group button { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.menu-group button.current { color: var(--accent); }
+.menu-badge { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }

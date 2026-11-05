@@ -7,11 +7,12 @@ import { issuesAt } from "./controls";
 import type { Edit } from "./common";
 import { FontsSection, InfoSection, PageSection, StructureSection } from "./PageSections";
 import { CaptionsSection, HeaderFooterSection, HeadingsSection } from "./StyleSections";
-import { BibliographySection, FieldsSection, FrontMatterSection, SkeletonSection } from "./ContentSections";
+import { BibliographySection, FieldsSection, FrontMatterSection, PublisherSection, SkeletonSection } from "./ContentSections";
 import { TitlePageCanvas } from "./TitlePageCanvas";
 
 const SECTIONS = [
   { key: "info", label: "Template info", prefix: "meta" },
+  { key: "publisher", label: "Publisher class", prefix: "base" },
   { key: "page", label: "Page", prefix: "page" },
   { key: "fonts", label: "Fonts", prefix: "fonts" },
   { key: "structure", label: "Structure", prefix: "structure" },
@@ -26,6 +27,9 @@ const SECTIONS = [
 ] as const;
 
 type SectionKey = (typeof SECTIONS)[number]["key"];
+
+/** With a publisher class, the class decides these; their panels are hidden. */
+const CLASS_DEFINED: SectionKey[] = ["page", "fonts", "structure", "headings", "headerFooter", "captions", "bibliography", "frontMatter", "titlePage"];
 
 export function TemplateDesigner({
   info,
@@ -52,7 +56,11 @@ export function TemplateDesigner({
   onSaveAs: () => void;
   onNewCopy: () => void;
 }) {
-  const [section, setSection] = useState<SectionKey>("page");
+  const usesClass = !!draft.base;
+  const visible = SECTIONS.filter((s) => (usesClass ? !CLASS_DEFINED.includes(s.key) : s.key !== "publisher"));
+  const [chosen, setSection] = useState<SectionKey>("page");
+  // Fall back to the first visible panel when the chosen one is hidden for this template.
+  const section: SectionKey = visible.some((s) => s.key === chosen) ? chosen : visible[1]?.key ?? visible[0].key;
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
 
   useEffect(() => {
@@ -98,18 +106,23 @@ export function TemplateDesigner({
       )}
       <div className="designer-body">
         <nav className="designer-nav" aria-label="Template sections">
-          {SECTIONS.map((s) => {
+          {visible.map((s) => {
             const n = issuesAt(issues, s.prefix).filter((i) => i.severity === "error").length;
             return (
               <button key={s.key} className={section === s.key ? "active" : ""} onClick={() => setSection(s.key)}>
-                {s.label}
+                {s.key === "skeleton" && draft.structure.topLevel === "section" ? "Section list" : s.label}
                 {n > 0 && <span className="badge">{n}</span>}
               </button>
             );
           })}
         </nav>
         <section className={`designer-panel${section === "titlePage" ? " wide" : ""}`}>
-          <h3>{SECTIONS.find((s) => s.key === section)?.label}</h3>
+          <h3>
+            {section === "skeleton" && draft.structure.topLevel === "section"
+              ? "Section list"
+              : SECTIONS.find((s) => s.key === section)?.label}
+          </h3>
+          {section === "publisher" && <PublisherSection {...props} canImport={!!info.path && !needsSaveAs} />}
           {section === "info" && <InfoSection {...props} />}
           {section === "page" && <PageSection {...props} />}
           {section === "fonts" && <FontsSection {...props} systemFonts={systemFonts} />}

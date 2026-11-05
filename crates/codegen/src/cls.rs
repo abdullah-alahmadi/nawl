@@ -30,6 +30,9 @@ macro_rules! w {
 }
 
 pub fn template_to_cls(t: &Template) -> String {
+    if let Some(base) = &t.base {
+        return crate::publisher::wrapper_cls(t, base);
+    }
     let mut o = String::new();
     let id = &t.meta.id;
     let one_line = |s: &str| s.replace(['\n', '\r'], " ");
@@ -51,7 +54,9 @@ pub fn template_to_cls(t: &Template) -> String {
     w!(o, "%   \\end{{document}}");
     w!(o, "% List fields separate entries with \\texloomsep.");
     w!(o, "\\NeedsTeXFormat{{LaTeX2e}}");
-    w!(o, "\\ProvidesClass{{{id}}}[v{} Texloom template: {}]", escape(&t.meta.version), escape(&t.meta.name));
+    // No "[date version]" text: LaTeX parses its start as a date, and some classes
+    // (IEEEtran in journal mode) compare it, failing on anything else.
+    w!(o, "\\ProvidesClass{{{id}}}");
     w!(o);
 
     // ---- base class
