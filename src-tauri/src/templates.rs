@@ -26,6 +26,7 @@ pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("acm-conference", include_str!("../../templates/acm-conference/template.json")),
     ("springer-lncs", include_str!("../../templates/springer-lncs/template.json")),
     ("aps-physical-review", include_str!("../../templates/aps-physical-review/template.json")),
+    ("ieee-access", include_str!("../../templates/ieee-access/template.json")),
 ];
 
 /// A built-in template, for the template gallery.
@@ -97,10 +98,34 @@ impl ActiveTemplate {
             .collect()
     }
 
+    /// A clear message when the template needs a publisher kit that isn't imported.
+    pub fn missing_kit(&self) -> Option<AppError> {
+        let base = self.template.base.as_ref()?;
+        let kit = base.kit.as_ref()?;
+        let have: Vec<&str> = base.files.iter().map(|f| f.rsplit('/').next().unwrap_or(f)).collect();
+        let missing: Vec<&str> = kit.required.iter().map(String::as_str).filter(|r| !have.contains(r)).collect();
+        (!missing.is_empty()).then(|| {
+            AppError::other(format!(
+                "This template needs the {} ({}). Download it from {} and import the .zip under Template → Publisher class.",
+                kit.name,
+                missing.join(", "),
+                kit.url
+            ))
+        })
+    }
+
     /// A publisher's kit files, placed next to the main file (by file name).
     pub fn load_kit_files(&self, files: &[String]) -> Result<Vec<(String, Vec<u8>)>, AppError> {
         let loaded = self.load_assets(files)?;
-        Ok(loaded.into_iter().map(|(rel, bytes)| (texloom_codegen::kit_destination(&rel), bytes)).collect())
+        Ok(loaded
+            .into_iter()
+            .map(|(rel, bytes)| {
+                let name = texloom_codegen::kit_destination(&rel);
+                // pdfLaTeX-only kit files get a stand-in that works with XeTeX.
+                let bytes = texloom_codegen::xetex_override(&name).map(|s| s.as_bytes().to_vec()).unwrap_or(bytes);
+                (name, bytes)
+            })
+            .collect())
     }
 
     pub fn info(&self) -> TemplateInfo {
@@ -136,6 +161,20 @@ fn issue(path: &str, message: String) -> Issue {
 /// Validates a template, including that its asset files exist next to it.
 pub fn check(template: &Template, dir: Option<&Path>) -> Vec<Issue> {
     let mut issues = template.validate();
+    if let Some(base) = &template.base {
+        for (field, recipe) in [("base.titleBlock", &base.title_block), ("base.endBlock", &base.end_block)] {
+            for problem in recipe.as_deref().map(texloom_codegen::check_recipe).unwrap_or_default() {
+                issues.push(issue(field, problem));
+            }
+        }
+        if let Some(dir) = dir {
+            for (i, f) in base.files.iter().enumerate() {
+                if !dir.join(f).is_file() {
+                    issues.push(issue(&format!("base.files[{i}]"), format!("file not found: {}", dir.join(f).display())));
+                }
+            }
+        }
+    }
     if let Some(dir) = dir {
         for (i, item) in template.title_page.items.iter().enumerate() {
             if let TitleContent::Image { asset, .. } = &item.content

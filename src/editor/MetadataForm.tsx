@@ -2,10 +2,12 @@
 // Generated from the template, so every template gets its own form for free.
 import type { FieldValue, Metadata, Template } from "../api";
 import type { MetadataField } from "../bindings/MetadataField";
+import { AuthorsEditor, toAuthors } from "./AuthorsEditor";
 
 function asText(v: FieldValue | undefined): string {
   if (v === undefined) return "";
-  return Array.isArray(v) ? v.join("\n") : v;
+  if (Array.isArray(v)) return v.map((x) => (typeof x === "string" ? x : x.name)).join("\n");
+  return v;
 }
 
 export function MetadataForm({
@@ -31,9 +33,31 @@ export function MetadataForm({
       <h2>Document info</h2>
       <p className="muted">Fields defined by the “{template.meta.name}” template.</p>
       {template.fields.map((f) => {
+        const id = `field-${f.id}`;
+        if (f.kind === "authors") {
+          const authors = toAuthors(metadata[f.id]);
+          const missing = f.required && authors.every((a) => !a.name.trim());
+          return (
+            <div key={f.id} className={`field-group${missing ? " missing" : ""}`}>
+              <span className="field-label">
+                {f.label}
+                {f.required && <span className="required" title="Required"> *</span>}
+              </span>
+              <AuthorsEditor
+                value={metadata[f.id]}
+                showBiographies={!!template.base?.biographies}
+                onChange={(list) => {
+                  const next = { ...metadata };
+                  if (list.length === 0) delete next[f.id];
+                  else next[f.id] = list;
+                  onChange(next);
+                }}
+              />
+            </div>
+          );
+        }
         const value = asText(metadata[f.id]);
         const missing = f.required && value.trim() === "";
-        const id = `field-${f.id}`;
         return (
           <label key={f.id} htmlFor={id} className={missing ? "missing" : ""}>
             <span>

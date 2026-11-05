@@ -4,12 +4,47 @@
   "metadata": {
     "title": "Sensor-Driven Irrigation over Long-Range Radio for Small Farms",
     "authors": [
-      "Sara Ahmed | Department of Electrical Engineering, Example University | sara.ahmed@example.edu",
-      "Omar Khalid | Department of Electrical Engineering, Example University",
-      "Maria Lopez | Institute of Agricultural Engineering, Sample Polytechnic, Spain | m.lopez@example.org"
+      {
+        "name": "Sara Ahmed",
+        "affiliations": [
+          "Department of Electrical Engineering, Example University"
+        ],
+        "email": "sara.ahmed@example.edu",
+        "orcid": "0000-0002-1825-0097",
+        "membership": "Student Member, IEEE",
+        "corresponding": true,
+        "biography": "Sara Ahmed is a senior undergraduate student in electrical engineering at Example University. Her interests include low-power embedded systems and precision agriculture.",
+        "photo": ""
+      },
+      {
+        "name": "Omar Khalid",
+        "affiliations": [
+          "Department of Electrical Engineering, Example University"
+        ],
+        "email": "",
+        "orcid": "",
+        "membership": "",
+        "corresponding": false,
+        "biography": "",
+        "photo": ""
+      },
+      {
+        "name": "Maria Lopez",
+        "affiliations": [
+          "Institute of Agricultural Engineering, Sample Polytechnic, Spain",
+          "Department of Electrical Engineering, Example University"
+        ],
+        "email": "m.lopez@example.org",
+        "orcid": "",
+        "membership": "Senior Member, IEEE",
+        "corresponding": false,
+        "biography": "Maria Lopez received the Ph.D. degree in agricultural engineering in 2010. She leads the water management group at Sample Polytechnic.",
+        "photo": ""
+      }
     ],
     "abstract": "We present a low-cost soil-moisture-driven irrigation controller that communicates over LoRa. A four-week field trial shows a 34% reduction in water use compared with a fixed timer, at under 60 USD per zone.",
-    "keywords": "irrigation, LoRa, soil moisture, embedded systems"
+    "keywords": "irrigation, LoRa, soil moisture, embedded systems",
+    "funding": "This work was supported in part by the Example University Senior Design Fund."
   },
   "bibliography": "@article{allen1998,\n  author  = {Allen, Richard G. and Pereira, Luis S. and Raes, Dirk and Smith, Martin},\n  title   = {Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements},\n  journal = {FAO Irrigation and Drainage Paper},\n  volume  = {56},\n  year    = {1998},\n  publisher = {FAO}\n}\n\n@inproceedings{smith2021,\n  author    = {Smith, Jane and Okafor, Chidi},\n  title     = {Low-Power Soil Sensing for Smallholder Farms},\n  booktitle = {Proceedings of the IEEE Global Humanitarian Technology Conference},\n  pages     = {112--118},\n  year      = {2021}\n}\n\n@misc{lora2019,\n  author       = {{LoRa Alliance}},\n  title        = {{LoRaWAN} Specification v1.0.3},\n  year         = {2019},\n  howpublished = {LoRa Alliance Technical Committee}\n}\n",
   "doc": {

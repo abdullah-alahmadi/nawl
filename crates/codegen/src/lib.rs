@@ -11,7 +11,7 @@ mod tex;
 
 pub use cls::template_to_cls;
 pub use latex::escape;
-pub use publisher::{parse_authors, Author};
+pub use publisher::{check_recipe, xetex_override, Authors};
 pub use tex::{document_to_tex, has_bibliography};
 
 use texloom_core::{Document, Template, TitleContent};
@@ -69,7 +69,16 @@ pub fn generate(template: &Template, doc: &Document) -> Generated {
         cls: template_to_cls(template),
         tex: document_to_tex(template, doc),
         assets,
-        figures: doc.body.figure_sources(),
+        figures: {
+            // Figure images plus biography photos, all relative to the document folder.
+            let mut f = doc.body.figure_sources();
+            for p in publisher::photo_sources(doc) {
+                if !f.contains(&p) {
+                    f.push(p);
+                }
+            }
+            f
+        },
         kit_files: template.base.as_ref().map(|b| b.files.clone()).unwrap_or_default(),
         bibliography: has_bibliography(doc).then(|| doc.bibliography.clone()),
     }

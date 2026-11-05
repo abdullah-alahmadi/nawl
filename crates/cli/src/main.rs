@@ -162,7 +162,9 @@ fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path) -> Result<Vec
     }
     for rel in &g.kit_files {
         let (_, bytes) = from(template_dir, rel, "class kit file")?;
-        out.push((texloom_codegen::kit_destination(rel), bytes));
+        let name = texloom_codegen::kit_destination(rel);
+        let bytes = texloom_codegen::xetex_override(&name).map(|s| s.as_bytes().to_vec()).unwrap_or(bytes);
+        out.push((name, bytes));
     }
     Ok(out)
 }

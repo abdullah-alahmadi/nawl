@@ -218,8 +218,8 @@
     },
     {
       "id": "authors",
-      "label": "Authors (Name | Affiliation | Email)",
-      "kind": "list",
+      "label": "Authors",
+      "kind": "authors",
       "required": true
     },
     {

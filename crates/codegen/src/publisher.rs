@@ -1,10 +1,12 @@
 //! Templates built on a publisher's official class (IEEEtran, elsarticle, acmart,
-//! llncs, REVTeX): a thin wrapper class, and the title block written the way each
-//! publisher expects.
+//! llncs, REVTeX, or a publisher kit such as IEEE Access): a thin wrapper class, the
+//! title block written the way each publisher expects, author biographies, and the
+//! `custom` recipe language for publishers without a built-in style.
 
+use std::collections::HashMap;
 use std::fmt::Write;
 
-use texloom_core::{ClassBase, Document, FieldValue, FrontMatterStyle, Template};
+use texloom_core::{AuthorInfo, ClassBase, Document, FieldValue, FrontMatterStyle, Template};
 
 use crate::latex::escape;
 
@@ -12,6 +14,41 @@ macro_rules! w {
     ($o:expr) => { $o.push('\n') };
     ($o:expr, $($arg:tt)*) => { writeln!($o, $($arg)*).expect("write to String") };
 }
+
+// ---------------------------------------------------------------- XeTeX compatibility
+
+/// Replacements for kit files that only work with pdfLaTeX. Texloom's engine is
+/// XeTeX-based; these stand-ins keep the same commands.
+pub fn xetex_override(file_name: &str) -> Option<&'static str> {
+    match file_name {
+        // IEEE Access (and other IEEE kits): PANTONE spot colours via pdfTeX
+        // primitives. The stand-in uses each colour's CMYK equivalent instead, which
+        // looks the same on screen and in normal printing.
+        "spotcolor.sty" => Some(SPOTCOLOR_XETEX),
+        _ => None,
+    }
+}
+
+const SPOTCOLOR_XETEX: &str = r"\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{spotcolor}[2026/01/01 Texloom stand-in for XeTeX: spot colours as their CMYK equivalents]
+\DeclareOption*{}\ProcessOptions\relax
+\RequirePackage{color}
+\newcommand\NewSpotColorSpace[1]{}
+\def\SpotSpace{ }
+% \AddSpotColor{space}{name}{PDF name}{c m y k}: remember the CMYK equivalent.
+\newcommand\AddSpotColor[4]{\expandafter\gdef\csname tl@spot@#2\endcsname{#4}}
+\newcommand\SetPageColorSpace[1]{}
+\newcommand\SetPageColorResource[1]{}
+\newcommand\SpotColor[2]{}
+% \definecolor{x}{spotcolor}{NAME,tint} -> the remembered CMYK colour.
+\def\color@spotcolor#1#2{\tl@spotcolor#1#2,\@nil}
+\def\tl@spotcolor#1#2,#3\@nil{%
+  \expandafter\expandafter\expandafter\tl@spot@apply\csname tl@spot@#2\endcsname\@nil#1}
+\def\tl@spot@apply#1 #2 #3 #4\@nil#5{\color@cmyk#5{#1,#2,#3,#4}}
+\endinput
+";
+
+// ---------------------------------------------------------------- wrapper class
 
 /// The wrapper class: loads the publisher class and adds what Texloom documents use.
 pub fn wrapper_cls(t: &Template, base: &ClassBase) -> String {
@@ -24,6 +61,18 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase) -> String {
     // No "[date version]" text: LaTeX parses its start as a date, and some classes
     // (IEEEtran in journal mode) compare it, failing on anything else.
     w!(o, "\\ProvidesClass{{{id}}}");
+    // Kits with their own fonts load font maps only under pdfTeX (\ifpdf); under
+    // XeTeX the PDF writer gets them here instead, when the first page starts.
+    let maps: Vec<&str> = base
+        .files
+        .iter()
+        .map(|f| f.rsplit('/').next().unwrap_or(f))
+        .filter(|f| f.ends_with(".map"))
+        .collect();
+    if !maps.is_empty() {
+        let specials: String = maps.iter().map(|m| format!("\\special{{pdf:mapfile {m}}}")).collect();
+        w!(o, "\\AtBeginDvi{{{specials}}}");
+    }
     // Kit classes are copied next to the document, so only the file name matters.
     let class = base.class.trim_end_matches(".cls").rsplit('/').next().unwrap_or(&base.class);
     w!(o, "\\LoadClass[{}]{{{class}}}", base.options.join(","));
@@ -74,39 +123,13 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase) -> String {
     o
 }
 
-/// One author line: "Name | Affiliation | Email" (affiliation and e-mail optional).
-#[derive(Debug, Clone, PartialEq)]
-pub struct Author {
-    pub name: String,
-    pub affiliation: String,
-    pub email: String,
-}
+// ---------------------------------------------------------------- document data
 
-pub fn parse_authors(v: Option<&FieldValue>) -> Vec<Author> {
-    let lines: Vec<String> = match v {
-        Some(FieldValue::List(l)) => l.clone(),
-        Some(FieldValue::Text(s)) => s.lines().map(str::to_string).collect(),
-        None => Vec::new(),
-    };
-    lines
-        .iter()
-        .map(|l| l.trim())
-        .filter(|l| !l.is_empty())
-        .map(|l| {
-            let mut parts = l.split('|').map(str::trim);
-            Author {
-                name: parts.next().unwrap_or("").to_string(),
-                affiliation: parts.next().unwrap_or("").to_string(),
-                email: parts.next().unwrap_or("").to_string(),
-            }
-        })
-        .collect()
-}
-
-fn text_field(doc: &Document, t: &Template, id: &str) -> String {
+fn field_text(doc: &Document, t: &Template, id: &str) -> String {
     match doc.metadata.get(id).filter(|v| !v.is_empty()) {
         Some(FieldValue::Text(s)) => escape(s.trim()),
         Some(FieldValue::List(l)) => escape(&l.join(", ")),
+        Some(FieldValue::Authors(a)) => escape(&a.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join(", ")),
         None => t
             .field(id)
             .filter(|f| f.required)
@@ -121,7 +144,7 @@ fn paragraphs(doc: &Document, t: &Template, id: &str) -> String {
             s.split("\n\n").map(str::trim).filter(|p| !p.is_empty()).map(escape).collect::<Vec<_>>().join("\n\n")
         }
         Some(FieldValue::List(l)) => l.iter().map(|p| escape(p.trim())).collect::<Vec<_>>().join("\n\n"),
-        None => text_field(doc, t, id),
+        _ => field_text(doc, t, id),
     }
 }
 
@@ -129,46 +152,82 @@ fn keywords(doc: &Document) -> Vec<String> {
     let raw = match doc.metadata.get("keywords") {
         Some(FieldValue::Text(s)) => s.clone(),
         Some(FieldValue::List(l)) => l.join(","),
-        None => String::new(),
+        _ => String::new(),
     };
     raw.split([',', ';', '\n']).map(str::trim).filter(|k| !k.is_empty()).map(escape).collect()
 }
 
-/// Affiliations in order of first appearance, and each author's 1-based index into them.
-fn number_affiliations(authors: &[Author]) -> (Vec<String>, Vec<Option<usize>>) {
-    let mut affs: Vec<String> = Vec::new();
-    let idx = authors
-        .iter()
-        .map(|a| {
-            if a.affiliation.is_empty() {
-                return None;
-            }
-            Some(match affs.iter().position(|x| *x == a.affiliation) {
-                Some(i) => i + 1,
-                None => {
-                    affs.push(a.affiliation.clone());
-                    affs.len()
-                }
-            })
-        })
-        .collect();
-    (affs, idx)
+/// Paragraphs of free text (a biography): blank lines separate paragraphs.
+fn bio_text(s: &str) -> String {
+    s.split("\n\n").map(str::trim).filter(|p| !p.is_empty()).map(escape).collect::<Vec<_>>().join("\n\n")
 }
 
-/// "A", "A and B", "A, B, and C".
-fn join_names(names: &[String]) -> String {
-    match names {
-        [] => String::new(),
-        [a] => a.clone(),
-        [a, b] => format!("{a} and {b}"),
-        [rest @ .., last] => format!("{}, and {last}", rest.join(", ")),
+/// Authors with their affiliations numbered in order of first appearance.
+pub struct Authors {
+    pub list: Vec<AuthorInfo>,
+    /// Unique affiliations, in order.
+    pub affiliations: Vec<String>,
+    /// For each author, 1-based indexes into `affiliations`.
+    pub numbers: Vec<Vec<usize>>,
+}
+
+impl Authors {
+    pub fn new(doc: &Document) -> Self {
+        let list = AuthorInfo::from_field(doc.metadata.get("authors"));
+        let mut affiliations: Vec<String> = Vec::new();
+        let numbers = list
+            .iter()
+            .map(|a| {
+                a.affiliations
+                    .iter()
+                    .map(|aff| match affiliations.iter().position(|x| x == aff) {
+                        Some(i) => i + 1,
+                        None => {
+                            affiliations.push(aff.clone());
+                            affiliations.len()
+                        }
+                    })
+                    .collect()
+            })
+            .collect();
+        Self { list, affiliations, numbers }
+    }
+
+    /// Authors whose *first* affiliation is number `n`.
+    fn first_at(&self, n: usize) -> impl Iterator<Item = &AuthorInfo> {
+        self.list.iter().zip(&self.numbers).filter(move |(_, nums)| nums.first() == Some(&n)).map(|(a, _)| a)
+    }
+
+    fn corresponding(&self) -> Option<&AuthorInfo> {
+        self.list.iter().find(|a| a.corresponding)
     }
 }
 
+/// "A", "A and B", "A, B, and C" (or with another final word, e.g. "AND").
+fn join_names(names: &[String], and: &str) -> String {
+    match names {
+        [] => String::new(),
+        [a] => a.clone(),
+        [a, b] => format!("{a} {and} {b}"),
+        [rest @ .., last] => format!("{}, {and} {last}", rest.join(", ")),
+    }
+}
+
+fn nums(n: &[usize]) -> String {
+    n.iter().map(usize::to_string).collect::<Vec<_>>().join(",")
+}
+
+/// Family name: the last word of the name (good enough for running heads).
+fn family_name(name: &str) -> &str {
+    name.split_whitespace().last().unwrap_or(name)
+}
+
+// ---------------------------------------------------------------- title blocks
+
 /// The title block, abstract and keywords, written right after `\begin{document}`.
 pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
-    let title = text_field(doc, t, "title");
-    let authors = parse_authors(doc.metadata.get("authors"));
+    let title = field_text(doc, t, "title");
+    let au = Authors::new(doc);
     let abstract_ = paragraphs(doc, t, "abstract");
     let kw = keywords(doc);
     let mut o = String::new();
@@ -176,20 +235,40 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
 
     match base.front_matter {
         FrontMatterStyle::IeeeJournal => {
-            let names: Vec<String> = authors.iter().map(|a| e(&a.name)).collect();
-            // "A and B are with X (e-mail: …)": one footnote per affiliation.
-            let (affs, idx) = number_affiliations(&authors);
+            let names: Vec<String> = au
+                .list
+                .iter()
+                .map(|a| {
+                    if a.membership.is_empty() {
+                        e(&a.name)
+                    } else {
+                        format!("{},~\\IEEEmembership{{{}}}", e(&a.name), e(&a.membership))
+                    }
+                })
+                .collect();
+            // "A and B are with X (e-mail: …)": one footnote per (first) affiliation.
             let mut thanks = String::new();
-            for (n, aff) in affs.iter().enumerate() {
-                let group: Vec<&Author> = authors.iter().zip(&idx).filter(|(_, i)| **i == Some(n + 1)).map(|(a, _)| a).collect();
+            for (i, aff) in au.affiliations.iter().enumerate() {
+                let group: Vec<&AuthorInfo> = au.first_at(i + 1).collect();
+                if group.is_empty() {
+                    continue;
+                }
                 let who: Vec<String> = group.iter().map(|a| e(&a.name)).collect();
                 let verb = if who.len() > 1 { "are" } else { "is" };
                 let emails: Vec<String> = group.iter().filter(|a| !a.email.is_empty()).map(|a| e(&a.email)).collect();
                 let mail = if emails.is_empty() { String::new() } else { format!(" (e-mail: {})", emails.join("; ")) };
-                let _ = write!(thanks, "\\thanks{{{} {verb} with {}{mail}.}}", join_names(&who), e(aff));
+                let _ = write!(thanks, "\\thanks{{{} {verb} with {}{mail}.}}", join_names(&who, "and"), e(aff));
+            }
+            for a in &au.list {
+                for extra in a.affiliations.iter().skip(1) {
+                    let _ = write!(thanks, "\\thanks{{{} is also with {}.}}", e(&a.name), e(extra));
+                }
+            }
+            if let Some(c) = au.corresponding() {
+                let _ = write!(thanks, "\\thanks{{(Corresponding author: {}.)}}", e(&c.name));
             }
             w!(o, "\\title{{{title}}}");
-            w!(o, "\\author{{{}%\n{thanks}}}", join_names(&names));
+            w!(o, "\\author{{{}%\n{thanks}}}", join_names(&names, "and"));
             w!(o, "\\maketitle");
             if !abstract_.is_empty() {
                 w!(o, "\\begin{{abstract}}\n{abstract_}\n\\end{{abstract}}");
@@ -199,15 +278,16 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
             }
         }
         FrontMatterStyle::IeeeConference => {
-            let blocks: Vec<String> = authors
+            let blocks: Vec<String> = au
+                .list
                 .iter()
                 .map(|a| {
-                    let mut lines = vec![];
-                    if !a.affiliation.is_empty() {
-                        lines.push(e(&a.affiliation));
-                    }
+                    let mut lines: Vec<String> = a.affiliations.iter().map(|x| e(x)).collect();
                     if !a.email.is_empty() {
                         lines.push(e(&a.email));
+                    }
+                    if !a.orcid.is_empty() {
+                        lines.push(format!("ORCID: {}", e(&a.orcid)));
                     }
                     format!("\\IEEEauthorblockN{{{}}}\n\\IEEEauthorblockA{{{}}}", e(&a.name), lines.join("\\\\"))
                 })
@@ -223,16 +303,19 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
             }
         }
         FrontMatterStyle::Elsevier => {
-            let (affs, idx) = number_affiliations(&authors);
             w!(o, "\\begin{{frontmatter}}");
             w!(o, "\\title{{{title}}}");
-            for (a, i) in authors.iter().zip(&idx) {
-                let label = i.map(|i| format!("[{i}]")).unwrap_or_default();
+            for (a, n) in au.list.iter().zip(&au.numbers) {
+                let label = if n.is_empty() { String::new() } else { format!("[{}]", nums(n)) };
+                let corr = if a.corresponding { "\\corref{cor1}" } else { "" };
                 let mail = if a.email.is_empty() { String::new() } else { format!("\\ead{{{}}}", e(&a.email)) };
-                w!(o, "\\author{label}{{{}}}{mail}", e(&a.name));
+                w!(o, "\\author{label}{{{}{corr}}}{mail}", e(&a.name));
             }
-            for (n, aff) in affs.iter().enumerate() {
-                w!(o, "\\affiliation[{}]{{organization={{{}}}}}", n + 1, e(aff));
+            if au.corresponding().is_some() {
+                w!(o, "\\cortext[cor1]{{Corresponding author}}");
+            }
+            for (i, aff) in au.affiliations.iter().enumerate() {
+                w!(o, "\\affiliation[{}]{{organization={{{}}}}}", i + 1, e(aff));
             }
             if !abstract_.is_empty() {
                 w!(o, "\\begin{{abstract}}\n{abstract_}\n\\end{{abstract}}");
@@ -244,14 +327,19 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
         }
         FrontMatterStyle::Acm => {
             w!(o, "\\title{{{title}}}");
-            for a in &authors {
+            for a in &au.list {
                 w!(o, "\\author{{{}}}", e(&a.name));
+                if !a.orcid.is_empty() {
+                    w!(o, "\\orcid{{{}}}", e(&a.orcid));
+                }
                 if !a.email.is_empty() {
                     w!(o, "\\email{{{}}}", e(&a.email));
                 }
                 // The whole affiliation goes in \institution; guessing which part is the
                 // country would be wrong too often ("Dept…, Example University").
-                w!(o, "\\affiliation{{\\institution{{{}}}\\country{{}}}}", e(a.affiliation.trim()));
+                for aff in &a.affiliations {
+                    w!(o, "\\affiliation{{\\institution{{{}}}\\country{{}}}}", e(aff.trim()));
+                }
             }
             if !abstract_.is_empty() {
                 w!(o, "\\begin{{abstract}}\n{abstract_}\n\\end{{abstract}}");
@@ -262,25 +350,23 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
             w!(o, "\\maketitle");
         }
         FrontMatterStyle::Lncs => {
-            let (affs, idx) = number_affiliations(&authors);
-            let names: Vec<String> = authors
+            let names: Vec<String> = au
+                .list
                 .iter()
-                .zip(&idx)
-                .map(|(a, i)| match i {
-                    Some(i) if affs.len() > 1 => format!("{}\\inst{{{i}}}", e(&a.name)),
-                    _ => e(&a.name),
+                .zip(&au.numbers)
+                .map(|(a, n)| {
+                    let inst = if !n.is_empty() && au.affiliations.len() > 1 { format!("\\inst{{{}}}", nums(n)) } else { String::new() };
+                    let orcid = if a.orcid.is_empty() { String::new() } else { format!("\\orcidID{{{}}}", e(&a.orcid)) };
+                    format!("{}{inst}{orcid}", e(&a.name))
                 })
                 .collect();
-            let institutes: Vec<String> = affs
+            let institutes: Vec<String> = au
+                .affiliations
                 .iter()
                 .enumerate()
-                .map(|(n, aff)| {
-                    let emails: Vec<String> = authors
-                        .iter()
-                        .zip(&idx)
-                        .filter(|(a, i)| **i == Some(n + 1) && !a.email.is_empty())
-                        .map(|(a, _)| format!("\\email{{{}}}", e(&a.email)))
-                        .collect();
+                .map(|(i, aff)| {
+                    let emails: Vec<String> =
+                        au.first_at(i + 1).filter(|a| !a.email.is_empty()).map(|a| format!("\\email{{{}}}", e(&a.email))).collect();
                     if emails.is_empty() { e(aff) } else { format!("{}\\\\\n{}", e(aff), emails.join(", ")) }
                 })
                 .collect();
@@ -297,13 +383,13 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
         }
         FrontMatterStyle::Revtex => {
             w!(o, "\\title{{{title}}}");
-            for a in &authors {
+            for a in &au.list {
                 w!(o, "\\author{{{}}}", e(&a.name));
                 if !a.email.is_empty() {
                     w!(o, "\\email{{{}}}", e(&a.email));
                 }
-                if !a.affiliation.is_empty() {
-                    w!(o, "\\affiliation{{{}}}", e(&a.affiliation));
+                for aff in &a.affiliations {
+                    w!(o, "\\affiliation{{{}}}", e(aff));
                 }
             }
             if !abstract_.is_empty() {
@@ -314,29 +400,420 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
             }
             w!(o, "\\maketitle");
         }
+        FrontMatterStyle::IeeeAccess => {
+            let history = match doc.metadata.get("history").filter(|v| !v.is_empty()) {
+                Some(_) => field_text(doc, t, "history"),
+                None => "Date of publication xxxx 00, 0000, date of current version xxxx 00, 0000.".into(),
+            };
+            let doi = match doc.metadata.get("doi").filter(|v| !v.is_empty()) {
+                Some(_) => field_text(doc, t, "doi"),
+                None => "10.1109/ACCESS.xxxx.DOI".into(),
+            };
+            let names: Vec<String> = au
+                .list
+                .iter()
+                .zip(&au.numbers)
+                .map(|(a, n)| {
+                    let mark = if n.is_empty() { String::new() } else { format!("\\authorrefmark{{{}}}", nums(n)) };
+                    let member = if a.membership.is_empty() { String::new() } else { format!(", \\IEEEmembership{{{}}}", e(&a.membership)) };
+                    format!("\\uppercase{{{}}}{mark}{member}", e(&a.name))
+                })
+                .collect();
+            w!(o, "\\history{{{history}}}");
+            w!(o, "\\doi{{{doi}}}");
+            w!(o);
+            w!(o, "\\title{{{title}}}");
+            w!(o, "\\author{{{}}}", join_names(&names, "AND"));
+            for (i, aff) in au.affiliations.iter().enumerate() {
+                let emails: Vec<String> = au.first_at(i + 1).filter(|a| !a.email.is_empty()).map(|a| e(&a.email)).collect();
+                let mail = if emails.is_empty() { String::new() } else { format!(" (e-mail: {})", emails.join("; ")) };
+                w!(o, "\\address[{}]{{{}{mail}}}", i + 1, e(aff));
+            }
+            let funding = paragraphs(doc, t, "funding");
+            if !funding.is_empty() {
+                w!(o, "\\tfootnote{{{funding}}}");
+            }
+            let head = match au.list.first() {
+                Some(a) => format!("{} \\headeretal: {title}", e(family_name(&a.name))),
+                None => title.clone(),
+            };
+            w!(o, "\\markboth{{{head}}}{{{head}}}");
+            if let Some(c) = au.corresponding() {
+                let mail = if c.email.is_empty() { String::new() } else { format!(" (e-mail: {})", e(&c.email)) };
+                w!(o, "\\corresp{{Corresponding author: {}{mail}.}}", e(&c.name));
+            }
+            if !abstract_.is_empty() {
+                w!(o, "\\begin{{abstract}}\n{abstract_}\n\\end{{abstract}}");
+            }
+            if !kw.is_empty() {
+                w!(o, "\\begin{{keywords}}\n{}\n\\end{{keywords}}", kw.join(", "));
+            }
+            w!(o, "\\titlepgskip=-21pt");
+            w!(o, "\\maketitle");
+        }
+        FrontMatterStyle::Custom => {
+            o.push_str(&render_recipe(base.title_block.as_deref().unwrap_or(""), &recipe_scope(t, doc, &au)));
+            o.push('\n');
+        }
     }
     o
+}
+
+/// What comes after the body: author biographies (IEEE), `\EOD` (IEEE Access) and
+/// the template's own end block.
+pub fn end_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
+    let mut o = String::new();
+    let au = Authors::new(doc);
+    if base.biographies {
+        for a in au.list.iter().filter(|a| !a.biography.trim().is_empty()) {
+            let bio = bio_text(&a.biography);
+            if is_safe_path(&a.photo) {
+                w!(
+                    o,
+                    "\\begin{{IEEEbiography}}[{{\\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{{{}}}}}]{{{}}}\n{bio}\n\\end{{IEEEbiography}}\n",
+                    a.photo,
+                    escape(&a.name)
+                );
+            } else {
+                w!(o, "\\begin{{IEEEbiographynophoto}}{{{}}}\n{bio}\n\\end{{IEEEbiographynophoto}}\n", escape(&a.name));
+            }
+        }
+    }
+    if base.front_matter == FrontMatterStyle::IeeeAccess {
+        w!(o, "\\EOD");
+    }
+    if let Some(end) = base.end_block.as_deref().filter(|e| !e.trim().is_empty()) {
+        o.push_str(&render_recipe(end, &recipe_scope(t, doc, &au)));
+        o.push('\n');
+    }
+    o
+}
+
+/// Biography photos the document uses (to copy next to it when compiling).
+pub fn photo_sources(doc: &Document) -> Vec<String> {
+    AuthorInfo::from_field(doc.metadata.get("authors"))
+        .into_iter()
+        .map(|a| a.photo)
+        .filter(|p| is_safe_path(p))
+        .collect()
+}
+
+fn is_safe_path(path: &str) -> bool {
+    !path.is_empty()
+        && !path.starts_with('/')
+        && !path.contains('\\')
+        && path.split('/').all(|s| !s.is_empty() && s != "..")
+        && !path.chars().any(|c| matches!(c, '{' | '}' | '%' | '#' | '$' | '&' | '~' | '^' | ' '))
+}
+
+// ---------------------------------------------------------------- recipe language
+
+/// Values a recipe can use. Lists (`authors`, `affiliations`, `keywords`) hold one
+/// scope per item; everything else is an escaped string.
+#[derive(Default)]
+pub struct Scope {
+    values: HashMap<String, String>,
+    lists: HashMap<String, Vec<Scope>>,
+}
+
+impl Scope {
+    fn set(&mut self, k: &str, v: String) {
+        self.values.insert(k.to_string(), v);
+    }
+}
+
+/// Everything available to a title-block recipe.
+///
+/// Top level: `{title}`, `{abstract}`, `{keywords}` (comma-separated), any other
+/// field by id, `{corresponding}` and `{corresponding_email}`; lists `authors`,
+/// `affiliations` and `keywords`. In `{#authors}`: `{name}`, `{email}`, `{orcid}`,
+/// `{membership}`, `{affiliation}` (first), `{affiliations}` (all, "; "),
+/// `{affnums}` ("1,2"), `{n}`, `{corresponding}` ("yes" or empty), `{biography}`,
+/// `{photo}`. In `{#affiliations}`: `{n}`, `{name}`, `{emails}`. In `{#keywords}`:
+/// `{keyword}`.
+fn recipe_scope(t: &Template, doc: &Document, au: &Authors) -> Scope {
+    let mut s = Scope::default();
+    for f in &t.fields {
+        let v = if f.id == "abstract" { paragraphs(doc, t, &f.id) } else { field_text(doc, t, &f.id) };
+        s.set(&f.id, v);
+    }
+    let kw = keywords(doc);
+    s.set("keywords", kw.join(", "));
+    if let Some(c) = au.corresponding() {
+        s.set("corresponding", escape(&c.name));
+        s.set("corresponding_email", escape(&c.email));
+    }
+    let authors = au
+        .list
+        .iter()
+        .zip(&au.numbers)
+        .enumerate()
+        .map(|(i, (a, n))| {
+            let mut x = Scope::default();
+            x.set("name", escape(&a.name));
+            x.set("email", escape(&a.email));
+            x.set("orcid", escape(&a.orcid));
+            x.set("membership", escape(&a.membership));
+            x.set("affiliation", a.affiliations.first().map(|f| escape(f)).unwrap_or_default());
+            x.set("affiliations", a.affiliations.iter().map(|f| escape(f)).collect::<Vec<_>>().join("; "));
+            x.set("affnums", nums(n));
+            x.set("n", (i + 1).to_string());
+            x.set("corresponding", if a.corresponding { "yes".into() } else { String::new() });
+            x.set("biography", bio_text(&a.biography));
+            x.set("photo", if is_safe_path(&a.photo) { a.photo.clone() } else { String::new() });
+            x
+        })
+        .collect();
+    let affiliations = au
+        .affiliations
+        .iter()
+        .enumerate()
+        .map(|(i, aff)| {
+            let mut x = Scope::default();
+            x.set("n", (i + 1).to_string());
+            x.set("name", escape(aff));
+            x.set(
+                "emails",
+                au.first_at(i + 1).filter(|a| !a.email.is_empty()).map(|a| escape(&a.email)).collect::<Vec<_>>().join(", "),
+            );
+            x
+        })
+        .collect();
+    let keyword_list = kw
+        .into_iter()
+        .map(|k| {
+            let mut x = Scope::default();
+            x.set("keyword", k);
+            x
+        })
+        .collect();
+    s.lists.insert("authors".into(), authors);
+    s.lists.insert("affiliations".into(), affiliations);
+    s.lists.insert("keywords".into(), keyword_list);
+    s
+}
+
+#[derive(Debug, PartialEq)]
+enum Node {
+    Text(String),
+    Var(String),
+    /// `{#list|sep}…{/list}`
+    Each { list: String, sep: String, body: Vec<Node> },
+    /// `{?name}…{/name}`: only when the value is non-empty.
+    If { name: String, body: Vec<Node> },
+}
+
+/// A placeholder tag at the start of `s`: `{name}`, `{#name|sep}`, `{?name}`, `{/name}`.
+fn tag(s: &str) -> Option<(char, &str, &str, usize)> {
+    let rest = s.strip_prefix('{')?;
+    let end = rest.find('}')?;
+    let inner = &rest[..end];
+    let (kind, body) = match inner.chars().next()? {
+        c @ ('#' | '?' | '/') => (c, &inner[1..]),
+        _ => (' ', inner),
+    };
+    let (name, sep) = match body.split_once('|') {
+        Some((n, sep)) if kind == '#' => (n, sep),
+        _ => (body, ""),
+    };
+    let valid = name.chars().next().is_some_and(|c| c.is_ascii_lowercase())
+        && name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+    valid.then_some((kind, name, sep, end + 2))
+}
+
+/// A plain `{name}` right after a LaTeX command (`\begin{center}`, `\cite{key}`,
+/// `\section*{…}`, `\documentclass[…]{…}`) is LaTeX, not a placeholder; recipes put
+/// placeholders in their own braces: `\title{{title}}`.
+fn is_latex_argument(before: Option<char>, kind: char) -> bool {
+    kind == ' ' && before.is_some_and(|c| c.is_ascii_alphabetic() || c == '*' || c == ']')
+}
+
+/// Parses until `{/close}` (or the end); returns the nodes and the bytes consumed.
+fn parse(s: &str, close: Option<&str>) -> (Vec<Node>, usize) {
+    let mut nodes = Vec::new();
+    let mut text = String::new();
+    let mut i = 0;
+    while i < s.len() {
+        let found = tag(&s[i..]).filter(|(kind, ..)| !is_latex_argument(s[..i].chars().last(), *kind));
+        if let Some((kind, name, sep, len)) = found {
+            if kind == '/' {
+                if Some(name) == close {
+                    if !text.is_empty() {
+                        nodes.push(Node::Text(text));
+                    }
+                    return (nodes, i + len);
+                }
+                // A stray closing tag is kept as text.
+                text.push_str(&s[i..i + len]);
+                i += len;
+                continue;
+            }
+            if !text.is_empty() {
+                nodes.push(Node::Text(std::mem::take(&mut text)));
+            }
+            i += len;
+            match kind {
+                '#' | '?' => {
+                    let (body, used) = parse(&s[i..], Some(name));
+                    i += used;
+                    nodes.push(if kind == '#' {
+                        Node::Each { list: name.to_string(), sep: sep.to_string(), body }
+                    } else {
+                        Node::If { name: name.to_string(), body }
+                    });
+                }
+                _ => nodes.push(Node::Var(name.to_string())),
+            }
+        } else {
+            let c = s[i..].chars().next().expect("in bounds");
+            text.push(c);
+            i += c.len_utf8();
+        }
+    }
+    if !text.is_empty() {
+        nodes.push(Node::Text(text));
+    }
+    (nodes, s.len())
+}
+
+fn lookup<'a>(scopes: &[&'a Scope], name: &str) -> Option<&'a str> {
+    scopes.iter().rev().find_map(|s| s.values.get(name).map(String::as_str))
+}
+
+fn render_nodes(nodes: &[Node], scopes: &mut Vec<&Scope>, out: &mut String) {
+    for n in nodes {
+        match n {
+            Node::Text(t) => out.push_str(t),
+            Node::Var(name) => out.push_str(lookup(scopes, name).unwrap_or("")),
+            Node::If { name, body } => {
+                let present = lookup(scopes, name).is_some_and(|v| !v.trim().is_empty())
+                    || scopes.iter().rev().any(|s| s.lists.get(name).is_some_and(|l| !l.is_empty()));
+                if present {
+                    render_nodes(body, scopes, out);
+                }
+            }
+            Node::Each { list, sep, body } => {
+                let items: Option<&Vec<Scope>> = scopes.iter().rev().find_map(|s| s.lists.get(list));
+                if let Some(items) = items {
+                    for (i, item) in items.iter().enumerate() {
+                        if i > 0 {
+                            out.push_str(sep);
+                        }
+                        scopes.push(item);
+                        render_nodes(body, scopes, out);
+                        scopes.pop();
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Fills a recipe. Placeholder values are already LaTeX-escaped; everything else in
+/// the recipe is LaTeX written by the template's author and passed through as-is.
+pub fn render_recipe(recipe: &str, scope: &Scope) -> String {
+    let (nodes, _) = parse(recipe, None);
+    let mut out = String::new();
+    render_nodes(&nodes, &mut vec![scope], &mut out);
+    out
+}
+
+/// Problems in a recipe (unclosed blocks), for the designer.
+pub fn check_recipe(recipe: &str) -> Vec<String> {
+    let mut problems = Vec::new();
+    let mut stack: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < recipe.len() {
+        let found = tag(&recipe[i..]).filter(|(kind, ..)| !is_latex_argument(recipe[..i].chars().last(), *kind));
+        if let Some((kind, name, _, len)) = found {
+            match kind {
+                '#' | '?' => stack.push(name.to_string()),
+                '/' => match stack.pop() {
+                    Some(open) if open == name => {}
+                    Some(open) => problems.push(format!("{{/{name}}} closes {{{open}}}")),
+                    None => problems.push(format!("{{/{name}}} has no opening tag")),
+                },
+                _ => {}
+            }
+            i += len;
+        } else {
+            i += recipe[i..].chars().next().map_or(1, char::len_utf8);
+        }
+    }
+    problems.extend(stack.into_iter().map(|open| format!("{{{open}}} is never closed")));
+    problems
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use texloom_core::Metadata;
+
+    fn doc(authors: serde_json::Value) -> Document {
+        let metadata: Metadata = serde_json::from_value(serde_json::json!({
+            "title": "On Things", "authors": authors, "keywords": "a, b", "abstract": "Abs."
+        }))
+        .unwrap();
+        Document { metadata, ..Default::default() }
+    }
 
     #[test]
-    fn parses_author_lines() {
-        let a = parse_authors(Some(&FieldValue::List(vec![
-            "Sara Ahmed | Example University | sara@example.edu".into(),
-            "Omar Khalid|Example University".into(),
-            "Lina Haddad".into(),
-            " ".into(),
-        ])));
-        assert_eq!(a.len(), 3);
-        assert_eq!(a[0].email, "sara@example.edu");
-        assert_eq!(a[1].affiliation, "Example University");
-        assert_eq!(a[2].affiliation, "");
-        let (affs, idx) = number_affiliations(&a);
-        assert_eq!(affs, vec!["Example University"]);
-        assert_eq!(idx, vec![Some(1), Some(1), None]);
-        assert_eq!(join_names(&["A".into(), "B".into(), "C".into()]), "A, B, and C");
+    fn numbers_shared_and_multiple_affiliations() {
+        let d = doc(serde_json::json!([
+            {"name": "Sara Ahmed", "affiliations": ["U1", "U2"], "email": "s@x"},
+            {"name": "Omar Khalid", "affiliations": ["U2"]},
+            {"name": "Lina Haddad"}
+        ]));
+        let au = Authors::new(&d);
+        assert_eq!(au.affiliations, vec!["U1", "U2"]);
+        assert_eq!(au.numbers, vec![vec![1, 2], vec![2], vec![]]);
+        assert_eq!(join_names(&["A".into(), "B".into(), "C".into()], "and"), "A, B, and C");
+    }
+
+    #[test]
+    fn recipes_fill_loops_conditionals_and_escape_values() {
+        let d = doc(serde_json::json!([
+            {"name": "Sara & Co", "affiliations": ["U1"], "email": "s@x", "corresponding": true},
+            {"name": "Omar", "affiliations": ["U1", "U2"]}
+        ]));
+        let t: Template = serde_json::from_str(include_str!("../../../templates/ieee-journal/template.json")).unwrap();
+        let scope = recipe_scope(&t, &d, &Authors::new(&d));
+        let out = render_recipe(
+            "\\title{{title}}\n\\author{{#authors| \\and }{name}\\inst{{affnums}}{?email} <{email}>{/email}{/authors}}\n{#affiliations|; }{n}={name}{/affiliations}\n{?corresponding}C: {corresponding}{/corresponding}",
+            &scope,
+        );
+        assert_eq!(
+            out,
+            "\\title{On Things}\n\\author{Sara \\& Co\\inst{1} <s@x> \\and Omar\\inst{1,2}}\n1=U1; 2=U2\nC: Sara \\& Co"
+        );
+        // LaTeX arguments that look like placeholders stay LaTeX.
+        let latex = render_recipe("\\begin{abstract}\n{abstract}\n\\end{abstract}\\begin{center}\\cite{title}\\section*{title}", &scope);
+        assert_eq!(latex, "\\begin{abstract}\nAbs.\n\\end{abstract}\\begin{center}\\cite{title}\\section*{title}");
+        assert!(check_recipe("{#authors}{name}").contains(&"{authors} is never closed".to_string()));
+        assert!(check_recipe("{#authors}{name}{/authors}").is_empty());
+    }
+
+    #[test]
+    fn ieee_access_title_block() {
+        let d = doc(serde_json::json!([
+            {"name": "Sara Ahmed", "affiliations": ["U1"], "email": "s@x", "membership": "Member, IEEE", "corresponding": true,
+             "biography": "Sara works on things.", "photo": "figures/sara.png"},
+            {"name": "Omar Khalid", "affiliations": ["U2"]}
+        ]));
+        let mut t: Template = serde_json::from_str(include_str!("../../../templates/ieee-journal/template.json")).unwrap();
+        let base = t.base.as_mut().unwrap();
+        base.front_matter = FrontMatterStyle::IeeeAccess;
+        base.biographies = true;
+        let base = t.base.clone().unwrap();
+        let fm = front_matter(&t, &base, &d);
+        assert!(fm.contains("\\author{\\uppercase{Sara Ahmed}\\authorrefmark{1}, \\IEEEmembership{Member, IEEE} AND \\uppercase{Omar Khalid}\\authorrefmark{2}}"), "{fm}");
+        assert!(fm.contains("\\address[1]{U1 (e-mail: s@x)}"));
+        assert!(fm.contains("\\corresp{Corresponding author: Sara Ahmed (e-mail: s@x).}"));
+        assert!(fm.contains("\\markboth{Ahmed \\headeretal: On Things}"));
+        assert!(fm.contains("\\begin{keywords}"));
+        let end = end_matter(&t, &base, &d);
+        assert!(end.contains("{figures/sara.png}}]{Sara Ahmed}"));
+        assert!(end.trim_end().ends_with("\\EOD"));
+        assert_eq!(photo_sources(&d), vec!["figures/sara.png"]);
     }
 }

@@ -48,6 +48,7 @@ pub type Metadata = BTreeMap<String, FieldValue>;
 pub enum FieldValue {
     Text(String),
     List(Vec<String>),
+    Authors(Vec<AuthorInfo>),
 }
 
 impl FieldValue {
@@ -55,7 +56,61 @@ impl FieldValue {
         match self {
             FieldValue::Text(s) => s.trim().is_empty(),
             FieldValue::List(v) => v.iter().all(|s| s.trim().is_empty()),
+            FieldValue::Authors(a) => a.iter().all(|a| a.name.trim().is_empty()),
         }
+    }
+}
+
+/// One author of a paper (an `authors` field).
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct AuthorInfo {
+    pub name: String,
+    /// One or more affiliations, in order.
+    #[serde(default)]
+    pub affiliations: Vec<String>,
+    #[serde(default)]
+    pub email: String,
+    #[serde(default)]
+    pub orcid: String,
+    /// Society membership, e.g. "Member, IEEE".
+    #[serde(default)]
+    pub membership: String,
+    #[serde(default)]
+    pub corresponding: bool,
+    /// Short biography (IEEE journals print these at the end).
+    #[serde(default)]
+    pub biography: String,
+    /// Photo for the biography, relative to the document folder (`figures/…`).
+    #[serde(default)]
+    pub photo: String,
+}
+
+impl AuthorInfo {
+    /// Reads either structured authors or "Name | Affiliation; Affiliation | Email" lines.
+    pub fn from_field(v: Option<&FieldValue>) -> Vec<AuthorInfo> {
+        let lines: Vec<String> = match v {
+            Some(FieldValue::Authors(a)) => {
+                return a.iter().filter(|a| !a.name.trim().is_empty()).cloned().collect();
+            }
+            Some(FieldValue::List(l)) => l.clone(),
+            Some(FieldValue::Text(s)) => s.lines().map(str::to_string).collect(),
+            None => Vec::new(),
+        };
+        lines
+            .iter()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty())
+            .map(|l| {
+                let mut parts = l.split('|').map(str::trim);
+                let name = parts.next().unwrap_or("").to_string();
+                let affiliations =
+                    parts.next().unwrap_or("").split(';').map(str::trim).filter(|a| !a.is_empty()).map(String::from).collect();
+                let email = parts.next().unwrap_or("").to_string();
+                AuthorInfo { name, affiliations, email, ..Default::default() }
+            })
+            .collect()
     }
 }
 
@@ -528,6 +583,22 @@ mod tests {
         assert_eq!(body.broken_refs(), vec!["gone".to_string()]);
         assert_eq!(body.cited_keys(), vec!["b", "a", "c"]);
         assert_eq!(body.top_level_titles(), vec!["Intro"]);
+    }
+
+    #[test]
+    fn authors_from_objects_or_lines() {
+        let m: Metadata = serde_json::from_value(json!({
+            "a": [{"name": "Sara", "affiliations": ["U1", "U2"], "corresponding": true}],
+            "b": ["Omar | U1; U3 | o@x.org", "Lina"]
+        }))
+        .unwrap();
+        let a = AuthorInfo::from_field(m.get("a"));
+        assert_eq!(a[0].affiliations, vec!["U1", "U2"]);
+        assert!(a[0].corresponding);
+        let b = AuthorInfo::from_field(m.get("b"));
+        assert_eq!(b[0].affiliations, vec!["U1", "U3"]);
+        assert_eq!(b[0].email, "o@x.org");
+        assert!(b[1].affiliations.is_empty());
     }
 
     #[test]

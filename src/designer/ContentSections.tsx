@@ -1,7 +1,8 @@
 // Designer panels: metadata fields, front matter, title page summary.
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { importTemplateFile } from "../api";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { importKitZip, importTemplateFile } from "../api";
 import type { FieldKind } from "../bindings/FieldKind";
 import type { FrontMatterItem } from "../bindings/FrontMatterItem";
 import { Row, Select, Toggle, issuesAt } from "./controls";
@@ -11,6 +12,7 @@ const KINDS: { value: FieldKind; label: string }[] = [
   { value: "text", label: "One line" },
   { value: "paragraphs", label: "Paragraphs" },
   { value: "list", label: "List (one per line)" },
+  { value: "authors", label: "Authors (affiliations, e-mail…)" },
 ];
 
 function move<T>(list: T[], from: number, to: number) {
@@ -281,7 +283,22 @@ const FRONT_STYLES = [
   { value: "acm", label: "ACM (per-author affiliation)" },
   { value: "lncs", label: "Springer LNCS (institutes)" },
   { value: "revtex", label: "APS REVTeX (per-author affiliation)" },
+  { value: "ieeeAccess", label: "IEEE Access (\\address, \\corresp, \\EOD)" },
+  { value: "custom", label: "Custom recipe (write it below)" },
 ] as const;
+
+/** A starting point for custom recipes, showing every construct. */
+const EXAMPLE_RECIPE = String.raw`\title{{title}}
+\author{{#authors| \and }{name}\textsuperscript{{affnums}}{?corresponding}\thanks{Corresponding author: {email}}{/corresponding}{/authors}}
+\date{}
+\maketitle
+\begin{center}\small
+{#affiliations|\\}\textsuperscript{{n}}{name}{/affiliations}
+\end{center}
+\begin{abstract}
+{abstract}
+\end{abstract}
+{?keywords}\noindent\textbf{Keywords:} {keywords}{/keywords}`;
 
 /** Settings for templates built on a publisher's official class. */
 export function PublisherSection({
@@ -292,7 +309,33 @@ export function PublisherSection({
 }: SectionProps & { canImport: boolean }) {
   const base = t.base;
   const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   if (!base) return null;
+  const kit = base.kit;
+  const haveNames = base.files.map((f) => f.split("/").pop()!);
+  const kitMissing = kit ? kit.required.filter((r) => !haveNames.includes(r)) : [];
+  const importZip = async () => {
+    setProblem(null);
+    const file = await open({ multiple: false, directory: false, filters: [{ name: "Publisher LaTeX kit", extensions: ["zip"] }] });
+    if (!file) return;
+    setBusy(true);
+    try {
+      const added = await importKitZip(file);
+      edit((d) => {
+        if (!d.base) return;
+        for (const a of added) if (!d.base.files.includes(a)) d.base.files.push(a);
+        // Use the kit's class: the one the template expects, else the only one.
+        const classes = added.filter((a) => a.endsWith(".cls")).map((a) => a.split("/").pop()!.replace(/\.cls$/, ""));
+        const expected = d.base.kit?.required.find((r) => r.endsWith(".cls"))?.replace(/\.cls$/, "");
+        if (expected && classes.includes(expected)) d.base.class = expected;
+        else if (!expected && classes.length === 1) d.base.class = classes[0];
+      });
+    } catch (e) {
+      setProblem(String((e as { message?: string }).message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
   const importFiles = async () => {
     setProblem(null);
     const picked = await open({
@@ -320,10 +363,33 @@ export function PublisherSection({
   };
   return (
     <>
+      {kit && (
+        <div className={`kit-card${kitMissing.length ? " missing" : ""}`}>
+          <strong>{kitMissing.length ? `This template needs the ${kit.name}` : `${kit.name}: imported`}</strong>
+          {kitMissing.length > 0 && (
+            <>
+              <p>
+                The publisher distributes it separately, so it can’t come with Texloom. It takes a minute, once:
+              </p>
+              <ol>
+                <li>
+                  <button type="button" className="link" onClick={() => openUrl(kit.url)}>
+                    Download the kit
+                  </button>{" "}
+                  (a .zip) from the publisher.
+                </li>
+                <li>{canImport ? "Import the .zip:" : "Save this template (New copy → Save as…), then import the .zip:"}</li>
+              </ol>
+              <button type="button" className="primary" onClick={importZip} disabled={!canImport || busy}>
+                {busy ? "Importing…" : "Import kit (.zip)…"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
       <p className="d-note">
         This template uses the publisher’s official LaTeX class, so page layout, fonts, headings and captions follow
-        the publisher exactly and can’t be changed here. Authors are entered one per line as{" "}
-        <code>Name | Affiliation | Email</code>.
+        the publisher exactly and can’t be changed here.
       </p>
       <Row label="Class" issues={issuesAt(issues, "base.class")}>
         <input className="mono" value={base.class} onChange={(e) => edit((d) => void (d.base && (d.base.class = e.target.value.trim())))} />
@@ -342,6 +408,69 @@ export function PublisherSection({
       <Row label="Title block style">
         <Select value={base.frontMatter} options={[...FRONT_STYLES]} onChange={(v) => edit((d) => void (d.base && (d.base.frontMatter = v)))} />
       </Row>
+      {base.frontMatter === "custom" && (
+        <>
+          <Row label="Title block recipe" hint="LaTeX with placeholders" issues={issuesAt(issues, "base.titleBlock")}>
+            <div className="d-control">
+              <textarea
+                className="mono recipe"
+                rows={10}
+                spellCheck={false}
+                value={base.titleBlock ?? ""}
+                onChange={(e) => edit((d) => void (d.base && (d.base.titleBlock = e.target.value)))}
+              />
+              {!base.titleBlock && (
+                <button type="button" className="d-add" onClick={() => edit((d) => void (d.base && (d.base.titleBlock = EXAMPLE_RECIPE)))}>
+                  Start from an example
+                </button>
+              )}
+              <details className="recipe-help">
+                <summary>Placeholders</summary>
+                <p>
+                  <code>{"{title}"}</code> <code>{"{abstract}"}</code> <code>{"{keywords}"}</code>, any field by id,{" "}
+                  <code>{"{corresponding}"}</code>, <code>{"{corresponding_email}"}</code>.
+                </p>
+                <p>
+                  <code>{"{#authors| \\and }…{/authors}"}</code> repeats per author (text after <code>|</code> goes
+                  between them): <code>{"{name}"}</code> <code>{"{email}"}</code> <code>{"{orcid}"}</code>{" "}
+                  <code>{"{membership}"}</code> <code>{"{affiliation}"}</code> <code>{"{affiliations}"}</code>{" "}
+                  <code>{"{affnums}"}</code> <code>{"{n}"}</code>.
+                </p>
+                <p>
+                  <code>{"{#affiliations|, }…{/affiliations}"}</code>: <code>{"{n}"}</code> <code>{"{name}"}</code>{" "}
+                  <code>{"{emails}"}</code>. <code>{"{#keywords| \\sep }{keyword}{/keywords}"}</code>.
+                </p>
+                <p>
+                  <code>{"{?email}…{/email}"}</code> includes the part only when the value isn’t empty. Everything else
+                  is written as-is; values are escaped for LaTeX.
+                </p>
+              </details>
+            </div>
+          </Row>
+          <Row label="End block" hint="Optional, after everything" issues={issuesAt(issues, "base.endBlock")}>
+            <textarea
+              className="mono recipe"
+              rows={4}
+              spellCheck={false}
+              value={base.endBlock ?? ""}
+              onChange={(e) =>
+                edit((d) => {
+                  if (!d.base) return;
+                  if (e.target.value) d.base.endBlock = e.target.value;
+                  else delete d.base.endBlock;
+                })
+              }
+            />
+          </Row>
+        </>
+      )}
+      <Row label="Biographies">
+        <Toggle
+          checked={base.biographies}
+          label="Print author biographies (with photos) at the end"
+          onChange={(v) => edit((d) => void (d.base && (d.base.biographies = v)))}
+        />
+      </Row>
       <Row label="BibTeX style" issues={issuesAt(issues, "base.bibStyle")}>
         <input className="mono" value={base.bibStyle} onChange={(e) => edit((d) => void (d.base && (d.base.bibStyle = e.target.value.trim())))} />
       </Row>
@@ -356,18 +485,22 @@ export function PublisherSection({
               </button>
             </span>
           ))}
-          <button type="button" className="d-add" onClick={importFiles} disabled={!canImport} title={canImport ? "" : "Save the template first"}>
-            + Import class files…
-          </button>
+          <span className="d-inline">
+            <button type="button" className="d-add" onClick={importZip} disabled={!canImport || busy} title={canImport ? "" : "Save the template first"}>
+              + Import kit (.zip)…
+            </button>
+            <button type="button" className="d-add" onClick={importFiles} disabled={!canImport} title={canImport ? "" : "Save the template first"}>
+              + Import single files…
+            </button>
+          </span>
           {!canImport && <span className="d-hint">Save the template first (Save as…) so the files have a folder.</span>}
           {problem && <span className="d-error">{problem}</span>}
         </div>
       </Row>
       <p className="d-note">
-        <strong>Journals not built in</strong> (IEEE Access, Springer Nature, MDPI, Taylor &amp; Francis…): download the
-        publisher’s LaTeX template, start from the closest built-in template, choose <em>New copy</em> and{" "}
-        <em>Save as…</em>, then import the publisher’s <code>.cls</code> (and any <code>.sty</code>/<code>.bst</code>{" "}
-        files) here.
+        <strong>Other journals</strong> (Springer Nature, MDPI, Taylor &amp; Francis…): download the publisher’s LaTeX
+        kit, start from the closest built-in template, choose <em>New copy</em> and <em>Save as…</em>, import the kit
+        here, and pick the title block style — or write a <em>Custom recipe</em> if none fits.
       </p>
     </>
   );

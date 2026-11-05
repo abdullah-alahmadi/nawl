@@ -1,7 +1,7 @@
 //! Image files used by documents (figures) and templates (title-page logos):
 //! importing them into a folder, and the document's own folder.
 
-use std::io::Cursor;
+use std::io::{Cursor, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -27,8 +27,65 @@ pub fn import_image(root: &Path, subdir: &str, source: &Path) -> Result<String, 
 }
 
 /// Files a publisher's LaTeX kit may contain: class, packages, styles, logos, fonts.
-pub const CLASS_KIT_EXTENSIONS: &[&str] =
-    &["cls", "sty", "bst", "clo", "cfg", "def", "fd", "png", "jpg", "jpeg", "pdf", "eps", "otf", "ttf"];
+pub const CLASS_KIT_EXTENSIONS: &[&str] = &[
+    "cls", "sty", "bst", "clo", "cfg", "def", "fd", "png", "jpg", "jpeg", "pdf", "eps", "otf", "ttf", "map", "tfm",
+    "pfb", "afm", "enc", "vf",
+];
+
+/// Largest single file accepted from a kit zip (guards against zip bombs).
+const MAX_KIT_FILE: u64 = 50 * 1024 * 1024;
+
+/// Imports a publisher's kit `.zip` into `<template folder>/assets/`: class, style,
+/// font and logo files. The kit's sample paper (`.tex`, its PDF and build output)
+/// is skipped. Returns the imported paths (`assets/ieeeaccess.cls`…).
+pub fn import_kit_zip(template_file: &Path, zip_path: &Path) -> Result<Vec<String>, AppError> {
+    let file = std::fs::File::open(zip_path)?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| AppError::other(format!("Not a zip file: {e}")))?;
+    let names: Vec<String> = (0..archive.len())
+        .filter_map(|i| archive.by_index(i).ok().and_then(|f| f.name().ok().map(|n| n.to_string())))
+        .collect();
+    // Stems of sample documents, so "access.tex" also skips "access.pdf".
+    let samples: Vec<String> = names
+        .iter()
+        .filter(|n| n.to_lowercase().ends_with(".tex"))
+        .filter_map(|n| Path::new(n).file_stem().and_then(|s| s.to_str()).map(str::to_lowercase))
+        .collect();
+    let dir = template_file.parent().unwrap_or(Path::new(".")).join("assets");
+    std::fs::create_dir_all(&dir)?;
+    let mut imported = Vec::new();
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).map_err(AppError::other)?;
+        if entry.is_dir() || entry.size() > MAX_KIT_FILE {
+            continue;
+        }
+        let entry_name = entry.name().map(|n| n.to_string()).unwrap_or_default();
+        let Some(name) = Path::new(&entry_name).file_name().and_then(|n| n.to_str()).map(str::to_string) else {
+            continue;
+        };
+        let lower = name.to_lowercase();
+        let ext = Path::new(&lower).extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
+        let stem = Path::new(&lower).file_stem().and_then(|s| s.to_str()).unwrap_or("").to_string();
+        // Only the sample's compiled PDF; a class may well share its name ("journal.cls"
+        // next to "journal.tex").
+        let is_sample_output = ext == "pdf" && samples.contains(&stem);
+        if !CLASS_KIT_EXTENSIONS.contains(&ext.as_str()) || is_sample_output || name.starts_with('.') {
+            continue;
+        }
+        let safe: String = name
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() || "-_.".contains(c) { c } else { '-' })
+            .collect();
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut (&mut entry).take(MAX_KIT_FILE), &mut bytes)?;
+        std::fs::write(dir.join(&safe), bytes)?;
+        imported.push(format!("assets/{safe}"));
+    }
+    if imported.is_empty() {
+        return Err(AppError::other("No LaTeX class or style files found in that zip"));
+    }
+    imported.sort();
+    Ok(imported)
+}
 
 /// Like [`import_image`] for any of the `allowed` extensions (names are kept as-is
 /// apart from unsafe characters, since LaTeX loads class files by name).
@@ -196,6 +253,49 @@ mod tests {
         let eight = png(png::BitDepth::Eight);
         assert_eq!(png_to_8bit(eight.clone()), eight, "8-bit files are left alone");
         assert_eq!(png_to_8bit(b"not a png".to_vec()), b"not a png");
+    }
+
+    #[test]
+    fn kit_zip_import_skips_the_sample_paper() {
+        use std::io::Write as _;
+        let root = std::env::temp_dir().join(format!("texloom-kit-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let zip_path = root.join("kit.zip");
+        {
+            let mut z = zip::ZipWriter::new(std::fs::File::create(&zip_path).unwrap());
+            let opts = zip::write::SimpleFileOptions::default();
+            for (name, body) in [
+                ("KIT_2026/journal.cls", "cls"),
+                ("KIT_2026/journal.tex", "sample"),
+                ("KIT_2026/journal.pdf", "sample output"),
+                ("KIT_2026/logo.png", "png"),
+                ("KIT_2026/t1-font.map", "map"),
+                ("KIT_2026/README.txt", "readme"),
+            ] {
+                z.start_file(name, opts).unwrap();
+                z.write_all(body.as_bytes()).unwrap();
+            }
+            z.finish().unwrap();
+        }
+        let imported = import_kit_zip(&root.join("template.json"), &zip_path).unwrap();
+        assert_eq!(imported, vec!["assets/journal.cls", "assets/logo.png", "assets/t1-font.map"]);
+        assert_eq!(std::fs::read(root.join("assets/journal.cls")).unwrap(), b"cls");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    /// With IEEE's real kit: TEXLOOM_KIT_ZIP=/path/to/ieee-access.zip cargo test -p texloom -- --ignored
+    #[test]
+    #[ignore]
+    fn real_ieee_access_kit_imports() {
+        let zip_path = std::env::var("TEXLOOM_KIT_ZIP").expect("TEXLOOM_KIT_ZIP");
+        let root = std::env::temp_dir().join(format!("texloom-realkit-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let imported = import_kit_zip(&root.join("template.json"), Path::new(&zip_path)).unwrap();
+        for needed in ["assets/ieeeaccess.cls", "assets/spotcolor.sty", "assets/t1-formata.map", "assets/logo.png"] {
+            assert!(imported.iter().any(|f| f == needed), "{needed} in {imported:?}");
+        }
+        assert!(!imported.iter().any(|f| f.ends_with(".tex") || f == "assets/access.pdf"), "{imported:?}");
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

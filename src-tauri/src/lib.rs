@@ -204,6 +204,17 @@ fn read_template_asset(state: State<'_, AppState>, asset: String) -> Result<Resp
     Ok(Response::new(loaded.remove(0).1))
 }
 
+/// Imports a publisher's kit `.zip` into the active template's `assets/` folder.
+#[tauri::command]
+fn import_kit_zip(state: State<'_, AppState>, source: String) -> Result<Vec<String>, AppError> {
+    let file = state
+        .templates
+        .current()
+        .path
+        .ok_or_else(|| AppError::other("Save the template first (Save as…) so the kit has a folder to live in."))?;
+    files::import_kit_zip(&file, Path::new(&source))
+}
+
 /// Font families installed on the system (empty if fontconfig isn't available).
 #[tauri::command]
 async fn list_system_fonts() -> Vec<String> {
@@ -301,6 +312,9 @@ async fn compile_document(
 ) -> Result<Vec<u8>, AppError> {
     let compiler = state.compiler.clone().map_err(|message| AppError::TectonicMissing { message })?;
     let active = state.templates.current();
+    if let Some(e) = active.missing_kit() {
+        return Err(e);
+    }
     let generated = texloom_codegen::generate(&active.template, &to_document(doc, metadata, bibliography)?);
     let mut assets = active.load_assets(&generated.assets)?;
     assets.extend(active.load_kit_files(&generated.kit_files)?);
@@ -455,6 +469,7 @@ pub fn run() {
             use_builtin_template,
             list_builtin_templates,
             import_template_file,
+            import_kit_zip,
             set_template,
             save_template,
             list_system_fonts,
@@ -485,8 +500,11 @@ mod tests {
     #[test]
     fn all_builtin_templates_are_valid() {
         for info in templates::builtin_list() {
-            let t = ActiveTemplate::builtin_by_id(&info.id).unwrap().template;
-            assert!(t.validate().is_empty(), "{}: {:?}", info.id, t.validate());
+            let active = ActiveTemplate::builtin_by_id(&info.id).unwrap();
+            let errors: Vec<_> = active.template.validate().into_iter().filter(|i| i.severity == texloom_core::Severity::Error).collect();
+            assert!(errors.is_empty(), "{}: {errors:?}", info.id);
+            // Only templates that need a downloaded kit may report it missing.
+            assert_eq!(active.missing_kit().is_some(), info.id == "ieee-access", "{}", info.id);
         }
         assert!(templates::builtin_list().iter().any(|t| t.class.as_deref() == Some("IEEEtran")));
     }

@@ -179,7 +179,7 @@ impl Template {
                 let path = format!("headerFooter.{name}.{slot}");
                 c.placeholders(&path, text, false);
                 for n in placeholder::names(text) {
-                    if t.field(n).is_some_and(|f| f.kind == FieldKind::Paragraphs) {
+                    if t.field(n).is_some_and(|f| matches!(f.kind, FieldKind::Paragraphs | FieldKind::Authors)) {
                         c.error(&path, format!("{{{n}}} has several paragraphs and can't go in a header or footer"));
                     }
                 }
@@ -250,6 +250,22 @@ impl Template {
             for id in ["title", "authors"] {
                 if t.field(id).is_none() {
                     c.error("fields", format!("templates built on a publisher class need a {id:?} field"));
+                }
+            }
+            if base.front_matter == crate::FrontMatterStyle::Custom
+                && base.title_block.as_deref().is_none_or(|r| r.trim().is_empty())
+            {
+                c.error("base.titleBlock", "the custom style needs a title block recipe");
+            }
+            if let Some(kit) = &base.kit {
+                let have: Vec<&str> = base.files.iter().map(|f| f.rsplit('/').next().unwrap_or(f)).collect();
+                let missing: Vec<&str> =
+                    kit.required.iter().map(String::as_str).filter(|r| !have.contains(r)).collect();
+                if !missing.is_empty() {
+                    c.warn(
+                        "base.kit",
+                        format!("needs the {} ({}); import it under Publisher class", kit.name, missing.join(", ")),
+                    );
                 }
             }
         }

@@ -77,6 +77,35 @@ pub struct ClassBase {
     /// compiles (a publisher's .cls/.sty/.bst/logos), e.g. `assets/ieeeaccess.cls`.
     #[serde(default)]
     pub files: Vec<String>,
+    /// Print author biographies (with photos) at the end, IEEE style.
+    #[serde(default)]
+    pub biographies: bool,
+    /// For the `custom` style: the title block, as LaTeX with placeholders
+    /// (`{title}`, `{#authors| \and }{name}{/authors}`…); see codegen's recipe docs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub title_block: Option<String>,
+    /// Optional LaTeX (same placeholders) written at the very end of the document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub end_block: Option<String>,
+    /// When the class isn't part of the TeX distribution: the publisher's kit to download.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub kit: Option<PublisherKit>,
+}
+
+/// A publisher's LaTeX kit that has to be downloaded (it can't be bundled).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PublisherKit {
+    /// E.g. "IEEE Access LaTeX template".
+    pub name: String,
+    /// Where to download it.
+    pub url: String,
+    /// Files that must have been imported, e.g. `["ieeeaccess.cls"]`.
+    pub required: Vec<String>,
 }
 
 /// Title-block conventions of the supported publisher classes.
@@ -96,6 +125,10 @@ pub enum FrontMatterStyle {
     Lncs,
     /// APS REVTeX: per-author affiliation, abstract before \maketitle.
     Revtex,
+    /// IEEE Access: \history, \doi, \authorrefmark, \address, \corresp, \EOD.
+    IeeeAccess,
+    /// Written from the template's own `title_block` recipe.
+    Custom,
 }
 
 // ---------------------------------------------------------------- page
@@ -547,6 +580,8 @@ pub enum FieldKind {
     Text,
     /// Several paragraphs (e.g. an abstract).
     Paragraphs,
+    /// Paper authors with affiliations, e-mail, ORCID, membership, biography.
+    Authors,
     /// A list of entries (e.g. team members). Shown one per line on the title page,
     /// comma-separated in headers and footers.
     List,

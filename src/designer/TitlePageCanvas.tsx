@@ -66,8 +66,10 @@ function resolveText(text: string, metadata: api.Metadata): string {
     .replace(/\}\}/g, "\u0001")
     .replace(/\{([a-z][a-z0-9_]*)\}/g, (whole, name: string) => {
       const v = metadata[name];
-      if (v === undefined || (Array.isArray(v) ? v.join("") : v).trim() === "") return whole;
-      return Array.isArray(v) ? v.filter((s) => s.trim()).join("\n") : v;
+      // Lists of strings or of authors: one entry per line.
+      const lines = v === undefined ? [] : Array.isArray(v) ? v.map((x) => (typeof x === "string" ? x : x.name)) : [v];
+      const shown = lines.filter((s) => s.trim());
+      return shown.length ? shown.join("\n") : whole;
     })
     .replace(/\u0000/g, "{")
     .replace(/\u0001/g, "}");

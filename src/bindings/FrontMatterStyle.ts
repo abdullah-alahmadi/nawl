@@ -3,4 +3,4 @@
 /**
  * Title-block conventions of the supported publisher classes.
  */
-export type FrontMatterStyle = "ieeeJournal" | "ieeeConference" | "elsevier" | "acm" | "lncs" | "revtex";
+export type FrontMatterStyle = "ieeeJournal" | "ieeeConference" | "elsevier" | "acm" | "lncs" | "revtex" | "ieeeAccess" | "custom";

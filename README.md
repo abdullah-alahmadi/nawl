@@ -43,16 +43,25 @@ template's chapter list, and the yellow bar above the preview lists anything to 
 | ACM Conference Paper | `acmart` (`sigconf`; use `acmsmall` for ACM journals) |
 | Springer LNCS | `llncs` |
 | APS Physical Review | `revtex4-2` (`pra`; use `prl` for Letters) |
+| IEEE Access | IEEE's own kit (`ieeeaccess.cls`, fonts, logos): download once, then import the .zip |
 
 Journal templates use the publisher's official class, so layout, fonts and captions
-are exactly the publisher's; Texloom writes the title block, authors (one per line:
-`Name | Affiliation | Email`), abstract, keywords and the bibliography in each
-publisher's format. Start one with **Template ▾** → choose it → **New**.
+are exactly the publisher's; Texloom writes the title block, authors (edited in
+**Document info**: affiliations, e-mail, ORCID, membership, corresponding author,
+biography and photo), abstract, keywords and the bibliography in each publisher's
+format. Start one with **Template ▾** → choose it → **New**.
 
-Journals whose class isn't part of the TeX distribution (IEEE Access, Springer Nature,
-MDPI, Taylor & Francis…): download the publisher's LaTeX kit, start from the closest
-built-in template, **New copy** → **Save as…**, then import the publisher's `.cls`
-(and `.sty`/`.bst` files) under **Publisher class**.
+**IEEE Access**: choose it, then **Template → New copy → Save as…**, and under
+**Publisher class** follow the card: download IEEE's kit and **Import kit (.zip)**.
+Texloom adapts the kit's pdfLaTeX-only parts (font maps, PANTONE spot colour) for its
+XeTeX-based engine; the result matches IEEE's own sample PDF.
+
+Other journals whose class isn't in the TeX distribution (Springer Nature, MDPI,
+Taylor & Francis…): start from the closest built-in template, **New copy** →
+**Save as…**, import the publisher's kit, and pick a title block style — or choose
+**Custom recipe** and write the title block once as LaTeX with placeholders such as
+`{title}` and `{#authors| \and }{name}{/authors}` (examples and a placeholder list are
+in the designer).
 
 ## Making a template
 

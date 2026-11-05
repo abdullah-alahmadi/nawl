@@ -74,6 +74,8 @@ export const listBuiltinTemplates = () => invoke<BuiltinTemplate[]>("list_builti
 export const switchToBuiltinTemplate = (id?: string) => invoke<TemplateInfo>("use_builtin_template", { id: id ?? null });
 /** Copies a publisher kit file (.cls, .sty, .bst…) into the template's assets/. */
 export const importTemplateFile = (source: string) => invoke<string>("import_template_file", { source });
+/** Imports a publisher's kit .zip into the template's assets/; returns the files. */
+export const importKitZip = (source: string) => invoke<string[]>("import_kit_zip", { source });
 /** Fires when the open template file changes on disk. Returns an unsubscribe function. */
 export const onTemplateReloaded = (cb: (e: TemplateReloadEvent) => void) =>
   listen<TemplateReloadEvent>("template-reloaded", (event) => cb(event.payload));

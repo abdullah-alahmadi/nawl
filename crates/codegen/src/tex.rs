@@ -48,6 +48,9 @@ pub fn document_to_tex(t: &Template, doc: &Document) -> String {
     let mut w = BodyWriter { out: &mut o, ctx: &ctx, bibliography_pending: has_bibliography(doc) };
     w.blocks(&doc.body.content);
     w.emit_bibliography();
+    if let Some(base) = &t.base {
+        o.push_str(&crate::publisher::end_matter(t, base, doc));
+    }
     o.push_str("\\end{document}\n");
     o
 }
@@ -56,6 +59,7 @@ fn field_value(kind: FieldKind, v: &FieldValue) -> String {
     let items: Vec<&str> = match v {
         FieldValue::Text(s) => vec![s.as_str()],
         FieldValue::List(l) => l.iter().map(String::as_str).collect(),
+        FieldValue::Authors(a) => a.iter().map(|a| a.name.as_str()).collect(),
     };
     match kind {
         FieldKind::Text => items.iter().map(|s| escape(s.trim())).collect::<Vec<_>>().join(", "),
@@ -67,7 +71,7 @@ fn field_value(kind: FieldKind, v: &FieldValue) -> String {
             .map(escape)
             .collect::<Vec<_>>()
             .join("\\par "),
-        FieldKind::List => items
+        FieldKind::List | FieldKind::Authors => items
             .iter()
             .flat_map(|s| s.lines())
             .map(str::trim)

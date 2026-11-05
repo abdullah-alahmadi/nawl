@@ -8,7 +8,7 @@ expression: "texloom_codegen::document_to_tex(&template(), &document().document)
 \texloomfield{title}{Smart Irrigation Controller for Small Farms}
 \texloomfield{university}{Example University}
 \texloomfield{department}{Department of Electrical Engineering}
-\texloomfield{course}{EE 491 – Senior Design Project}
+\texloomfield{course}{EE 491 -- Senior Design Project}
 \texloomfield{team}{Sara Ahmed\texloomsep Omar Khalid\texloomsep Lina Haddad\texloomsep Yousef Nasser}
 \texloomfield{advisor}{Dr. Maria Lopez}
 \texloomfield{date}{December 2026}
@@ -69,7 +69,7 @@ Irrigation starts when the deficit in \eqref{tl:eq-balance} exceeds the manageme
 
 \subsection{Sensor Calibration}\label{tl:h-sensor-calibration}
 
-Each probe was calibrated against oven-dried samples; the fitted curve has an R² of 0.97.
+Each probe was calibrated against oven-dried samples; the fitted curve has an R\textsuperscript{2} of 0.97.
 
 \section{Hardware}\label{tl:h-hardware}
 
@@ -111,7 +111,7 @@ The controller had to meet these criteria, agreed with the project sponsor at th
 \begin{itemize}
 \item Run for 12 months on solar power without maintenance.
 \item Report soil moisture at least every 15 minutes.
-\item Survive outdoor temperatures from −5 °C to 50 °C.
+\item Survive outdoor temperatures from \ensuremath{-}5 \textdegree{}C to 50 \textdegree{}C.
 \end{itemize}
 
 \end{document}

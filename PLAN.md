@@ -163,8 +163,18 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       each compiles the sample article (tests/journals.rs)
 - [x] Bring your own class: import a publisher kit (.cls/.sty/.bst/logos) into a
       template; kit files are placed next to the document when compiling
-- [ ] More publishers once their classes are freely available; two-column preview
-      in the editor; per-publisher author fields (ORCID, corresponding author)
+- [x] Structured authors (several affiliations, e-mail, ORCID, membership,
+      corresponding author, biography + photo) with an author editor; old
+      "Name | Affiliation | Email" lines still work
+- [x] IEEE Access with IEEE's own kit (import the .zip; font maps and a spot-colour
+      stand-in make the pdfLaTeX kit work under XeTeX; output matches IEEE's sample)
+- [x] Author biographies (IEEEbiography, with or without photo); `\EOD` for IEEE Access
+- [x] Custom title-block recipes (`{title}`, `{#authors|sep}…{/authors}`, `{?x}…{/x}`)
+      plus an optional end block, for publishers without a built-in style
+- [x] Typographic punctuation and Latin-1 symbols written as TeX commands, so they
+      render in old 8-bit publisher fonts
+- [ ] Unnumbered sections (Acknowledgment); two-column preview in the editor;
+      more pdfLaTeX-only kits as they come up (each needs a small stand-in)
 
 ### Phase 6: Polish and distribution (ongoing)
 - [ ] Bundled TeX package cache so it works offline; installers; auto-update

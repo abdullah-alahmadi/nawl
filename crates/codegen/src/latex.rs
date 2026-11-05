@@ -20,10 +20,64 @@ pub fn escape(text: &str) -> String {
             '^' => s.push_str("\\textasciicircum{}"),
             // Line breaks inside one-line text would end the paragraph or error.
             '\n' | '\r' => s.push(' '),
+            // Typographic punctuation the classic TeX way, which works with every font
+            // (publisher kits often use old 8-bit fonts that lack the Unicode forms).
+            '\u{2018}' => s.push('`'),
+            '\u{2019}' => s.push('\''),
+            '\u{201C}' => s.push_str("``"),
+            '\u{201D}' => s.push_str("''"),
+            '\u{2013}' => s.push_str("--"),
+            '\u{2014}' => s.push_str("---"),
+            '\u{2026}' => s.push_str("\\ldots{}"),
+            '\u{00A0}' => s.push('~'),
+            // Symbols that old 8-bit (T1) fonts keep in other slots: write them as
+            // commands, which every font setup renders correctly.
+            c if symbol_command(c).is_some() => s.push_str(symbol_command(c).expect("checked")),
             _ => s.push(c),
         }
     }
     s
+}
+
+/// LaTeX commands for symbols in the Latin-1 range (and a few more) whose slots
+/// differ between Unicode and the T1 encoding of publisher kits' fonts.
+fn symbol_command(c: char) -> Option<&'static str> {
+    Some(match c {
+        '¡' => "\\textexclamdown{}",
+        '¢' => "\\textcent{}",
+        '£' => "\\pounds{}",
+        '¥' => "\\textyen{}",
+        '§' => "\\S{}",
+        '©' => "\\copyright{}",
+        'ª' => "\\textordfeminine{}",
+        '«' => "\\guillemotleft{}",
+        '¬' => "\\textlnot{}",
+        '®' => "\\textregistered{}",
+        '°' => "\\textdegree{}",
+        '±' => "\\ensuremath{\\pm}",
+        '²' => "\\textsuperscript{2}",
+        '³' => "\\textsuperscript{3}",
+        'µ' => "\\ensuremath{\\mu}",
+        '¶' => "\\P{}",
+        '·' => "\\textperiodcentered{}",
+        '¹' => "\\textsuperscript{1}",
+        'º' => "\\textordmasculine{}",
+        '»' => "\\guillemotright{}",
+        '¼' => "\\textonequarter{}",
+        '½' => "\\textonehalf{}",
+        '¾' => "\\textthreequarters{}",
+        '¿' => "\\textquestiondown{}",
+        '×' => "\\ensuremath{\\times}",
+        '÷' => "\\ensuremath{\\div}",
+        '€' => "\\texteuro{}",
+        '™' => "\\texttrademark{}",
+        '•' => "\\textbullet{}",
+        '†' => "\\dag{}",
+        '‡' => "\\ddag{}",
+        '‰' => "\\textperthousand{}",
+        '−' => "\\ensuremath{-}",
+        _ => return None,
+    })
 }
 
 pub fn escape_url(url: &str) -> String {
@@ -110,6 +164,13 @@ mod tests {
     }
 
     #[test]
+    fn typographic_punctuation_uses_tex_ligatures() {
+        assert_eq!(escape("\u{201C}It\u{2019}s\u{201D} \u{2014} 1\u{2013}2\u{2026}"), "``It's'' --- 1--2\\ldots{}");
+        assert_eq!(escape("5 m³ at 20 °C ± 2"), "5 m\\textsuperscript{3} at 20 \\textdegree{}C \\ensuremath{\\pm} 2");
+        assert_eq!(escape("café"), "café", "accented letters are fine as they are");
+    }
+
+    #[test]
     fn formats_numbers() {
         assert_eq!(num(12.0), "12");
         assert_eq!(num(1.5), "1.5");
@@ -123,7 +184,7 @@ mod tests {
         assert_eq!(render_placeholders("Chapter {n}", ctx), "Chapter \\thechapter");
         assert_eq!(
             render_placeholders("{title} — p. {page}/{pages} 100%", ctx),
-            "\\tl@f{title} — p. \\thepage{}/\\pageref*{LastPage} 100\\%"
+            "\\tl@f{title} --- p. \\thepage{}/\\pageref*{LastPage} 100\\%"
         );
     }
 }
