@@ -16,6 +16,14 @@ npm run tauri dev
 The first compile takes a minute or two while Tectonic downloads its TeX package bundle;
 after that it's cached in `~/.cache/Tectonic`.
 
+## Writing a document
+
+The editor page is styled by the template, so it looks like the PDF. Use the toolbar
+for headings, lists, equations (`$$` + space), **Figure** (pick an image; type the
+caption below it) and **Table** (caption above; row/column buttons appear while the
+cursor is in the table). The **Outline** on the left lists headings, figures and tables.
+Figure images are stored in a `figures/` folder next to the `.loom` file.
+
 ## Making a template
 
 Switch to **Template** mode (top left). The designer has panels for template info,

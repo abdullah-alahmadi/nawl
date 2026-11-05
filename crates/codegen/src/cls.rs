@@ -9,7 +9,7 @@
 use std::fmt::Write;
 
 use texloom_core::{
-    Anchor, BuiltinFont, FontChoice, FrontMatterItem, HeadingLayout, LineSpacing, PageNumberStyle,
+    Anchor, BuiltinFont, CaptionAlign, CaptionSeparator, CaptionSize, FontChoice, FrontMatterItem, HeadingLayout, LineSpacing, PageNumberStyle,
     PageStyle, Paper, Template, TitleContent, TopLevel,
 };
 
@@ -113,6 +113,37 @@ pub fn template_to_cls(t: &Template) -> String {
     w!(o, "\\RequirePackage[normalem]{{ulem}}");
     w!(o, "\\RequirePackage{{enumitem}}");
     w!(o, "\\RequirePackage{{lastpage}}");
+    w!(o, "\\RequirePackage{{tabularx}}");
+    // Table cells: ragged right (no stretched gaps in narrow columns), a little padding.
+    w!(o, "\\newcolumntype{{L}}{{>{{\\raggedright\\arraybackslash}}X}}");
+    w!(o, "\\renewcommand\\arraystretch{{1.3}}");
+    w!(o);
+
+    // ---- captions
+    let c = &t.captions;
+    let sep = match c.separator {
+        CaptionSeparator::Colon => "colon",
+        CaptionSeparator::Period => "period",
+        CaptionSeparator::Dash => "endash",
+        CaptionSeparator::Newline => "newline",
+    };
+    let size = match c.size {
+        CaptionSize::Footnote => "footnotesize",
+        CaptionSize::Small => "small",
+        CaptionSize::Normal => "normalsize",
+    };
+    let justification = match c.align {
+        CaptionAlign::Center => "justification=centering",
+        CaptionAlign::Left => "justification=raggedright,singlelinecheck=false",
+        CaptionAlign::Justified => "justification=justified,singlelinecheck=true",
+    };
+    let label_font = if c.label_bold { "bf" } else { "normal" };
+    w!(o, "% Captions");
+    w!(o, "\\RequirePackage{{caption}}");
+    w!(o, "\\captionsetup{{labelfont={label_font},labelsep={sep},font={size},{justification}}}");
+    w!(o, "\\captionsetup[table]{{position=top}}");
+    w!(o, "\\renewcommand\\figurename{{{}}}", escape(&c.figure_label));
+    w!(o, "\\renewcommand\\tablename{{{}}}", escape(&c.table_label));
     w!(o);
 
     // ---- numbering

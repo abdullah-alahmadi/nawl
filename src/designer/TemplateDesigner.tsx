@@ -6,7 +6,7 @@ import type { Issue, Template, TemplateInfo } from "../api";
 import { issuesAt } from "./controls";
 import type { Edit } from "./common";
 import { FontsSection, InfoSection, PageSection, StructureSection } from "./PageSections";
-import { HeaderFooterSection, HeadingsSection } from "./StyleSections";
+import { CaptionsSection, HeaderFooterSection, HeadingsSection } from "./StyleSections";
 import { FieldsSection, FrontMatterSection } from "./ContentSections";
 import { TitlePageCanvas } from "./TitlePageCanvas";
 
@@ -17,6 +17,7 @@ const SECTIONS = [
   { key: "structure", label: "Structure", prefix: "structure" },
   { key: "headings", label: "Headings", prefix: "headings" },
   { key: "headerFooter", label: "Headers & footers", prefix: "headerFooter" },
+  { key: "captions", label: "Captions", prefix: "captions" },
   { key: "fields", label: "Fields", prefix: "fields" },
   { key: "frontMatter", label: "Front matter", prefix: "frontMatter" },
   { key: "titlePage", label: "Title page", prefix: "titlePage" },
@@ -113,6 +114,7 @@ export function TemplateDesigner({
           {section === "structure" && <StructureSection {...props} />}
           {section === "headings" && <HeadingsSection {...props} />}
           {section === "headerFooter" && <HeaderFooterSection {...props} />}
+          {section === "captions" && <CaptionsSection {...props} />}
           {section === "fields" && <FieldsSection {...props} />}
           {section === "frontMatter" && <FrontMatterSection {...props} />}
           {section === "titlePage" && (

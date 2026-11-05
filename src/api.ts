@@ -58,6 +58,10 @@ export const saveTemplate = (path: string, template: Template) =>
   invoke<TemplateInfo>("save_template", { path, template });
 export const importTemplateAsset = (source: string) => invoke<string>("import_template_asset", { source });
 export const readTemplateAsset = (asset: string) => invoke<ArrayBuffer>("read_template_asset", { asset });
+export const importFigure = (source: string) => invoke<string>("import_figure", { source });
+export const readDocumentFile = (path: string) => invoke<ArrayBuffer>("read_document_file", { path });
+export const exportPdf = (path: string, doc: JSONContent, metadata: Metadata) =>
+  invoke<void>("export_pdf", { path, doc, metadata });
 export const listSystemFonts = () => invoke<string[]>("list_system_fonts");
 export const sampleDocument = () => invoke<OpenedDocument>("sample_document");
 export const checkMetadata = (metadata: Metadata) => invoke<Issue[]>("check_metadata", { metadata });

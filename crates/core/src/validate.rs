@@ -220,6 +220,12 @@ impl Template {
             }
         }
 
+        for (name, label) in [("figureLabel", &t.captions.figure_label), ("tableLabel", &t.captions.table_label)] {
+            if label.trim().is_empty() {
+                c.error(format!("captions.{name}"), "must not be empty");
+            }
+        }
+
         let mut has_title_page = false;
         for (i, item) in t.front_matter.iter().enumerate() {
             match item {

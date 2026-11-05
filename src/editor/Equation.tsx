@@ -54,7 +54,8 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
   return (
     <NodeViewWrapper className={`equation${selected ? " is-selected" : ""}`} data-equation="">
       <div ref={host} className="equation-field" />
-      <span className="equation-number" aria-hidden>(#)</span>
+      {/* The number "(3.1)" comes from CSS counters (see templateStyle.ts). */}
+      <span className="equation-number" aria-hidden />
     </NodeViewWrapper>
   );
 }

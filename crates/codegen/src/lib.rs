@@ -16,13 +16,14 @@ use texloom_core::{Document, Template, TitleContent};
 
 /// Everything needed to compile a document: write `cls` as `<class_name>.cls` and
 /// `tex` as the main file, and copy each of `assets` (paths relative to the
-/// template folder) next to them.
+/// template folder) and `figures` (relative to the document's folder) next to them.
 #[derive(Debug, Clone)]
 pub struct Generated {
     pub class_name: String,
     pub cls: String,
     pub tex: String,
     pub assets: Vec<String>,
+    pub figures: Vec<String>,
 }
 
 impl Generated {
@@ -47,5 +48,6 @@ pub fn generate(template: &Template, doc: &Document) -> Generated {
         cls: template_to_cls(template),
         tex: document_to_tex(template, doc),
         assets,
+        figures: doc.body.figure_sources(),
     }
 }

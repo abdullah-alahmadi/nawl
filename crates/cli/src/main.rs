@@ -60,8 +60,8 @@ fn main() -> ExitCode {
 fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Render { document, template, output } => {
-            let (generated, template_dir) = prepare(&document, &template)?;
-            let assets = load_assets(&generated, &template_dir)?;
+            let (generated, template_dir, doc_dir) = prepare(&document, &template)?;
+            let assets = load_assets(&generated, &template_dir, &doc_dir)?;
             let cls_name = generated.cls_file_name();
             let mut files = vec![texloom_compile::Asset { path: &cls_name, bytes: generated.cls.as_bytes() }];
             files.extend(assets.iter().map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }));
@@ -85,8 +85,8 @@ fn run(cli: Cli) -> Result<()> {
             println!("wrote {}", output.display());
         }
         Command::Export { document, template, out_dir } => {
-            let (generated, template_dir) = prepare(&document, &template)?;
-            let assets = load_assets(&generated, &template_dir)?;
+            let (generated, template_dir, doc_dir) = prepare(&document, &template)?;
+            let assets = load_assets(&generated, &template_dir, &doc_dir)?;
             std::fs::create_dir_all(&out_dir)?;
             let stem = document.file_stem().and_then(|s| s.to_str()).unwrap_or("document");
             let tex_path = out_dir.join(format!("{stem}.tex"));
@@ -130,7 +130,7 @@ fn load_template(path: &Path) -> Result<Template> {
 }
 
 /// Loads, validates and generates. Returns the output and the template's folder.
-fn prepare(document: &Path, template: &Path) -> Result<(Generated, PathBuf)> {
+fn prepare(document: &Path, template: &Path) -> Result<(Generated, PathBuf, PathBuf)> {
     let t = load_template(template)?;
     let text = std::fs::read_to_string(document).with_context(|| format!("reading {}", document.display()))?;
     let file: DocumentFile =
@@ -140,18 +140,25 @@ fn prepare(document: &Path, template: &Path) -> Result<(Generated, PathBuf)> {
     }
     report(&t.check_metadata(&file.document.metadata));
     let dir = template.parent().map(Path::to_path_buf).unwrap_or_default();
-    Ok((texloom_codegen::generate(&t, &file.document), dir))
+    let doc_dir = document.parent().map(Path::to_path_buf).unwrap_or_default();
+    Ok((texloom_codegen::generate(&t, &file.document), dir, doc_dir))
 }
 
-fn load_assets(g: &Generated, template_dir: &Path) -> Result<Vec<(String, Vec<u8>)>> {
-    g.assets
-        .iter()
-        .map(|rel| {
-            let path = template_dir.join(rel);
-            let bytes = std::fs::read(&path).with_context(|| format!("reading template asset {}", path.display()))?;
-            Ok((rel.clone(), bytes))
-        })
-        .collect()
+/// Template assets (relative to the template) and figure images (relative to the document).
+fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path) -> Result<Vec<(String, Vec<u8>)>> {
+    let from = |dir: &Path, rel: &String, what: &str| -> Result<(String, Vec<u8>)> {
+        let path = dir.join(rel);
+        let bytes = std::fs::read(&path).with_context(|| format!("reading {what} {}", path.display()))?;
+        Ok((rel.clone(), bytes))
+    };
+    let mut out = Vec::new();
+    for rel in &g.assets {
+        out.push(from(template_dir, rel, "template asset")?);
+    }
+    for rel in &g.figures {
+        out.push(from(doc_dir, rel, "figure image")?);
+    }
+    Ok(out)
 }
 
 /// In a dev checkout, the sidecar fetched by scripts/fetch-tectonic.sh.

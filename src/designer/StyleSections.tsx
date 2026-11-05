@@ -203,3 +203,76 @@ export function HeaderFooterSection({ t, edit, issues }: SectionProps) {
     </>
   );
 }
+
+export function CaptionsSection({ t, edit, issues }: SectionProps) {
+  const c = t.captions;
+  const set = (fn: (c: SectionProps["t"]["captions"]) => void) => edit((d) => fn(d.captions));
+  const sep = { colon: ": ", period: ". ", dash: " — ", newline: "" }[c.separator];
+  const number = t.structure.topLevel === "chapter" && t.structure.perChapterNumbering ? "3.1" : "4";
+  const sample = (label: string, text: string) => (
+    <div
+      style={{
+        fontSize: { footnote: 12, small: 13.5, normal: 15 }[c.size],
+        textAlign: c.align === "left" ? "left" : c.align === "justified" ? "justify" : "center",
+      }}
+    >
+      <span style={{ fontWeight: c.labelBold ? 700 : 400, display: c.separator === "newline" ? "block" : "inline" }}>
+        {label} {number}
+        {sep}
+      </span>
+      {text}
+    </div>
+  );
+  return (
+    <>
+      <div className="d-sample" aria-label="Caption preview">
+        <div className="d-sample-figure">[ image ]</div>
+        {sample(c.figureLabel, "System block diagram.")}
+      </div>
+      <Row label="Figure label" issues={issuesAt(issues, "captions.figureLabel")}>
+        <input value={c.figureLabel} onChange={(e) => set((x) => void (x.figureLabel = e.target.value))} />
+      </Row>
+      <Row label="Table label" issues={issuesAt(issues, "captions.tableLabel")}>
+        <input value={c.tableLabel} onChange={(e) => set((x) => void (x.tableLabel = e.target.value))} />
+      </Row>
+      <Row label="After the number">
+        <Segmented
+          value={c.separator}
+          options={[
+            { value: "colon", label: "Colon :" },
+            { value: "period", label: "Period ." },
+            { value: "dash", label: "Dash —" },
+            { value: "newline", label: "New line" },
+          ]}
+          onChange={(v) => set((x) => void (x.separator = v))}
+        />
+      </Row>
+      <Row label="Label">
+        <Toggle checked={c.labelBold} onChange={(v) => set((x) => void (x.labelBold = v))} label="Bold “Figure 1”" />
+      </Row>
+      <Row label="Size">
+        <Segmented
+          value={c.size}
+          options={[
+            { value: "footnote", label: "Smaller" },
+            { value: "small", label: "Small" },
+            { value: "normal", label: "Same as text" },
+          ]}
+          onChange={(v) => set((x) => void (x.size = v))}
+        />
+      </Row>
+      <Row label="Alignment">
+        <Segmented
+          value={c.align}
+          options={[
+            { value: "center", label: "Centered" },
+            { value: "left", label: "Left" },
+            { value: "justified", label: "Justified" },
+          ]}
+          onChange={(v) => set((x) => void (x.align = v))}
+        />
+      </Row>
+      <p className="d-note">Figure captions go below the image; table captions above the table.</p>
+    </>
+  );
+}

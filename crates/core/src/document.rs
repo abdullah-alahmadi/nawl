@@ -98,8 +98,97 @@ pub enum Block {
         #[serde(default)]
         attrs: MathAttrs,
     },
+    /// An image with a caption below it.
+    Figure {
+        attrs: FigureAttrs,
+        #[serde(default)]
+        content: Vec<Caption>,
+    },
+    /// A table with a caption above it: content is `[caption, table]`.
+    TableFigure {
+        #[serde(default)]
+        content: Vec<TableFigurePart>,
+    },
+    /// A table without a caption (e.g. pasted).
+    Table {
+        #[serde(default)]
+        content: Vec<TableRow>,
+    },
     #[serde(other)]
     Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FigureAttrs {
+    /// Image path relative to the document's folder, e.g. `figures/block-diagram.png`.
+    #[serde(default)]
+    pub src: String,
+    /// Image width as a percentage of the text width.
+    #[serde(default = "default_width")]
+    pub width_percent: f32,
+}
+
+fn default_width() -> f32 {
+    80.0
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct Caption {
+    #[serde(default)]
+    pub content: Vec<Inline>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum TableFigurePart {
+    Caption {
+        #[serde(default)]
+        content: Vec<Inline>,
+    },
+    Table {
+        #[serde(default)]
+        content: Vec<TableRow>,
+    },
+    #[serde(other)]
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct TableRow {
+    #[serde(default)]
+    pub content: Vec<TableCell>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TableCell {
+    /// `tableCell` or `tableHeader`.
+    #[serde(rename = "type")]
+    pub kind: String,
+    #[serde(default)]
+    pub attrs: CellAttrs,
+    #[serde(default)]
+    pub content: Vec<Block>,
+}
+
+impl TableCell {
+    pub fn is_header(&self) -> bool {
+        self.kind == "tableHeader"
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CellAttrs {
+    #[serde(default = "one")]
+    pub colspan: u32,
+    #[serde(default = "one")]
+    pub rowspan: u32,
+}
+
+impl Default for CellAttrs {
+    fn default() -> Self {
+        Self { colspan: 1, rowspan: 1 }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -127,6 +216,29 @@ impl Default for OrderedListAttrs {
 
 fn one() -> u32 {
     1
+}
+
+impl Body {
+    /// Image paths used by figures anywhere in the document, without duplicates.
+    pub fn figure_sources(&self) -> Vec<String> {
+        fn walk(blocks: &[Block], out: &mut Vec<String>) {
+            for b in blocks {
+                match b {
+                    Block::Figure { attrs, .. } if !attrs.src.is_empty() && !out.contains(&attrs.src) => {
+                        out.push(attrs.src.clone())
+                    }
+                    Block::Blockquote { content } => walk(content, out),
+                    Block::BulletList { content } | Block::OrderedList { content, .. } => {
+                        content.iter().for_each(|li| walk(&li.content, out))
+                    }
+                    _ => {}
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(&self.content, &mut out);
+        out
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
@@ -188,7 +300,7 @@ mod tests {
                 ]},
                 {"type": "paragraph"},
                 {"type": "orderedList", "attrs": {"start": 3, "type": null}, "content": []},
-                {"type": "table", "content": [{"type": "tableRow"}]},
+                {"type": "callout", "content": [{"type": "paragraph"}]},
                 {"type": "equation", "attrs": {"latex": "x^2"}}
             ]
         }))
@@ -200,6 +312,30 @@ mod tests {
         assert_eq!(content[1], Inline::Unknown);
         assert!(matches!(&body.content[3], Block::OrderedList { attrs, .. } if attrs.start == 3));
         assert_eq!(body.content[4], Block::Unknown);
+    }
+
+    #[test]
+    fn parses_figures_and_tables() {
+        let body: Body = serde_json::from_value(json!({"type": "doc", "content": [
+            {"type": "figure", "attrs": {"src": "figures/a.png", "widthPercent": 60},
+             "content": [{"type": "caption", "content": [{"type": "text", "text": "Block diagram"}]}]},
+            {"type": "tableFigure", "content": [
+                {"type": "caption", "content": [{"type": "text", "text": "Costs"}]},
+                {"type": "table", "content": [
+                    {"type": "tableRow", "content": [
+                        {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null},
+                         "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Part"}]}]}
+                    ]}
+                ]}
+            ]},
+            {"type": "figure", "attrs": {"src": "figures/a.png"}}
+        ]}))
+        .unwrap();
+        assert!(matches!(&body.content[0], Block::Figure { attrs, .. } if attrs.width_percent == 60.0));
+        let Block::TableFigure { content } = &body.content[1] else { panic!() };
+        let TableFigurePart::Table { content: rows } = &content[1] else { panic!() };
+        assert!(rows[0].content[0].is_header());
+        assert_eq!(body.figure_sources(), vec!["figures/a.png".to_string()]);
     }
 
     #[test]

@@ -62,7 +62,10 @@ button.active { background: var(--accent-soft); border-color: var(--accent); col
 /* Panes */
 .panes { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
 .editor-pane, .preview-pane { overflow: auto; min-height: 0; }
-.editor-pane { padding: 24px; border-right: 1px solid var(--border); }
+.editor-pane { border-right: 1px solid var(--border); display: grid; grid-template-columns: minmax(0, 1fr); overflow: hidden; }
+.editor-pane.with-outline { grid-template-columns: 210px minmax(0, 1fr); }
+.editor-scroll { overflow: auto; padding: 24px; min-height: 0; }
+.designer-pane { overflow: auto; display: block; }
 .preview-pane { display: flex; flex-direction: column; overflow-x: hidden; }
 
 /* The editable "page": approximates the output; Phase 2 derives this from the template. */
@@ -297,3 +300,47 @@ select option, select optgroup { color: var(--text); background-color: var(--pan
 .tp-anchor { display: grid; grid-template-columns: repeat(3, 18px); gap: 3px; }
 .tp-anchor button { width: 18px; height: 18px; padding: 0; border: 1px solid var(--border); border-radius: 3px; }
 .tp-anchor button.active { background: var(--accent); border-color: var(--accent); }
+
+/* Outline */
+.outline { overflow: auto; border-right: 1px solid var(--border); background: var(--panel); padding: 10px 6px; display: flex; flex-direction: column; gap: 1px; min-height: 0; }
+.outline-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 2px 8px 6px; }
+.outline-empty { font-size: 12px; padding: 0 8px; }
+.outline-item { display: flex; gap: 6px; text-align: left; font-size: 13px; padding: 3px 8px; border-radius: 5px; white-space: nowrap; overflow: hidden; }
+.outline-item .outline-text { overflow: hidden; text-overflow: ellipsis; }
+.outline-heading.outline-item { font-weight: 500; }
+.outline-figure, .outline-table { color: var(--muted); font-size: 12px; }
+.outline-number { color: var(--muted); font-variant-numeric: tabular-nums; }
+.outline-kind { flex: none; }
+
+/* The page keeps its real proportions and is zoomed to fit the pane. */
+.page { margin: 0 auto; zoom: var(--page-zoom, 1); }
+
+/* Figures */
+.page figure.figure { margin: 1.2em 0; padding: 6px; border-radius: 4px; border: 1px solid transparent; }
+.page figure.figure:hover { border-color: #dfe3e8; }
+.page figure.figure.is-selected { border-color: var(--accent); }
+.figure-image { margin: 0 auto; }
+.figure-image img { width: 100%; display: block; }
+.figure-placeholder {
+  display: flex; align-items: center; justify-content: center; min-height: 120px; padding: 12px; text-align: center;
+  font: 13px system-ui, sans-serif; color: #666; background: repeating-linear-gradient(45deg, #f4f5f7, #f4f5f7 8px, #eceef1 8px, #eceef1 16px);
+}
+.figure-controls {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin: 6px 0 2px;
+  font: 12px system-ui, sans-serif; color: #555; opacity: 0; transition: opacity 0.15s;
+}
+.page figure.figure:hover .figure-controls, .page figure.figure.is-selected .figure-controls, .figure-controls:focus-within { opacity: 1; }
+.figure-controls label { display: inline-flex; align-items: center; gap: 6px; }
+.figure-controls button { color: #2f6fde; padding: 2px 6px; }
+.figure-problem { color: #c0362c; }
+.page figcaption { margin-top: 4px; }
+
+/* Tables */
+.page .table-figure { margin: 1.2em 0; }
+.page .table-figure figcaption { margin: 0 0 6px; }
+.page table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 0; }
+.page td, .page th { border: 1px solid #333; padding: 3px 6px; vertical-align: top; text-align: left; position: relative; }
+.page th { font-weight: 700; }
+.page .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(47, 111, 222, 0.15); pointer-events: none; }
+.table-tools { display: inline-flex; align-items: center; gap: 2px; }
+.d-sample-figure { margin: 4px auto 8px; width: 60%; padding: 18px 0; text-align: center; color: #888; background: #f1f3f5; border-radius: 4px; font: 12px system-ui, sans-serif; }

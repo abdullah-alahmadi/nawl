@@ -148,40 +148,10 @@ pub fn save_to(dest: &Path, template: Template, previous: Option<&Path>) -> Resu
     Ok(ActiveTemplate { path: Some(canonical), ..t })
 }
 
-/// Image formats XeTeX's graphicx can include.
-pub const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "pdf"];
-
 /// Copies an image into `<template folder>/assets/` and returns its asset path
-/// (`assets/logo.png`). An existing file with different content is never replaced;
-/// the copy gets a numbered name instead.
+/// (`assets/logo.png`), never replacing a different file of the same name.
 pub fn import_asset(template_file: &Path, source: &Path) -> Result<String, AppError> {
-    let ext = source.extension().and_then(|e| e.to_str()).map(str::to_lowercase).unwrap_or_default();
-    if !IMAGE_EXTENSIONS.contains(&ext.as_str()) {
-        return Err(AppError::other(format!("Images must be PNG, JPEG or PDF (got .{ext})")));
-    }
-    let bytes = std::fs::read(source)?;
-    let dir = template_file.parent().unwrap_or(Path::new(".")).join("assets");
-    std::fs::create_dir_all(&dir)?;
-    let stem: String = source
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("image")
-        .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
-        .collect();
-    for n in 1.. {
-        let name = if n == 1 { format!("{stem}.{ext}") } else { format!("{stem}-{n}.{ext}") };
-        let dest = dir.join(&name);
-        match std::fs::read(&dest) {
-            Ok(existing) if existing == bytes => return Ok(format!("assets/{name}")),
-            Ok(_) => continue,
-            Err(_) => {
-                std::fs::write(&dest, &bytes)?;
-                return Ok(format!("assets/{name}"));
-            }
-        }
-    }
-    unreachable!()
+    crate::files::import_image(template_file.parent().unwrap_or(Path::new(".")), "assets", source)
 }
 
 /// Owns the active template and the file watcher.

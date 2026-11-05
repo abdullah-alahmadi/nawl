@@ -108,10 +108,17 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - Not yet: figures/tables/captions (Phase 2), mirrored headers for two-sided printing
 
 ### Phase 2: Editor MVP (~3–4 weeks)
-- [ ] TipTap schema matching `core`; toolbar, shortcuts, outline sidebar
-- [ ] CSS generated from the template, applied to the editor
-- [ ] Debounced background compile → preview pane
-- [ ] Open/save document files; export PDF and the .tex zip
+- [x] Figures (image + caption, width slider, replace image) and captioned tables
+      (row/column/header controls); numbered like the PDF ("Figure 3.1", "Table 3.1")
+- [x] Images live in `figures/` next to the document (a temporary folder before the
+      first save); Save As copies them; 16-bit PNGs are converted to 8-bit on import
+- [x] Outline sidebar: headings, figures and tables with their numbers; click to jump
+- [x] Editor page styled from the template: page size and margins, fonts, spacing,
+      heading styles with numbers, caption labels, equation numbers
+- [x] Template designer: Captions panel (labels, separator, bold, size, alignment)
+- [x] Export PDF; Export .tex writes images too; documents are checked when opened
+- [ ] .loom as a single zip (document + images); new/blank document command
+- [ ] Table cells spanning rows; image cropping
 
 ### Phase 3: Template designer v1, styles (~3–4 weeks)
 - [x] Template mode with panels: info, page, fonts (built-in + system), structure &

@@ -1,6 +1,8 @@
 //! Document → LaTeX source (`.tex`) that uses the template's generated class.
 
-use texloom_core::{Block, Document, FieldKind, FieldValue, Inline, ListItem, Mark, Template};
+use texloom_core::{
+    Block, Caption, Document, FieldKind, FieldValue, Inline, ListItem, Mark, TableFigurePart, TableRow, Template,
+};
 
 use crate::cls::heading_commands;
 use crate::latex::{escape, escape_url};
@@ -102,8 +104,73 @@ impl BodyWriter<'_> {
                     self.out.push_str(&format!("\\begin{{equation}}\n{latex}\n\\end{{equation}}\n\n"));
                 }
             }
+            Block::Figure { attrs, content } => {
+                self.out.push_str("\\begin{figure}[htbp]\n\\centering\n");
+                let width = num_fraction(attrs.width_percent);
+                if is_safe_relative(&attrs.src) {
+                    self.out.push_str(&format!("\\includegraphics[width={width}\\linewidth]{{{}}}\n", attrs.src));
+                } else {
+                    // No image chosen yet: keep the space visible.
+                    self.out.push_str(&format!(
+                        "\\fbox{{\\parbox[c][4cm][c]{{{width}\\linewidth}}{{\\centering\\textit{{No image}}}}}}\n"
+                    ));
+                }
+                self.out.push_str(&format!("\\caption{{{}}}\n\\end{{figure}}\n\n", caption_text(content)));
+            }
+            Block::TableFigure { content } => {
+                let caption = content.iter().find_map(|p| match p {
+                    TableFigurePart::Caption { content } => Some(inlines(content)),
+                    _ => None,
+                });
+                let rows = content.iter().find_map(|p| match p {
+                    TableFigurePart::Table { content } => Some(content.as_slice()),
+                    _ => None,
+                });
+                self.out.push_str("\\begin{table}[htbp]\n\\centering\n");
+                self.out.push_str(&format!("\\caption{{{}}}\n", caption.unwrap_or_default().trim()));
+                self.table(rows.unwrap_or(&[]));
+                self.out.push_str("\\end{table}\n\n");
+            }
+            Block::Table { content } => {
+                self.out.push_str("\\begin{center}\n");
+                self.table(content);
+                self.out.push_str("\\end{center}\n\n");
+            }
             Block::Unknown => {}
         }
+    }
+
+    /// A grid table that always fits the text width; long cell text wraps.
+    fn table(&mut self, rows: &[TableRow]) {
+        let columns = rows
+            .iter()
+            .map(|r| r.content.iter().map(|c| c.attrs.colspan.max(1) as usize).sum::<usize>())
+            .max()
+            .unwrap_or(0);
+        if columns == 0 {
+            return;
+        }
+        self.out.push_str(&format!("\\begin{{tabularx}}{{\\linewidth}}{{|{}}}\n\\hline\n", "L|".repeat(columns)));
+        for row in rows {
+            let mut cells = Vec::new();
+            let mut used = 0;
+            for cell in &row.content {
+                let mut inner = String::new();
+                BodyWriter { out: &mut inner, commands: self.commands }.blocks(&cell.content);
+                let mut text = inner.trim().replace("\n\n", "\\par ");
+                if cell.is_header() && !text.is_empty() {
+                    text = format!("{{\\bfseries {text}}}");
+                }
+                let span = cell.attrs.colspan.max(1) as usize;
+                used += span;
+                cells.push(if span > 1 { format!("\\multicolumn{{{span}}}{{|l|}}{{{text}}}") } else { text });
+            }
+            // Short rows get empty cells so every row has the same number of columns.
+            cells.extend(std::iter::repeat_n(String::new(), columns.saturating_sub(used)));
+            self.out.push_str(&cells.join(" & "));
+            self.out.push_str(" \\\\ \\hline\n");
+        }
+        self.out.push_str("\\end{tabularx}\n");
     }
 
     fn list(&mut self, env: &str, start: Option<u32>, items: &[ListItem]) {
@@ -123,6 +190,25 @@ impl BodyWriter<'_> {
         }
         self.out.push_str(&format!("\\end{{{env}}}\n\n"));
     }
+}
+
+fn caption_text(content: &[Caption]) -> String {
+    content.iter().map(|c| inlines(&c.content)).collect::<Vec<_>>().join(" ").trim().to_string()
+}
+
+/// `0.8` for 80 %, clamped to a sensible range.
+fn num_fraction(percent: f32) -> String {
+    let f = (percent.clamp(5.0, 100.0) / 100.0 * 100.0).round() / 100.0;
+    crate::latex::num(f)
+}
+
+/// Image paths must stay inside the document's folder.
+fn is_safe_relative(path: &str) -> bool {
+    !path.is_empty()
+        && !path.starts_with('/')
+        && !path.contains('\\')
+        && path.split('/').all(|s| !s.is_empty() && s != "..")
+        && !path.chars().any(|c| matches!(c, '{' | '}' | '%' | '#' | '$' | '&' | '~' | '^'))
 }
 
 fn inlines(content: &[Inline]) -> String {

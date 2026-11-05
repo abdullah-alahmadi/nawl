@@ -28,6 +28,15 @@ fn document_snapshot() {
 }
 
 #[test]
+fn figures_and_tables() {
+    let tex = texloom_codegen::document_to_tex(&template(), &document().document);
+    assert!(tex.contains("\\includegraphics[width=0.85\\linewidth]{figures/system-diagram.png}"));
+    assert!(tex.contains("\\begin{tabularx}{\\linewidth}{|L|L|L|}"));
+    assert!(tex.contains("{\\bfseries Component} & {\\bfseries Part}"));
+    assert_eq!(texloom_codegen::generate(&template(), &document().document).figures, vec!["figures/system-diagram.png"]);
+}
+
+#[test]
 fn missing_required_fields_show_labels() {
     let mut doc = document().document;
     doc.metadata.remove("advisor");
@@ -47,8 +56,11 @@ fn compiles_to_pdf() {
     let g = texloom_codegen::generate(&template(), &document().document);
     let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
     let cls = g.cls_file_name();
-    let out = compiler
-        .compile(&g.tex, &[texloom_compile::Asset { path: &cls, bytes: g.cls.as_bytes() }])
-        .unwrap_or_else(|e| panic!("{e:?}"));
+    let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    let figures: Vec<(String, Vec<u8>)> =
+        g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).expect("figure exists"))).collect();
+    let mut files = vec![texloom_compile::Asset { path: &cls, bytes: g.cls.as_bytes() }];
+    files.extend(figures.iter().map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }));
+    let out = compiler.compile(&g.tex, &files).unwrap_or_else(|e| panic!("{e:?}"));
     assert!(out.pdf.starts_with(b"%PDF"));
 }

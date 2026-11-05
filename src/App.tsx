@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, useEditorState, EditorContent, type Editor, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { TableKit } from "@tiptap/extension-table";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Equation } from "./editor/Equation";
 import { MetadataForm } from "./editor/MetadataForm";
+import { Caption, CaptionedTable, Figure, pickFigureImage } from "./editor/Figures";
+import { Outline } from "./editor/Outline";
+import { PAGE_WIDTH_PX, templateCss } from "./editor/templateStyle";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
 import { PdfPreview } from "./preview/PdfPreview";
 import * as api from "./api";
@@ -18,6 +22,17 @@ const TEMPLATE_FILTER = [{ name: "Texloom template", extensions: ["json"] }];
 
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
+/** Loads a document into the editor; throws a readable error instead of silently
+ *  showing an empty page when the document doesn't fit the editor's schema. */
+function loadDocument(editor: Editor, doc: JSONContent) {
+  try {
+    editor.schema.nodeFromJSON(doc).check();
+  } catch (e) {
+    throw new Error(`This document can't be opened: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  editor.commands.setContent(doc, { emitUpdate: false });
+}
+
 type Status = { state: "idle" | "compiling" | "ok" } | { state: "error"; error: AppError };
 
 export default function App() {
@@ -27,6 +42,7 @@ export default function App() {
   const [dirty, setDirty] = useState(false);
   const [showLatex, setShowLatex] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showOutline, setShowOutline] = useState(true);
   const [latex, setLatex] = useState("");
   const [templateInfo, setTemplateInfo] = useState<api.TemplateInfo | null>(null);
   // Set when the template file on disk has errors; the last valid version stays in use.
@@ -49,6 +65,8 @@ export default function App() {
   const requestId = useRef(0);
   const timer = useRef<number | undefined>(undefined);
   const started = useRef(false);
+  const editorScroll = useRef<HTMLDivElement>(null);
+  const [pageZoom, setPageZoom] = useState(1);
 
   const compile = useCallback(async () => {
     const editor = editorRef.current;
@@ -77,7 +95,14 @@ export default function App() {
   }, []);
 
   const editor = useEditor({
-    extensions: [StarterKit, Equation],
+    extensions: [
+      StarterKit,
+      Equation,
+      Caption,
+      Figure,
+      CaptionedTable,
+      TableKit.configure({ table: { resizable: false } }),
+    ],
     content: EMPTY_DOC,
     onUpdate: () => {
       setDirty(true);
@@ -85,6 +110,15 @@ export default function App() {
     },
   });
   editorRef.current = editor;
+
+  // Zoom the fixed-width page to fit the editor pane.
+  useEffect(() => {
+    const el = editorScroll.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setPageZoom(Math.min(1.25, Math.max(0.4, (el.clientWidth - 48) / PAGE_WIDTH_PX))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Startup: load the template and open the sample report.
   useEffect(() => {
@@ -95,7 +129,7 @@ export default function App() {
         setTemplateInfo(t);
         setDraft(t.template);
         setMetadata(sample.metadata);
-        editor.commands.setContent(sample.doc, { emitUpdate: false });
+        loadDocument(editor, sample.doc);
         compile();
       })
       .catch((e) => setStatus({ state: "error", error: api.asAppError(e) }));
@@ -241,7 +275,7 @@ export default function App() {
     if (!target) return;
     try {
       const opened = await api.openDocument(target);
-      editor.commands.setContent(opened.doc, { emitUpdate: false });
+      loadDocument(editor, opened.doc);
       metadataRef.current = opened.metadata;
       setPath(target);
       setDirty(false);
@@ -253,6 +287,13 @@ export default function App() {
     } catch (e) {
       report(e);
     }
+  };
+
+  const exportPdfFile = async () => {
+    if (!editor) return;
+    const name = (path ? path.split(/[\\/]/).pop()!.replace(/\.loom$/, "") : "report") + ".pdf";
+    const target = await save({ filters: [{ name: "PDF", extensions: ["pdf"] }], defaultPath: name });
+    if (target) await api.exportPdf(target, editor.getJSON(), metadataRef.current).catch(report);
   };
 
   const exportLatex = async () => {
@@ -295,11 +336,12 @@ export default function App() {
           <button onClick={openDoc}>Open</button>
           <button onClick={saveDoc} title="Ctrl+S">Save</button>
           <button onClick={saveAs} title="Ctrl+Shift+S">Save As</button>
-          <button onClick={exportLatex} title="Writes the .tex file and the template's .cls next to it">
+          <button onClick={exportPdfFile}>Export PDF</button>
+          <button onClick={exportLatex} title="Writes the .tex file, the template's .cls and images next to each other">
             Export .tex
           </button>
         </div>
-        {editor && mode === "document" && <FormatBar editor={editor} />}
+        {editor && mode === "document" && <FormatBar editor={editor} onError={report} />}
         <div className="group right">
           <div className="menu-anchor">
             <button
@@ -326,6 +368,9 @@ export default function App() {
               </div>
             )}
           </div>
+          <button hidden={mode !== "document"} className={showOutline ? "active" : ""} onClick={() => setShowOutline((v) => !v)}>
+            Outline
+          </button>
           <button
             hidden={mode !== "document"}
             className={showInfo ? "active" : ""}
@@ -363,12 +408,24 @@ export default function App() {
           </section>
         )}
         {/* Kept mounted (just hidden) in template mode so the editor keeps its state. */}
-        <section className="editor-pane" hidden={mode !== "document"}>
-          {showInfo && template && (
-            <MetadataForm template={template} metadata={metadata} onChange={onMetadataChange} />
+        <section className={`editor-pane${showOutline ? " with-outline" : ""}`} hidden={mode !== "document"}>
+          {template && <style>{templateCss(template, ".page")}</style>}
+          {showOutline && editor && template && (
+            <Outline
+              editor={editor}
+              numberedDepth={template.structure.numberedDepth}
+              perChapter={template.structure.topLevel === "chapter" && template.structure.perChapterNumbering}
+              figureLabel={template.captions.figureLabel}
+              tableLabel={template.captions.tableLabel}
+            />
           )}
-          <div className="page">
-            <EditorContent editor={editor} />
+          <div className="editor-scroll" ref={editorScroll} style={{ ["--page-zoom" as string]: pageZoom }}>
+            {showInfo && template && (
+              <MetadataForm template={template} metadata={metadata} onChange={onMetadataChange} />
+            )}
+            <div className="page">
+              <EditorContent editor={editor} />
+            </div>
           </div>
         </section>
         <section className="preview-pane">
@@ -381,7 +438,7 @@ export default function App() {
   );
 }
 
-function FormatBar({ editor }: { editor: Editor }) {
+function FormatBar({ editor, onError }: { editor: Editor; onError: (e: unknown) => void }) {
   // Re-render only when the formatting state at the cursor changes.
   const s = useEditorState({
     editor,
@@ -395,6 +452,7 @@ function FormatBar({ editor }: { editor: Editor }) {
       bullet: editor.isActive("bulletList"),
       ordered: editor.isActive("orderedList"),
       quote: editor.isActive("blockquote"),
+      inTable: editor.isActive("table"),
       canUndo: editor.can().undo(),
       canRedo: editor.can().redo(),
     }),
@@ -422,6 +480,27 @@ function FormatBar({ editor }: { editor: Editor }) {
       <B label="1. List" title="Numbered list" on={s.ordered} run={() => c().toggleOrderedList().run()} />
       <B label="❝" title="Quote" on={s.quote} run={() => c().toggleBlockquote().run()} />
       <B label="∑ Equation" title="Insert equation ($$ + space)" run={() => c().insertEquation().run()} />
+      <B
+        label="▣ Figure"
+        title="Insert an image with a caption"
+        run={() =>
+          pickFigureImage().then((src) => {
+            if (src) c().insertFigure(src).run();
+          }, onError)
+        }
+      />
+      <B label="▦ Table" title="Insert a table with a caption" run={() => c().insertCaptionedTable(3, 3).run()} />
+      {s.inTable && (
+        <span className="table-tools" role="group" aria-label="Table">
+          <span className="sep" />
+          <B label="+ Row" title="Add a row below" run={() => c().addRowAfter().run()} />
+          <B label="+ Col" title="Add a column to the right" run={() => c().addColumnAfter().run()} />
+          <B label="− Row" title="Delete this row" run={() => c().deleteRow().run()} />
+          <B label="− Col" title="Delete this column" run={() => c().deleteColumn().run()} />
+          <B label="Header" title="Toggle the header row" run={() => c().toggleHeaderRow().run()} />
+          <B label="Delete table" title="Delete the table and its caption" run={() => c().deleteCaptionedTable().run()} />
+        </span>
+      )}
     </div>
   );
 }

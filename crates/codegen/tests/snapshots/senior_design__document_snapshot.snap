@@ -45,6 +45,14 @@ Earlier student projects used Wi-Fi modules that drew too much power for solar o
 
 \chapter{System Design}
 
+Figure 3.1 shows the main parts of the system and how they connect.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/system-diagram.png}
+\caption{System block diagram: probes report to the controller, which drives the valve.}
+\end{figure}
+
 \section{Water Balance Model}
 
 The controller estimates the soil water deficit each hour from evapotranspiration and rainfall:
@@ -71,6 +79,22 @@ Each probe was calibrated against oven-dried samples; the fitted curve has an RÂ
 \item Power: 6 W solar panel with a 3.7 V Li-ion cell
 \item Actuator: 12 V latching solenoid valve
 \end{itemize}
+
+Table 3.1 lists the parts and their cost for one zone.
+
+\begin{table}[htbp]
+\centering
+\caption{Bill of materials for one irrigation zone}
+\begin{tabularx}{\linewidth}{|L|L|L|}
+\hline
+{\bfseries Component} & {\bfseries Part} & {\bfseries Cost (USD)} \\ \hline
+Microcontroller + radio & LoRa module with Cortex-M0+ & 14.50 \\ \hline
+Moisture probes (3) & Capacitive, corrosion-resistant & 18.00 \\ \hline
+Valve & 12 V latching solenoid & 11.00 \\ \hline
+Power & 6 W solar panel and Li-ion cell & 13.20 \\ \hline
+{\bfseries Total} &  & {\bfseries 56.70} \\ \hline
+\end{tabularx}
+\end{table}
 
 \chapter{Conclusion}
 

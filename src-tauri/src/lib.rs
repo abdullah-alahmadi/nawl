@@ -6,6 +6,7 @@ macro_rules! log {
     }};
 }
 
+mod files;
 mod templates;
 
 use std::path::{Path, PathBuf};
@@ -22,10 +23,15 @@ use templates::{ActiveTemplate, TemplateInfo, TemplateStore};
 
 /// Opened on startup so there's something real to look at.
 const SAMPLE_DOCUMENT: &str = include_str!("../../examples/senior-design-report.loom");
+/// Images the sample document uses (written to its temporary folder at startup).
+const SAMPLE_FILES: &[(&str, &[u8])] =
+    &[("figures/system-diagram.png", include_bytes!("../../examples/figures/system-diagram.png"))];
 
 pub struct AppState {
     compiler: Result<Arc<Compiler>, String>,
     templates: TemplateStore,
+    /// Where the open document's figures live.
+    doc_folder: files::DocumentFolder,
 }
 
 /// Errors sent to the frontend, tagged so the UI can render each kind differently.
@@ -202,10 +208,16 @@ fn check_metadata(state: State<'_, AppState>, metadata: Metadata) -> Vec<Issue> 
 /// (an ArrayBuffer on the JS side, avoiding a huge JSON number array).
 #[tauri::command]
 async fn render_pdf(state: State<'_, AppState>, doc: Value, metadata: Metadata) -> Result<Response, AppError> {
+    Ok(Response::new(compile_document(&state, doc, metadata).await?))
+}
+
+/// Generates and compiles the document with the active template; returns PDF bytes.
+async fn compile_document(state: &AppState, doc: Value, metadata: Metadata) -> Result<Vec<u8>, AppError> {
     let compiler = state.compiler.clone().map_err(|message| AppError::TectonicMissing { message })?;
     let active = state.templates.current();
     let generated = texloom_codegen::generate(&active.template, &to_document(doc, metadata)?);
-    let assets = active.load_assets(&generated.assets)?;
+    let mut assets = active.load_assets(&generated.assets)?;
+    assets.extend(state.doc_folder.load(&generated.figures)?);
     let out = tauri::async_runtime::spawn_blocking(move || {
         let cls_name = generated.cls_file_name();
         let mut files = vec![Asset { path: &cls_name, bytes: generated.cls.as_bytes() }];
@@ -214,7 +226,7 @@ async fn render_pdf(state: State<'_, AppState>, doc: Value, metadata: Metadata) 
     })
     .await
     .map_err(AppError::other)??;
-    Ok(Response::new(out.pdf))
+    Ok(out.pdf)
 }
 
 /// The generated `.tex` followed by the class, for the source view.
@@ -229,6 +241,10 @@ fn to_latex(state: State<'_, AppState>, doc: Value, metadata: Metadata) -> Resul
 #[tauri::command]
 fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata) -> Result<(), AppError> {
     let active = state.templates.current();
+    // Saving to another folder takes the figures along.
+    let new_dir = Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default();
+    let figures = to_document(doc.clone(), Metadata::new())?.body.figure_sources();
+    files::copy_relative(&figures, &state.doc_folder.get(), &new_dir)?;
     // The editor's JSON is written as-is so node types this version doesn't know survive.
     let file = serde_json::json!({
         "format": DOC_FORMAT,
@@ -238,7 +254,8 @@ fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata:
         "metadata": metadata,
         "doc": doc,
     });
-    std::fs::write(path, serde_json::to_string_pretty(&file).map_err(AppError::other)?)?;
+    std::fs::write(&path, serde_json::to_string_pretty(&file).map_err(AppError::other)?)?;
+    state.doc_folder.set(new_dir);
     Ok(())
 }
 
@@ -246,7 +263,7 @@ fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata:
 /// still exists and is valid (it may have been edited since), else the saved copy.
 #[tauri::command]
 fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<OpenedDocument, AppError> {
-    let text = std::fs::read_to_string(path)?;
+    let text = std::fs::read_to_string(&path)?;
     let file: Value = serde_json::from_str(&text).map_err(|e| AppError::other(format!("Not a valid document: {e}")))?;
     if file.get("format").and_then(Value::as_str) != Some(DOC_FORMAT) {
         return Err(AppError::other("Not a Texloom document"));
@@ -266,7 +283,29 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
         opened.template = Some(t.info());
         state.templates.set(&app, t);
     }
+    state.doc_folder.set(Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default());
     Ok(opened)
+}
+
+/// Copies an image into the document's `figures/` folder; returns its relative path.
+#[tauri::command]
+fn import_figure(state: State<'_, AppState>, source: String) -> Result<String, AppError> {
+    files::import_image(&state.doc_folder.get(), "figures", Path::new(&source))
+}
+
+/// Raw bytes of a file in the document's folder (figure images for the editor).
+#[tauri::command]
+fn read_document_file(state: State<'_, AppState>, path: String) -> Result<Response, AppError> {
+    let mut loaded = state.doc_folder.load(std::slice::from_ref(&path))?;
+    Ok(Response::new(loaded.remove(0).1))
+}
+
+/// Compiles the document and writes the PDF to `path`.
+#[tauri::command]
+async fn export_pdf(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata) -> Result<(), AppError> {
+    let pdf = compile_document(&state, doc, metadata).await?;
+    std::fs::write(path, pdf)?;
+    Ok(())
 }
 
 /// Writes the `.tex` file, the class and the template's assets next to each other,
@@ -275,7 +314,8 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
 fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata) -> Result<(), AppError> {
     let active = state.templates.current();
     let g = texloom_codegen::generate(&active.template, &to_document(doc, metadata)?);
-    let assets = active.load_assets(&g.assets)?;
+    let mut assets = active.load_assets(&g.assets)?;
+    assets.extend(state.doc_folder.load(&g.figures)?);
     let path = Path::new(&path);
     std::fs::write(path, &g.tex)?;
     std::fs::write(path.with_file_name(g.cls_file_name()), &g.cls)?;
@@ -303,7 +343,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .manage(AppState { compiler, templates: TemplateStore::new() })
+        .manage(AppState {
+            compiler,
+            templates: TemplateStore::new(),
+            doc_folder: files::DocumentFolder::new(SAMPLE_FILES).expect("can create a temporary folder"),
+        })
         .setup(|app| {
             // Start with a template file (and watch it): TEXLOOM_TEMPLATE=path/template.json
             if let Some(path) = std::env::var_os("TEXLOOM_TEMPLATE") {
@@ -326,6 +370,9 @@ pub fn run() {
             save_template,
             list_system_fonts,
             import_template_asset,
+            import_figure,
+            read_document_file,
+            export_pdf,
             read_template_asset,
             sample_document,
             check_metadata,
@@ -351,6 +398,18 @@ mod tests {
         let doc = to_document(sample.doc, sample.metadata).unwrap();
         assert!(template.check_metadata(&doc.metadata).is_empty());
         assert!(texloom_codegen::generate(&template, &doc).tex.contains("\\chapter{Introduction}"));
+    }
+
+    #[test]
+    fn sample_document_figures_are_available() {
+        let folder = files::DocumentFolder::new(SAMPLE_FILES).unwrap();
+        let sample = sample_document().unwrap();
+        let doc = to_document(sample.doc, sample.metadata).unwrap();
+        let figures = doc.body.figure_sources();
+        assert!(!figures.is_empty());
+        let loaded = folder.load(&figures).unwrap();
+        assert!(loaded[0].1.starts_with(b"\x89PNG"));
+        assert!(folder.load(&["../etc/passwd".into()]).is_err());
     }
 
     #[test]

@@ -17,6 +17,9 @@ pub struct Template {
     pub structure: Structure,
     pub headings: Headings,
     pub header_footer: HeaderFooter,
+    /// How figure and table captions look. Older templates get the defaults.
+    #[serde(default)]
+    pub captions: CaptionStyle,
     pub title_page: TitlePage,
     /// Metadata the document author fills in (title, team members, advisor…).
     pub fields: Vec<MetadataField>,
@@ -301,6 +304,69 @@ pub struct Slots {
     pub center: String,
     #[serde(default)]
     pub right: String,
+}
+
+// ---------------------------------------------------------------- captions
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CaptionStyle {
+    /// Word before figure numbers: "Figure", "Fig.", "Abbildung"…
+    pub figure_label: String,
+    /// Word before table numbers.
+    pub table_label: String,
+    pub separator: CaptionSeparator,
+    pub label_bold: bool,
+    /// Caption text size relative to body text.
+    pub size: CaptionSize,
+    pub align: CaptionAlign,
+}
+
+impl Default for CaptionStyle {
+    fn default() -> Self {
+        Self {
+            figure_label: "Figure".into(),
+            table_label: "Table".into(),
+            separator: CaptionSeparator::Colon,
+            label_bold: true,
+            size: CaptionSize::Small,
+            align: CaptionAlign::Center,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum CaptionSeparator {
+    /// "Figure 1: Text"
+    Colon,
+    /// "Figure 1. Text"
+    Period,
+    /// "Figure 1 — Text"
+    Dash,
+    /// "Figure 1" on its own line, text below.
+    Newline,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum CaptionSize {
+    Footnote,
+    Small,
+    Normal,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum CaptionAlign {
+    Center,
+    Left,
+    /// Centered when the caption fits on one line, justified otherwise.
+    Justified,
 }
 
 // ---------------------------------------------------------------- title page
