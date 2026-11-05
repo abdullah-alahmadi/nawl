@@ -854,13 +854,13 @@
         "type": "heading",
         "attrs": {
           "level": 1,
-          "id": "h-ack",
+          "id": "h-contributions",
           "numbered": false
         },
         "content": [
           {
             "type": "text",
-            "text": "Acknowledgment"
+            "text": "Team Contributions"
           }
         ]
       },
@@ -869,7 +869,7 @@
         "content": [
           {
             "type": "text",
-            "text": "We thank the campus farm for lending us the test plots, and our advisor for weekly feedback throughout the project."
+            "text": "Sara Ahmed built the sensor nodes, Omar Khalid wrote the controller firmware, Lina Haddad developed the water balance model, and Yousef Nasser designed the LoRa link and ran the field trials."
           }
         ]
       },

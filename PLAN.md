@@ -189,6 +189,12 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       3 s after each edit; offered back on the next start; closing asks first
 - [x] Importing a kit into a built-in template asks where to save it, then saves it
       with the kit's files (no more New copy → Save as → import)
+- [x] UI redesign: title bar with File menu and Write/Design switch, icon toolbar
+      (Lucide) with paragraph style dropdown and contextual tools, side rail with
+      Outline / Document info / References / Checks, preview header with zoom,
+      status bar (compile time, pages, words, template, page zoom); light/dark and
+      compact themes
+- [x] Settings window (settings.json in the config folder) and recent files
 - [ ] Template import/export and gallery
 
 ### Later

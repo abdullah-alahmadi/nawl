@@ -6,7 +6,18 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-export function PdfPreview({ pdf }: { pdf: ArrayBuffer | null }) {
+export function PdfPreview({
+  pdf,
+  zoom = 100,
+  onPages,
+}: {
+  pdf: ArrayBuffer | null;
+  /** Percent of the pane's width. */
+  zoom?: number;
+  onPages?: (count: number) => void;
+}) {
+  const reportPages = useRef(onPages);
+  reportPages.current = onPages;
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -20,7 +31,9 @@ export function PdfPreview({ pdf }: { pdf: ArrayBuffer | null }) {
       const doc = await task.promise;
       const pages = document.createElement("div");
       const dpr = window.devicePixelRatio || 1;
-      const cssWidth = Math.max(200, target.clientWidth - 32);
+      reportPages.current?.(doc.numPages);
+      // The pages' own box: inside the padding and next to the scrollbar.
+      const cssWidth = Math.max(200, Math.floor(target.clientWidth * (zoom / 100)) - 2);
 
       for (let i = 1; i <= doc.numPages; i++) {
         if (cancelled) break;
@@ -45,11 +58,11 @@ export function PdfPreview({ pdf }: { pdf: ArrayBuffer | null }) {
     return () => {
       cancelled = true;
     };
-  }, [pdf]);
+  }, [pdf, zoom]);
 
   return (
     <div className="pdf-preview">
-      {!pdf && <p className="muted">The PDF preview appears here after the first compile.</p>}
+      {!pdf && <p className="muted pdf-empty">The PDF preview appears here after the first compile.</p>}
       {/* Filled imperatively; React never renders children into it. */}
       <div className="pdf-pages" ref={container} />
     </div>

@@ -241,7 +241,7 @@ export function SkeletonSection({ t, edit, issues }: SectionProps) {
   return (
     <>
       <p className="d-note">
-        A new document starts with these {level}s. Required ones are checked: authors see a warning if one is missing.
+        The {level}s this kind of document needs. Required ones are checked: authors see a warning if one is missing.
       </p>
       <div className="d-table">
         <div className="d-table-head skeleton">

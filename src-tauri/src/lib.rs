@@ -273,22 +273,10 @@ fn read_bib_file(path: String) -> Result<String, AppError> {
     Ok(std::fs::read_to_string(path)?)
 }
 
-/// A new, unsaved document started from the template's chapter skeleton.
+/// A new, unsaved, empty document.
 #[tauri::command]
 fn new_document(state: State<'_, AppState>) -> Result<OpenedDocument, AppError> {
-    let template = state.templates.current().template;
-    let mut content: Vec<Value> = Vec::new();
-    for (i, sec) in template.skeleton.iter().enumerate() {
-        content.push(serde_json::json!({
-            "type": "heading",
-            "attrs": { "level": 1, "id": format!("h-new-{i}") },
-            "content": [{ "type": "text", "text": sec.title }],
-        }));
-        content.push(serde_json::json!({ "type": "paragraph" }));
-    }
-    if content.is_empty() {
-        content.push(serde_json::json!({ "type": "paragraph" }));
-    }
+    let content = vec![serde_json::json!({ "type": "paragraph" })];
     state.doc_folder.reset()?;
     Ok(OpenedDocument {
         doc: serde_json::json!({ "type": "doc", "content": content }),
@@ -447,6 +435,26 @@ fn restore_recovery(app: AppHandle, state: State<'_, AppState>, recovery: State<
     Ok(RestoredDocument { document, original_path: original })
 }
 
+/// Where the user's settings live (settings.json in the app's config folder).
+struct SettingsFile(PathBuf);
+
+/// The user's settings and recent files. The frontend owns their shape; a missing
+/// or unreadable file means defaults.
+#[tauri::command]
+fn get_settings(file: State<'_, SettingsFile>) -> Value {
+    std::fs::read(&file.0).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or(Value::Null)
+}
+
+#[tauri::command]
+fn save_settings(file: State<'_, SettingsFile>, settings: Value) -> Result<(), AppError> {
+    if let Some(dir) = file.0.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let tmp = file.0.with_extension("tmp");
+    std::fs::write(&tmp, serde_json::to_vec_pretty(&settings).map_err(AppError::other)?)?;
+    Ok(std::fs::rename(tmp, &file.0)?)
+}
+
 #[tauri::command]
 fn discard_recovery(recovery: State<'_, Recovery>) -> Result<(), AppError> {
     Ok(recovery.discard()?)
@@ -516,6 +524,8 @@ pub fn run() {
         .setup(|app| {
             let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom"));
             app.manage(Recovery::new(data.join("recovery")));
+            let config = app.path().app_config_dir().unwrap_or_else(|_| data.clone());
+            app.manage(SettingsFile(config.join("settings.json")));
             // Start with a template file (and watch it): TEXLOOM_TEMPLATE=path/template.json
             if let Some(path) = std::env::var_os("TEXLOOM_TEMPLATE") {
                 let path = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
@@ -557,6 +567,8 @@ pub fn run() {
             recovery_info,
             restore_recovery,
             discard_recovery,
+            get_settings,
+            save_settings,
             export_tex
         ])
         .run(tauri::generate_context!())

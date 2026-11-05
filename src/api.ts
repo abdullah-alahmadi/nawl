@@ -120,3 +120,6 @@ export const recoveryInfo = () => invoke<RecoveryInfo | null>("recovery_info");
 export const restoreRecovery = () =>
   invoke<OpenedDocument & { originalPath: string | null }>("restore_recovery");
 export const discardRecovery = () => invoke<void>("discard_recovery");
+
+export const getSettings = () => invoke<unknown>("get_settings");
+export const saveSettings = (settings: unknown) => invoke<void>("save_settings", { settings });

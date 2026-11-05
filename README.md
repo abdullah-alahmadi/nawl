@@ -18,25 +18,35 @@ after that it's cached in `~/.cache/Tectonic`.
 
 ## Writing a document
 
-The editor page is styled by the template, so it looks like the PDF. Use the toolbar
-for headings, lists, **inline math** (type `$x^2$` in a sentence, or Ctrl+M),
-display equations (`$$` + space; hover one to make it unnumbered or multi-line,
-with **+ Line** for aligned derivations), **Figure** (pick an image; type the
-caption below it) and **Table** (caption above; row/column buttons appear while the
-cursor is in the table). The **Outline** on the left lists headings, figures and tables.
-Figure images are stored in a `figures/` folder next to the `.loom` file.
+The window has a **File** menu (New, Open, recent files, Save, Export) and a
+**Write / Design template** switch at the top. The editor page is styled by the
+template, so it looks like the PDF next to it.
 
-**↗ Ref** inserts a cross-reference ("Figure 3.1", "Chapter 2", "(3.2)") that stays
-correct as things move; **❞ Cite** inserts a citation from **References**, where you
-import or paste BibTeX (e.g. exported from Zotero). **Appendices** starts the
-appendices; chapters after it are lettered. **New** starts a document from the
-template's chapter list, and the yellow bar above the preview lists anything to check.
+The toolbar has the **paragraph style** (Body text, Chapter, Section… as in LyX),
+bold/italic/code, lists, and inserts: **inline math** (type `$x^2$` in a sentence,
+or Ctrl+M), **equations** (`$$` + space; hover one to make it unnumbered or
+multi-line, with **+ Line** for aligned derivations), **figures** (pick an image;
+type the caption below it), **tables** (caption above; row and column buttons
+appear on the right while the cursor is in the table) and **raw LaTeX blocks**
+(written into the PDF exactly as typed, for TikZ drawings and the like). Figure
+images are stored in a `figures/` folder next to the `.loom` file.
 
-With the cursor in a heading, **# Numbered** turns its number off (Acknowledgment,
-Preface); it stays in the table of contents. **TeX** inserts a raw LaTeX block that
-goes into the PDF exactly as typed, for anything the editor can't do yet (TikZ
-drawings, special tables). As in LyX, you can't stack empty lines: LaTeX ignores them,
-so Enter on an empty line does nothing.
+**Cross-reference** inserts "Figure 3.1", "Chapter 2" or "(3.2)" and stays correct
+as things move; **Citation** inserts a reference from the **References** panel,
+where you import or paste BibTeX (e.g. exported from Zotero). **Appendices** starts
+the appendices; chapters after it are lettered. With the cursor in a heading,
+**Numbered** on the right turns its number off (Acknowledgment, Preface); it stays
+in the table of contents. As in LyX, you can't stack empty lines: LaTeX ignores
+them, so Enter on an empty line does nothing.
+
+The rail on the left opens the **Outline**, **Document info** (title, authors,
+abstract… as the template defines them), **References**, and **Things to check**
+(missing required fields, broken references, citations without an entry). The
+status bar shows the compile state, page and word counts, and the page zoom.
+
+**Settings** (gear icon, Ctrl+,): page zoom, spell checking, crash recovery,
+compiling while typing or only on Ctrl+Enter, light/dark theme, compact density,
+the default folder, the number of recent files, and a list of keyboard shortcuts.
 
 Unsaved changes are copied to Texloom's data folder a few seconds after each edit. If
 Texloom closes without saving (a crash, a power cut), it offers to restore them on the
@@ -44,7 +54,7 @@ next start.
 
 ## Built-in templates
 
-**Template ▾** lists the templates that ship with Texloom:
+**File → New from template…** (Ctrl+Shift+N) shows the templates that ship with Texloom; the template button in the title bar switches the open document to another one:
 
 | Template | Built on |
 |---|---|
@@ -61,7 +71,7 @@ Journal templates use the publisher's official class, so layout, fonts and capti
 are exactly the publisher's; Texloom writes the title block, authors (edited in
 **Document info**: affiliations, e-mail, ORCID, membership, corresponding author,
 biography and photo), abstract, keywords and the bibliography in each publisher's
-format. Start one with **Template ▾** → choose it → **New**.
+format. Start one with **File → New from template…**.
 
 **IEEE Access**: choose it, open the **Template** tab, and under **Publisher class**
 follow the card: download IEEE's kit and **Import kit (.zip)**. Texloom asks where
@@ -89,7 +99,7 @@ a new template once (Save as…) before adding them.
 
 Template files are plain JSON (`crates/core/src/template.rs` documents every option)
 with images in an `assets/` folder next to them. You can also edit one by hand: open it
-with **Template ▾ → Open template file…** (or `TEXLOOM_TEMPLATE=path npm run tauri dev`)
+with **Open template file…** in the title bar's template menu (or `TEXLOOM_TEMPLATE=path npm run tauri dev`)
 and every save in your editor reloads it.
 
 Saved documents remember their template (path plus an embedded copy), so they reopen

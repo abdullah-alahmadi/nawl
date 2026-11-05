@@ -144,15 +144,14 @@ export function ReferencesPanel({
   info,
   cited,
   onChange,
-  onClose,
 }: {
   source: string;
   info: BibInfo;
   cited: string[];
   onChange: (source: string) => void;
-  onClose: () => void;
 }) {
   const [problem, setProblem] = useState<string | null>(null);
+  const [editing, setEditing] = useState(source.trim() === "");
   const importFile = async () => {
     setProblem(null);
     const file = await open({ multiple: false, directory: false, filters: [{ name: "BibTeX", extensions: ["bib"] }] });
@@ -165,49 +164,46 @@ export function ReferencesPanel({
     }
   };
   return (
-    <div className="refs-panel" role="dialog" aria-label="References">
-      <div className="refs-head">
-        <div>
-          <h2>References</h2>
-          <p className="muted">
-            BibTeX entries for this document. Export them from Zotero, Mendeley or Google Scholar (“BibTeX”), then
-            import or paste them here.
-          </p>
-        </div>
-        <div className="group">
-          <button onClick={importFile}>Import .bib…</button>
-          <button className="primary" onClick={onClose}>
-            Done
-          </button>
-        </div>
+    <div className="refs">
+      <p className="muted refs-help">
+        BibTeX entries for this document. Export them from Zotero, Mendeley or Google Scholar, then import or paste them.
+      </p>
+      <div className="refs-actions">
+        <button className="tb-button" onClick={importFile}>
+          Import .bib…
+        </button>
+        <button className={`tb-button${editing ? " active" : ""}`} onClick={() => setEditing((v) => !v)}>
+          {editing ? "Hide BibTeX" : "Edit BibTeX"}
+        </button>
       </div>
       {problem && <div className="d-error">{problem}</div>}
-      <div className="refs-body">
+      {editing && (
         <textarea
           className="refs-source"
           spellCheck={false}
           value={source}
+          rows={12}
           onChange={(e) => onChange(e.target.value)}
           placeholder={"@article{smith2021,\n  author = {Smith, Jane},\n  title = {...},\n  year = {2021}\n}"}
         />
-        <div className="refs-entries">
-          {info.error ? (
-            <div className="d-error">{info.error}</div>
-          ) : (
-            <div className="muted">
-              {info.entries.length} entr{info.entries.length === 1 ? "y" : "ies"}, {cited.length} cited
-            </div>
-          )}
-          {info.entries.map((e) => (
-            <div key={e.key} className={`refs-entry${cited.includes(e.key) ? " cited" : ""}`}>
-              <code>{e.key}</code>
-              <span>
-                {e.authors.join(", ")} {e.year && `(${e.year})`}
-              </span>
-              <span className="muted">{e.title}</span>
-            </div>
-          ))}
+      )}
+      {info.error ? (
+        <div className="d-error">{info.error}</div>
+      ) : (
+        <div className="refs-count muted">
+          {info.entries.length} entr{info.entries.length === 1 ? "y" : "ies"}, {cited.length} cited
         </div>
+      )}
+      <div className="refs-entries">
+        {info.entries.map((e) => (
+          <div key={e.key} className={`refs-entry${cited.includes(e.key) ? " cited" : ""}`} title={cited.includes(e.key) ? "Cited in the text" : "Not cited yet"}>
+            <code>{e.key}</code>
+            <span>
+              {e.authors.join(", ")} {e.year && `(${e.year})`}
+            </span>
+            <span className="muted">{e.title}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -151,7 +151,7 @@ fn unnumbered_headings_and_raw_latex() {
     let tex = texloom_codegen::document_to_tex(&template(), &document().document);
     // Still in the table of contents and the running header, but without a number.
     assert!(
-        tex.contains("\\chapter*{Acknowledgment}\\addcontentsline{toc}{chapter}{Acknowledgment}\\chaptermark{Acknowledgment}\n"),
+        tex.contains("\\chapter*{Team Contributions}\\addcontentsline{toc}{chapter}{Team Contributions}\\chaptermark{Team Contributions}\n"),
         "{tex}"
     );
     assert!(texloom_codegen::template_to_cls(&template()).contains("\\titleformat{name=\\chapter,numberless}[block]"));

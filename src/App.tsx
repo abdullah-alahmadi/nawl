@@ -19,9 +19,18 @@ import { withKitFiles } from "./designer/ContentSections";
 import { PdfPreview } from "./preview/PdfPreview";
 import * as api from "./api";
 import type { AppError } from "./api";
+import { useSettings } from "./settings";
+import { SettingsDialog } from "./SettingsDialog";
+import { NewDocumentDialog } from "./NewDocumentDialog";
+import { Menu, MenuHeading, MenuItem, MenuSeparator } from "./ui/Menu";
+import {
+  BookMarked, Bold, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
+  FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
+  LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Sigma, Superscript,
+  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut,
+} from "lucide-react";
 import "./App.css";
 
-const COMPILE_DEBOUNCE_MS = 700;
 /** Designer edits are validated after this pause, then the preview recompiles. */
 const TEMPLATE_DEBOUNCE_MS = 400;
 /** Unsaved changes are copied for crash recovery after this pause in typing. */
@@ -53,6 +62,13 @@ function whenText(secs: number) {
     : `on ${d.toLocaleDateString([], { day: "numeric", month: "short" })} at ${time}`;
 }
 
+/** `name` inside `folder` (or just `name` without a folder), for dialog defaults. */
+const inFolder = (folder: string, name: string) => (folder ? `${folder.replace(/[\\/]+$/, "")}/${name}` : name);
+
+const countWords = (text: string) => (text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) ?? []).length;
+
+type SidePanel = "outline" | "info" | "refs" | "checks";
+
 type Status = { state: "idle" | "compiling" | "ok" } | { state: "error"; error: AppError };
 
 export default function App() {
@@ -61,13 +77,19 @@ export default function App() {
   const [path, setPath] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [showLatex, setShowLatex] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
-  const [showOutline, setShowOutline] = useState(true);
+  // One side panel at a time, chosen on the left rail.
+  const [panel, setPanel] = useState<SidePanel | null>("outline");
+  const togglePanel = (p: SidePanel) => setPanel((cur) => (cur === p ? null : p));
+  const [showSettings, setShowSettings] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const { settings, update: updateSettings, addRecent, removeRecent, latest: settingsRef } = useSettings();
+  const [compileMs, setCompileMs] = useState<number | null>(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [previewZoom, setPreviewZoom] = useState(100);
   const [latex, setLatex] = useState("");
   const [templateInfo, setTemplateInfo] = useState<api.TemplateInfo | null>(null);
   // Set when the template file on disk has errors; the last valid version stays in use.
   const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
-  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [builtins, setBuiltins] = useState<api.BuiltinTemplate[]>([]);
   const [mode, setMode] = useState<"document" | "template">("document");
   // The designer edits a draft; valid drafts become the active template right away.
@@ -86,9 +108,7 @@ export default function App() {
   const [bibliography, setBibliographyState] = useState("");
   const bibRef = useRef("");
   const [bibInfo, setBibInfo] = useState<api.BibInfo>({ entries: [], error: null });
-  const [showRefs, setShowRefs] = useState(false);
   const [picker, setPicker] = useState<null | "ref" | "cite">(null);
-  const [showChecks, setShowChecks] = useState(false);
   const editorRef = useRef<Editor | null>(null);
   const requestId = useRef(0);
   const timer = useRef<number | undefined>(undefined);
@@ -101,13 +121,15 @@ export default function App() {
   const recoveryTimer = useRef<number | undefined>(undefined);
   // Recovery writes and discards run one after another, never out of order.
   const recoveryQueue = useRef<Promise<unknown>>(Promise.resolve());
-  const [pageZoom, setPageZoom] = useState(1);
+  const [fitZoom, setFitZoom] = useState(1);
+  const pageZoom = settings.pageZoom > 0 ? settings.pageZoom / 100 : fitZoom;
 
   const compile = useCallback(async () => {
     const editor = editorRef.current;
     if (!editor) return;
     const id = ++requestId.current;
     setStatus({ state: "compiling" });
+    const t0 = performance.now();
     const state: api.DocState = { doc: editor.getJSON(), metadata: metadataRef.current, bibliography: bibRef.current };
     api.checkDocument(state).then(setIssues, () => setIssues([]));
     try {
@@ -115,6 +137,7 @@ export default function App() {
       if (id !== requestId.current) return; // a newer compile superseded this one
       setPdf(bytes);
       setStatus({ state: "ok" });
+      setCompileMs(performance.now() - t0);
     } catch (e) {
       if (id === requestId.current) setStatus({ state: "error", error: api.asAppError(e) });
     }
@@ -122,8 +145,10 @@ export default function App() {
 
   const scheduleCompile = useCallback(() => {
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(compile, COMPILE_DEBOUNCE_MS);
-  }, [compile]);
+    // With automatic compiling off, the preview waits for Compile (Ctrl+Enter).
+    if (!settingsRef.current.autoCompile) return setStatus((s) => (s.state === "error" ? s : { state: "idle" }));
+    timer.current = window.setTimeout(compile, settingsRef.current.compileDelayMs);
+  }, [compile, settingsRef]);
 
   const setMetadata = useCallback((m: api.Metadata) => {
     metadataRef.current = m;
@@ -148,7 +173,7 @@ export default function App() {
     dirtyRef.current = true;
     window.clearTimeout(recoveryTimer.current);
     recoveryTimer.current = window.setTimeout(() => {
-      if (dirtyRef.current) queueRecovery(() => api.writeRecovery(pathRef.current, docState()));
+      if (dirtyRef.current && settingsRef.current.crashRecovery) queueRecovery(() => api.writeRecovery(pathRef.current, docState()));
     }, RECOVERY_DELAY_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -209,7 +234,7 @@ export default function App() {
   useEffect(() => {
     const el = editorScroll.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setPageZoom(Math.min(1.25, Math.max(0.4, (el.clientWidth - 48) / PAGE_WIDTH_PX))));
+    const ro = new ResizeObserver(() => setFitZoom(Math.min(1.25, Math.max(0.4, (el.clientWidth - 48) / PAGE_WIDTH_PX))));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -253,6 +278,7 @@ export default function App() {
     setBibliography(r.bibliography ?? "");
     metadataRef.current = r.metadata;
     setPath(r.originalPath);
+    if (r.originalPath) addRecent(r.originalPath);
     // Still unsaved: the recovery copy stays until the user saves.
     setDirty(true);
     dirtyRef.current = true;
@@ -323,25 +349,28 @@ export default function App() {
     return () => void unlisten.then((f) => f());
   }, [applyTemplate]);
 
-  const openTemplateFile = async () => {
-    setShowTemplateMenu(false);
+  /** Returns whether a template was opened. */
+  const openTemplateFile = async (): Promise<boolean> => {
     const target = await open({ filters: TEMPLATE_FILTER, multiple: false, directory: false });
-    if (!target) return;
+    if (!target) return false;
     try {
       applyTemplate(await api.openTemplate(target));
+      return true;
     } catch (e) {
       const err = api.asAppError(e);
       if (err.kind === "templateInvalid") setTemplateProblem({ path: err.path, issues: err.issues });
       else report(e);
+      return false;
     }
   };
 
-  const switchToBuiltin = async (id: string) => {
-    setShowTemplateMenu(false);
+  const switchToBuiltin = async (id: string): Promise<boolean> => {
     try {
       applyTemplate(await api.switchToBuiltinTemplate(id));
+      return true;
     } catch (e) {
       report(e);
+      return false;
     }
   };
 
@@ -449,13 +478,14 @@ export default function App() {
 
   const saveAs = useCallback(async () => {
     if (!editor) return;
-    const target = await save({ filters: DOC_FILTER, defaultPath: path ?? "report.loom" });
+    const target = await save({ filters: DOC_FILTER, defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom") });
     if (!target) return;
     await api.saveDocument(target, docState()).then(() => {
       setPath(target);
+      addRecent(target);
       markClean();
     }, report);
-  }, [editor, path, markClean]);
+  }, [editor, path, markClean, addRecent, settingsRef]);
 
   const saveDoc = useCallback(async () => {
     if (!editor) return;
@@ -463,13 +493,18 @@ export default function App() {
     await api.saveDocument(path, docState()).then(() => void markClean(), report);
   }, [editor, path, saveAs, markClean]);
 
-  const openDoc = async () => {
+  /** Opens a document from the dialog, or `target` (a recent file). */
+  const openDoc = async (target?: string) => {
     if (!editor) return;
     if (dirty && !(await ask("Discard unsaved changes and open another document?", { title: "Open document", kind: "warning" }))) return;
-    const target = await open({ filters: DOC_FILTER, multiple: false, directory: false });
-    if (!target) return;
+    if (!target) {
+      const picked = await open({ filters: DOC_FILTER, multiple: false, directory: false, defaultPath: settings.defaultFolder || undefined });
+      if (!picked) return;
+      target = picked;
+    }
     try {
       const opened = await api.openDocument(target);
+      addRecent(target);
       loadDocument(editor, opened.doc);
       setBibliography(opened.bibliography ?? "");
       metadataRef.current = opened.metadata;
@@ -481,6 +516,8 @@ export default function App() {
         compile();
       }
     } catch (e) {
+      // A recent file that was moved or deleted leaves the list.
+      if (settings.recentFiles.includes(target)) removeRecent(target);
       report(e);
     }
   };
@@ -488,19 +525,19 @@ export default function App() {
   const exportPdfFile = async () => {
     if (!editor) return;
     const name = (path ? fileNameOf(path).replace(/\.loom$/, "") : "report") + ".pdf";
-    const target = await save({ filters: [{ name: "PDF", extensions: ["pdf"] }], defaultPath: name });
+    const target = await save({ filters: [{ name: "PDF", extensions: ["pdf"] }], defaultPath: path ? name : inFolder(settings.defaultFolder, name) });
     if (target) await api.exportPdf(target, docState()).catch(report);
   };
 
   const exportLatex = async () => {
     if (!editor) return;
-    const target = await save({ filters: [{ name: "LaTeX", extensions: ["tex"] }], defaultPath: "report.tex" });
+    const target = await save({ filters: [{ name: "LaTeX", extensions: ["tex"] }], defaultPath: inFolder(settings.defaultFolder, "report.tex") });
     if (target) await api.exportTex(target, docState()).catch(report);
   };
 
-  const newDoc = async () => {
+  const newDoc = async (skipAsk = false) => {
     if (!editor) return;
-    if (dirty && !(await ask("Discard unsaved changes and start a new document?", { title: "New document", kind: "warning" }))) return;
+    if (!skipAsk && dirty && !(await ask("Discard unsaved changes and start a new document?", { title: "New document", kind: "warning" }))) return;
     try {
       const fresh = await api.newDocument();
       loadDocument(editor, fresh.doc);
@@ -508,131 +545,240 @@ export default function App() {
       setBibliography("");
       setPath(null);
       markClean();
-      setShowInfo(true); // a new document starts with its title, authors…
+      setPanel("info"); // a new document starts with its title, authors…
       compile();
     } catch (e) {
       report(e);
     }
   };
 
+  /** New document with another template: from the gallery, or a template file. */
+  const newFromTemplate = async (choose: () => Promise<boolean>) => {
+    if (dirty && !(await ask("Discard unsaved changes and start a new document?", { title: "New document", kind: "warning" }))) return;
+    setShowGallery(false);
+    if (await choose()) await newDoc(true);
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      const run = (f: () => unknown) => {
         e.preventDefault();
-        if (mode === "template") {
-          if (e.shiftKey) saveTemplateAs();
-          else saveTemplate();
-        } else if (e.shiftKey) saveAs();
-        else saveDoc();
-      }
+        f();
+      };
+      if (key === "s") {
+        if (mode === "template") run(e.shiftKey ? saveTemplateAs : saveTemplate);
+        else run(e.shiftKey ? saveAs : saveDoc);
+      } else if (key === "o" && !e.shiftKey) run(() => openDoc());
+      else if (key === "n" && e.shiftKey) run(() => setShowGallery(true));
+      else if (key === "n") run(() => newDoc());
+      else if (key === "e" && e.shiftKey) run(exportPdfFile);
+      else if (key === "enter") run(compile);
+      else if (key === ",") run(() => setShowSettings(true));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mode, saveDoc, saveAs, saveTemplate, saveTemplateAs]);
+  });
+
+  // Spell checking follows the setting.
+  useEffect(() => {
+    editor?.view.dom.setAttribute("spellcheck", String(settings.spellcheck));
+  }, [editor, settings.spellcheck]);
+
+  // Words in the document body, for the status bar.
+  const wordCount = useEditorState({
+    editor,
+    selector: ({ editor }) => (editor ? countWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, " ", " ")) : 0),
+  });
 
   const fileName = path ? fileNameOf(path) : "Untitled";
   const missing = issues.filter((i) => i.path.startsWith("metadata.") && i.message.includes("required")).length;
+  const headingNames =
+    template?.structure.topLevel === "section"
+      ? ["Section", "Subsection", "Subsubsection", "Paragraph"]
+      : ["Chapter", "Section", "Subsection", "Subsubsection"];
+  const draftErrors = draftIssues.filter((i) => i.severity === "error").length;
+  const panelTitle: Record<SidePanel, string> = {
+    outline: "Outline",
+    info: "Document info",
+    refs: "References",
+    checks: "Things to check",
+  };
 
   return (
     <div className="app">
-      <header className="toolbar">
+      <header className="titlebar">
+        <div className="titlebar-side">
+          <Menu label={<><MenuIcon size={16} /><span>File</span></>} className="tb-button">
+            {(close) => {
+              const act = (f: () => unknown) => () => {
+                close();
+                f();
+              };
+              return (
+                <>
+                  <MenuItem icon={<FilePlus2 />} label="New" shortcut="Ctrl+N" onClick={act(() => newDoc())} title="New empty document with the current template" />
+                  <MenuItem icon={<LayoutTemplate />} label="New from template…" shortcut="Ctrl+Shift+N" onClick={act(() => setShowGallery(true))} title="Reports, IEEE, Elsevier, ACM, Springer…" />
+                  <MenuItem icon={<FolderOpen />} label="Open…" shortcut="Ctrl+O" onClick={act(() => openDoc())} />
+                  {settings.recentFiles.length > 0 && (
+                    <>
+                      <MenuHeading>Recent</MenuHeading>
+                      {settings.recentFiles.map((f) => (
+                        <MenuItem key={f} icon={<History />} label={fileNameOf(f)} title={f} current={f === path} onClick={act(() => openDoc(f))} />
+                      ))}
+                    </>
+                  )}
+                  <MenuSeparator />
+                  <MenuItem icon={<Save />} label="Save" shortcut="Ctrl+S" onClick={act(saveDoc)} />
+                  <MenuItem label="Save as…" shortcut="Ctrl+Shift+S" onClick={act(saveAs)} />
+                  <MenuSeparator />
+                  <MenuItem icon={<FileDown />} label="Export PDF…" shortcut="Ctrl+Shift+E" onClick={act(exportPdfFile)} />
+                  <MenuItem
+                    icon={<FileCode2 />}
+                    label="Export LaTeX…"
+                    onClick={act(exportLatex)}
+                    title="Writes the .tex file, the template's .cls and images next to each other"
+                  />
+                  <MenuSeparator />
+                  <MenuItem icon={<SettingsIcon />} label="Settings" shortcut="Ctrl+," onClick={act(() => setShowSettings(true))} />
+                </>
+              );
+            }}
+          </Menu>
+          <div className="doc-title" title={path ?? "Not saved yet"}>
+            <FileText size={15} aria-hidden="true" />
+            <span className="doc-name">{fileName}</span>
+            {dirty && <span className="dirty-dot" title="Unsaved changes" />}
+          </div>
+        </div>
         <div className="mode-switch" role="tablist" aria-label="Mode">
           <button role="tab" aria-selected={mode === "document"} className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>
-            Document
+            <PenLine size={15} aria-hidden="true" /> Write
           </button>
           <button role="tab" aria-selected={mode === "template"} className={mode === "template" ? "active" : ""} onClick={() => setMode("template")}>
-            Template{draftDirty && " •"}
-            {draftIssues.some((i) => i.severity === "error") && <span className="badge">!</span>}
+            <LayoutTemplate size={15} aria-hidden="true" /> Design template
+            {draftDirty && <span className="dirty-dot" title="Unsaved template changes" />}
+            {draftErrors > 0 && <span className="badge">{draftErrors}</span>}
           </button>
         </div>
-        <div className="group">
-          <button onClick={newDoc} title="New document from the template's chapter list">
-            New
-          </button>
-          <button onClick={openDoc}>Open</button>
-          <button onClick={saveDoc} title="Ctrl+S">Save</button>
-          <button onClick={saveAs} title="Ctrl+Shift+S">Save As</button>
-          <button onClick={exportPdfFile}>Export PDF</button>
-          <button onClick={exportLatex} title="Writes the .tex file, the template's .cls and images next to each other">
-            Export .tex
-          </button>
-        </div>
-        {editor && mode === "document" && <FormatBar editor={editor} onError={report} onPicker={setPicker} />}
-        <div className="group right">
-          <div className="menu-anchor">
-            <button
-              className={showTemplateMenu ? "active" : ""}
-              onClick={() => setShowTemplateMenu((v) => !v)}
-              title={templateInfo?.path ?? "Built-in template"}
-            >
-              Template: {template?.meta.name ?? "…"}
-              {templateProblem && <span className="badge">!</span>} ▾
-            </button>
-            {showTemplateMenu && (
-              <div className="menu" role="menu">
-                <div className="menu-info">
-                  <strong>{template?.meta.name}</strong>
-                  <span className="muted">{templateInfo?.path ?? "Built into Texloom"}</span>
-                  {templateInfo?.path && <span className="muted">Reloads automatically when the file changes.</span>}
-                </div>
-                <button role="menuitem" onClick={openTemplateFile}>
-                  Open template file…
-                </button>
-                {[
-                  { title: "Reports", items: builtins.filter((b) => !b.class) },
-                  { title: "Journals & conferences", items: builtins.filter((b) => b.class) },
-                ].map(
-                  (group) =>
-                    group.items.length > 0 && (
-                      <div key={group.title} className="menu-group">
-                        <div className="menu-group-title">{group.title}</div>
-                        {group.items.map((b) => (
-                          <button
-                            key={b.id}
-                            role="menuitem"
-                            className={!templateInfo?.path && template?.meta.id === b.id ? "current" : ""}
-                            onClick={() => switchToBuiltin(b.id)}
-                            title={b.description}
-                          >
-                            <span>{b.name}</span>
-                            {b.class && <span className="menu-badge">{b.class}</span>}
-                          </button>
-                        ))}
-                      </div>
-                    ),
-                )}
-              </div>
-            )}
-          </div>
-          <button hidden={mode !== "document"} className={showRefs ? "active" : ""} onClick={() => setShowRefs((v) => !v)} title="Bibliography (BibTeX)">
-            References{bibInfo.entries.length > 0 && ` (${bibInfo.entries.length})`}
-            {bibInfo.error && <span className="badge">!</span>}
-          </button>
-          <button hidden={mode !== "document"} className={showOutline ? "active" : ""} onClick={() => setShowOutline((v) => !v)}>
-            Outline
-          </button>
-          <button
-            hidden={mode !== "document"}
-            className={showInfo ? "active" : ""}
-            onClick={() => setShowInfo((v) => !v)}
-            title="Title, team members, abstract and other template fields"
+        <div className="titlebar-side right">
+          <Menu
+            align="right"
+            className="tb-button template-button"
+            title={`Template: ${template?.meta.name ?? ""}. ${templateInfo?.path ?? "Built into Texloom"}`}
+            label={
+              <>
+                <LayoutTemplate size={16} aria-hidden="true" />
+                <span className="template-name">{template?.meta.name ?? "…"}</span>
+                {templateProblem && <span className="badge">!</span>}
+                <ChevronDown size={14} aria-hidden="true" />
+              </>
+            }
           >
-            Document info{missing > 0 && <span className="badge">{missing}</span>}
+            {(close) => (
+            <>
+              <div className="menu-info">
+                <strong>{template?.meta.name}</strong>
+                <span className="muted">{templateInfo?.path ?? "Built into Texloom"}</span>
+                {templateInfo?.path && <span className="muted">Reloads automatically when the file changes.</span>}
+                <span className="muted">Choosing another template restyles this document; its text stays.</span>
+              </div>
+              <MenuItem
+                icon={<FilePlus2 />}
+                label="New document from template…"
+                onClick={() => {
+                  close();
+                  setShowGallery(true);
+                }}
+              />
+              <MenuItem
+                icon={<FolderOpen />}
+                label="Open template file…"
+                onClick={() => {
+                  close();
+                  openTemplateFile();
+                }}
+              />
+              {[
+                { title: "Reports", items: builtins.filter((b) => !b.class) },
+                { title: "Journals and conferences", items: builtins.filter((b) => b.class) },
+              ].map(
+                (group) =>
+                  group.items.length > 0 && (
+                    <div key={group.title}>
+                      <MenuHeading>{group.title}</MenuHeading>
+                      {group.items.map((b) => (
+                        <MenuItem
+                          key={b.id}
+                          current={!templateInfo?.path && template?.meta.id === b.id}
+                          icon={!templateInfo?.path && template?.meta.id === b.id ? <CircleCheck /> : undefined}
+                          label={b.name}
+                          shortcut={b.class ?? undefined}
+                          title={b.description}
+                          onClick={() => {
+                            close();
+                            switchToBuiltin(b.id);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ),
+              )}
+            </>
+          )}
+          </Menu>
+          <button className="tb-button" onClick={exportPdfFile} title="Export PDF (Ctrl+Shift+E)">
+            <FileDown size={16} aria-hidden="true" /> Export PDF
           </button>
-          <button className={showLatex ? "active" : ""} onClick={() => setShowLatex((v) => !v)}>
-            LaTeX source
+          <button className="icon-button" onClick={() => setShowSettings(true)} title="Settings (Ctrl+,)" aria-label="Settings">
+            <SettingsIcon size={17} />
           </button>
-          <span className="filename">
-            {fileName}
-            {dirty ? " •" : ""}
-          </span>
-          <StatusBadge status={status} />
         </div>
       </header>
 
-      <main className={`panes${mode === "template" ? " template-mode" : ""}`}>
+      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} />}
+
+      <main className={`workspace${mode === "template" ? " template-mode" : ""}`}>
+        {mode === "document" && (
+          <nav className="rail" aria-label="Panels">
+            <RailButton icon={<ListTree />} label="Outline" active={panel === "outline"} onClick={() => togglePanel("outline")} />
+            <RailButton icon={<IdCard />} label="Document info" badge={missing || undefined} active={panel === "info"} onClick={() => togglePanel("info")} />
+            <RailButton
+              icon={<Library />}
+              label="References"
+              badge={bibInfo.error ? "!" : undefined}
+              active={panel === "refs"}
+              onClick={() => togglePanel("refs")}
+            />
+            <RailButton
+              icon={<TriangleAlert />}
+              label="Things to check"
+              badge={issues.length || undefined}
+              warn
+              active={panel === "checks"}
+              onClick={() => togglePanel("checks")}
+            />
+          </nav>
+        )}
+        {mode === "document" && panel && (
+          <aside className={`side-panel side-${panel}`} aria-label={panelTitle[panel]}>
+            <div className="side-head">
+              <span>{panelTitle[panel]}</span>
+              <button className="icon-button small" onClick={() => setPanel(null)} aria-label="Close panel" title="Close">
+                <X size={15} />
+              </button>
+            </div>
+            <div className="side-body">
+              {panel === "outline" && editor && template && <Outline editor={editor} />}
+              {panel === "info" && template && <MetadataForm template={template} metadata={metadata} onChange={onMetadataChange} />}
+              {panel === "refs" && <ReferencesPanel source={bibliography} info={bibInfo} cited={citedKeys(editor)} onChange={onBibliographyChange} />}
+              {panel === "checks" && <ChecksList issues={issues} />}
+            </div>
+          </aside>
+        )}
         {mode === "template" && templateInfo && draft && (
-          <section className="editor-pane designer-pane">
+          <section className="designer-pane">
             <TemplateDesigner
               info={templateInfo}
               draft={draft}
@@ -649,66 +795,161 @@ export default function App() {
           </section>
         )}
         {/* Kept mounted (just hidden) in template mode so the editor keeps its state. */}
-        <section className={`editor-pane${showOutline ? " with-outline" : ""}`} hidden={mode !== "document"}>
+        <section className="editor-pane" hidden={mode !== "document"}>
           {template && <style>{templateCss(template, ".page")}</style>}
-          {showOutline && editor && template && <Outline editor={editor} />}
           {picker && editor && (
             <div className="picker-anchor">
               {picker === "ref" ? (
                 <RefPicker editor={editor} onClose={() => setPicker(null)} />
               ) : (
-                <CitePicker editor={editor} entries={bibInfo.entries} onClose={() => setPicker(null)} onManage={() => setShowRefs(true)} />
+                <CitePicker editor={editor} entries={bibInfo.entries} onClose={() => setPicker(null)} onManage={() => setPanel("refs")} />
               )}
             </div>
           )}
-          {showRefs && (
-            <ReferencesPanel
-              source={bibliography}
-              info={bibInfo}
-              cited={citedKeys(editor)}
-              onChange={onBibliographyChange}
-              onClose={() => setShowRefs(false)}
-            />
-          )}
           <div className="editor-scroll" ref={editorScroll} style={{ ["--page-zoom" as string]: pageZoom }}>
-            {showInfo && template && (
-              <MetadataForm template={template} metadata={metadata} onChange={onMetadataChange} />
-            )}
             <div className="page">
               <EditorContent editor={editor} />
             </div>
           </div>
         </section>
         <section className="preview-pane">
-          {templateProblem && <TemplateProblemPanel problem={templateProblem} onDismiss={() => setTemplateProblem(null)} />}
-          {mode === "document" && issues.length > 0 && (
-            <div className="checks">
-              <button className="checks-toggle" onClick={() => setShowChecks((v) => !v)} aria-expanded={showChecks}>
-                ⚠ {issues.length} thing{issues.length > 1 ? "s" : ""} to check {showChecks ? "▴" : "▾"}
+          <div className="pane-head">
+            <span className="pane-title">{showLatex ? "LaTeX source" : "Preview"}</span>
+            <span className="spacer" />
+            {!settings.autoCompile && (
+              <button className="tb-button" onClick={compile} title="Compile now (Ctrl+Enter)">
+                <Play size={14} aria-hidden="true" /> Compile
               </button>
-              {showChecks && (
-                <ul>
-                  {issues.map((i, n) => (
-                    <li key={n}>{i.message}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+            )}
+            {!showLatex && (
+              <span className="zoom" role="group" aria-label="Preview zoom">
+                <button className="icon-button small" onClick={() => setPreviewZoom((z) => Math.max(50, z - 10))} aria-label="Zoom out" title="Zoom out">
+                  <ZoomOut size={15} />
+                </button>
+                <button className="zoom-value" onClick={() => setPreviewZoom(100)} title="Fit width">
+                  {previewZoom}%
+                </button>
+                <button className="icon-button small" onClick={() => setPreviewZoom((z) => Math.min(200, z + 10))} aria-label="Zoom in" title="Zoom in">
+                  <ZoomIn size={15} />
+                </button>
+              </span>
+            )}
+            <button
+              className={`icon-button small${showLatex ? " active" : ""}`}
+              onClick={() => setShowLatex((v) => !v)}
+              aria-label="LaTeX source"
+              title={showLatex ? "Back to the PDF" : "Show the generated LaTeX"}
+            >
+              <Code size={15} />
+            </button>
+          </div>
+          {templateProblem && <TemplateProblemPanel problem={templateProblem} onDismiss={() => setTemplateProblem(null)} />}
           {status.state === "error" && <ErrorPanel error={status.error} />}
-          {showLatex ? <pre className="latex-source">{latex}</pre> : <PdfPreview pdf={pdf} />}
+          {showLatex ? <pre className="latex-source">{latex}</pre> : <PdfPreview pdf={pdf} zoom={previewZoom} onPages={setPageCount} />}
         </section>
       </main>
+
+      <footer className="statusbar">
+        <StatusBadge status={status} ms={compileMs} />
+        {pageCount > 0 && <span>{pageCount} page{pageCount === 1 ? "" : "s"}</span>}
+        {mode === "document" && <span>{wordCount.toLocaleString()} words</span>}
+        {mode === "document" && issues.length > 0 && (
+          <button className="status-link warn" onClick={() => setPanel("checks")}>
+            <TriangleAlert size={13} aria-hidden="true" /> {issues.length} to check
+          </button>
+        )}
+        <span className="spacer" />
+        {mode === "document" && template && (
+          <span title={templateInfo?.path ?? "Built-in template"}>
+            <LayoutTemplate size={13} aria-hidden="true" /> {template.meta.name}
+          </span>
+        )}
+        {mode === "document" && (
+          <Menu up align="right" className="status-link" title="Page zoom" label={<>Page {settings.pageZoom ? `${settings.pageZoom}%` : `fit (${Math.round(fitZoom * 100)}%)`}</>}>
+            {(close) =>
+              [0, 75, 90, 100, 110, 125, 150].map((z) => (
+                <MenuItem
+                  key={z}
+                  current={settings.pageZoom === z}
+                  icon={settings.pageZoom === z ? <CircleCheck /> : undefined}
+                  label={z ? `${z}%` : "Fit width"}
+                  onClick={() => {
+                    close();
+                    updateSettings({ pageZoom: z });
+                  }}
+                />
+              ))
+            }
+          </Menu>
+        )}
+      </footer>
+
+      {showGallery && (
+        <NewDocumentDialog
+          builtins={builtins}
+          currentId={templateInfo?.path ? null : template?.meta.id ?? null}
+          onPick={(id) => newFromTemplate(() => switchToBuiltin(id))}
+          onOpenFile={() => newFromTemplate(openTemplateFile)}
+          onClose={() => setShowGallery(false)}
+        />
+      )}
+      {showSettings && <SettingsDialog settings={settings} onChange={updateSettings} onClose={() => setShowSettings(false)} />}
     </div>
+  );
+}
+
+function RailButton({
+  icon,
+  label,
+  active,
+  badge,
+  warn,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  badge?: number | string;
+  warn?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button className={`rail-button${active ? " active" : ""}`} onClick={onClick} title={label} aria-label={label} aria-pressed={active}>
+      {icon}
+      {badge !== undefined && <span className={`rail-badge${warn ? " warn" : ""}`}>{badge}</span>}
+    </button>
+  );
+}
+
+function ChecksList({ issues }: { issues: api.Issue[] }) {
+  if (issues.length === 0) {
+    return (
+      <p className="side-empty">
+        <CircleCheck size={16} aria-hidden="true" /> Nothing to check: required fields are filled in and every reference
+        points somewhere.
+      </p>
+    );
+  }
+  return (
+    <ul className="checks-list">
+      {issues.map((i, n) => (
+        <li key={n}>
+          <TriangleAlert size={14} aria-hidden="true" />
+          <span>{i.message}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 function FormatBar({
   editor,
+  headingNames,
   onError,
   onPicker,
 }: {
   editor: Editor;
+  headingNames: string[];
   onError: (e: unknown) => void;
   onPicker: (p: "ref" | "cite") => void;
 }) {
@@ -719,63 +960,84 @@ function FormatBar({
       bold: editor.isActive("bold"),
       italic: editor.isActive("italic"),
       code: editor.isActive("code"),
-      h1: editor.isActive("heading", { level: 1 }),
-      h2: editor.isActive("heading", { level: 2 }),
-      h3: editor.isActive("heading", { level: 3 }),
+      level: editor.isActive("heading") ? (editor.getAttributes("heading").level as number) : 0,
+      paragraph: editor.isActive("paragraph"),
       bullet: editor.isActive("bulletList"),
       ordered: editor.isActive("orderedList"),
       quote: editor.isActive("blockquote"),
       inTable: editor.isActive("table"),
-      inHeading: editor.isActive("heading"),
       headingNumbered: editor.getAttributes("heading").numbered !== false,
       canUndo: editor.can().undo(),
       canRedo: editor.can().redo(),
     }),
   });
   const c = () => editor.chain().focus();
-  const B = ({ on, label, title, run }: { on?: boolean; label: string; title: string; run: () => void }) => (
-    <button className={on ? "active" : ""} title={title} onMouseDown={(e) => e.preventDefault()} onClick={run}>
-      {label}
+  const T = ({ icon, label, title, on, run, disabled }: { icon: React.ReactNode; label?: string; title: string; on?: boolean; run: () => void; disabled?: boolean }) => (
+    <button
+      className={`tool${on ? " on" : ""}${label ? " with-label" : ""}`}
+      title={title}
+      aria-label={label ? undefined : title}
+      aria-pressed={on}
+      disabled={disabled}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={run}
+    >
+      {icon}
+      {label && <span>{label}</span>}
     </button>
   );
+  const styleValue = s.level ? `h${s.level}` : s.paragraph ? "p" : "";
+  const setStyle = (v: string) => {
+    if (v === "p") c().setParagraph().run();
+    else c().setHeading({ level: Number(v.slice(1)) as 1 | 2 | 3 | 4 }).run();
+  };
+  const sz = 17;
   return (
-    <div className="group">
-      <B label="↶" title="Undo (Ctrl+Z)" run={() => c().undo().run()} on={false} />
-      <B label="↷" title="Redo (Ctrl+Shift+Z)" run={() => c().redo().run()} on={false} />
+    <div className="toolbar" role="toolbar" aria-label="Formatting">
+      <T icon={<Undo2 size={sz} />} title="Undo (Ctrl+Z)" run={() => c().undo().run()} disabled={!s.canUndo} />
+      <T icon={<Redo2 size={sz} />} title="Redo (Ctrl+Shift+Z)" run={() => c().redo().run()} disabled={!s.canRedo} />
       <span className="sep" />
-      <B label="H1" title="Section" on={s.h1} run={() => c().toggleHeading({ level: 1 }).run()} />
-      <B label="H2" title="Subsection" on={s.h2} run={() => c().toggleHeading({ level: 2 }).run()} />
-      <B label="H3" title="Subsubsection" on={s.h3} run={() => c().toggleHeading({ level: 3 }).run()} />
+      <select className="style-select" value={styleValue} onChange={(e) => setStyle(e.target.value)} title="Paragraph style" aria-label="Paragraph style">
+        {!styleValue && <option value="">—</option>}
+        <option value="p">Body text</option>
+        {headingNames.map((n, i) => (
+          <option key={n} value={`h${i + 1}`}>
+            {n}
+          </option>
+        ))}
+      </select>
       <span className="sep" />
-      <B label="B" title="Bold (Ctrl+B)" on={s.bold} run={() => c().toggleBold().run()} />
-      <B label="I" title="Italic (Ctrl+I)" on={s.italic} run={() => c().toggleItalic().run()} />
-      <B label="<>" title="Code (Ctrl+E)" on={s.code} run={() => c().toggleCode().run()} />
+      <T icon={<Bold size={sz} />} title="Bold (Ctrl+B)" on={s.bold} run={() => c().toggleBold().run()} />
+      <T icon={<Italic size={sz} />} title="Italic (Ctrl+I)" on={s.italic} run={() => c().toggleItalic().run()} />
+      <T icon={<Code size={sz} />} title="Code (Ctrl+E)" on={s.code} run={() => c().toggleCode().run()} />
       <span className="sep" />
-      <B label="• List" title="Bullet list" on={s.bullet} run={() => c().toggleBulletList().run()} />
-      <B label="1. List" title="Numbered list" on={s.ordered} run={() => c().toggleOrderedList().run()} />
-      <B label="❝" title="Quote" on={s.quote} run={() => c().toggleBlockquote().run()} />
-      <B label="x² Inline math" title="Math inside a sentence (Ctrl+M, or type $x^2$)" run={() => c().insertInlineMath().run()} />
-      <B label="∑ Equation" title="Display equation on its own line ($$ + space)" run={() => c().insertEquation().run()} />
-      <B
-        label="▣ Figure"
-        title="Insert an image with a caption"
+      <T icon={<List size={sz} />} title="Bullet list" on={s.bullet} run={() => c().toggleBulletList().run()} />
+      <T icon={<ListOrdered size={sz} />} title="Numbered list" on={s.ordered} run={() => c().toggleOrderedList().run()} />
+      <T icon={<TextQuote size={sz} />} title="Quote" on={s.quote} run={() => c().toggleBlockquote().run()} />
+      <span className="sep" />
+      <T icon={<Superscript size={sz} />} title="Inline math (Ctrl+M, or type $x^2$)" run={() => c().insertInlineMath().run()} />
+      <T icon={<Sigma size={sz} />} title="Equation on its own line ($$ + space)" run={() => c().insertEquation().run()} />
+      <T
+        icon={<Image size={sz} />}
+        title="Figure: an image with a caption"
         run={() =>
           pickFigureImage().then((src) => {
             if (src) c().insertFigure(src).run();
           }, onError)
         }
       />
-      <B label="▦ Table" title="Insert a table with a caption" run={() => c().insertCaptionedTable(3, 3).run()} />
-      <B label="TeX" title="Raw LaTeX block, written into the PDF as typed (for TikZ, special tables…)" run={() => c().insertRawLatex().run()} />
+      <T icon={<Table size={sz} />} title="Table with a caption" run={() => c().insertCaptionedTable(3, 3).run()} />
+      <T icon={<Braces size={sz} />} title="Raw LaTeX block, written into the PDF as typed (TikZ, special tables…)" run={() => c().insertRawLatex().run()} />
       <span className="sep" />
-      <B label="↗ Ref" title="Insert a cross-reference (“see Figure 3.1”)" run={() => onPicker("ref")} />
-      <B label="❞ Cite" title="Insert a citation" run={() => onPicker("cite")} />
-      <B label="Appendices" title="Start the appendices here (chapters after it are A, B…)" run={() => c().insertAppendices().run()} />
-      {s.inHeading && (
-        <span className="table-tools" role="group" aria-label="Heading">
-          <span className="sep" />
-          <B
-            label="# Numbered"
+      <T icon={<Link2 size={sz} />} title="Cross-reference (“see Figure 3.1”)" run={() => onPicker("ref")} />
+      <T icon={<Quote size={sz} />} title="Citation" run={() => onPicker("cite")} />
+      <T icon={<BookMarked size={sz} />} title="Start the appendices here (chapters after it are A, B…)" run={() => c().insertAppendices().run()} />
+      <span className="spacer" />
+      {s.level > 0 && (
+        <span className="context-tools" role="group" aria-label="Heading">
+          <T
+            icon={<Hash size={15} />}
+            label="Numbered"
             on={s.headingNumbered}
             title="Number this heading. Turn off for Acknowledgment, Preface… (still listed in the table of contents)"
             run={() => c().toggleHeadingNumbered().run()}
@@ -783,28 +1045,40 @@ function FormatBar({
         </span>
       )}
       {s.inTable && (
-        <span className="table-tools" role="group" aria-label="Table">
-          <span className="sep" />
-          <B label="+ Row" title="Add a row below" run={() => c().addRowAfter().run()} />
-          <B label="+ Col" title="Add a column to the right" run={() => c().addColumnAfter().run()} />
-          <B label="− Row" title="Delete this row" run={() => c().deleteRow().run()} />
-          <B label="− Col" title="Delete this column" run={() => c().deleteColumn().run()} />
-          <B label="Header" title="Toggle the header row" run={() => c().toggleHeaderRow().run()} />
-          <B label="Delete table" title="Delete the table and its caption" run={() => c().deleteCaptionedTable().run()} />
+        <span className="context-tools" role="group" aria-label="Table">
+          <T icon={<Rows3 size={15} />} label="+ Row" title="Add a row below" run={() => c().addRowAfter().run()} />
+          <T icon={<Columns3 size={15} />} label="+ Col" title="Add a column to the right" run={() => c().addColumnAfter().run()} />
+          <T icon={<Rows3 size={15} />} label="− Row" title="Delete this row" run={() => c().deleteRow().run()} />
+          <T icon={<Columns3 size={15} />} label="− Col" title="Delete this column" run={() => c().deleteColumn().run()} />
+          <T icon={<Table size={15} />} label="Header" title="Toggle the header row" run={() => c().toggleHeaderRow().run()} />
+          <T icon={<Trash2 size={15} />} title="Delete the table and its caption" run={() => c().deleteCaptionedTable().run()} />
         </span>
       )}
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: Status }) {
-  const text = {
-    idle: "Ready",
-    compiling: "Compiling…",
-    ok: "Up to date",
-    error: status.state === "error" && status.error.kind === "texErrors" ? `${status.error.errors.length} error(s)` : "Error",
-  }[status.state];
-  return <span className={`status status-${status.state}`}>{text}</span>;
+function StatusBadge({ status, ms }: { status: Status; ms: number | null }) {
+  if (status.state === "compiling")
+    return (
+      <span className="status status-compiling">
+        <LoaderCircle size={13} className="spin" aria-hidden="true" /> Compiling…
+      </span>
+    );
+  if (status.state === "error")
+    return (
+      <span className="status status-error">
+        <CircleAlert size={13} aria-hidden="true" />{" "}
+        {status.error.kind === "texErrors" ? `${status.error.errors.length} LaTeX error${status.error.errors.length === 1 ? "" : "s"}` : "Error"}
+      </span>
+    );
+  if (status.state === "ok")
+    return (
+      <span className="status status-ok">
+        <CircleCheck size={13} aria-hidden="true" /> Up to date{ms != null && ` · ${(ms / 1000).toFixed(1)} s`}
+      </span>
+    );
+  return <span className="status">Ready</span>;
 }
 
 function TemplateProblemPanel({

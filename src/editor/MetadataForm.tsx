@@ -30,8 +30,7 @@ export function MetadataForm({
 
   return (
     <form className="metadata-form" onSubmit={(e) => e.preventDefault()}>
-      <h2>Document info</h2>
-      <p className="muted">Fields defined by the “{template.meta.name}” template.</p>
+      <p className="muted metadata-help">Fields defined by the “{template.meta.name}” template.</p>
       {template.fields.map((f) => {
         const id = `field-${f.id}`;
         if (f.kind === "authors") {

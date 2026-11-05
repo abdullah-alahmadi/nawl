@@ -28,3 +28,7 @@ dist-ssr
 
 # Copied from node_modules by scripts/copy-mathlive-assets.mjs
 /public/mathlive/
+
+# Templates saved from the app, with publisher kits (licensed fonts)
+/src-tauri/assets/
+/src-tauri/ieee-access.json
