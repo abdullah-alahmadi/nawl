@@ -151,6 +151,7 @@ export function templateCss(t: Template, scope = ".page"): string {
     `${scope} figure.figure{counter-increment:tl-figure}`,
     `${scope} .table-figure{counter-increment:tl-table}`,
     `${scope} .equation{counter-increment:tl-equation}`,
+    `${scope} .equation.unnumbered{counter-increment:none}`,
     `${scope} .equation-number::after{content:"(" ${numberPrefix}counter(tl-equation) ")"}`,
     `${scope} figcaption{font-size:${captionSize}em;text-align:${captionAlign}}`,
     `${scope} figure.figure figcaption::before{content:${q(t.captions.figureLabel + " ")} ${numberPrefix}counter(tl-figure) ${q(sep)};font-weight:${t.captions.labelBold ? 700 : 400}${t.captions.separator === "newline" ? ";display:block" : ""}}`,

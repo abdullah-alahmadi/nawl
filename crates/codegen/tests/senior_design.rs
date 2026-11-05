@@ -111,3 +111,37 @@ fn compiles_to_pdf() {
     let out = compiler.compile(&g.tex, &files).unwrap_or_else(|e| panic!("{e:?}"));
     assert!(out.pdf.starts_with(b"%PDF"));
 }
+
+#[test]
+fn inline_math_unnumbered_and_multiline_equations() {
+    let mut doc = document().document;
+    doc.body = serde_json::from_value(serde_json::json!({"type": "doc", "content": [
+        {"type": "paragraph", "content": [
+            {"type": "text", "text": "where "},
+            {"type": "inlineMath", "attrs": {"latex": "D_t"}},
+            {"type": "text", "text": " is the deficit"}
+        ]},
+        {"type": "equation", "attrs": {"latex": "a=b", "numbered": false, "id": "e0"}},
+        {"type": "equation", "attrs": {"latex": "\\begin{aligned}x&=1\\\\y&=2\\end{aligned}", "id": "e1"}},
+        {"type": "paragraph", "content": [{"type": "ref", "attrs": {"target": "e0"}}, {"type": "ref", "attrs": {"target": "e1"}}]}
+    ]}))
+    .unwrap();
+    let tex = texloom_codegen::document_to_tex(&template(), &doc);
+    assert!(tex.contains("where $D_t$ is the deficit"));
+    assert!(tex.contains("\\begin{equation*}\na=b\n\\end{equation*}"));
+    assert!(tex.contains("\\begin{equation}\\label{tl:e1}\n\\begin{aligned}x&=1\\\\y&=2\\end{aligned}\n\\end{equation}"));
+    // A reference to an unnumbered equation has nothing to point at.
+    assert!(tex.contains("\\textbf{??}\\eqref{tl:e1}"), "{tex}");
+}
+
+#[test]
+fn mathlive_placeholders_are_removed() {
+    let mut doc = document().document;
+    doc.body = serde_json::from_value(serde_json::json!({"type": "doc", "content": [
+        {"type": "equation", "attrs": {"latex": "\\begin{aligned}a & =b\\\\ \\placeholder{} & \\placeholder{x}\\end{aligned}"}}
+    ]}))
+    .unwrap();
+    let tex = texloom_codegen::document_to_tex(&template(), &doc);
+    assert!(tex.contains("\\begin{aligned}a & =b\\\\  & x\\end{aligned}"), "{tex}");
+    assert!(!tex.contains("placeholder"));
+}

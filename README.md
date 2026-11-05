@@ -19,7 +19,9 @@ after that it's cached in `~/.cache/Tectonic`.
 ## Writing a document
 
 The editor page is styled by the template, so it looks like the PDF. Use the toolbar
-for headings, lists, equations (`$$` + space), **Figure** (pick an image; type the
+for headings, lists, **inline math** (type `$x^2$` in a sentence, or Ctrl+M),
+display equations (`$$` + space; hover one to make it unnumbered or multi-line,
+with **+ Line** for aligned derivations), **Figure** (pick an image; type the
 caption below it) and **Table** (caption above; row/column buttons appear while the
 cursor is in the table). The **Outline** on the left lists headings, figures and tables.
 Figure images are stored in a `figures/` folder next to the `.loom` file.

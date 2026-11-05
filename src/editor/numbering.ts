@@ -91,6 +91,7 @@ export function computeNumbering(doc: PMNode, t: Template): NumberedItem[] {
       return false;
     }
     if (name === "equation") {
+      if (node.attrs.numbered === false) return false; // no number, nothing to refer to
       const number = prefixed(++equation);
       items.push({
         id: node.attrs.id ?? null,

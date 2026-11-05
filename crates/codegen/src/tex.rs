@@ -156,8 +156,9 @@ impl<'a> BodyWriter<'a> {
                 Inline::Text { text, marks } => s.push_str(&apply_marks(escape(text), marks)),
                 Inline::HardBreak => s.push_str("\\newline\n"),
                 Inline::InlineMath { attrs } => {
-                    if !attrs.latex.trim().is_empty() {
-                        s.push_str(&format!("${}$", attrs.latex.trim()));
+                    let latex = clean_math(&attrs.latex);
+                    if !latex.is_empty() {
+                        s.push_str(&format!("${latex}$"));
                     }
                 }
                 Inline::Ref { attrs } => s.push_str(&self.reference(&attrs.target)),
@@ -228,9 +229,16 @@ impl<'a> BodyWriter<'a> {
             }
             Block::HorizontalRule => self.out.push_str("\\noindent\\rule{\\linewidth}{0.4pt}\n\n"),
             Block::Equation { attrs } => {
-                let latex = attrs.latex.trim();
+                let latex = clean_math(&attrs.latex);
+                let latex = latex.as_str();
                 if !latex.is_empty() {
-                    self.out.push_str(&format!("\\begin{{equation}}{}\n{latex}\n\\end{{equation}}\n\n", label(&attrs.id)));
+                    // Multi-line equations arrive as an `aligned` block from the editor; inside
+                    // `equation` they get one number for the whole block, as on screen.
+                    if attrs.numbered {
+                        self.out.push_str(&format!("\\begin{{equation}}{}\n{latex}\n\\end{{equation}}\n\n", label(&attrs.id)));
+                    } else {
+                        self.out.push_str(&format!("\\begin{{equation*}}\n{latex}\n\\end{{equation*}}\n\n"));
+                    }
                 }
             }
             Block::Figure { attrs, content } => {
@@ -348,6 +356,36 @@ fn is_safe_relative(path: &str) -> bool {
         && !path.contains('\\')
         && path.split('/').all(|s| !s.is_empty() && s != "..")
         && !path.chars().any(|c| matches!(c, '{' | '}' | '%' | '#' | '$' | '&' | '~' | '^'))
+}
+
+/// MathLive marks empty cells with `\placeholder{…}`, which isn't LaTeX: keep what's
+/// inside (usually nothing).
+fn clean_math(latex: &str) -> String {
+    let mut out = String::with_capacity(latex.len());
+    let mut rest = latex;
+    while let Some(i) = rest.find("\\placeholder{") {
+        out.push_str(&rest[..i]);
+        rest = &rest[i + "\\placeholder{".len()..];
+        let mut depth = 1;
+        let mut end = rest.len();
+        for (j, c) in rest.char_indices() {
+            match c {
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        end = j;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        out.push_str(&rest[..end]);
+        rest = rest.get(end + 1..).unwrap_or("");
+    }
+    out.push_str(rest);
+    out.trim().to_string()
 }
 
 fn apply_marks(mut text: String, marks: &[Mark]) -> String {

@@ -347,7 +347,8 @@ impl Body {
                 Block::Heading { attrs, .. } => (&attrs.id, TargetKind::Heading { level: attrs.level.clamp(1, 4), appendix }),
                 Block::Figure { attrs, .. } => (&attrs.id, TargetKind::Figure),
                 Block::TableFigure { attrs, .. } => (&attrs.id, TargetKind::Table),
-                Block::Equation { attrs } => (&attrs.id, TargetKind::Equation),
+                // Unnumbered equations have no number to refer to.
+                Block::Equation { attrs } if attrs.numbered => (&attrs.id, TargetKind::Equation),
                 _ => return,
             };
             if let Some(id) = id.as_ref().filter(|i| !i.is_empty()) {
@@ -428,12 +429,25 @@ impl Body {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MathAttrs {
     #[serde(default)]
     pub latex: String,
     #[serde(default)]
     pub id: Option<String>,
+    /// Display equations: whether it gets a number (and can be referenced).
+    #[serde(default = "yes")]
+    pub numbered: bool,
+}
+
+impl Default for MathAttrs {
+    fn default() -> Self {
+        Self { latex: String::new(), id: None, numbered: true }
+    }
+}
+
+fn yes() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

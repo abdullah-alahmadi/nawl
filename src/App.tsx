@@ -4,6 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { TableKit } from "@tiptap/extension-table";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { Equation } from "./editor/Equation";
+import { InlineMath } from "./editor/InlineMath";
 import { MetadataForm } from "./editor/MetadataForm";
 import { Caption, CaptionedTable, Figure, pickFigureImage } from "./editor/Figures";
 import { Outline } from "./editor/Outline";
@@ -132,6 +133,7 @@ export default function App() {
       Citation,
       AppendixStart,
       Equation,
+      InlineMath,
       Caption,
       Figure,
       CaptionedTable,
@@ -611,7 +613,8 @@ function FormatBar({
       <B label="• List" title="Bullet list" on={s.bullet} run={() => c().toggleBulletList().run()} />
       <B label="1. List" title="Numbered list" on={s.ordered} run={() => c().toggleOrderedList().run()} />
       <B label="❝" title="Quote" on={s.quote} run={() => c().toggleBlockquote().run()} />
-      <B label="∑ Equation" title="Insert equation ($$ + space)" run={() => c().insertEquation().run()} />
+      <B label="x² Inline math" title="Math inside a sentence (Ctrl+M, or type $x^2$)" run={() => c().insertInlineMath().run()} />
+      <B label="∑ Equation" title="Display equation on its own line ($$ + space)" run={() => c().insertEquation().run()} />
       <B
         label="▣ Figure"
         title="Insert an image with a caption"

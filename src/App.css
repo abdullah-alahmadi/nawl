@@ -443,3 +443,26 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
 .recipe-help { font-size: 12.5px; color: var(--muted); }
 .recipe-help p { margin: 4px 0; }
 .recipe-help code { color: var(--text); }
+
+/* Inline math */
+.page .inline-math { display: inline-block; vertical-align: baseline; border-radius: 3px; padding: 0 1px; }
+.page .inline-math math-field { display: inline-block; font-size: 1em; border: none; background: transparent; outline: none; min-width: 1.2em; padding: 0; }
+.page .inline-math math-field::part(virtual-keyboard-toggle), .page .inline-math math-field::part(menu-toggle) { display: none; }
+.page .inline-math:hover { background: #eef2fb; }
+.page .inline-math.is-selected { background: #d4e1fa; }
+
+/* Equation options */
+.equation { flex-wrap: wrap; }
+.equation-tools {
+  position: absolute; right: 4px; bottom: -22px; display: flex; gap: 10px; align-items: center;
+  font: 11.5px system-ui, sans-serif; color: #555; background: white; padding: 2px 6px; border: 1px solid #dfe3e8; border-radius: 6px;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 2;
+}
+.equation:hover .equation-tools, .equation.is-selected .equation-tools, .equation:focus-within .equation-tools { opacity: 1; pointer-events: auto; }
+.equation-tools label { display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+.equation-tools button { padding: 0 4px; color: #2f6fde; }
+
+/* The page, title-page canvas and designer samples represent paper: always light, even
+   in dark mode (otherwise MathLive draws formulas in the dark theme's white text). */
+.page, .tp-page, .d-sample { color-scheme: light; }
+.page math-field, .d-sample math-field { color: inherit; }

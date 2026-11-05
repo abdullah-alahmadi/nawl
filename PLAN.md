@@ -151,7 +151,11 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] Appendices marker: chapters lettered A, B… with their own label ("Appendix {n}")
 - [x] Document checks shown in the app: required fields and chapters, broken
       references, citations missing from the references
-- [ ] Locked sections; cross-reference text options ("Fig. 3" vs "3"); citation page numbers
+- [x] Inline math ($…$ input rule, Ctrl+M, toolbar) in paragraphs, captions, cells,
+      headings; display equations can be unnumbered (equation*) or multi-line
+      (aligned inside equation: one number per block, as on screen)
+- [ ] Locked sections; cross-reference text options ("Fig. 3" vs "3"); citation page numbers;
+      List of Symbols
 - [ ] **Milestone:** full senior design report from a template made entirely in the designer
       (all pieces exist; needs an end-to-end walkthrough in the native app)
 
