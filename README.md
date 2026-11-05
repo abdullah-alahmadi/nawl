@@ -32,6 +32,16 @@ import or paste BibTeX (e.g. exported from Zotero). **Appendices** starts the
 appendices; chapters after it are lettered. **New** starts a document from the
 template's chapter list, and the yellow bar above the preview lists anything to check.
 
+With the cursor in a heading, **# Numbered** turns its number off (Acknowledgment,
+Preface); it stays in the table of contents. **TeX** inserts a raw LaTeX block that
+goes into the PDF exactly as typed, for anything the editor can't do yet (TikZ
+drawings, special tables). As in LyX, you can't stack empty lines: LaTeX ignores them,
+so Enter on an empty line does nothing.
+
+Unsaved changes are copied to Texloom's data folder a few seconds after each edit. If
+Texloom closes without saving (a crash, a power cut), it offers to restore them on the
+next start.
+
 ## Built-in templates
 
 **Template ▾** lists the templates that ship with Texloom:
@@ -53,14 +63,15 @@ are exactly the publisher's; Texloom writes the title block, authors (edited in
 biography and photo), abstract, keywords and the bibliography in each publisher's
 format. Start one with **Template ▾** → choose it → **New**.
 
-**IEEE Access**: choose it, then **Template → New copy → Save as…**, and under
-**Publisher class** follow the card: download IEEE's kit and **Import kit (.zip)**.
+**IEEE Access**: choose it, open the **Template** tab, and under **Publisher class**
+follow the card: download IEEE's kit and **Import kit (.zip)**. Texloom asks where
+to save the template (the kit is kept next to it) and saves it with the kit.
 Texloom adapts the kit's pdfLaTeX-only parts (font maps, PANTONE spot colour) for its
 XeTeX-based engine; the result matches IEEE's own sample PDF.
 
 Other journals whose class isn't in the TeX distribution (Springer Nature, MDPI,
-Taylor & Francis…): start from the closest built-in template, **New copy** →
-**Save as…**, import the publisher's kit, and pick a title block style — or choose
+Taylor & Francis…): start from the closest built-in template, choose **New copy**,
+import the publisher's kit, and pick a title block style — or choose
 **Custom recipe** and write the title block once as LaTeX with placeholders such as
 `{title}` and `{#authors| \and }{name}{/authors}` (examples and a placeholder list are
 in the designer).

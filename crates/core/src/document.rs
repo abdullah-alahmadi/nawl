@@ -171,6 +171,12 @@ pub enum Block {
     },
     /// Everything after this marker is an appendix (chapters lettered A, B…).
     AppendixStart,
+    /// LaTeX written into the document as-is (the escape hatch for TikZ, special
+    /// tables…).
+    RawLatex {
+        #[serde(default)]
+        attrs: RawLatexAttrs,
+    },
     /// A table without a caption (e.g. pasted).
     Table {
         #[serde(default)]
@@ -274,6 +280,15 @@ pub struct HeadingAttrs {
     pub level: u8,
     #[serde(default)]
     pub id: Option<String>,
+    /// Unnumbered headings ("Acknowledgment") get no number and can't be referenced.
+    #[serde(default = "yes")]
+    pub numbered: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct RawLatexAttrs {
+    #[serde(default)]
+    pub latex: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -344,7 +359,9 @@ impl Body {
                     appendix = true;
                     return;
                 }
-                Block::Heading { attrs, .. } => (&attrs.id, TargetKind::Heading { level: attrs.level.clamp(1, 4), appendix }),
+                Block::Heading { attrs, .. } if attrs.numbered => {
+                    (&attrs.id, TargetKind::Heading { level: attrs.level.clamp(1, 4), appendix })
+                }
                 Block::Figure { attrs, .. } => (&attrs.id, TargetKind::Figure),
                 Block::TableFigure { attrs, .. } => (&attrs.id, TargetKind::Table),
                 // Unnumbered equations have no number to refer to.
@@ -587,16 +604,20 @@ mod tests {
             {"type": "figure", "attrs": {"src": "x.png", "id": "f1"},
              "content": [{"type": "caption", "content": [{"type": "citation", "attrs": {"keys": ["c"]}}]}]},
             {"type": "appendixStart"},
-            {"type": "equation", "attrs": {"latex": "x", "id": "e1"}}
+            {"type": "equation", "attrs": {"latex": "x", "id": "e1"}},
+            {"type": "heading", "attrs": {"level": 1, "id": "ack", "numbered": false}, "content": [{"type": "text", "text": "Thanks"}]},
+            {"type": "rawLatex", "attrs": {"latex": "\\vspace{1cm}"}}
         ]}))
         .unwrap();
         let t = body.targets();
         assert_eq!(t["h1"], TargetKind::Heading { level: 1, appendix: false });
         assert_eq!(t["f1"], TargetKind::Figure);
         assert_eq!(t["e1"], TargetKind::Equation);
+        assert!(!t.contains_key("ack"), "unnumbered headings can't be referenced");
+        assert!(matches!(&body.content[6], Block::RawLatex { attrs } if attrs.latex == "\\vspace{1cm}"));
         assert_eq!(body.broken_refs(), vec!["gone".to_string()]);
         assert_eq!(body.cited_keys(), vec!["b", "a", "c"]);
-        assert_eq!(body.top_level_titles(), vec!["Intro"]);
+        assert_eq!(body.top_level_titles(), vec!["Intro", "Thanks"]);
     }
 
     #[test]

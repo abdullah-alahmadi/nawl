@@ -42,6 +42,7 @@ export function TemplateDesigner({
   onSave,
   onSaveAs,
   onNewCopy,
+  onImportKit,
 }: {
   info: TemplateInfo;
   draft: Template;
@@ -55,6 +56,8 @@ export function TemplateDesigner({
   onSave: () => void;
   onSaveAs: () => void;
   onNewCopy: () => void;
+  /** Imports a publisher kit (.zip), saving the template first when it has no file. */
+  onImportKit: (zip: string) => Promise<void>;
 }) {
   const usesClass = !!draft.base;
   const visible = SECTIONS.filter((s) => (usesClass ? !CLASS_DEFINED.includes(s.key) : s.key !== "publisher"));
@@ -122,7 +125,7 @@ export function TemplateDesigner({
               ? "Section list"
               : SECTIONS.find((s) => s.key === section)?.label}
           </h3>
-          {section === "publisher" && <PublisherSection {...props} canImport={!!info.path && !needsSaveAs} />}
+          {section === "publisher" && <PublisherSection {...props} canImport={!!info.path && !needsSaveAs} onImportKit={onImportKit} />}
           {section === "info" && <InfoSection {...props} />}
           {section === "page" && <PageSection {...props} />}
           {section === "fonts" && <FontsSection {...props} systemFonts={systemFonts} />}

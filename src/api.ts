@@ -106,3 +106,17 @@ export const readBibFile = (path: string) => invoke<string>("read_bib_file", { p
 export const newDocument = () => invoke<OpenedDocument>("new_document");
 export const openDocument = (path: string) => invoke<OpenedDocument>("open_document", { path });
 export const exportTex = (path: string, d: DocState) => invoke<void>("export_tex", { path, ...d });
+
+// Crash recovery: unsaved changes are kept in the app's data folder.
+export interface RecoveryInfo {
+  /** The file the changes belong to; null for a document that was never saved. */
+  originalPath: string | null;
+  /** Seconds since 1970. */
+  savedAt: number;
+}
+export const writeRecovery = (originalPath: string | null, d: DocState) =>
+  invoke<void>("write_recovery", { originalPath, ...d });
+export const recoveryInfo = () => invoke<RecoveryInfo | null>("recovery_info");
+export const restoreRecovery = () =>
+  invoke<OpenedDocument & { originalPath: string | null }>("restore_recovery");
+export const discardRecovery = () => invoke<void>("discard_recovery");

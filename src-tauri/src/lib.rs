@@ -8,6 +8,7 @@ macro_rules! log {
 
 mod bib;
 mod files;
+mod recovery;
 mod templates;
 
 use std::path::{Path, PathBuf};
@@ -20,6 +21,7 @@ use tauri::{AppHandle, Manager, State};
 use texloom_compile::{Asset, CompileError, Compiler, TexError};
 use texloom_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
 
+use recovery::{Recovery, RecoveryInfo};
 use templates::{ActiveTemplate, TemplateInfo, TemplateStore};
 
 /// Opened on startup so there's something real to look at.
@@ -336,17 +338,12 @@ fn to_latex(state: State<'_, AppState>, doc: Value, metadata: Metadata, bibliogr
     Ok(format!("{}\n%%%%%%%%%%%%%%%% {} %%%%%%%%%%%%%%%%\n\n{}", g.tex, g.cls_file_name(), g.cls))
 }
 
-/// Saves the document with a copy of its template, so it opens the same way
-/// even if the template file later moves or changes.
-#[tauri::command]
-fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<(), AppError> {
+/// A complete `.loom` file: the document with a copy of its template, so it opens
+/// the same way even if the template file later moves or changes. The editor's JSON
+/// is written as-is so node types this version doesn't know survive.
+fn document_file(state: &AppState, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Value {
     let active = state.templates.current();
-    // Saving to another folder takes the figures along.
-    let new_dir = Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default();
-    let figures = to_document(doc.clone(), Metadata::new(), None)?.body.figure_sources();
-    files::copy_relative(&figures, &state.doc_folder.get(), &new_dir)?;
-    // The editor's JSON is written as-is so node types this version doesn't know survive.
-    let file = serde_json::json!({
+    serde_json::json!({
         "format": DOC_FORMAT,
         "version": DOC_VERSION,
         "template": *active.template,
@@ -354,7 +351,19 @@ fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata:
         "metadata": metadata,
         "bibliography": bibliography.unwrap_or_default(),
         "doc": doc,
-    });
+    })
+}
+
+fn figure_sources(doc: &Value) -> Result<Vec<String>, AppError> {
+    Ok(to_document(doc.clone(), Metadata::new(), None)?.body.figure_sources())
+}
+
+#[tauri::command]
+fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<(), AppError> {
+    // Saving to another folder takes the figures along.
+    let new_dir = Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default();
+    files::copy_relative(&figure_sources(&doc)?, &state.doc_folder.get(), &new_dir)?;
+    let file = document_file(&state, doc, metadata, bibliography);
     std::fs::write(&path, serde_json::to_string_pretty(&file).map_err(AppError::other)?)?;
     state.doc_folder.set(new_dir);
     Ok(())
@@ -364,8 +373,14 @@ fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata:
 /// still exists and is valid (it may have been edited since), else the saved copy.
 #[tauri::command]
 fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<OpenedDocument, AppError> {
-    let text = std::fs::read_to_string(&path)?;
-    let file: Value = serde_json::from_str(&text).map_err(|e| AppError::other(format!("Not a valid document: {e}")))?;
+    let opened = read_document(&app, &state, &std::fs::read_to_string(&path)?)?;
+    state.doc_folder.set(Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default());
+    Ok(opened)
+}
+
+/// Parses `.loom` text and makes its template the active one.
+fn read_document(app: &AppHandle, state: &AppState, text: &str) -> Result<OpenedDocument, AppError> {
+    let file: Value = serde_json::from_str(text).map_err(|e| AppError::other(format!("Not a valid document: {e}")))?;
     if file.get("format").and_then(Value::as_str) != Some(DOC_FORMAT) {
         return Err(AppError::other("Not a Texloom document"));
     }
@@ -382,10 +397,59 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
     });
     if let Some(t) = restored {
         opened.template = Some(t.info());
-        state.templates.set(&app, t);
+        state.templates.set(app, t);
     }
-    state.doc_folder.set(Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default());
     Ok(opened)
+}
+
+/// Keeps a copy of the unsaved changes for crash recovery (see `recovery.rs`).
+#[tauri::command]
+fn write_recovery(
+    state: State<'_, AppState>,
+    recovery: State<'_, Recovery>,
+    original_path: Option<String>,
+    doc: Value,
+    metadata: Metadata,
+    bibliography: Option<String>,
+) -> Result<(), AppError> {
+    let figures = figure_sources(&doc)?;
+    let file = document_file(&state, doc, metadata, bibliography);
+    Ok(recovery.write(&file, &figures, &state.doc_folder.get(), original_path)?)
+}
+
+/// Unsaved changes left behind by a previous run (Texloom closed without saving).
+#[tauri::command]
+fn recovery_info(recovery: State<'_, Recovery>) -> Option<RecoveryInfo> {
+    recovery.info()
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RestoredDocument {
+    #[serde(flatten)]
+    document: OpenedDocument,
+    /// The file the changes belong to, if it still exists.
+    original_path: Option<String>,
+}
+
+/// Opens the recovered changes. Figures are found next to the original file, or in
+/// the recovery copy (for documents that were never saved).
+#[tauri::command]
+fn restore_recovery(app: AppHandle, state: State<'_, AppState>, recovery: State<'_, Recovery>) -> Result<RestoredDocument, AppError> {
+    let info = recovery.info().ok_or_else(|| AppError::other("There are no unsaved changes to restore"))?;
+    let document = read_document(&app, &state, &recovery.read_document()?)?;
+    let original = info.original_path.filter(|p| Path::new(p).parent().is_some_and(Path::is_dir));
+    match original.as_deref().and_then(|p| Path::new(p).parent()) {
+        Some(dir) => state.doc_folder.set(dir.to_path_buf()),
+        None => state.doc_folder.reset()?,
+    }
+    files::copy_missing(&figure_sources(&document.doc)?, &recovery.files_dir(), &state.doc_folder.get())?;
+    Ok(RestoredDocument { document, original_path: original })
+}
+
+#[tauri::command]
+fn discard_recovery(recovery: State<'_, Recovery>) -> Result<(), AppError> {
+    Ok(recovery.discard()?)
 }
 
 /// Copies an image into the document's `figures/` folder; returns its relative path.
@@ -450,6 +514,8 @@ pub fn run() {
             doc_folder: files::DocumentFolder::new(SAMPLE_FILES).expect("can create a temporary folder"),
         })
         .setup(|app| {
+            let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom"));
+            app.manage(Recovery::new(data.join("recovery")));
             // Start with a template file (and watch it): TEXLOOM_TEMPLATE=path/template.json
             if let Some(path) = std::env::var_os("TEXLOOM_TEMPLATE") {
                 let path = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
@@ -487,6 +553,10 @@ pub fn run() {
             to_latex,
             save_document,
             open_document,
+            write_recovery,
+            recovery_info,
+            restore_recovery,
+            discard_recovery,
             export_tex
         ])
         .run(tauri::generate_context!())

@@ -154,6 +154,9 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] Inline math ($…$ input rule, Ctrl+M, toolbar) in paragraphs, captions, cells,
       headings; display equations can be unnumbered (equation*) or multi-line
       (aligned inside equation: one number per block, as on screen)
+- [x] Unnumbered headings (Acknowledgment, Preface): `\chapter*` still listed in the
+      table of contents and the running header; skipped by numbering and references
+- [x] Raw LaTeX block (**TeX**), written as typed: the escape hatch for TikZ etc.
 - [ ] Locked sections; cross-reference text options ("Fig. 3" vs "3"); citation page numbers;
       List of Symbols
 - [ ] **Milestone:** full senior design report from a template made entirely in the designer
@@ -177,16 +180,20 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       plus an optional end block, for publishers without a built-in style
 - [x] Typographic punctuation and Latin-1 symbols written as TeX commands, so they
       render in old 8-bit publisher fonts
-- [ ] Unnumbered sections (Acknowledgment); two-column preview in the editor;
+- [ ] Two-column preview in the editor;
       more pdfLaTeX-only kits as they come up (each needs a small stand-in)
 
 ### Phase 6: Polish and distribution (ongoing)
 - [ ] Bundled TeX package cache so it works offline; installers; auto-update
-- [ ] Template import/export and gallery; autosave and crash recovery
+- [x] Crash recovery: unsaved changes copied to the app data folder (with figures)
+      3 s after each edit; offered back on the next start; closing asks first
+- [x] Importing a kit into a built-in template asks where to save it, then saves it
+      with the kit's files (no more New copy → Save as → import)
+- [ ] Template import/export and gallery
 
 ### Later
-SyncTeX (jump between PDF and source), import of a .tex subset, raw-LaTeX blocks
-(CodeMirror), collaboration (Yjs), instant preview with Typst.
+SyncTeX (jump between PDF and source), import of a .tex subset, syntax highlighting
+in raw-LaTeX blocks (CodeMirror), collaboration (Yjs), instant preview with Typst.
 
 ## Risks
 

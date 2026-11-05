@@ -27,6 +27,8 @@ declare module "@tiptap/react" {
       insertRef: (target: string) => ReturnType;
       insertCitation: (key: string) => ReturnType;
       insertAppendices: () => ReturnType;
+      /** Numbers the heading at the cursor, or leaves it unnumbered ("Acknowledgment"). */
+      toggleHeadingNumbered: () => ReturnType;
     };
   }
 }
@@ -54,7 +56,34 @@ export const TexloomIds = Extension.create<object, TexloomContext>({
           },
         },
       },
+      {
+        types: ["heading"],
+        attributes: {
+          numbered: {
+            default: true,
+            parseHTML: (el) => !el.hasAttribute("data-unnumbered"),
+            renderHTML: (attrs) => (attrs.numbered === false ? { "data-unnumbered": "" } : {}),
+          },
+        },
+      },
     ];
+  },
+
+  addCommands() {
+    return {
+      toggleHeadingNumbered:
+        () =>
+        ({ state, commands }) => {
+          const { $from } = state.selection;
+          for (let d = $from.depth; d > 0; d--) {
+            const node = $from.node(d);
+            if (node.type.name === "heading") {
+              return commands.updateAttributes("heading", { numbered: node.attrs.numbered === false });
+            }
+          }
+          return false;
+        },
+    };
   },
 
   addProseMirrorPlugins() {

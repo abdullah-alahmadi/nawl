@@ -3,8 +3,11 @@ import { useEditor, useEditorState, EditorContent, type Editor, type JSONContent
 import StarterKit from "@tiptap/starter-kit";
 import { TableKit } from "@tiptap/extension-table";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Equation } from "./editor/Equation";
 import { InlineMath } from "./editor/InlineMath";
+import { RawLatex } from "./editor/RawLatex";
+import { EmptyLines } from "./editor/EmptyLines";
 import { MetadataForm } from "./editor/MetadataForm";
 import { Caption, CaptionedTable, Figure, pickFigureImage } from "./editor/Figures";
 import { Outline } from "./editor/Outline";
@@ -12,6 +15,7 @@ import { AppendixStart, Citation, CrossRef, TexloomIds, setTexloomContext } from
 import { CitePicker, ReferencesPanel, RefPicker } from "./editor/Pickers";
 import { PAGE_WIDTH_PX, templateCss } from "./editor/templateStyle";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
+import { withKitFiles } from "./designer/ContentSections";
 import { PdfPreview } from "./preview/PdfPreview";
 import * as api from "./api";
 import type { AppError } from "./api";
@@ -20,6 +24,8 @@ import "./App.css";
 const COMPILE_DEBOUNCE_MS = 700;
 /** Designer edits are validated after this pause, then the preview recompiles. */
 const TEMPLATE_DEBOUNCE_MS = 400;
+/** Unsaved changes are copied for crash recovery after this pause in typing. */
+const RECOVERY_DELAY_MS = 3000;
 const DOC_FILTER = [{ name: "Texloom document", extensions: ["loom"] }];
 const TEMPLATE_FILTER = [{ name: "Texloom template", extensions: ["json"] }];
 
@@ -34,6 +40,17 @@ function loadDocument(editor: Editor, doc: JSONContent) {
     throw new Error(`This document can't be opened: ${e instanceof Error ? e.message : String(e)}`);
   }
   editor.commands.setContent(doc, { emitUpdate: false });
+}
+
+const fileNameOf = (p: string) => p.split(/[\\/]/).pop() ?? p;
+
+/** "today at 14:05" / "on 3 Nov at 14:05" for the restore prompt. */
+function whenText(secs: number) {
+  const d = new Date(secs * 1000);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === new Date().toDateString()
+    ? `today at ${time}`
+    : `on ${d.toLocaleDateString([], { day: "numeric", month: "short" })} at ${time}`;
 }
 
 type Status = { state: "idle" | "compiling" | "ok" } | { state: "error"; error: AppError };
@@ -77,6 +94,13 @@ export default function App() {
   const timer = useRef<number | undefined>(undefined);
   const started = useRef(false);
   const editorScroll = useRef<HTMLDivElement>(null);
+  // Crash recovery: refs so timers and the close handler see current values.
+  const dirtyRef = useRef(false);
+  const draftDirtyRef = useRef(false);
+  const pathRef = useRef<string | null>(null);
+  const recoveryTimer = useRef<number | undefined>(undefined);
+  // Recovery writes and discards run one after another, never out of order.
+  const recoveryQueue = useRef<Promise<unknown>>(Promise.resolve());
   const [pageZoom, setPageZoom] = useState(1);
 
   const compile = useCallback(async () => {
@@ -113,6 +137,38 @@ export default function App() {
     bibliography: bibRef.current,
   });
 
+  const queueRecovery = (op: () => Promise<unknown>) => {
+    recoveryQueue.current = recoveryQueue.current.then(op).catch((e) => console.warn("crash recovery:", e));
+    return recoveryQueue.current;
+  };
+
+  /** The document has unsaved changes: keep a copy for crash recovery after a pause. */
+  const markDirty = useCallback(() => {
+    setDirty(true);
+    dirtyRef.current = true;
+    window.clearTimeout(recoveryTimer.current);
+    recoveryTimer.current = window.setTimeout(() => {
+      if (dirtyRef.current) queueRecovery(() => api.writeRecovery(pathRef.current, docState()));
+    }, RECOVERY_DELAY_MS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Saved, or deliberately thrown away: the recovery copy is no longer needed. */
+  const markClean = useCallback(() => {
+    setDirty(false);
+    dirtyRef.current = false;
+    window.clearTimeout(recoveryTimer.current);
+    return queueRecovery(() => api.discardRecovery());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    pathRef.current = path;
+  }, [path]);
+  useEffect(() => {
+    draftDirtyRef.current = draftDirty;
+  }, [draftDirty]);
+
   // Bibliography changes: parse for the citation picker and on-screen labels.
   const setBibliography = useCallback((source: string) => {
     bibRef.current = source;
@@ -134,6 +190,8 @@ export default function App() {
       AppendixStart,
       Equation,
       InlineMath,
+      RawLatex,
+      EmptyLines,
       Caption,
       Figure,
       CaptionedTable,
@@ -141,7 +199,7 @@ export default function App() {
     ],
     content: EMPTY_DOC,
     onUpdate: () => {
-      setDirty(true);
+      markDirty();
       scheduleCompile();
     },
   });
@@ -156,21 +214,74 @@ export default function App() {
     return () => ro.disconnect();
   }, []);
 
-  // Startup: load the template and open the sample report.
+  // Startup: offer to restore unsaved changes from a crash, else open the sample report.
   useEffect(() => {
     if (!editor || started.current) return;
     started.current = true; // React StrictMode runs effects twice in development
-    Promise.all([api.getTemplate(), api.sampleDocument()])
-      .then(([t, sample]) => {
-        setTemplateInfo(t);
-        setDraft(t.template);
-        setMetadata(sample.metadata);
-        setBibliography(sample.bibliography ?? "");
-        loadDocument(editor, sample.doc);
-        compile();
-      })
-      .catch((e) => setStatus({ state: "error", error: api.asAppError(e) }));
+    (async () => {
+      const t = await api.getTemplate();
+      setTemplateInfo(t);
+      setDraft(t.template);
+      if (await offerRecovery(editor)) return;
+      const sample = await api.sampleDocument();
+      setMetadata(sample.metadata);
+      setBibliography(sample.bibliography ?? "");
+      loadDocument(editor, sample.doc);
+      compile();
+    })().catch((e) => setStatus({ state: "error", error: api.asAppError(e) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, compile, setMetadata, setBibliography]);
+
+  /** Restores the changes a crash left behind, if the user wants them. */
+  const offerRecovery = async (editor: Editor): Promise<boolean> => {
+    const info = await api.recoveryInfo().catch(() => null);
+    if (!info) return false;
+    const name = info.originalPath ? `“${fileNameOf(info.originalPath)}”` : "an unsaved document";
+    const when = info.savedAt ? ` (last change ${whenText(info.savedAt)})` : "";
+    const restore = await ask(`Texloom closed before you saved your changes to ${name}${when}. Restore them?`, {
+      title: "Restore unsaved changes",
+      kind: "warning",
+      okLabel: "Restore",
+      cancelLabel: "Discard",
+    });
+    if (!restore) {
+      await markClean();
+      return false;
+    }
+    const r = await api.restoreRecovery();
+    loadDocument(editor, r.doc);
+    setBibliography(r.bibliography ?? "");
+    metadataRef.current = r.metadata;
+    setPath(r.originalPath);
+    // Still unsaved: the recovery copy stays until the user saves.
+    setDirty(true);
+    dirtyRef.current = true;
+    if (r.template) applyTemplate(r.template);
+    else {
+      setMetadata(r.metadata);
+      compile();
+    }
+    return true;
+  };
+
+  // Closing with unsaved changes asks first.
+  useEffect(() => {
+    const unlisten = getCurrentWindow().onCloseRequested(async (e) => {
+      const doc = dirtyRef.current;
+      const tpl = draftDirtyRef.current;
+      if (!doc && !tpl) return;
+      const what = doc && tpl ? "The document and the template have" : doc ? "The document has" : "The template has";
+      const close = await ask(`${what} unsaved changes. Close without saving?`, {
+        title: "Unsaved changes",
+        kind: "warning",
+        okLabel: "Close without saving",
+        cancelLabel: "Cancel",
+      });
+      if (!close) e.preventDefault();
+      else if (doc) await markClean();
+    });
+    return () => void unlisten.then((f) => f());
+  }, [markClean]);
 
   useEffect(() => {
     api.listBuiltinTemplates().then(setBuiltins, () => setBuiltins([]));
@@ -184,7 +295,7 @@ export default function App() {
 
   const onBibliographyChange = (source: string) => {
     setBibliography(source);
-    setDirty(true);
+    markDirty();
     scheduleCompile();
   };
 
@@ -283,6 +394,32 @@ export default function App() {
     }
   }, [draft, templateInfo, draftNeedsSaveAs, saveTemplateAs, applyTemplate]);
 
+  /** Imports a publisher kit; a template without its own file is saved first (the kit
+   *  lives next to it), and the template is saved again with the kit's files. */
+  const importKit = async (zip: string) => {
+    if (!draft) return;
+    let t = draft;
+    let target = templateInfo?.path ?? null;
+    if (!target || draftNeedsSaveAs) {
+      target = await save({
+        title: "Save the template: the kit is stored next to it",
+        filters: TEMPLATE_FILTER,
+        defaultPath: `${draft.meta.id}.json`,
+      });
+      if (!target) return;
+      const info = await api.saveTemplate(target, t);
+      applyTemplate(info);
+      t = info.template;
+    }
+    const next = withKitFiles(t, await api.importKitZip(zip));
+    try {
+      applyTemplate(await api.saveTemplate(target, next));
+    } catch (e) {
+      onDraftChange(next); // keep the files in the draft; the error says what to fix
+      throw e;
+    }
+  };
+
   const newTemplateCopy = () => {
     if (!draft) return;
     const copy = structuredClone(draft);
@@ -295,7 +432,7 @@ export default function App() {
 
   const onMetadataChange = (m: api.Metadata) => {
     setMetadata(m);
-    setDirty(true);
+    markDirty();
     scheduleCompile();
   };
 
@@ -316,18 +453,19 @@ export default function App() {
     if (!target) return;
     await api.saveDocument(target, docState()).then(() => {
       setPath(target);
-      setDirty(false);
+      markClean();
     }, report);
-  }, [editor, path]);
+  }, [editor, path, markClean]);
 
   const saveDoc = useCallback(async () => {
     if (!editor) return;
     if (!path) return saveAs();
-    await api.saveDocument(path, docState()).then(() => setDirty(false), report);
-  }, [editor, path, saveAs]);
+    await api.saveDocument(path, docState()).then(() => void markClean(), report);
+  }, [editor, path, saveAs, markClean]);
 
   const openDoc = async () => {
     if (!editor) return;
+    if (dirty && !(await ask("Discard unsaved changes and open another document?", { title: "Open document", kind: "warning" }))) return;
     const target = await open({ filters: DOC_FILTER, multiple: false, directory: false });
     if (!target) return;
     try {
@@ -336,7 +474,7 @@ export default function App() {
       setBibliography(opened.bibliography ?? "");
       metadataRef.current = opened.metadata;
       setPath(target);
-      setDirty(false);
+      markClean();
       if (opened.template) applyTemplate(opened.template);
       else {
         setMetadata(opened.metadata);
@@ -349,7 +487,7 @@ export default function App() {
 
   const exportPdfFile = async () => {
     if (!editor) return;
-    const name = (path ? path.split(/[\\/]/).pop()!.replace(/\.loom$/, "") : "report") + ".pdf";
+    const name = (path ? fileNameOf(path).replace(/\.loom$/, "") : "report") + ".pdf";
     const target = await save({ filters: [{ name: "PDF", extensions: ["pdf"] }], defaultPath: name });
     if (target) await api.exportPdf(target, docState()).catch(report);
   };
@@ -369,7 +507,7 @@ export default function App() {
       setMetadata({});
       setBibliography("");
       setPath(null);
-      setDirty(false);
+      markClean();
       setShowInfo(true); // a new document starts with its title, authors…
       compile();
     } catch (e) {
@@ -392,7 +530,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [mode, saveDoc, saveAs, saveTemplate, saveTemplateAs]);
 
-  const fileName = path ? path.split(/[\\/]/).pop() : "Untitled";
+  const fileName = path ? fileNameOf(path) : "Untitled";
   const missing = issues.filter((i) => i.path.startsWith("metadata.") && i.message.includes("required")).length;
 
   return (
@@ -506,6 +644,7 @@ export default function App() {
               onSave={saveTemplate}
               onSaveAs={saveTemplateAs}
               onNewCopy={newTemplateCopy}
+              onImportKit={importKit}
             />
           </section>
         )}
@@ -587,6 +726,8 @@ function FormatBar({
       ordered: editor.isActive("orderedList"),
       quote: editor.isActive("blockquote"),
       inTable: editor.isActive("table"),
+      inHeading: editor.isActive("heading"),
+      headingNumbered: editor.getAttributes("heading").numbered !== false,
       canUndo: editor.can().undo(),
       canRedo: editor.can().redo(),
     }),
@@ -625,10 +766,22 @@ function FormatBar({
         }
       />
       <B label="▦ Table" title="Insert a table with a caption" run={() => c().insertCaptionedTable(3, 3).run()} />
+      <B label="TeX" title="Raw LaTeX block, written into the PDF as typed (for TikZ, special tables…)" run={() => c().insertRawLatex().run()} />
       <span className="sep" />
       <B label="↗ Ref" title="Insert a cross-reference (“see Figure 3.1”)" run={() => onPicker("ref")} />
       <B label="❞ Cite" title="Insert a citation" run={() => onPicker("cite")} />
       <B label="Appendices" title="Start the appendices here (chapters after it are A, B…)" run={() => c().insertAppendices().run()} />
+      {s.inHeading && (
+        <span className="table-tools" role="group" aria-label="Heading">
+          <span className="sep" />
+          <B
+            label="# Numbered"
+            on={s.headingNumbered}
+            title="Number this heading. Turn off for Acknowledgment, Preface… (still listed in the table of contents)"
+            run={() => c().toggleHeadingNumbered().run()}
+          />
+        </span>
+      )}
       {s.inTable && (
         <span className="table-tools" role="group" aria-label="Table">
           <span className="sep" />

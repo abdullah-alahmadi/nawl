@@ -148,6 +148,9 @@ export function templateCss(t: Template, scope = ".page"): string {
   }
 
   rules.push(
+    // Unnumbered headings: no label, and the counters skip them (like \chapter*).
+    `${scope} :is(h1,h2,h3,h4)[data-unnumbered]{counter-increment:none;counter-set:none}`,
+    `${scope} :is(h1,h2,h3,h4)[data-unnumbered]::before{content:none !important}`,
     `${scope} figure.figure{counter-increment:tl-figure}`,
     `${scope} .table-figure{counter-increment:tl-table}`,
     `${scope} .equation{counter-increment:tl-equation}`,

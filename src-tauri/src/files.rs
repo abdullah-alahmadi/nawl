@@ -176,6 +176,22 @@ pub fn copy_relative(files: &[String], from: &Path, to: &Path) -> Result<(), App
     Ok(())
 }
 
+/// Copies the files that don't exist at the destination yet (figure names are never
+/// reused for different images, so an existing file is already the right one).
+pub fn copy_missing(files: &[String], from: &Path, to: &Path) -> std::io::Result<()> {
+    for rel in files.iter().filter(|r| is_safe_relative(r)) {
+        let (src, dest) = (from.join(rel), to.join(rel));
+        if dest.exists() || !src.is_file() {
+            continue;
+        }
+        if let Some(parent) = dest.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::copy(src, dest)?;
+    }
+    Ok(())
+}
+
 /// The folder the open document's figures are resolved against: the `.loom` file's
 /// folder once saved, a temporary folder before that.
 pub struct DocumentFolder {

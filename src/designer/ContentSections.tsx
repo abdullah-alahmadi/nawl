@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { importKitZip, importTemplateFile } from "../api";
+import { importTemplateFile, type Template } from "../api";
 import type { FieldKind } from "../bindings/FieldKind";
 import type { FrontMatterItem } from "../bindings/FrontMatterItem";
 import { Row, Select, Toggle, issuesAt } from "./controls";
@@ -300,13 +300,27 @@ const EXAMPLE_RECIPE = String.raw`\title{{title}}
 \end{abstract}
 {?keywords}\noindent\textbf{Keywords:} {keywords}{/keywords}`;
 
+/** The template with a kit's imported files added, using the kit's class: the one the
+ *  template expects, else the only one in the kit. */
+export function withKitFiles(t: Template, added: string[]): Template {
+  const d = structuredClone(t);
+  if (!d.base) return d;
+  for (const a of added) if (!d.base.files.includes(a)) d.base.files.push(a);
+  const classes = added.filter((a) => a.endsWith(".cls")).map((a) => a.split("/").pop()!.replace(/\.cls$/, ""));
+  const expected = d.base.kit?.required.find((r) => r.endsWith(".cls"))?.replace(/\.cls$/, "");
+  if (expected && classes.includes(expected)) d.base.class = expected;
+  else if (!expected && classes.length === 1) d.base.class = classes[0];
+  return d;
+}
+
 /** Settings for templates built on a publisher's official class. */
 export function PublisherSection({
   t,
   edit,
   issues,
   canImport,
-}: SectionProps & { canImport: boolean }) {
+  onImportKit,
+}: SectionProps & { canImport: boolean; onImportKit: (zip: string) => Promise<void> }) {
   const base = t.base;
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -320,16 +334,7 @@ export function PublisherSection({
     if (!file) return;
     setBusy(true);
     try {
-      const added = await importKitZip(file);
-      edit((d) => {
-        if (!d.base) return;
-        for (const a of added) if (!d.base.files.includes(a)) d.base.files.push(a);
-        // Use the kit's class: the one the template expects, else the only one.
-        const classes = added.filter((a) => a.endsWith(".cls")).map((a) => a.split("/").pop()!.replace(/\.cls$/, ""));
-        const expected = d.base.kit?.required.find((r) => r.endsWith(".cls"))?.replace(/\.cls$/, "");
-        if (expected && classes.includes(expected)) d.base.class = expected;
-        else if (!expected && classes.length === 1) d.base.class = classes[0];
-      });
+      await onImportKit(file);
     } catch (e) {
       setProblem(String((e as { message?: string }).message ?? e));
     } finally {
@@ -378,9 +383,9 @@ export function PublisherSection({
                   </button>{" "}
                   (a .zip) from the publisher.
                 </li>
-                <li>{canImport ? "Import the .zip:" : "Save this template (New copy → Save as…), then import the .zip:"}</li>
+                <li>{canImport ? "Import the .zip:" : "Import the .zip. You’ll be asked where to save this template first, since the kit is kept next to it:"}</li>
               </ol>
-              <button type="button" className="primary" onClick={importZip} disabled={!canImport || busy}>
+              <button type="button" className="primary" onClick={importZip} disabled={busy}>
                 {busy ? "Importing…" : "Import kit (.zip)…"}
               </button>
             </>
@@ -486,14 +491,14 @@ export function PublisherSection({
             </span>
           ))}
           <span className="d-inline">
-            <button type="button" className="d-add" onClick={importZip} disabled={!canImport || busy} title={canImport ? "" : "Save the template first"}>
+            <button type="button" className="d-add" onClick={importZip} disabled={busy}>
               + Import kit (.zip)…
             </button>
             <button type="button" className="d-add" onClick={importFiles} disabled={!canImport} title={canImport ? "" : "Save the template first"}>
               + Import single files…
             </button>
           </span>
-          {!canImport && <span className="d-hint">Save the template first (Save as…) so the files have a folder.</span>}
+          {!canImport && <span className="d-hint">Single files need a saved template (Save as…) to live next to.</span>}
           {problem && <span className="d-error">{problem}</span>}
         </div>
       </Row>

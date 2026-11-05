@@ -851,6 +851,29 @@
         ]
       },
       {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "h-ack",
+          "numbered": false
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Acknowledgment"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "We thank the campus farm for lending us the test plots, and our advisor for weekly feedback throughout the project."
+          }
+        ]
+      },
+      {
         "type": "appendixStart"
       },
       {

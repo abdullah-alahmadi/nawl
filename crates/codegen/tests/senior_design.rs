@@ -145,3 +145,26 @@ fn mathlive_placeholders_are_removed() {
     assert!(tex.contains("\\begin{aligned}a & =b\\\\  & x\\end{aligned}"), "{tex}");
     assert!(!tex.contains("placeholder"));
 }
+
+#[test]
+fn unnumbered_headings_and_raw_latex() {
+    let tex = texloom_codegen::document_to_tex(&template(), &document().document);
+    // Still in the table of contents and the running header, but without a number.
+    assert!(
+        tex.contains("\\chapter*{Acknowledgment}\\addcontentsline{toc}{chapter}{Acknowledgment}\\chaptermark{Acknowledgment}\n"),
+        "{tex}"
+    );
+    assert!(texloom_codegen::template_to_cls(&template()).contains("\\titleformat{name=\\chapter,numberless}[block]"));
+
+    let mut doc = document().document;
+    doc.body = serde_json::from_value(serde_json::json!({"type": "doc", "content": [
+        {"type": "heading", "attrs": {"level": 2, "numbered": false, "id": "s"}, "content": [{"type": "text", "text": "Notes"}]},
+        {"type": "rawLatex", "attrs": {"latex": "  \\begin{center}\\textbf{50% & more}\\end{center}\n"}},
+        {"type": "rawLatex", "attrs": {"latex": "   "}}
+    ]}))
+    .unwrap();
+    let tex = texloom_codegen::document_to_tex(&template(), &doc);
+    assert!(tex.contains("\\section*{Notes}\\addcontentsline{toc}{section}{Notes}\\sectionmark{Notes}\n"), "{tex}");
+    // Written exactly as typed: nothing escaped.
+    assert!(tex.contains("\n\\begin{center}\\textbf{50% & more}\\end{center}\n\n\\end{document}"), "{tex}");
+}

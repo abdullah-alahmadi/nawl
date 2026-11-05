@@ -58,6 +58,11 @@ export function computeNumbering(doc: PMNode, t: Template): NumberedItem[] {
     }
     if (name === "heading") {
       const level = Math.min(4, Math.max(1, node.attrs.level as number));
+      if (node.attrs.numbered === false) {
+        // Like \chapter*: no number, and the counters carry on as if it weren't there.
+        items.push({ id: node.attrs.id ?? null, kind: "heading", level, number: "", refText: node.textContent, text: node.textContent || "(untitled)", appendix, pos });
+        return false;
+      }
       counters[level - 1]++;
       for (let i = level; i < 4; i++) counters[i] = 0;
       if (level === 1 && perChapter) figure = table = equation = 0;

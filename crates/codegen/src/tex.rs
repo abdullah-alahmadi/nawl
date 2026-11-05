@@ -211,7 +211,17 @@ impl<'a> BodyWriter<'a> {
                 if !text.trim().is_empty() {
                     let level = usize::from(attrs.level.clamp(1, 4)) - 1;
                     let cmd = self.ctx.commands[level];
-                    self.out.push_str(&format!("\\{cmd}{{{}}}{}\n\n", text.trim(), label(&attrs.id)));
+                    let text = text.trim();
+                    if attrs.numbered {
+                        self.out.push_str(&format!("\\{cmd}{{{text}}}{}\n\n", label(&attrs.id)));
+                    } else if self.ctx.t.base.is_some() {
+                        // Publisher classes: plain starred heading ("Acknowledgment").
+                        self.out.push_str(&format!("\\{cmd}*{{{text}}}\n\n"));
+                    } else {
+                        // Still listed in the table of contents and the running header.
+                        let mark = if level < 2 { format!("\\{cmd}mark{{{text}}}") } else { String::new() };
+                        self.out.push_str(&format!("\\{cmd}*{{{text}}}\\addcontentsline{{toc}}{{{cmd}}}{{{text}}}{mark}\n\n"));
+                    }
                 }
             }
             Block::BulletList { content } => self.list("itemize", None, content),
@@ -281,6 +291,13 @@ impl<'a> BodyWriter<'a> {
                 // The reference list comes before the appendices.
                 self.emit_bibliography();
                 self.out.push_str("\\texloomappendix\n\n");
+            }
+            Block::RawLatex { attrs } => {
+                let latex = attrs.latex.trim();
+                if !latex.is_empty() {
+                    self.out.push_str(latex);
+                    self.out.push_str("\n\n");
+                }
             }
             Block::Unknown => {}
         }

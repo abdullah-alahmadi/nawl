@@ -313,9 +313,10 @@ fn title_format(style: &texloom_core::HeadingStyle, cmd: &str, label_template: &
         label = format!("\\MakeUppercase{{{label}}}");
         before.push_str("\\MakeUppercase");
     }
+    let font = font_commands(&style.text);
+    // Unnumbered headings (\chapter*): same font, no label line.
     format!(
-        "\\titleformat{{\\{cmd}}}[{shape}]{{\\normalfont{}{fill}}}{{{label}}}{{{}pt}}{{{before}}}",
-        font_commands(&style.text),
+        "\\titleformat{{\\{cmd}}}[{shape}]{{\\normalfont{font}{fill}}}{{{label}}}{{{}pt}}{{{before}}}\n\\titleformat{{name=\\{cmd},numberless}}[block]{{\\normalfont{font}{fill}}}{{}}{{0pt}}{{{before}}}",
         num(style.label_gap_pt)
     )
 }

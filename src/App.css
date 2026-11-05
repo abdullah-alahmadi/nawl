@@ -466,3 +466,20 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
    in dark mode (otherwise MathLive draws formulas in the dark theme's white text). */
 .page, .tp-page, .d-sample { color-scheme: light; }
 .page math-field, .d-sample math-field { color: inherit; }
+
+/* Raw LaTeX blocks */
+.raw-latex {
+  margin: 0.8em 0; border: 1px solid #dfe3e8; border-radius: 4px; background: #f7f8fa;
+  font: 12.5px/1.45 ui-monospace, monospace;
+}
+.raw-latex.is-selected, .raw-latex:focus-within { border-color: var(--accent); }
+.raw-latex-label {
+  padding: 2px 8px; border-bottom: 1px solid #dfe3e8; color: #555; cursor: grab;
+  font: 600 11px system-ui, sans-serif; letter-spacing: 0.02em;
+}
+.raw-latex-label span { font-weight: 400; color: #8a929c; margin-left: 4px; }
+.page .raw-latex textarea {
+  display: block; width: 100%; box-sizing: border-box; resize: none; overflow: hidden;
+  border: none; outline: none; background: transparent; color: #1d2329; padding: 6px 8px;
+  font: inherit; tab-size: 2;
+}

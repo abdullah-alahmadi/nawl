@@ -100,6 +100,10 @@ Power & 6 W solar panel and Li-ion cell & 13.20 \\ \hline
 
 The prototype reduced water use by 34\% over a four-week field trial while keeping soil moisture within the target band. Future work includes weather-forecast integration and a mobile dashboard.
 
+\chapter*{Acknowledgment}\addcontentsline{toc}{chapter}{Acknowledgment}\chaptermark{Acknowledgment}
+
+We thank the campus farm for lending us the test plots, and our advisor for weekly feedback throughout the project.
+
 \texloombibliography
 
 \texloomappendix
