@@ -14,6 +14,8 @@ export interface Settings {
   spellcheck: boolean;
   /** Background of the editor page (#rrggbb). The PDF preview keeps real white paper. */
   pageColor: string;
+  /** TeX engine: the bundled "tectonic", or an installed "pdflatex", "xelatex" or "lualatex". */
+  engine: string;
   /** Recompile the preview while typing. */
   autoCompile: boolean;
   /** Pause after typing before recompiling, in milliseconds. */
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pageZoom: 0,
   spellcheck: true,
   pageColor: "#f4efe6",
+  engine: "tectonic",
   autoCompile: true,
   compileDelayMs: 700,
   crashRecovery: true,
@@ -58,6 +61,7 @@ function sanitize(raw: unknown): Settings {
   if (!["system", "light", "dark"].includes(out.theme)) out.theme = "system";
   if (!["comfortable", "compact"].includes(out.density)) out.density = "comfortable";
   out.compileDelayMs = Math.min(5000, Math.max(200, out.compileDelayMs));
+  if (!["tectonic", "pdflatex", "xelatex", "lualatex"].includes(out.engine)) out.engine = "tectonic";
   if (!/^#[0-9a-f]{6}$/i.test(out.pageColor)) out.pageColor = DEFAULT_SETTINGS.pageColor;
   out.recentLimit = Math.min(20, Math.max(0, Math.round(out.recentLimit)));
   return out;

@@ -114,14 +114,14 @@ impl ActiveTemplate {
     }
 
     /// A publisher's kit files, placed next to the main file (by file name).
-    pub fn load_kit_files(&self, files: &[String]) -> Result<Vec<(String, Vec<u8>)>, AppError> {
+    pub fn load_kit_files(&self, files: &[String], engine: texloom_codegen::Engine) -> Result<Vec<(String, Vec<u8>)>, AppError> {
         let loaded = self.load_assets(files)?;
         Ok(loaded
             .into_iter()
             .map(|(rel, bytes)| {
                 let name = texloom_codegen::kit_destination(&rel);
-                // pdfLaTeX-only kit files get a stand-in that works with XeTeX.
-                let bytes = texloom_codegen::xetex_override(&name).map(|s| s.as_bytes().to_vec()).unwrap_or(bytes);
+                // pdfLaTeX-only kit files get a stand-in unless pdfLaTeX itself runs.
+                let bytes = texloom_codegen::kit_override(&name, engine).map(|s| s.as_bytes().to_vec()).unwrap_or(bytes);
                 (name, bytes)
             })
             .collect())

@@ -8,6 +8,8 @@
 
 use std::fmt::Write;
 
+use crate::Engine;
+
 use texloom_core::{
     Anchor, BibStyle, BuiltinFont, CaptionAlign, CaptionSeparator, CaptionSize, FontChoice, FrontMatterItem, HeadingLayout, LineSpacing, PageNumberStyle,
     PageStyle, Paper, Template, TitleContent, TopLevel,
@@ -30,8 +32,13 @@ macro_rules! w {
 }
 
 pub fn template_to_cls(t: &Template) -> String {
+    template_to_cls_for(t, Engine::Xe)
+}
+
+/// The class for a particular engine (fonts differ between pdfLaTeX and the others).
+pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     if let Some(base) = &t.base {
-        return crate::publisher::wrapper_cls(t, base);
+        return crate::publisher::wrapper_cls(t, base, engine);
     }
     let mut o = String::new();
     let id = &t.meta.id;
@@ -101,11 +108,28 @@ pub fn template_to_cls(t: &Template) -> String {
 
     // ---- fonts
     w!(o, "% Fonts");
-    w!(o, "\\RequirePackage{{fontspec}}");
-    for (cmd, choice) in [("setmainfont", &t.fonts.main), ("setsansfont", &t.fonts.sans), ("setmonofont", &t.fonts.mono)] {
-        if let Some(line) = font_line(cmd, choice) {
-            w!(o, "{line}");
+    if engine.unicode_fonts() {
+        w!(o, "\\RequirePackage{{fontspec}}");
+        for (cmd, choice) in [("setmainfont", &t.fonts.main), ("setsansfont", &t.fonts.sans), ("setmonofont", &t.fonts.mono)] {
+            if let Some(line) = font_line(cmd, choice) {
+                w!(o, "{line}");
+            }
         }
+    } else {
+        // pdfLaTeX: the TeX Gyre fonts as classic font packages; system fonts need
+        // XeLaTeX or LuaLaTeX, so they fall back to Latin Modern here.
+        w!(o, "\\RequirePackage[T1]{{fontenc}}");
+        w!(o, "\\RequirePackage{{lmodern}}");
+        for choice in [&t.fonts.main, &t.fonts.sans, &t.fonts.mono] {
+            match pdf_font_package(choice) {
+                Some(pkg) => w!(o, "\\RequirePackage{{{pkg}}}"),
+                None if matches!(choice, FontChoice::System { .. }) => {
+                    w!(o, "% System font not available with pdfLaTeX (use XeLaTeX or LuaLaTeX); Latin Modern instead")
+                }
+                None => {}
+            }
+        }
+        w!(o, "\\RequirePackage{{textcomp}}");
     }
     w!(o);
 
@@ -319,6 +343,23 @@ fn title_format(style: &texloom_core::HeadingStyle, cmd: &str, label_template: &
         "\\titleformat{{\\{cmd}}}[{shape}]{{\\normalfont{font}{fill}}}{{{label}}}{{{}pt}}{{{before}}}\n\\titleformat{{name=\\{cmd},numberless}}[block]{{\\normalfont{font}{fill}}}{{}}{{0pt}}{{{before}}}",
         num(style.label_gap_pt)
     )
+}
+
+/// The pdfLaTeX package for a TeX Gyre font (each sets only its own family).
+fn pdf_font_package(choice: &FontChoice) -> Option<&'static str> {
+    match choice {
+        FontChoice::Builtin { font } => match font {
+            BuiltinFont::LatinModern => None,
+            BuiltinFont::Termes => Some("tgtermes"),
+            BuiltinFont::Pagella => Some("tgpagella"),
+            BuiltinFont::Bonum => Some("tgbonum"),
+            BuiltinFont::Schola => Some("tgschola"),
+            BuiltinFont::Heros => Some("tgheros"),
+            BuiltinFont::Adventor => Some("tgadventor"),
+            BuiltinFont::Cursor => Some("tgcursor"),
+        },
+        FontChoice::System { .. } => None,
+    }
 }
 
 fn font_line(cmd: &str, choice: &FontChoice) -> Option<String> {

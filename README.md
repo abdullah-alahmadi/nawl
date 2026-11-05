@@ -16,6 +16,15 @@ npm run tauri dev
 The first compile takes a minute or two while Tectonic downloads its TeX package bundle;
 after that it's cached in `~/.cache/Tectonic`.
 
+**TeX engine** (Settings → Preview): Texloom compiles with the bundled Tectonic by
+default, so nothing else needs installing. If TeX Live, MiKTeX or MacTeX is installed,
+you can use its **pdfLaTeX**, **XeLaTeX** or **LuaLaTeX** instead (through `latexmk`
+when available): it works offline, reuses your installed packages, and runs publisher
+kits made for pdfLaTeX as they are. With pdfLaTeX, templates use the TeX Gyre fonts as
+classic font packages; system fonts need XeLaTeX or LuaLaTeX. The CLI takes
+`--engine pdflatex|xelatex|lualatex|tectonic`, and Export LaTeX writes files for the
+chosen engine.
+
 ## Writing a document
 
 Texloom starts with a start window: pick a template for a new document (reports,

@@ -640,6 +640,19 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // The TeX engine follows the setting (and recompiles when it changes).
+  const engineReady = useRef(false);
+  useEffect(() => {
+    api.setEngine(settings.engine).then(
+      () => {
+        if (engineReady.current) compile();
+        engineReady.current = true;
+      },
+      report,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.engine]);
+
   // Spell checking follows the setting.
   useEffect(() => {
     editor?.view.dom.setAttribute("spellcheck", String(settings.spellcheck));
@@ -1245,7 +1258,7 @@ function ErrorPanel({ error }: { error: AppError }) {
   }
   return (
     <div className="error-panel">
-      <strong>{error.kind === "tectonicMissing" ? "Tectonic not found" : "Error"}:</strong> {error.message}
+      <strong>{error.kind === "tectonicMissing" ? "TeX engine not available" : "Error"}:</strong> {error.message}
     </div>
   );
 }

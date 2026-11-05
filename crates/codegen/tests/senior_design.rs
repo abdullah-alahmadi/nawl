@@ -168,3 +168,19 @@ fn unnumbered_headings_and_raw_latex() {
     // Written exactly as typed: nothing escaped.
     assert!(tex.contains("\n\\begin{center}\\textbf{50% & more}\\end{center}\n\n\\end{document}"), "{tex}");
 }
+
+#[test]
+fn pdflatex_class_uses_classic_fonts() {
+    use texloom_codegen::Engine;
+    let mut t = template();
+    t.fonts.main = texloom_core::FontChoice::Builtin { font: texloom_core::BuiltinFont::Termes };
+    let pdf = texloom_codegen::template_to_cls_for(&t, Engine::Pdf);
+    assert!(!pdf.contains("fontspec"), "{pdf}");
+    assert!(pdf.contains("\\RequirePackage[T1]{fontenc}") && pdf.contains("\\RequirePackage{tgtermes}"));
+    let xe = texloom_codegen::template_to_cls_for(&t, Engine::Xe);
+    assert!(xe.contains("\\RequirePackage{fontspec}") && xe.contains("\\setmainfont{texgyretermes}"));
+    assert_eq!(texloom_codegen::template_to_cls(&t), xe, "XeTeX stays the default");
+    // Kit stand-ins only replace files when the engine isn't pdfLaTeX.
+    assert!(texloom_codegen::kit_override("spotcolor.sty", Engine::Pdf).is_none());
+    assert!(texloom_codegen::kit_override("spotcolor.sty", Engine::Xe).is_some());
+}

@@ -58,3 +58,14 @@ fn journal_templates_compile() {
         assert!(out.pdf.starts_with(b"%PDF"), "{id}");
     }
 }
+
+#[test]
+fn revtex_tables_avoid_tabularx() {
+    let (t, doc) = (template("aps-physical-review"), article().document);
+    let tex = texloom_codegen::document_to_tex(&t, &doc);
+    assert!(!tex.contains("tabularx") && tex.contains("\\begin{tabular}{|p{\\dimexpr"), "{tex}");
+    assert!(tex.contains("\\tabularnewline \\hline"));
+    assert!(!texloom_codegen::template_to_cls(&t).contains("tabularx"));
+    let ieee = texloom_codegen::document_to_tex(&template("ieee-journal"), &doc);
+    assert!(ieee.contains("\\begin{tabularx}"));
+}

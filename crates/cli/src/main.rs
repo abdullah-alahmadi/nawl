@@ -29,6 +29,9 @@ enum Command {
         /// Output PDF (default: the document path with .pdf).
         #[arg(short, long)]
         output: Option<PathBuf>,
+        /// tectonic (bundled), or an installed pdflatex, xelatex or lualatex.
+        #[arg(short, long, default_value = "tectonic")]
+        engine: String,
     },
     /// Write the .tex, .cls and assets to a folder (compiles anywhere, e.g. Overleaf).
     Export {
@@ -37,6 +40,9 @@ enum Command {
         template: PathBuf,
         #[arg(long)]
         out_dir: PathBuf,
+        /// Engine the files are written for: tectonic/xelatex, pdflatex or lualatex.
+        #[arg(short, long, default_value = "tectonic")]
+        engine: String,
     },
     /// Validate a template and print its generated class.
     Check {
@@ -59,9 +65,10 @@ fn main() -> ExitCode {
 
 fn run(cli: Cli) -> Result<()> {
     match cli.command {
-        Command::Render { document, template, output } => {
-            let (generated, template_dir, doc_dir) = prepare(&document, &template)?;
-            let assets = load_assets(&generated, &template_dir, &doc_dir)?;
+        Command::Render { document, template, output, engine } => {
+            let (target, program) = parse_engine(&engine)?;
+            let (generated, template_dir, doc_dir) = prepare(&document, &template, target)?;
+            let assets = load_assets(&generated, &template_dir, &doc_dir, target)?;
             let support = generated.support_files();
             let files: Vec<texloom_compile::Asset> = support
                 .iter()
@@ -69,8 +76,13 @@ fn run(cli: Cli) -> Result<()> {
                 .map(|(p, b)| texloom_compile::Asset { path: p, bytes: b })
                 .collect();
 
-            let compiler = texloom_compile::Compiler::locate(&tectonic_candidates())?;
-            let out = match compiler.compile(&generated.tex, &files) {
+            let result = match program {
+                None => texloom_compile::Compiler::locate(&tectonic_candidates())?.compile(&generated.tex, &files),
+                Some(p) => texloom_compile::SystemLatex::find(p)
+                    .with_context(|| format!("{} not found; install TeX Live", p.command()))?
+                    .compile(&generated.tex, &files),
+            };
+            let out = match result {
                 Ok(out) => out,
                 Err(texloom_compile::CompileError::Failed { errors, .. }) => {
                     for e in &errors {
@@ -87,9 +99,10 @@ fn run(cli: Cli) -> Result<()> {
             std::fs::write(&output, out.pdf).with_context(|| format!("writing {}", output.display()))?;
             println!("wrote {}", output.display());
         }
-        Command::Export { document, template, out_dir } => {
-            let (generated, template_dir, doc_dir) = prepare(&document, &template)?;
-            let assets = load_assets(&generated, &template_dir, &doc_dir)?;
+        Command::Export { document, template, out_dir, engine } => {
+            let (target, _) = parse_engine(&engine)?;
+            let (generated, template_dir, doc_dir) = prepare(&document, &template, target)?;
+            let assets = load_assets(&generated, &template_dir, &doc_dir, target)?;
             std::fs::create_dir_all(&out_dir)?;
             let stem = document.file_stem().and_then(|s| s.to_str()).unwrap_or("document");
             let tex_path = out_dir.join(format!("{stem}.tex"));
@@ -131,8 +144,21 @@ fn load_template(path: &Path) -> Result<Template> {
     Ok(t)
 }
 
+/// The generator target and, for installed engines, the program to run.
+fn parse_engine(name: &str) -> Result<(texloom_codegen::Engine, Option<texloom_compile::LatexProgram>)> {
+    use texloom_codegen::Engine;
+    use texloom_compile::LatexProgram;
+    Ok(match name {
+        "tectonic" => (Engine::Xe, None),
+        "pdflatex" => (Engine::Pdf, Some(LatexProgram::PdfLatex)),
+        "xelatex" => (Engine::Xe, Some(LatexProgram::XeLatex)),
+        "lualatex" => (Engine::Lua, Some(LatexProgram::LuaLatex)),
+        other => bail!("unknown engine {other:?} (tectonic, pdflatex, xelatex or lualatex)"),
+    })
+}
+
 /// Loads, validates and generates. Returns the output and the template's folder.
-fn prepare(document: &Path, template: &Path) -> Result<(Generated, PathBuf, PathBuf)> {
+fn prepare(document: &Path, template: &Path, engine: texloom_codegen::Engine) -> Result<(Generated, PathBuf, PathBuf)> {
     let t = load_template(template)?;
     let text = std::fs::read_to_string(document).with_context(|| format!("reading {}", document.display()))?;
     let file: DocumentFile =
@@ -143,11 +169,11 @@ fn prepare(document: &Path, template: &Path) -> Result<(Generated, PathBuf, Path
     report(&t.check_metadata(&file.document.metadata));
     let dir = template.parent().map(Path::to_path_buf).unwrap_or_default();
     let doc_dir = document.parent().map(Path::to_path_buf).unwrap_or_default();
-    Ok((texloom_codegen::generate(&t, &file.document), dir, doc_dir))
+    Ok((texloom_codegen::generate_for(&t, &file.document, engine), dir, doc_dir))
 }
 
 /// Template assets (relative to the template) and figure images (relative to the document).
-fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path) -> Result<Vec<(String, Vec<u8>)>> {
+fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path, engine: texloom_codegen::Engine) -> Result<Vec<(String, Vec<u8>)>> {
     let from = |dir: &Path, rel: &String, what: &str| -> Result<(String, Vec<u8>)> {
         let path = dir.join(rel);
         let bytes = std::fs::read(&path).with_context(|| format!("reading {what} {}", path.display()))?;
@@ -163,7 +189,7 @@ fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path) -> Result<Vec
     for rel in &g.kit_files {
         let (_, bytes) = from(template_dir, rel, "class kit file")?;
         let name = texloom_codegen::kit_destination(rel);
-        let bytes = texloom_codegen::xetex_override(&name).map(|s| s.as_bytes().to_vec()).unwrap_or(bytes);
+        let bytes = texloom_codegen::kit_override(&name, engine).map(|s| s.as_bytes().to_vec()).unwrap_or(bytes);
         out.push((name, bytes));
     }
     Ok(out)

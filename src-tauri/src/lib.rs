@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State};
-use texloom_compile::{Asset, CompileError, Compiler, TexError};
+use texloom_compile::{Asset, CompileError, CompileOutput, Compiler, LatexProgram, SystemLatex, TexError};
 use texloom_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
 
 use library::{Library, LibraryEntry};
@@ -33,7 +33,10 @@ const SAMPLE_FILES: &[(&str, &[u8])] =
     &[("figures/system-diagram.png", include_bytes!("../../examples/figures/system-diagram.png"))];
 
 pub struct AppState {
+    /// The bundled Tectonic (or why it wasn't found).
     compiler: Result<Arc<Compiler>, String>,
+    /// Which engine compiles: Tectonic or an installed LaTeX (Settings → Preview).
+    engine: std::sync::Mutex<EngineChoice>,
     templates: TemplateStore,
     /// Where the open document's figures live.
     doc_folder: files::DocumentFolder,
@@ -69,6 +72,100 @@ impl From<std::io::Error> for AppError {
     fn from(e: std::io::Error) -> Self {
         AppError::other(e)
     }
+}
+
+/// The engine that compiles documents.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EngineChoice {
+    Tectonic,
+    System(LatexProgram),
+}
+
+impl EngineChoice {
+    fn parse(id: &str) -> Option<Self> {
+        if id == "tectonic" {
+            return Some(Self::Tectonic);
+        }
+        LatexProgram::ALL.into_iter().find(|p| p.command() == id).map(Self::System)
+    }
+
+    /// What the generated LaTeX is written for.
+    fn target(self) -> texloom_codegen::Engine {
+        match self {
+            Self::Tectonic | Self::System(LatexProgram::XeLatex) => texloom_codegen::Engine::Xe,
+            Self::System(LatexProgram::PdfLatex) => texloom_codegen::Engine::Pdf,
+            Self::System(LatexProgram::LuaLatex) => texloom_codegen::Engine::Lua,
+        }
+    }
+}
+
+/// A ready-to-run engine.
+enum Runner {
+    Tectonic(Arc<Compiler>),
+    System(SystemLatex),
+}
+
+impl Runner {
+    fn compile(&self, tex: &str, files: &[Asset<'_>]) -> Result<CompileOutput, CompileError> {
+        match self {
+            Runner::Tectonic(c) => c.compile(tex, files),
+            Runner::System(s) => s.compile(tex, files),
+        }
+    }
+}
+
+impl AppState {
+    fn engine(&self) -> EngineChoice {
+        *self.engine.lock().expect("engine lock")
+    }
+
+    fn runner(&self) -> Result<Runner, AppError> {
+        match self.engine() {
+            EngineChoice::Tectonic => self.compiler.clone().map(Runner::Tectonic).map_err(|message| AppError::TectonicMissing { message }),
+            EngineChoice::System(p) => SystemLatex::find(p).map(Runner::System).ok_or_else(|| AppError::TectonicMissing {
+                message: format!("{} isn't installed (or not on PATH). Install TeX Live, or choose Tectonic in Settings → Preview.", p.command()),
+            }),
+        }
+    }
+}
+
+/// An engine for the settings window.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EngineInfo {
+    id: &'static str,
+    available: bool,
+    /// Version or path when available.
+    detail: Option<String>,
+    /// Runs through latexmk (installed engines).
+    latexmk: bool,
+}
+
+#[tauri::command]
+async fn list_engines(state: State<'_, AppState>) -> Result<Vec<EngineInfo>, AppError> {
+    let tectonic = state.compiler.as_ref().ok().map(|c| c.tectonic_path().display().to_string());
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut out = vec![EngineInfo { id: "tectonic", available: tectonic.is_some(), detail: tectonic, latexmk: false }];
+        for p in LatexProgram::ALL {
+            let found = SystemLatex::find(p);
+            out.push(EngineInfo {
+                id: p.command(),
+                available: found.is_some(),
+                latexmk: found.as_ref().is_some_and(|s| s.latexmk.is_some()),
+                detail: found.map(|s| s.version().unwrap_or_else(|| s.path.display().to_string())),
+            });
+        }
+        out
+    })
+    .await
+    .map_err(AppError::other)
+}
+
+#[tauri::command]
+fn set_engine(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
+    let choice = EngineChoice::parse(&id).ok_or_else(|| AppError::other(format!("Unknown engine: {id}")))?;
+    *state.engine.lock().expect("engine lock") = choice;
+    Ok(())
 }
 
 /// What the frontend holds: the editor's raw JSON plus metadata values, and the
@@ -302,19 +399,20 @@ async fn compile_document(
     metadata: Metadata,
     bibliography: Option<String>,
 ) -> Result<Vec<u8>, AppError> {
-    let compiler = state.compiler.clone().map_err(|message| AppError::TectonicMissing { message })?;
+    let runner = state.runner()?;
+    let target = state.engine().target();
     let active = state.templates.current();
     if let Some(e) = active.missing_kit() {
         return Err(e);
     }
-    let generated = texloom_codegen::generate(&active.template, &to_document(doc, metadata, bibliography)?);
+    let generated = texloom_codegen::generate_for(&active.template, &to_document(doc, metadata, bibliography)?, target);
     let mut assets = active.load_assets(&generated.assets)?;
-    assets.extend(active.load_kit_files(&generated.kit_files)?);
+    assets.extend(active.load_kit_files(&generated.kit_files, target)?);
     assets.extend(state.doc_folder.load(&generated.figures)?);
     let out = tauri::async_runtime::spawn_blocking(move || {
         let support = generated.support_files();
         let files: Vec<Asset> = support.iter().chain(assets.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
-        compiler.compile(&generated.tex, &files)
+        runner.compile(&generated.tex, &files)
     })
     .await
     .map_err(AppError::other)??;
@@ -324,7 +422,7 @@ async fn compile_document(
 /// The generated `.tex` followed by the class, for the source view.
 #[tauri::command]
 fn to_latex(state: State<'_, AppState>, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<String, AppError> {
-    let g = texloom_codegen::generate(&state.templates.current().template, &to_document(doc, metadata, bibliography)?);
+    let g = texloom_codegen::generate_for(&state.templates.current().template, &to_document(doc, metadata, bibliography)?, state.engine().target());
     Ok(format!("{}\n%%%%%%%%%%%%%%%% {} %%%%%%%%%%%%%%%%\n\n{}", g.tex, g.cls_file_name(), g.cls))
 }
 
@@ -531,9 +629,11 @@ async fn export_pdf(state: State<'_, AppState>, path: String, doc: Value, metada
 #[tauri::command]
 fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<(), AppError> {
     let active = state.templates.current();
-    let g = texloom_codegen::generate(&active.template, &to_document(doc, metadata, bibliography)?);
+    // Written for the chosen engine (Overleaf and most editors default to pdfLaTeX).
+    let target = state.engine().target();
+    let g = texloom_codegen::generate_for(&active.template, &to_document(doc, metadata, bibliography)?, target);
     let mut assets = active.load_assets(&g.assets)?;
-    assets.extend(active.load_kit_files(&g.kit_files)?);
+    assets.extend(active.load_kit_files(&g.kit_files, target)?);
     assets.extend(state.doc_folder.load(&g.figures)?);
     let path = Path::new(&path);
     std::fs::write(path, &g.tex)?;
@@ -563,6 +663,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(AppState {
             compiler,
+            engine: std::sync::Mutex::new(EngineChoice::Tectonic),
             templates: TemplateStore::new(),
             doc_folder: files::DocumentFolder::new(SAMPLE_FILES).expect("can create a temporary folder"),
         })
@@ -614,6 +715,8 @@ pub fn run() {
             restore_recovery,
             discard_recovery,
             get_settings,
+            list_engines,
+            set_engine,
             list_user_templates,
             import_template,
             remove_user_template,

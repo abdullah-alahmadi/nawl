@@ -3,6 +3,14 @@ import { useEffect, useState, type ReactNode } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { FileText, Keyboard, Monitor, Moon, Palette, PenLine, Pipette, Sun, X } from "lucide-react";
 import { DEFAULT_SETTINGS, PAGE_COLORS, type Settings } from "./settings";
+import { listEngines, type EngineInfo } from "./api";
+
+const ENGINE_LABELS: Record<string, string> = {
+  tectonic: "Tectonic (built in)",
+  pdflatex: "pdfLaTeX (installed TeX)",
+  xelatex: "XeLaTeX (installed TeX)",
+  lualatex: "LuaLaTeX (installed TeX)",
+};
 
 type Section = "editor" | "preview" | "appearance" | "files" | "shortcuts";
 
@@ -40,6 +48,11 @@ export function SettingsDialog({
   onClose: () => void;
 }) {
   const [section, setSection] = useState<Section>("editor");
+  const [engines, setEngines] = useState<EngineInfo[] | null>(null);
+  useEffect(() => {
+    listEngines().then(setEngines, () => setEngines([]));
+  }, []);
+  const current = engines?.find((e) => e.id === settings.engine);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -120,6 +133,27 @@ export function SettingsDialog({
 
           {section === "preview" && (
             <>
+              <Field
+                label="TeX engine"
+                hint="Tectonic needs nothing installed and downloads packages on first use. An installed TeX Live, MiKTeX or MacTeX works offline and runs publisher kits made for pdfLaTeX as they are."
+              >
+                <select value={settings.engine} onChange={(e) => onChange({ engine: e.target.value })} aria-label="TeX engine">
+                  {(engines ?? [{ id: settings.engine, available: true, detail: null, latexmk: false }]).map((e) => (
+                    <option key={e.id} value={e.id} disabled={!e.available && e.id !== settings.engine}>
+                      {ENGINE_LABELS[e.id] ?? e.id}
+                      {e.available ? "" : " — not installed"}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <div className="settings-detail">
+                {engines === null
+                  ? "Looking for installed TeX…"
+                  : current?.available
+                    ? `${current.detail ?? ""}${current.id !== "tectonic" ? (current.latexmk ? " · runs through latexmk" : " · latexmk not found, running the engine and BibTeX directly") : ""}`
+                    : `${ENGINE_LABELS[settings.engine] ?? settings.engine} isn't installed. Install TeX Live (or MiKTeX/MacTeX), or choose Tectonic.`}
+                {engines && !engines.some((e) => e.id !== "tectonic" && e.available) && " No installed TeX found on this computer."}
+              </div>
               <Field label="Compile while typing" hint="Off: the preview updates when you press Compile (Ctrl+Enter).">
                 <Switch checked={settings.autoCompile} onChange={(v) => onChange({ autoCompile: v })} />
               </Field>

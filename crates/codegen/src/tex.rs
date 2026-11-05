@@ -317,7 +317,14 @@ impl<'a> BodyWriter<'a> {
         if columns == 0 {
             return;
         }
-        self.out.push_str(&format!("\\begin{{tabularx}}{{\\linewidth}}{{|{}}}\n\\hline\n", "L|".repeat(columns)));
+        // Plain tabular with equal p columns where tabularx can't be used (REVTeX).
+        let plain = self.ctx.t.base.as_ref().is_some_and(crate::publisher::uses_plain_tables);
+        if plain {
+            let width = format!("\\dimexpr(\\linewidth-{}\\tabcolsep-{}\\arrayrulewidth)/{columns}\\relax", 2 * columns, columns + 1);
+            self.out.push_str(&format!("\\begin{{tabular}}{{|{}}}\n\\hline\n", format!("p{{{width}}}|").repeat(columns)));
+        } else {
+            self.out.push_str(&format!("\\begin{{tabularx}}{{\\linewidth}}{{|{}}}\n\\hline\n", "L|".repeat(columns)));
+        }
         for row in rows {
             let mut cells = Vec::new();
             let mut used = 0;
@@ -330,14 +337,18 @@ impl<'a> BodyWriter<'a> {
                 }
                 let span = cell.attrs.colspan.max(1) as usize;
                 used += span;
+                if plain && span == 1 && !text.is_empty() {
+                    text = format!("\\raggedright {text}");
+                }
                 cells.push(if span > 1 { format!("\\multicolumn{{{span}}}{{|l|}}{{{text}}}") } else { text });
             }
             // Short rows get empty cells so every row has the same number of columns.
             cells.extend(std::iter::repeat_n(String::new(), columns.saturating_sub(used)));
             self.out.push_str(&cells.join(" & "));
-            self.out.push_str(" \\\\ \\hline\n");
+            // \tabularnewline: a \\ after \raggedright would end the paragraph instead.
+            self.out.push_str(if plain { " \\tabularnewline \\hline\n" } else { " \\\\ \\hline\n" });
         }
-        self.out.push_str("\\end{tabularx}\n");
+        self.out.push_str(if plain { "\\end{tabular}\n" } else { "\\end{tabularx}\n" });
     }
 
     fn list(&mut self, env: &str, start: Option<u32>, items: &[ListItem]) {

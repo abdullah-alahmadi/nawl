@@ -138,3 +138,16 @@ export const listUserTemplates = () => invoke<UserTemplate[]>("list_user_templat
 export const importTemplate = (source: string) => invoke<TemplateInfo>("import_template", { source });
 export const removeUserTemplate = (id: string) => invoke<void>("remove_user_template", { id });
 export const exportTemplate = (path: string) => invoke<void>("export_template", { path });
+
+/** A TeX engine Texloom can compile with. */
+export interface EngineInfo {
+  /** "tectonic", "pdflatex", "xelatex" or "lualatex". */
+  id: string;
+  available: boolean;
+  /** Version, or the path, when available. */
+  detail: string | null;
+  /** Installed engines run through latexmk when it's there. */
+  latexmk: boolean;
+}
+export const listEngines = () => invoke<EngineInfo[]>("list_engines");
+export const setEngine = (id: string) => invoke<void>("set_engine", { id });

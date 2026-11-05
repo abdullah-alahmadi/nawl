@@ -9,12 +9,31 @@ mod latex;
 mod publisher;
 mod tex;
 
-pub use cls::template_to_cls;
+pub use cls::{template_to_cls, template_to_cls_for};
 pub use latex::escape;
-pub use publisher::{check_recipe, xetex_override, Authors};
+pub use publisher::{check_recipe, kit_override, xetex_override, Authors};
 pub use tex::{document_to_tex, has_bibliography};
 
 use texloom_core::{Document, Template, TitleContent};
+
+/// The TeX engine the generated files are for. Tectonic is XeTeX-based.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Engine {
+    /// XeLaTeX (and Tectonic): fonts through fontspec, PDF written by xdvipdfmx.
+    #[default]
+    Xe,
+    /// pdfLaTeX: classic 8-bit fonts (T1), and publisher kits run unmodified.
+    Pdf,
+    /// LuaLaTeX: fonts through fontspec.
+    Lua,
+}
+
+impl Engine {
+    /// fontspec (OpenType and system fonts) is available.
+    pub fn unicode_fonts(self) -> bool {
+        self != Engine::Pdf
+    }
+}
 
 /// Everything needed to compile a document: write `cls` as `<class_name>.cls` and
 /// `tex` as the main file, and copy each of `assets` (paths relative to the
@@ -55,6 +74,11 @@ impl Generated {
 
 /// Callers should run [`Template::validate`] first; generation assumes a valid template.
 pub fn generate(template: &Template, doc: &Document) -> Generated {
+    generate_for(template, doc, Engine::Xe)
+}
+
+/// Like [`generate`], for a particular engine.
+pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Generated {
     let assets: Vec<String> = template
         .title_page
         .items
@@ -66,7 +90,7 @@ pub fn generate(template: &Template, doc: &Document) -> Generated {
         .collect();
     Generated {
         class_name: template.meta.id.clone(),
-        cls: template_to_cls(template),
+        cls: template_to_cls_for(template, engine),
         tex: document_to_tex(template, doc),
         assets,
         figures: {

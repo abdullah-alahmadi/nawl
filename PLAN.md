@@ -184,6 +184,10 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       more pdfLaTeX-only kits as they come up (each needs a small stand-in)
 
 ### Phase 6: Polish and distribution (ongoing)
+- [x] Installed TeX as an alternative engine (pdfLaTeX, XeLaTeX, LuaLaTeX via latexmk,
+      found on PATH or in TeX Live/MacTeX folders; 3-minute limit per run);
+      generated classes adapt (classic fonts under pdfLaTeX, kit stand-ins only for
+      XeTeX/LuaTeX, plain tables for REVTeX)
 - [ ] Bundled TeX package cache so it works offline; installers; auto-update
 - [x] Crash recovery: unsaved changes copied to the app data folder (with figures)
       3 s after each edit; offered back on the next start; closing asks first

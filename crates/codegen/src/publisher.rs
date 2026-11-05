@@ -9,6 +9,7 @@ use std::fmt::Write;
 use texloom_core::{AuthorInfo, ClassBase, Document, FieldValue, FrontMatterStyle, Template};
 
 use crate::latex::escape;
+use crate::Engine;
 
 macro_rules! w {
     ($o:expr) => { $o.push('\n') };
@@ -19,6 +20,12 @@ macro_rules! w {
 
 /// Replacements for kit files that only work with pdfLaTeX. Texloom's engine is
 /// XeTeX-based; these stand-ins keep the same commands.
+/// The stand-in for a kit file under `engine`, if it needs one (only pdfLaTeX runs
+/// pdfLaTeX-only kits as they are).
+pub fn kit_override(file_name: &str, engine: Engine) -> Option<&'static str> {
+    if engine == Engine::Pdf { None } else { xetex_override(file_name) }
+}
+
 pub fn xetex_override(file_name: &str) -> Option<&'static str> {
     match file_name {
         // IEEE Access (and other IEEE kits): PANTONE spot colours via pdfTeX
@@ -51,7 +58,12 @@ const SPOTCOLOR_XETEX: &str = r"\NeedsTeXFormat{LaTeX2e}
 // ---------------------------------------------------------------- wrapper class
 
 /// The wrapper class: loads the publisher class and adds what Texloom documents use.
-pub fn wrapper_cls(t: &Template, base: &ClassBase) -> String {
+/// Classes whose tables avoid the array package (see [`wrapper_cls`]).
+pub fn uses_plain_tables(base: &ClassBase) -> bool {
+    base.class.starts_with("revtex")
+}
+
+pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
     let mut o = String::new();
     let id = &t.meta.id;
     let one_line = |s: &str| s.replace(['\n', '\r'], " ");
@@ -69,7 +81,7 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase) -> String {
         .map(|f| f.rsplit('/').next().unwrap_or(f))
         .filter(|f| f.ends_with(".map"))
         .collect();
-    if !maps.is_empty() {
+    if !maps.is_empty() && engine == Engine::Xe {
         let specials: String = maps.iter().map(|m| format!("\\special{{pdf:mapfile {m}}}")).collect();
         w!(o, "\\AtBeginDvi{{{specials}}}");
     }
@@ -86,8 +98,12 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase) -> String {
         // acmart's math fonts already provide these symbols (and clash with amssymb).
         w!(o, "\\RequirePackage{{amssymb}}");
     }
-    w!(o, "\\RequirePackage{{tabularx}}");
-    w!(o, "\\newcolumntype{{L}}{{>{{\\raggedright\\arraybackslash}}X}}");
+    // REVTeX 4.2 breaks with the array package of current TeX distributions
+    // ("Extra \or"), so its tables use plain p columns instead of tabularx.
+    if !uses_plain_tables(base) {
+        w!(o, "\\RequirePackage{{tabularx}}");
+        w!(o, "\\newcolumntype{{L}}{{>{{\\raggedright\\arraybackslash}}X}}");
+    }
     w!(o, "\\RequirePackage[normalem]{{ulem}}");
     w!(o);
 
