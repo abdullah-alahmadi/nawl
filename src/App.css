@@ -10,6 +10,8 @@
   --error-soft: #fdecea;
   --ok: #2c8a4a;
   --page: #ffffff;
+  /* Lets native controls (scrollbars, spinners, checkboxes) follow the theme. */
+  color-scheme: light dark;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 14px;
   color: var(--text);
@@ -109,3 +111,149 @@ button.active { background: var(--accent-soft); border-color: var(--accent); col
 .error-panel pre { max-height: 240px; overflow: auto; font-size: 11px; color: var(--text); white-space: pre-wrap; }
 .equation-field math-field::part(virtual-keyboard-toggle),
 .equation-field math-field::part(menu-toggle) { display: none; }
+
+/* Document info form */
+.metadata-form {
+  max-width: 800px; margin: 0 auto 24px; padding: 16px 20px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  display: grid; gap: 10px;
+}
+.metadata-form h2 { margin: 0; font-size: 15px; }
+.metadata-form p { margin: 0 0 4px; }
+.metadata-form label { display: grid; gap: 4px; font-weight: 500; }
+.metadata-form input, .metadata-form textarea {
+  font: inherit; font-weight: normal; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; resize: vertical;
+}
+.metadata-form input:focus, .metadata-form textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.metadata-form .missing input, .metadata-form .missing textarea { border-color: var(--error); }
+.metadata-form .required { color: var(--error); }
+.badge {
+  display: inline-block; margin-left: 6px; min-width: 16px; padding: 0 5px; border-radius: 8px;
+  background: var(--error); color: white; font-size: 11px; line-height: 16px; text-align: center;
+}
+
+/* Template menu */
+.menu-anchor { position: relative; }
+.menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 10; min-width: 280px;
+  display: grid; padding: 6px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+.menu button { text-align: left; }
+.menu-info { display: grid; gap: 2px; padding: 6px 8px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--border); font-size: 12px; word-break: break-all; }
+.menu-info strong { font-size: 13px; }
+.error-panel { position: relative; }
+.error-panel .dismiss { position: absolute; top: 4px; right: 4px; color: inherit; }
+.error-panel .path { font-size: 12px; word-break: break-all; margin-top: 2px; }
+.error-panel code { font-size: 12px; color: var(--text); }
+
+/* Mode switch */
+.mode-switch { display: flex; padding: 2px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); }
+.mode-switch button { border-radius: 6px; padding: 3px 12px; }
+.mode-switch button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+button.primary { background: var(--accent); color: white; }
+button.primary:hover { background: var(--accent); filter: brightness(1.08); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:disabled:hover { background: transparent; }
+button.primary:disabled:hover { background: var(--accent); filter: none; }
+[hidden] { display: none !important; }
+
+/* Template designer */
+.designer-pane { padding: 0; display: flex; flex-direction: column; }
+.designer { display: flex; flex-direction: column; min-height: 100%; }
+.designer-head {
+  display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap;
+  padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel);
+  position: sticky; top: 0; z-index: 2;
+}
+.designer-title { display: grid; gap: 2px; min-width: 0; }
+.designer-title .muted { font-size: 12px; word-break: break-all; }
+.designer-errors { padding: 6px 16px; background: var(--error-soft); color: var(--error); font-size: 13px; }
+.designer-body { display: grid; grid-template-columns: 150px minmax(0, 1fr); flex: 1; min-height: 0; }
+.designer-nav {
+  display: flex; flex-direction: column; gap: 2px; padding: 12px 8px;
+  border-right: 1px solid var(--border); background: var(--panel);
+}
+.designer-nav button { text-align: left; display: flex; justify-content: space-between; align-items: center; }
+.designer-nav button.active { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.designer-panel { padding: 16px 20px 40px; display: grid; gap: 12px; align-content: start; max-width: 760px; }
+.designer-panel h3 { margin: 0 0 4px; font-size: 16px; }
+.designer-panel input:not([type="checkbox"]):not([type="color"]), .designer-panel textarea {
+  font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 8px; min-width: 0;
+}
+.designer-panel input:focus, .designer-panel select:focus, .designer-panel textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.designer-panel textarea { width: 100%; resize: vertical; }
+.mono { font-family: ui-monospace, monospace; }
+.d-row { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; align-items: start; }
+.d-label { padding-top: 6px; font-weight: 500; display: grid; gap: 2px; }
+.d-hint { font-size: 12px; font-weight: normal; color: var(--muted); }
+.d-control { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.d-control > input, .d-control > textarea, .d-control > .d-placeholder-input { width: 100%; }
+.d-row.has-error input, .d-row.has-error select { border-color: var(--error) !important; }
+.d-error { color: var(--error); font-size: 12.5px; }
+.d-warning { color: #b7791f; font-size: 12.5px; }
+.d-note { margin: 0; color: var(--muted); font-size: 13px; }
+.d-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.d-number { display: inline-flex; align-items: center; gap: 4px; }
+.d-unit { color: var(--muted); font-size: 12.5px; }
+.d-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.d-margins { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.d-margins label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.d-segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.d-segmented button { border-radius: 0; border: none; border-right: 1px solid var(--border); }
+.d-segmented button:last-child { border-right: none; }
+.d-segmented button.active { background: var(--accent-soft); color: var(--accent); }
+.d-color { display: inline-flex; align-items: center; gap: 8px; }
+.d-color input[type="color"] { width: 36px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: none; }
+.d-placeholder-input { display: grid; gap: 4px; }
+.d-placeholder-input input, .d-placeholder-input textarea { width: 100%; }
+.d-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.d-chips button { font-family: ui-monospace, monospace; font-size: 11.5px; padding: 1px 6px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); }
+.d-chips button:hover { color: var(--accent); border-color: var(--accent); }
+.d-subhead { margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.d-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.d-slots label { display: grid; gap: 4px; align-content: start; text-transform: capitalize; }
+.d-sample {
+  background: var(--page); color: #1d2228; border-radius: 6px; padding: 14px 20px; border: 1px solid var(--border);
+  font-family: "Latin Modern Roman", "CMU Serif", "TeX Gyre Termes", Georgia, serif;
+}
+.d-sample-text { font-size: 13px; color: #6b7480; }
+.d-table { display: grid; gap: 6px; }
+.d-table-head, .d-table-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 64px 92px; gap: 8px; align-items: center; }
+.d-table-head { font-size: 12px; color: var(--muted); font-weight: 500; }
+.d-table-row-wrap { display: grid; gap: 2px; }
+.d-row-buttons { display: inline-flex; gap: 2px; }
+.d-row-buttons button { padding: 2px 7px; }
+.d-row-buttons .danger:hover { color: var(--error); background: var(--error-soft); }
+.d-add { justify-self: start; color: var(--accent); }
+.d-list { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+.d-list li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; display: grid; gap: 8px; }
+.d-list-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.d-summary { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+
+/* The designer needs more room than the editor page. */
+.panes.template-mode { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+@media (max-width: 1100px) {
+  .d-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .d-label { padding-top: 0; }
+}
+
+/* Dropdowns: WebKitGTK draws native selects with the system theme but our text colour,
+   which can make the text invisible in dark mode. Draw them ourselves instead. */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  font: inherit;
+  color: var(--text);
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 28px 5px 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  cursor: pointer;
+}
+select option, select optgroup { color: var(--text); background-color: var(--panel); }

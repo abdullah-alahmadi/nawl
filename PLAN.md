@@ -20,21 +20,23 @@ real PDF preview (Tectonic) shows the exact output.
 | Editor | TipTap (ProseMirror) with a custom schema |
 | Math | MathLive |
 | PDF preview | pdf.js |
-| Rust ↔ TS types | tauri-specta (or ts-rs) |
+| Rust ↔ TS types | ts-rs (`cargo test` writes `src/bindings/`) |
 | TeX engine | Tectonic, bundled as a sidecar binary (may move to the crate later) |
 | Bibliography | hayagriva (CSL) → `thebibliography` (no biber dependency) |
-| Codegen | minijinja |
+| Codegen | Plain Rust string building (Jinja-style `{{ }}`/`{% %}` collide with TeX braces and `%` comments) |
 | Tests | insta (snapshots of generated LaTeX), Playwright (UI) |
 
 ## Repository layout
 
 ```
 crates/
-  core/      Document + Template models (serde), validation. No UI, no TeX.
-  codegen/   Template → .cls, Document → .tex (minijinja templates)
-  compile/   Tectonic runner, log parsing → friendly errors
-  biblio/    hayagriva wrapper
-  cli/       `texloom render doc.json --template t.json -o out.pdf`
+  core/      texloom-core: Document + Template models, placeholders, validation. No UI, no TeX.
+  codegen/   texloom-codegen: Template → .cls, Document → .tex
+  compile/   texloom-compile: Tectonic runner, log parsing → friendly errors
+  biblio/    hayagriva wrapper (Phase 5)
+  cli/       texloom-cli: `render doc.loom -t template.json`, `export`, `check`
+templates/   built-in templates (senior-design/template.json is the reference)
+examples/    sample documents
 src-tauri/   Tauri app: commands that call the crates
 src/         React frontend (Tauri's default layout keeps it at the repo root)
   editor/    TipTap schema + custom nodes (equation, figure, citation, ref)
@@ -45,33 +47,41 @@ scripts/     fetch-tectonic.sh (sidecar binary), copy-mathlive-assets.mjs (posti
 
 ## File formats
 
-- **Document** (zip): `document.json` (ProseMirror JSON), `metadata.json`, `assets/`,
-  `refs.bib`/`refs.yaml`, plus an embedded copy of its template.
-- **Template** (zip): `template.json` + `assets/` (logos, fonts).
+- **Document** (`.loom`): currently JSON `{"format": "texloom", "version": 1, "metadata": {...}, "doc": <ProseMirror JSON>}`.
+  The `doc` JSON *is* the typed model (`texloom_core::Body`), so no conversion layer exists.
+  Later (zip): adds `assets/`, `refs.bib`/`refs.yaml` and an embedded copy of the template.
+- **Template**: currently `template.json` with assets resolved relative to its folder.
+  Later (zip): `template.json` + `assets/` (logos, fonts).
 - **Export** (zip): `report.tex` + `<template>.cls` + assets + bibliography. Compiles
   anywhere, including Overleaf.
 
-### Template model (sketch)
+### Template model
+
+See `crates/core/src/template.rs`. In short:
 
 ```rust
 pub struct Template {
-    pub meta: TemplateMeta,
-    pub page: PageSetup,                 // paper, margins (mm), binding offset, spacing
-    pub fonts: Fonts,                    // body / heading / mono
-    pub styles: HashMap<ElementKind, ElementStyle>,
-    pub numbering: Numbering,            // roman front matter, arabic body, chapter format
-    pub header_footer: HeaderFooter,     // L/C/R slots per page type, with {fields}
-    pub title_page: TitlePage,           // positioned items on a canvas (mm)
-    pub fields: Vec<MetadataField>,      // title, team members, advisor, course…
-    pub skeleton: Vec<SkeletonSection>,  // required/locked sections and order
-    pub bibliography: BibStyle,          // CSL style id
-    pub raw_preamble: Option<String>,    // escape hatch
+    pub meta: TemplateMeta,               // id doubles as the .cls name
+    pub page: PageSetup,                  // paper, margins (mm), two-sided, line spacing, paragraphs
+    pub fonts: Fonts,                     // base size + main/sans/mono (TeX Gyre built-ins or system)
+    pub structure: Structure,             // chapters vs sections, numbering depth, page number styles
+    pub headings: Headings,               // 4 levels: size, weight, case, align, label "Chapter {n}", spacing
+    pub header_footer: HeaderFooter,      // front matter / main / chapter-opening L/C/R slots
+    pub title_page: TitlePage,            // text/image/rule items placed in mm
+    pub fields: Vec<MetadataField>,       // title, team (list), abstract (paragraphs)…
+    pub front_matter: Vec<FrontMatterItem>, // title page, field pages (abstract), TOC, LoF, LoT
+    pub raw_preamble: Option<String>,     // escape hatch
 }
 ```
 
-Package mapping: geometry (page setup), fontspec (fonts), titlesec (headings), fancyhdr
-(headers/footers), caption (captions), tocloft (table of contents), and TikZ
-`remember picture, overlay` for the absolutely positioned title page.
+Placeholders like `{title}`, `{page}`, `{pages}`, `{chapter}` work in header/footer
+slots and title-page text; `{n}` in heading labels. Templates are validated with paths
+to each problem (`headerFooter.main.header.right: unknown placeholder {nope}`).
+
+The generated `.cls` is standalone: documents set `\texloomfield{id}{value}` and call
+`\texloomfrontmatter` / `\texloommainmatter`. Package mapping: geometry, fontspec,
+setspace, titlesec, fancyhdr + lastpage, TikZ overlay (title page), hyperref. Still to
+map: caption (captions), tocloft (TOC styling), bibliography.
 
 ## Phases
 
@@ -86,10 +96,16 @@ Package mapping: geometry (page setup), fontspec (fonts), titlesec (headings), f
   Ctrl+Z inside an equation goes to MathLive's own undo, not the document's
 
 ### Phase 1: Core model and LaTeX generation, no UI (~2–3 weeks)
-- [ ] `core` structs + TS type export
-- [ ] `codegen`: Template → .cls, Document → .tex; correct escaping of special characters
-- [ ] `compile`: Tectonic runner + readable errors
-- [ ] `cli` + snapshot tests; hand-written `senior-design.json` reference template
+- [x] `core` structs + TS type export; template + metadata validation
+- [x] `codegen`: Template → .cls, Document → .tex; correct escaping of special characters
+- [x] `compile`: Tectonic runner + readable errors
+- [x] `cli` + snapshot tests; hand-written `senior-design` reference template + sample report
+- [x] App uses the new pipeline with the built-in template; basic "Document info" form
+      (generated from the template's fields), metadata saved in `.loom` files
+- [x] App: open a `template.json` (Template menu or `TEXLOOM_TEMPLATE`), live reload on
+      save, template errors shown while the last valid version stays active; documents
+      save their template path + an embedded copy and reopen with it
+- Not yet: figures/tables/captions (Phase 2), mirrored headers for two-sided printing
 
 ### Phase 2: Editor MVP (~3–4 weeks)
 - [ ] TipTap schema matching `core`; toolbar, shortcuts, outline sidebar
@@ -98,9 +114,15 @@ Package mapping: geometry (page setup), fontspec (fonts), titlesec (headings), f
 - [ ] Open/save document files; export PDF and the .tex zip
 
 ### Phase 3: Template designer v1, styles (~3–4 weeks)
-- [ ] Panels: page setup, fonts, element styles, numbering, headers/footers
-- [ ] Live sample preview (instant CSS + PDF a moment later)
-- [ ] Save/load template files with bundled assets
+- [x] Template mode with panels: info, page, fonts (built-in + system), structure &
+      numbering, headings (with instant on-screen sample), headers/footers (placeholder
+      chips), fields, front matter
+- [x] Live preview: debounced validation → PDF of the current document; errors shown
+      inline and per section while the last valid version stays in the preview
+- [x] Save / Save as (copies image assets) / New copy; Ctrl+S saves the template in Template mode
+- [ ] Instant CSS preview of the editor page from the template (pairs with Phase 2's
+      template-driven editor styling)
+- [ ] Undo/redo inside the designer; caption and TOC styling once figures exist
 
 ### Phase 4: Title-page designer (~2–3 weeks)
 - [ ] Page-sized canvas in mm: drag, resize, snap, align

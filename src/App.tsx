@@ -3,39 +3,20 @@ import { useEditor, useEditorState, EditorContent, type Editor, type JSONContent
 import StarterKit from "@tiptap/starter-kit";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Equation } from "./editor/Equation";
+import { MetadataForm } from "./editor/MetadataForm";
+import { TemplateDesigner } from "./designer/TemplateDesigner";
 import { PdfPreview } from "./preview/PdfPreview";
 import * as api from "./api";
 import type { AppError } from "./api";
 import "./App.css";
 
 const COMPILE_DEBOUNCE_MS = 700;
+/** Designer edits are validated after this pause, then the preview recompiles. */
+const TEMPLATE_DEBOUNCE_MS = 400;
 const DOC_FILTER = [{ name: "Texloom document", extensions: ["loom"] }];
+const TEMPLATE_FILTER = [{ name: "Texloom template", extensions: ["json"] }];
 
-const SAMPLE: JSONContent = {
-  type: "doc",
-  content: [
-    { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Introduction" }] },
-    {
-      type: "paragraph",
-      content: [
-        { type: "text", text: "This report describes our senior design project. Text can be " },
-        { type: "text", text: "bold", marks: [{ type: "bold" }] },
-        { type: "text", text: ", " },
-        { type: "text", text: "italic", marks: [{ type: "italic" }] },
-        { type: "text", text: " or contain specials like 50% & $5 without breaking LaTeX." },
-      ],
-    },
-    { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Model" }] },
-    { type: "paragraph", content: [{ type: "text", text: "The energy of the system is given by:" }] },
-    { type: "equation", attrs: { latex: "E=\\frac{1}{2}mv^2+mgh" } },
-    {
-      type: "bulletList",
-      content: ["Click the equation to edit it visually", "Type $$ and a space on an empty line for a new one"].map(
-        (text) => ({ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text }] }] }),
-      ),
-    },
-  ],
-};
+const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
 type Status = { state: "idle" | "compiling" | "ok" } | { state: "error"; error: AppError };
 
@@ -45,15 +26,37 @@ export default function App() {
   const [path, setPath] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [showLatex, setShowLatex] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [latex, setLatex] = useState("");
+  const [templateInfo, setTemplateInfo] = useState<api.TemplateInfo | null>(null);
+  // Set when the template file on disk has errors; the last valid version stays in use.
+  const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const [mode, setMode] = useState<"document" | "template">("document");
+  // The designer edits a draft; valid drafts become the active template right away.
+  const [draft, setDraft] = useState<api.Template | null>(null);
+  const [draftDirty, setDraftDirty] = useState(false);
+  const [draftIssues, setDraftIssues] = useState<api.Issue[]>([]);
+  // "New copy" drafts must be saved to a new file, never over the original.
+  const [draftNeedsSaveAs, setDraftNeedsSaveAs] = useState(false);
+  const draftTimer = useRef<number | undefined>(undefined);
+  const template = templateInfo?.template ?? null;
+  const [metadata, setMetadataState] = useState<api.Metadata>({});
+  const [issues, setIssues] = useState<api.Issue[]>([]);
+  // Refs give debounced callbacks the latest values without re-subscribing.
+  const metadataRef = useRef<api.Metadata>({});
+  const editorRef = useRef<Editor | null>(null);
   const requestId = useRef(0);
   const timer = useRef<number | undefined>(undefined);
+  const started = useRef(false);
 
-  const compile = useCallback(async (doc: JSONContent) => {
+  const compile = useCallback(async () => {
+    const editor = editorRef.current;
+    if (!editor) return;
     const id = ++requestId.current;
     setStatus({ state: "compiling" });
     try {
-      const bytes = await api.renderPdf(doc);
+      const bytes = await api.renderPdf(editor.getJSON(), metadataRef.current);
       if (id !== requestId.current) return; // a newer compile superseded this one
       setPdf(bytes);
       setStatus({ state: "ok" });
@@ -62,32 +65,157 @@ export default function App() {
     }
   }, []);
 
-  const scheduleCompile = useCallback(
-    (editor: Editor) => {
-      window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => compile(editor.getJSON()), COMPILE_DEBOUNCE_MS);
-    },
-    [compile],
-  );
+  const scheduleCompile = useCallback(() => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(compile, COMPILE_DEBOUNCE_MS);
+  }, [compile]);
+
+  const setMetadata = useCallback((m: api.Metadata) => {
+    metadataRef.current = m;
+    setMetadataState(m);
+    api.checkMetadata(m).then(setIssues, () => setIssues([]));
+  }, []);
 
   const editor = useEditor({
     extensions: [StarterKit, Equation],
-    content: SAMPLE,
-    onCreate: ({ editor }) => compile(editor.getJSON()),
-    onUpdate: ({ editor }) => {
+    content: EMPTY_DOC,
+    onUpdate: () => {
       setDirty(true);
-      scheduleCompile(editor);
+      scheduleCompile();
     },
   });
+  editorRef.current = editor;
+
+  // Startup: load the template and open the sample report.
+  useEffect(() => {
+    if (!editor || started.current) return;
+    started.current = true; // React StrictMode runs effects twice in development
+    Promise.all([api.getTemplate(), api.sampleDocument()])
+      .then(([t, sample]) => {
+        setTemplateInfo(t);
+        setDraft(t.template);
+        setMetadata(sample.metadata);
+        editor.commands.setContent(sample.doc, { emitUpdate: false });
+        compile();
+      })
+      .catch((e) => setStatus({ state: "error", error: api.asAppError(e) }));
+  }, [editor, compile, setMetadata]);
+
+  // A new active template: refresh everything that depends on it.
+  const applyTemplate = useCallback(
+    (info: api.TemplateInfo) => {
+      setTemplateInfo(info);
+      setTemplateProblem(null);
+      setDraft(info.template);
+      setDraftDirty(false);
+      setDraftNeedsSaveAs(false);
+      setDraftIssues(info.warnings);
+      setMetadata(metadataRef.current); // re-check required fields against the new template
+      compile();
+    },
+    [compile, setMetadata],
+  );
+
+  // Live reload: the template file was edited on disk.
+  useEffect(() => {
+    const unlisten = api.onTemplateReloaded((e) => {
+      if (e.kind === "reloaded") applyTemplate(e.info);
+      else setTemplateProblem({ path: e.path, issues: e.issues });
+    });
+    return () => void unlisten.then((f) => f());
+  }, [applyTemplate]);
+
+  const openTemplateFile = async () => {
+    setShowTemplateMenu(false);
+    const target = await open({ filters: TEMPLATE_FILTER, multiple: false, directory: false });
+    if (!target) return;
+    try {
+      applyTemplate(await api.openTemplate(target));
+    } catch (e) {
+      const err = api.asAppError(e);
+      if (err.kind === "templateInvalid") setTemplateProblem({ path: err.path, issues: err.issues });
+      else report(e);
+    }
+  };
+
+  const switchToBuiltin = async () => {
+    setShowTemplateMenu(false);
+    applyTemplate(await api.switchToBuiltinTemplate());
+  };
+
+  // Designer edits: validate after a pause; valid drafts go live in the preview.
+  const onDraftChange = useCallback(
+    (t: api.Template) => {
+      setDraft(t);
+      setDraftDirty(true);
+      window.clearTimeout(draftTimer.current);
+      draftTimer.current = window.setTimeout(async () => {
+        try {
+          const warnings = await api.setTemplate(t);
+          setDraftIssues(warnings);
+          setTemplateInfo((prev) => (prev ? { ...prev, template: t, warnings } : prev));
+          setMetadata(metadataRef.current);
+          compile();
+        } catch (e) {
+          const err = api.asAppError(e);
+          if (err.kind === "templateInvalid") setDraftIssues(err.issues);
+          else setStatus({ state: "error", error: err });
+        }
+      }, TEMPLATE_DEBOUNCE_MS);
+    },
+    [compile, setMetadata],
+  );
+
+  const saveTemplateAs = useCallback(async () => {
+    if (!draft) return;
+    const target = await save({ filters: TEMPLATE_FILTER, defaultPath: `${draft.meta.id}.json` });
+    if (!target) return;
+    try {
+      applyTemplate(await api.saveTemplate(target, draft));
+    } catch (e) {
+      const err = api.asAppError(e);
+      if (err.kind === "templateInvalid") setDraftIssues(err.issues);
+      else setStatus({ state: "error", error: err });
+    }
+  }, [draft, applyTemplate]);
+
+  const saveTemplate = useCallback(async () => {
+    if (!draft) return;
+    const target = templateInfo?.path;
+    if (!target || draftNeedsSaveAs) return saveTemplateAs();
+    try {
+      applyTemplate(await api.saveTemplate(target, draft));
+    } catch (e) {
+      const err = api.asAppError(e);
+      if (err.kind === "templateInvalid") setDraftIssues(err.issues);
+      else setStatus({ state: "error", error: err });
+    }
+  }, [draft, templateInfo, draftNeedsSaveAs, saveTemplateAs, applyTemplate]);
+
+  const newTemplateCopy = () => {
+    if (!draft) return;
+    const copy = structuredClone(draft);
+    copy.meta.id = `${copy.meta.id}-copy`;
+    copy.meta.name = `${copy.meta.name} (copy)`;
+    copy.meta.version = "0.1.0";
+    setDraftNeedsSaveAs(true);
+    onDraftChange(copy);
+  };
+
+  const onMetadataChange = (m: api.Metadata) => {
+    setMetadata(m);
+    setDirty(true);
+    scheduleCompile();
+  };
 
   // Keep the LaTeX source view current while it's open.
   useEffect(() => {
     if (!showLatex || !editor) return;
-    const refresh = () => api.toLatex(editor.getJSON()).then(setLatex);
+    const refresh = () => api.toLatex(editor.getJSON(), metadataRef.current).then(setLatex);
     refresh();
     editor.on("update", refresh);
     return () => void editor.off("update", refresh);
-  }, [showLatex, editor]);
+  }, [showLatex, editor, metadata]);
 
   const report = (e: unknown) => setStatus({ state: "error", error: api.asAppError(e) });
 
@@ -95,7 +223,7 @@ export default function App() {
     if (!editor) return;
     const target = await save({ filters: DOC_FILTER, defaultPath: path ?? "report.loom" });
     if (!target) return;
-    await api.saveDocument(target, editor.getJSON()).then(() => {
+    await api.saveDocument(target, editor.getJSON(), metadataRef.current).then(() => {
       setPath(target);
       setDirty(false);
     }, report);
@@ -104,7 +232,7 @@ export default function App() {
   const saveDoc = useCallback(async () => {
     if (!editor) return;
     if (!path) return saveAs();
-    await api.saveDocument(path, editor.getJSON()).then(() => setDirty(false), report);
+    await api.saveDocument(path, editor.getJSON(), metadataRef.current).then(() => setDirty(false), report);
   }, [editor, path, saveAs]);
 
   const openDoc = async () => {
@@ -112,11 +240,16 @@ export default function App() {
     const target = await open({ filters: DOC_FILTER, multiple: false, directory: false });
     if (!target) return;
     try {
-      const doc = await api.openDocument(target);
-      editor.commands.setContent(doc, { emitUpdate: false });
+      const opened = await api.openDocument(target);
+      editor.commands.setContent(opened.doc, { emitUpdate: false });
+      metadataRef.current = opened.metadata;
       setPath(target);
       setDirty(false);
-      compile(doc);
+      if (opened.template) applyTemplate(opened.template);
+      else {
+        setMetadata(opened.metadata);
+        compile();
+      }
     } catch (e) {
       report(e);
     }
@@ -125,34 +258,82 @@ export default function App() {
   const exportLatex = async () => {
     if (!editor) return;
     const target = await save({ filters: [{ name: "LaTeX", extensions: ["tex"] }], defaultPath: "report.tex" });
-    if (target) await api.exportTex(target, editor.getJSON()).catch(report);
+    if (target) await api.exportTex(target, editor.getJSON(), metadataRef.current).catch(report);
   };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        if (e.shiftKey) saveAs();
+        if (mode === "template") {
+          if (e.shiftKey) saveTemplateAs();
+          else saveTemplate();
+        } else if (e.shiftKey) saveAs();
         else saveDoc();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [saveDoc, saveAs]);
+  }, [mode, saveDoc, saveAs, saveTemplate, saveTemplateAs]);
 
   const fileName = path ? path.split(/[\\/]/).pop() : "Untitled";
+  const missing = issues.filter((i) => i.path.startsWith("metadata.") && i.message.includes("required")).length;
 
   return (
     <div className="app">
       <header className="toolbar">
+        <div className="mode-switch" role="tablist" aria-label="Mode">
+          <button role="tab" aria-selected={mode === "document"} className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>
+            Document
+          </button>
+          <button role="tab" aria-selected={mode === "template"} className={mode === "template" ? "active" : ""} onClick={() => setMode("template")}>
+            Template{draftDirty && " •"}
+            {draftIssues.some((i) => i.severity === "error") && <span className="badge">!</span>}
+          </button>
+        </div>
         <div className="group">
           <button onClick={openDoc}>Open</button>
           <button onClick={saveDoc} title="Ctrl+S">Save</button>
           <button onClick={saveAs} title="Ctrl+Shift+S">Save As</button>
-          <button onClick={exportLatex}>Export .tex</button>
+          <button onClick={exportLatex} title="Writes the .tex file and the template's .cls next to it">
+            Export .tex
+          </button>
         </div>
-        {editor && <FormatBar editor={editor} />}
+        {editor && mode === "document" && <FormatBar editor={editor} />}
         <div className="group right">
+          <div className="menu-anchor">
+            <button
+              className={showTemplateMenu ? "active" : ""}
+              onClick={() => setShowTemplateMenu((v) => !v)}
+              title={templateInfo?.path ?? "Built-in template"}
+            >
+              Template: {template?.meta.name ?? "…"}
+              {templateProblem && <span className="badge">!</span>} ▾
+            </button>
+            {showTemplateMenu && (
+              <div className="menu" role="menu">
+                <div className="menu-info">
+                  <strong>{template?.meta.name}</strong>
+                  <span className="muted">{templateInfo?.path ?? "Built into Texloom"}</span>
+                  {templateInfo?.path && <span className="muted">Reloads automatically when the file changes.</span>}
+                </div>
+                <button role="menuitem" onClick={openTemplateFile}>
+                  Open template file…
+                </button>
+                <button role="menuitem" onClick={switchToBuiltin}>
+                  Use built-in “Senior Design Report”
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            hidden={mode !== "document"}
+            className={showInfo ? "active" : ""}
+            onClick={() => setShowInfo((v) => !v)}
+            title="Title, team members, abstract and other template fields"
+          >
+            Document info{missing > 0 && <span className="badge">{missing}</span>}
+          </button>
           <button className={showLatex ? "active" : ""} onClick={() => setShowLatex((v) => !v)}>
             LaTeX source
           </button>
@@ -164,13 +345,32 @@ export default function App() {
         </div>
       </header>
 
-      <main className="panes">
-        <section className="editor-pane">
+      <main className={`panes${mode === "template" ? " template-mode" : ""}`}>
+        {mode === "template" && templateInfo && draft && (
+          <section className="editor-pane designer-pane">
+            <TemplateDesigner
+              info={templateInfo}
+              draft={draft}
+              dirty={draftDirty}
+              issues={draftIssues}
+              onChange={onDraftChange}
+              onSave={saveTemplate}
+              onSaveAs={saveTemplateAs}
+              onNewCopy={newTemplateCopy}
+            />
+          </section>
+        )}
+        {/* Kept mounted (just hidden) in template mode so the editor keeps its state. */}
+        <section className="editor-pane" hidden={mode !== "document"}>
+          {showInfo && template && (
+            <MetadataForm template={template} metadata={metadata} onChange={onMetadataChange} />
+          )}
           <div className="page">
             <EditorContent editor={editor} />
           </div>
         </section>
         <section className="preview-pane">
+          {templateProblem && <TemplateProblemPanel problem={templateProblem} onDismiss={() => setTemplateProblem(null)} />}
           {status.state === "error" && <ErrorPanel error={status.error} />}
           {showLatex ? <pre className="latex-source">{latex}</pre> : <PdfPreview pdf={pdf} />}
         </section>
@@ -234,6 +434,33 @@ function StatusBadge({ status }: { status: Status }) {
   return <span className={`status status-${status.state}`}>{text}</span>;
 }
 
+function TemplateProblemPanel({
+  problem,
+  onDismiss,
+}: {
+  problem: { path: string; issues: api.Issue[] };
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="error-panel">
+      <button className="dismiss" onClick={onDismiss} title="Dismiss">
+        ×
+      </button>
+      <strong>The template has errors, so the last valid version is still in use:</strong>
+      <div className="muted path">{problem.path}</div>
+      <ul>
+        {problem.issues
+          .filter((i) => i.severity === "error")
+          .map((i, n) => (
+            <li key={n}>
+              {i.path && <code>{i.path}</code>} {i.message}
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
+}
+
 function ErrorPanel({ error }: { error: AppError }) {
   if (error.kind === "texErrors") {
     return (
@@ -253,6 +480,9 @@ function ErrorPanel({ error }: { error: AppError }) {
         </details>
       </div>
     );
+  }
+  if (error.kind === "templateInvalid") {
+    return <TemplateProblemPanel problem={error} onDismiss={() => {}} />;
   }
   return (
     <div className="error-panel">

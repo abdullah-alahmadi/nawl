@@ -1,0 +1,116 @@
+// The template designer: panels that edit a draft template. Every change goes to
+// the backend for validation and a live PDF preview (handled by App).
+import { useCallback, useEffect, useState } from "react";
+import * as api from "../api";
+import type { Issue, Template, TemplateInfo } from "../api";
+import { issuesAt } from "./controls";
+import type { Edit } from "./common";
+import { FontsSection, InfoSection, PageSection, StructureSection } from "./PageSections";
+import { HeaderFooterSection, HeadingsSection } from "./StyleSections";
+import { FieldsSection, FrontMatterSection, TitlePageSection } from "./ContentSections";
+
+const SECTIONS = [
+  { key: "info", label: "Template info", prefix: "meta" },
+  { key: "page", label: "Page", prefix: "page" },
+  { key: "fonts", label: "Fonts", prefix: "fonts" },
+  { key: "structure", label: "Structure", prefix: "structure" },
+  { key: "headings", label: "Headings", prefix: "headings" },
+  { key: "headerFooter", label: "Headers & footers", prefix: "headerFooter" },
+  { key: "fields", label: "Fields", prefix: "fields" },
+  { key: "frontMatter", label: "Front matter", prefix: "frontMatter" },
+  { key: "titlePage", label: "Title page", prefix: "titlePage" },
+] as const;
+
+type SectionKey = (typeof SECTIONS)[number]["key"];
+
+export function TemplateDesigner({
+  info,
+  draft,
+  dirty,
+  issues,
+  onChange,
+  onSave,
+  onSaveAs,
+  onNewCopy,
+}: {
+  info: TemplateInfo;
+  draft: Template;
+  dirty: boolean;
+  issues: Issue[];
+  onChange: (t: Template) => void;
+  onSave: () => void;
+  onSaveAs: () => void;
+  onNewCopy: () => void;
+}) {
+  const [section, setSection] = useState<SectionKey>("page");
+  const [systemFonts, setSystemFonts] = useState<string[]>([]);
+
+  useEffect(() => {
+    api.listSystemFonts().then(setSystemFonts, () => setSystemFonts([]));
+  }, []);
+
+  const edit: Edit = useCallback(
+    (fn) => {
+      const next = structuredClone(draft);
+      fn(next);
+      onChange(next);
+    },
+    [draft, onChange],
+  );
+
+  const props = { t: draft, edit, issues };
+  const errorCount = issues.filter((i) => i.severity === "error").length;
+
+  return (
+    <div className="designer">
+      <div className="designer-head">
+        <div className="designer-title">
+          <strong>
+            {draft.meta.name}
+            {dirty && " •"}
+          </strong>
+          <span className="muted">{info.path ?? "Built-in template (use Save as… to keep changes)"}</span>
+        </div>
+        <div className="group">
+          <button onClick={onNewCopy} title="Start a new template from a copy of this one">
+            New copy
+          </button>
+          <button onClick={onSaveAs}>Save as…</button>
+          <button onClick={onSave} disabled={!dirty || errorCount > 0} className="primary" title="Ctrl+S">
+            Save template
+          </button>
+        </div>
+      </div>
+      {errorCount > 0 && (
+        <div className="designer-errors">
+          {errorCount} problem{errorCount > 1 ? "s" : ""} to fix. The preview shows the last valid version.
+        </div>
+      )}
+      <div className="designer-body">
+        <nav className="designer-nav" aria-label="Template sections">
+          {SECTIONS.map((s) => {
+            const n = issuesAt(issues, s.prefix).filter((i) => i.severity === "error").length;
+            return (
+              <button key={s.key} className={section === s.key ? "active" : ""} onClick={() => setSection(s.key)}>
+                {s.label}
+                {n > 0 && <span className="badge">{n}</span>}
+              </button>
+            );
+          })}
+        </nav>
+        <section className="designer-panel">
+          <h3>{SECTIONS.find((s) => s.key === section)?.label}</h3>
+          {section === "info" && <InfoSection {...props} />}
+          {section === "page" && <PageSection {...props} />}
+          {section === "fonts" && <FontsSection {...props} systemFonts={systemFonts} />}
+          {section === "structure" && <StructureSection {...props} />}
+          {section === "headings" && <HeadingsSection {...props} />}
+          {section === "headerFooter" && <HeaderFooterSection {...props} />}
+          {section === "fields" && <FieldsSection {...props} />}
+          {section === "frontMatter" && <FrontMatterSection {...props} />}
+          {section === "titlePage" && <TitlePageSection {...props} />}
+        </section>
+      </div>
+    </div>
+  );
+}

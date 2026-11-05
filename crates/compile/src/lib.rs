@@ -216,7 +216,7 @@ mod tests {
     }
 
     /// Needs network on first run (Tectonic downloads its package bundle).
-    /// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p compile -- --ignored
+    /// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p texloom-compile -- --ignored
     #[test]
     #[ignore]
     fn compiles_and_reports_errors() {

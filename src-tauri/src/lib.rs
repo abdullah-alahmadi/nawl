@@ -1,26 +1,47 @@
-use std::path::PathBuf;
+/// Like `eprintln!`, but never panics when stderr is closed (e.g. launched without a terminal).
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        use std::io::Write as _;
+        let _ = writeln!(std::io::stderr(), $($arg)*);
+    }};
+}
+
+mod templates;
+
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use compile::{CompileError, Compiler, TexError};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::ipc::Response;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
+use texloom_compile::{Asset, CompileError, Compiler, TexError};
+use texloom_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
 
-/// Version stamp written into saved document files.
-const DOC_FORMAT_VERSION: u32 = 1;
+use templates::{ActiveTemplate, TemplateInfo, TemplateStore};
 
-struct AppState {
+/// Opened on startup so there's something real to look at.
+const SAMPLE_DOCUMENT: &str = include_str!("../../examples/senior-design-report.loom");
+
+pub struct AppState {
     compiler: Result<Arc<Compiler>, String>,
+    templates: TemplateStore,
 }
 
 /// Errors sent to the frontend, tagged so the UI can render each kind differently.
 #[derive(Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
-enum AppError {
+pub enum AppError {
     TectonicMissing { message: String },
     TexErrors { errors: Vec<TexError>, log: String },
+    TemplateInvalid { path: String, issues: Vec<Issue> },
     Other { message: String },
+}
+
+impl AppError {
+    fn other(e: impl std::fmt::Display) -> Self {
+        AppError::Other { message: e.to_string() }
+    }
 }
 
 impl From<CompileError> for AppError {
@@ -28,15 +49,35 @@ impl From<CompileError> for AppError {
         match e {
             CompileError::Failed { errors, log } => AppError::TexErrors { errors, log },
             CompileError::NotFound(_) => AppError::TectonicMissing { message: e.to_string() },
-            other => AppError::Other { message: other.to_string() },
+            other => AppError::other(other),
         }
     }
 }
 
 impl From<std::io::Error> for AppError {
     fn from(e: std::io::Error) -> Self {
-        AppError::Other { message: e.to_string() }
+        AppError::other(e)
     }
+}
+
+/// What the frontend holds: the editor's raw JSON plus metadata values, and the
+/// template the document was saved with (when opening a file).
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OpenedDocument {
+    doc: Value,
+    #[serde(default)]
+    metadata: Metadata,
+    #[serde(default, skip_deserializing)]
+    template: Option<TemplateInfo>,
+}
+
+/// The template fields saved inside a `.loom` file.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SavedTemplate {
+    template: Option<Template>,
+    template_path: Option<PathBuf>,
 }
 
 /// Where Tectonic may live: next to the app binary (bundled sidecar, also where
@@ -53,65 +94,221 @@ fn tectonic_candidates() -> Vec<PathBuf> {
     v
 }
 
-/// Converts the editor document to LaTeX and compiles it. Returns raw PDF bytes
+fn to_document(doc: Value, metadata: Metadata) -> Result<Document, AppError> {
+    let body: Body = serde_json::from_value(doc).map_err(|e| AppError::other(format!("Unreadable document: {e}")))?;
+    Ok(Document { metadata, body })
+}
+
+#[tauri::command]
+fn get_template(state: State<'_, AppState>) -> TemplateInfo {
+    state.templates.current().info()
+}
+
+/// Loads a `template.json`, makes it active and watches it for changes.
+#[tauri::command]
+fn open_template(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<TemplateInfo, AppError> {
+    let path = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
+    let t = templates::load_file(&path)
+        .map_err(|issues| AppError::TemplateInvalid { path: path.display().to_string(), issues })?;
+    let info = t.info();
+    state.templates.set(&app, t);
+    Ok(info)
+}
+
+#[tauri::command]
+fn use_builtin_template(app: AppHandle, state: State<'_, AppState>) -> TemplateInfo {
+    let t = ActiveTemplate::builtin();
+    let info = t.info();
+    state.templates.set(&app, t);
+    info
+}
+
+/// Live edits from the template designer: validates the draft and, if it has no
+/// errors, makes it active (assets still resolve from the template's folder).
+#[tauri::command]
+fn set_template(state: State<'_, AppState>, template: Template) -> Result<Vec<Issue>, AppError> {
+    let current = state.templates.current();
+    let t = templates::from_parsed(template, current.path.clone()).map_err(|issues| AppError::TemplateInvalid {
+        path: current.path.as_ref().map(|p| p.display().to_string()).unwrap_or_default(),
+        issues,
+    })?;
+    let warnings = t.warnings.clone();
+    state.templates.replace(t);
+    Ok(warnings)
+}
+
+/// Writes the template to `path` (copying its image assets when saving to a new
+/// folder), then makes that file the active, watched template.
+#[tauri::command]
+fn save_template(app: AppHandle, state: State<'_, AppState>, path: String, template: Template) -> Result<TemplateInfo, AppError> {
+    let current = state.templates.current();
+    let t = templates::save_to(Path::new(&path), template, current.path.as_deref())?;
+    let info = t.info();
+    state.templates.set(&app, t);
+    Ok(info)
+}
+
+/// Font families installed on the system (empty if fontconfig isn't available).
+#[tauri::command]
+async fn list_system_fonts() -> Vec<String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let Ok(out) = std::process::Command::new("fc-list").args([":", "family"]).output() else {
+            return Vec::new();
+        };
+        let mut families: Vec<String> = String::from_utf8_lossy(&out.stdout)
+            .lines()
+            // "DejaVu Sans,DejaVu Sans Condensed" → the first name is the family.
+            .filter_map(|l| l.split(',').next())
+            .map(|f| f.trim().to_string())
+            .filter(|f| !f.is_empty())
+            .collect();
+        families.sort_by_key(|f| f.to_lowercase());
+        families.dedup();
+        families
+    })
+    .await
+    .unwrap_or_default()
+}
+
+#[tauri::command]
+fn sample_document() -> Result<OpenedDocument, AppError> {
+    serde_json::from_str(SAMPLE_DOCUMENT).map_err(AppError::other)
+}
+
+#[tauri::command]
+fn check_metadata(state: State<'_, AppState>, metadata: Metadata) -> Vec<Issue> {
+    state.templates.current().template.check_metadata(&metadata)
+}
+
+/// Generates LaTeX for the document and compiles it. Returns raw PDF bytes
 /// (an ArrayBuffer on the JS side, avoiding a huge JSON number array).
 #[tauri::command]
-async fn render_pdf(state: State<'_, AppState>, doc: Value) -> Result<Response, AppError> {
-    let compiler = state
-        .compiler
-        .clone()
-        .map_err(|message| AppError::TectonicMissing { message })?;
-    let tex = codegen::document_to_latex(&doc);
-    let out = tauri::async_runtime::spawn_blocking(move || compiler.compile(&tex, &[]))
-        .await
-        .map_err(|e| AppError::Other { message: e.to_string() })??;
+async fn render_pdf(state: State<'_, AppState>, doc: Value, metadata: Metadata) -> Result<Response, AppError> {
+    let compiler = state.compiler.clone().map_err(|message| AppError::TectonicMissing { message })?;
+    let active = state.templates.current();
+    let generated = texloom_codegen::generate(&active.template, &to_document(doc, metadata)?);
+    let assets = active.load_assets(&generated.assets)?;
+    let out = tauri::async_runtime::spawn_blocking(move || {
+        let cls_name = generated.cls_file_name();
+        let mut files = vec![Asset { path: &cls_name, bytes: generated.cls.as_bytes() }];
+        files.extend(assets.iter().map(|(p, b)| Asset { path: p, bytes: b }));
+        compiler.compile(&generated.tex, &files)
+    })
+    .await
+    .map_err(AppError::other)??;
     Ok(Response::new(out.pdf))
 }
 
+/// The generated `.tex` followed by the class, for the source view.
 #[tauri::command]
-fn to_latex(doc: Value) -> String {
-    codegen::document_to_latex(&doc)
+fn to_latex(state: State<'_, AppState>, doc: Value, metadata: Metadata) -> Result<String, AppError> {
+    let g = texloom_codegen::generate(&state.templates.current().template, &to_document(doc, metadata)?);
+    Ok(format!("{}\n%%%%%%%%%%%%%%%% {} %%%%%%%%%%%%%%%%\n\n{}", g.tex, g.cls_file_name(), g.cls))
 }
 
+/// Saves the document with a copy of its template, so it opens the same way
+/// even if the template file later moves or changes.
 #[tauri::command]
-fn save_document(path: String, doc: Value) -> Result<(), AppError> {
-    let file = serde_json::json!({ "format": "texloom", "version": DOC_FORMAT_VERSION, "doc": doc });
-    let text = serde_json::to_string_pretty(&file).map_err(|e| AppError::Other { message: e.to_string() })?;
-    std::fs::write(path, text)?;
+fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata) -> Result<(), AppError> {
+    let active = state.templates.current();
+    // The editor's JSON is written as-is so node types this version doesn't know survive.
+    let file = serde_json::json!({
+        "format": DOC_FORMAT,
+        "version": DOC_VERSION,
+        "template": *active.template,
+        "templatePath": active.path,
+        "metadata": metadata,
+        "doc": doc,
+    });
+    std::fs::write(path, serde_json::to_string_pretty(&file).map_err(AppError::other)?)?;
     Ok(())
 }
 
+/// Opens a document and switches to its template: the template file on disk if it
+/// still exists and is valid (it may have been edited since), else the saved copy.
 #[tauri::command]
-fn open_document(path: String) -> Result<Value, AppError> {
+fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<OpenedDocument, AppError> {
     let text = std::fs::read_to_string(path)?;
-    let file: Value = serde_json::from_str(&text).map_err(|e| AppError::Other { message: format!("Not a valid document: {e}") })?;
-    file.get("doc")
-        .filter(|d| d.get("type").and_then(Value::as_str) == Some("doc"))
-        .cloned()
-        .ok_or_else(|| AppError::Other { message: "Not a Texloom document".into() })
+    let file: Value = serde_json::from_str(&text).map_err(|e| AppError::other(format!("Not a valid document: {e}")))?;
+    if file.get("format").and_then(Value::as_str) != Some(DOC_FORMAT) {
+        return Err(AppError::other("Not a Texloom document"));
+    }
+    let saved: SavedTemplate = serde_json::from_value(file.clone()).unwrap_or(SavedTemplate { template: None, template_path: None });
+    let mut opened: OpenedDocument =
+        serde_json::from_value(file).map_err(|e| AppError::other(format!("Not a valid document: {e}")))?;
+
+    let from_disk = saved.template_path.as_deref().filter(|p| p.is_file()).and_then(|p| templates::load_file(p).ok());
+    let restored = from_disk.or_else(|| {
+        let t = saved.template?;
+        // Keep the path so image assets can still be found next to it.
+        let path = saved.template_path.filter(|p| p.is_file());
+        templates::from_parsed(t, path).ok()
+    });
+    if let Some(t) = restored {
+        opened.template = Some(t.info());
+        state.templates.set(&app, t);
+    }
+    Ok(opened)
 }
 
+/// Writes the `.tex` file, the class and the template's assets next to each other,
+/// ready to compile anywhere.
 #[tauri::command]
-fn export_tex(path: String, doc: Value) -> Result<(), AppError> {
-    std::fs::write(path, codegen::document_to_latex(&doc))?;
+fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata) -> Result<(), AppError> {
+    let active = state.templates.current();
+    let g = texloom_codegen::generate(&active.template, &to_document(doc, metadata)?);
+    let assets = active.load_assets(&g.assets)?;
+    let path = Path::new(&path);
+    std::fs::write(path, &g.tex)?;
+    std::fs::write(path.with_file_name(g.cls_file_name()), &g.cls)?;
+    let dir = path.parent().unwrap_or(Path::new("."));
+    for (rel, bytes) in assets {
+        let dest = dir.join(rel);
+        if let Some(parent) = dest.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(dest, bytes)?;
+    }
     Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let compiler = Compiler::locate(&tectonic_candidates())
-        .map(Arc::new)
-        .map_err(|e| e.to_string());
+    debug_assert!(ActiveTemplate::builtin().template.validate().is_empty(), "built-in template is valid");
+
+    let compiler = Compiler::locate(&tectonic_candidates()).map(Arc::new).map_err(|e| e.to_string());
     match &compiler {
-        Ok(c) => eprintln!("Using Tectonic at {}", c.tectonic_path().display()),
-        Err(e) => eprintln!("Warning: {e}"),
+        Ok(c) => log!("Using Tectonic at {}", c.tectonic_path().display()),
+        Err(e) => log!("Warning: {e}"),
     }
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .manage(AppState { compiler })
+        .manage(AppState { compiler, templates: TemplateStore::new() })
+        .setup(|app| {
+            // Start with a template file (and watch it): TEXLOOM_TEMPLATE=path/template.json
+            if let Some(path) = std::env::var_os("TEXLOOM_TEMPLATE") {
+                let path = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
+                match templates::load_file(&path) {
+                    Ok(t) => app.state::<AppState>().templates.set(app.handle(), t),
+                    Err(issues) => {
+                        log!("TEXLOOM_TEMPLATE {} has errors:", path.display());
+                        issues.iter().for_each(|i| log!("  {i}"));
+                    }
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
+            get_template,
+            open_template,
+            use_builtin_template,
+            set_template,
+            save_template,
+            list_system_fonts,
+            sample_document,
+            check_metadata,
             render_pdf,
             to_latex,
             save_document,
@@ -120,4 +317,72 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builtin_template_and_sample_load() {
+        let template = ActiveTemplate::builtin().template;
+        assert!(template.validate().is_empty());
+        let sample = sample_document().unwrap();
+        let doc = to_document(sample.doc, sample.metadata).unwrap();
+        assert!(template.check_metadata(&doc.metadata).is_empty());
+        assert!(texloom_codegen::generate(&template, &doc).tex.contains("\\chapter{Introduction}"));
+    }
+
+    #[test]
+    fn template_file_errors_are_reported() {
+        let dir = std::env::temp_dir().join(format!("texloom-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("template.json");
+
+        std::fs::write(&file, "{ not json").unwrap();
+        let issues = templates::load_file(&file).err().unwrap();
+        assert!(issues[0].message.contains("line 1"), "{issues:?}");
+
+        let mut t: Value = serde_json::from_str(templates::BUILTIN_TEMPLATE).unwrap();
+        t["titlePage"]["items"][0]["content"] =
+            serde_json::json!({"type": "image", "asset": "assets/logo.png", "widthMm": 30});
+        std::fs::write(&file, t.to_string()).unwrap();
+        let issues = templates::load_file(&file).err().unwrap();
+        assert!(issues.iter().any(|i| i.message.contains("file not found")), "{issues:?}");
+
+        std::fs::create_dir_all(dir.join("assets")).unwrap();
+        std::fs::write(dir.join("assets/logo.png"), b"png").unwrap();
+        let active = templates::load_file(&file).unwrap();
+        let assets = active.load_assets(&["assets/logo.png".into()]).unwrap();
+        assert_eq!(assets[0].1, b"png");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn save_as_copies_assets_and_refuses_invalid_templates() {
+        let root = std::env::temp_dir().join(format!("texloom-save-{}", std::process::id()));
+        let (old_dir, new_dir) = (root.join("old"), root.join("new"));
+        std::fs::create_dir_all(old_dir.join("assets")).unwrap();
+        std::fs::create_dir_all(&new_dir).unwrap();
+        std::fs::write(old_dir.join("assets/logo.png"), b"png").unwrap();
+
+        let mut t = (*ActiveTemplate::builtin().template).clone();
+        t.title_page.items[0].content =
+            texloom_core::TitleContent::Image { asset: "assets/logo.png".into(), width_mm: 30.0 };
+        let old_file = old_dir.join("template.json");
+        let dest = new_dir.join("copy.json");
+
+        let saved = templates::save_to(&dest, t.clone(), Some(&old_file)).unwrap();
+        assert_eq!(std::fs::read(new_dir.join("assets/logo.png")).unwrap(), b"png");
+        let reread: Template = serde_json::from_str(&std::fs::read_to_string(&dest).unwrap()).unwrap();
+        assert_eq!(reread, t);
+        assert!(saved.path.unwrap().ends_with("copy.json"));
+
+        let mut bad = t;
+        bad.fonts.base_size_pt = 13;
+        let bad_dest = new_dir.join("bad.json");
+        assert!(matches!(templates::save_to(&bad_dest, bad, None), Err(AppError::TemplateInvalid { .. })));
+        assert!(!bad_dest.exists(), "invalid templates are not written");
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }

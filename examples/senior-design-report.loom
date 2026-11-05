@@ -1,0 +1,379 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "metadata": {
+    "title": "Smart Irrigation Controller for Small Farms",
+    "university": "Example University",
+    "department": "Department of Electrical Engineering",
+    "course": "EE 491 – Senior Design Project",
+    "team": [
+      "Sara Ahmed",
+      "Omar Khalid",
+      "Lina Haddad",
+      "Yousef Nasser"
+    ],
+    "advisor": "Dr. Maria Lopez",
+    "date": "December 2026",
+    "abstract": "This report presents a low-cost soil-moisture-driven irrigation controller for small farms. The system combines capacitive moisture probes, a water-balance model and long-range radio to water only when needed.\n\nIn a four-week field trial the prototype cut water use by 34% compared with a fixed timer, at a cost of under $60 per zone.",
+    "acknowledgements": "We thank our advisor for her guidance, and the university farm for hosting the field trial."
+  },
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Introduction"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Small farms waste a large share of their water because irrigation runs on fixed timers that ignore soil conditions and weather. This project designs a low-cost controller that waters only when the soil needs it."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Problem Statement"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Commercial smart controllers cost more than most small farms can justify, and they depend on cloud services that rural areas cannot reach reliably."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Objectives"
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Measure soil moisture at three depths every 10 minutes."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Cut water use by at least 30% compared with a timer schedule."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Keep the bill of materials under $60 per zone."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Background"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Soil moisture sensing falls into two families: "
+          },
+          {
+            "type": "text",
+            "text": "resistive",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " probes, which are cheap but corrode, and "
+          },
+          {
+            "type": "text",
+            "text": "capacitive",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " probes, which last longer and are the choice for this design."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Related Work"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Earlier student projects used Wi-Fi modules that drew too much power for solar operation. We use LoRa radios instead, trading bandwidth for range and battery life."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "System Design"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Water Balance Model"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The controller estimates the soil water deficit each hour from evapotranspiration and rainfall:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "D_t = D_{t-1} + ET_c - P_{\\mathrm{eff}} - I_t"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Irrigation starts when the deficit exceeds the management allowed depletion, computed from the root-zone depth "
+          },
+          {
+            "type": "text",
+            "text": "Z_r",
+            "marks": [
+              {
+                "type": "code"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " and the available water capacity:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\mathrm{MAD} = p \\cdot \\theta_{AW} \\cdot Z_r"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 3
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Sensor Calibration"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Each probe was calibrated against oven-dried samples; the fitted curve has an R² of 0.97."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Hardware"
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Microcontroller: low-power ARM Cortex-M0+"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Radio: LoRa transceiver, 868 MHz"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Power: 6 W solar panel with a 3.7 V Li-ion cell"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Actuator: 12 V latching solenoid valve"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Conclusion"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The prototype reduced water use by 34% over a four-week field trial while keeping soil moisture within the target band. Future work includes weather-forecast integration and a mobile dashboard."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -16,9 +16,34 @@ npm run tauri dev
 The first compile takes a minute or two while Tectonic downloads its TeX package bundle;
 after that it's cached in `~/.cache/Tectonic`.
 
+## Making a template
+
+Switch to **Template** mode (top left). The designer has panels for template info,
+page, fonts, structure, headings, headers & footers, fields and front matter; every
+change updates the PDF preview, and problems appear next to the control that caused
+them. Use **New copy** to start from the current template, then **Save as…**.
+(The title page is still edited in the JSON file; its visual canvas is Phase 4.)
+
+Template files are plain JSON (`crates/core/src/template.rs` documents every option)
+with images in an `assets/` folder next to them. You can also edit one by hand: open it
+with **Template ▾ → Open template file…** (or `TEXLOOM_TEMPLATE=path npm run tauri dev`)
+and every save in your editor reloads it.
+
+Saved documents remember their template (path plus an embedded copy), so they reopen
+with it.
+
+## Command line
+
+```bash
+cargo run -p texloom-cli -- render examples/senior-design-report.loom -t templates/senior-design/template.json -o report.pdf
+cargo run -p texloom-cli -- export examples/senior-design-report.loom -t templates/senior-design/template.json --out-dir build/
+cargo run -p texloom-cli -- check templates/senior-design/template.json --print-cls
+```
+
 ## Tests
 
 ```bash
-cargo test --workspace
-TEXLOOM_TECTONIC=$PWD/src-tauri/binaries/tectonic-x86_64-unknown-linux-gnu cargo test -p compile -- --ignored
+cargo test --workspace            # also regenerates src/bindings/*.ts
+INSTA_UPDATE=always cargo test -p texloom-codegen   # accept changed .cls/.tex snapshots (review the diff!)
+TEXLOOM_TECTONIC=$PWD/src-tauri/binaries/tectonic-x86_64-unknown-linux-gnu cargo test --workspace -- --ignored   # real compiles
 ```

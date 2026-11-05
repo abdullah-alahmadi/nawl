@@ -1,0 +1,17 @@
+[package]
+name = "texloom-cli"
+description = "Command-line tool: render Texloom documents to PDF, export LaTeX, check templates"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "texloom-cli"
+path = "src/main.rs"
+
+[dependencies]
+texloom-core = { path = "../core" }
+texloom-codegen = { path = "../codegen" }
+texloom-compile = { path = "../compile" }
+serde_json.workspace = true
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"

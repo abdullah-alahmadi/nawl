@@ -1,0 +1,10 @@
+[package]
+name = "texloom-core"
+description = "Texloom document and template models, placeholders and validation"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ts-rs = "12"

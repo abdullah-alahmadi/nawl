@@ -1,0 +1,116 @@
+{
+  "meta": {
+    "id": "senior-design",
+    "name": "Senior Design Report",
+    "description": "Generic university senior design project report: chapters, title page, abstract, table of contents.",
+    "version": "0.1.0"
+  },
+  "page": {
+    "paper": { "kind": "a4" },
+    "margins": { "topMm": 25, "bottomMm": 25, "innerMm": 35, "outerMm": 25 },
+    "twoSided": false,
+    "bindingOffsetMm": 0,
+    "lineSpacing": { "kind": "oneHalf" },
+    "paragraph": { "indentMm": 0, "spacingPt": 6 }
+  },
+  "fonts": {
+    "baseSizePt": 12,
+    "main": { "kind": "builtin", "font": "termes" },
+    "sans": { "kind": "builtin", "font": "heros" },
+    "mono": { "kind": "builtin", "font": "latinModern" }
+  },
+  "structure": {
+    "topLevel": "chapter",
+    "numberedDepth": 3,
+    "tocDepth": 2,
+    "frontMatterPageNumbers": "lowerRoman",
+    "mainPageNumbers": "arabic",
+    "perChapterNumbering": true
+  },
+  "headings": {
+    "levels": [
+      {
+        "text": { "sizePt": 18, "bold": true, "uppercase": true, "align": "center" },
+        "layout": "display", "label": "Chapter {n}", "labelGapPt": 8,
+        "spaceBeforePt": 0, "spaceAfterPt": 24
+      },
+      {
+        "text": { "sizePt": 14, "bold": true },
+        "layout": "inline", "label": "{n}", "labelGapPt": 10,
+        "spaceBeforePt": 18, "spaceAfterPt": 8
+      },
+      {
+        "text": { "sizePt": 12, "bold": true },
+        "layout": "inline", "label": "{n}", "labelGapPt": 10,
+        "spaceBeforePt": 14, "spaceAfterPt": 6
+      },
+      {
+        "text": { "sizePt": 12, "bold": true, "italic": true },
+        "layout": "inline", "label": "{n}", "labelGapPt": 10,
+        "spaceBeforePt": 12, "spaceAfterPt": 4
+      }
+    ]
+  },
+  "headerFooter": {
+    "frontMatter": { "footer": { "center": "{page}" } },
+    "main": {
+      "header": { "left": "{chapter}", "right": "{course}" },
+      "footer": { "center": "Page {page} of {pages}" },
+      "headerRulePt": 0.4
+    },
+    "chapterOpening": { "footer": { "center": "Page {page} of {pages}" } }
+  },
+  "titlePage": {
+    "items": [
+      { "xMm": 105, "yMm": 35, "anchor": "top",
+        "content": { "type": "text", "text": "{university}", "widthMm": 170,
+                     "style": { "sizePt": 18, "bold": true, "uppercase": true, "align": "center" } } },
+      { "xMm": 105, "yMm": 47, "anchor": "top",
+        "content": { "type": "text", "text": "{department}", "widthMm": 170,
+                     "style": { "sizePt": 14, "align": "center" } } },
+      { "xMm": 105, "yMm": 62, "anchor": "top",
+        "content": { "type": "rule", "lengthMm": 120, "thicknessPt": 0.8 } },
+      { "xMm": 105, "yMm": 75, "anchor": "top",
+        "content": { "type": "text", "text": "{course}", "widthMm": 170,
+                     "style": { "sizePt": 13, "italic": true, "align": "center" } } },
+      { "xMm": 105, "yMm": 100, "anchor": "top",
+        "content": { "type": "text", "text": "{title}", "widthMm": 160,
+                     "style": { "sizePt": 24, "bold": true, "align": "center" } } },
+      { "xMm": 105, "yMm": 140, "anchor": "top",
+        "content": { "type": "text", "text": "Final Report", "widthMm": 170,
+                     "style": { "sizePt": 14, "smallCaps": true, "align": "center" } } },
+      { "xMm": 105, "yMm": 170, "anchor": "top",
+        "content": { "type": "text", "text": "Submitted by", "widthMm": 170,
+                     "style": { "sizePt": 12, "italic": true, "align": "center" } } },
+      { "xMm": 105, "yMm": 179, "anchor": "top",
+        "content": { "type": "text", "text": "{team}", "widthMm": 170,
+                     "style": { "sizePt": 14, "align": "center" } } },
+      { "xMm": 105, "yMm": 228, "anchor": "top",
+        "content": { "type": "text", "text": "Advisor", "widthMm": 170,
+                     "style": { "sizePt": 12, "italic": true, "align": "center" } } },
+      { "xMm": 105, "yMm": 237, "anchor": "top",
+        "content": { "type": "text", "text": "{advisor}", "widthMm": 170,
+                     "style": { "sizePt": 14, "align": "center" } } },
+      { "xMm": 105, "yMm": 265, "anchor": "top",
+        "content": { "type": "text", "text": "{date}", "widthMm": 170,
+                     "style": { "sizePt": 13, "align": "center" } } }
+    ]
+  },
+  "fields": [
+    { "id": "title", "label": "Project title", "kind": "text", "required": true },
+    { "id": "university", "label": "University", "kind": "text", "required": true },
+    { "id": "department", "label": "Department", "kind": "text", "required": true },
+    { "id": "course", "label": "Course", "kind": "text", "required": true },
+    { "id": "team", "label": "Team members", "kind": "list", "required": true },
+    { "id": "advisor", "label": "Advisor", "kind": "text", "required": true },
+    { "id": "date", "label": "Date", "kind": "text", "required": true },
+    { "id": "abstract", "label": "Abstract", "kind": "paragraphs", "required": true },
+    { "id": "acknowledgements", "label": "Acknowledgements", "kind": "paragraphs" }
+  ],
+  "frontMatter": [
+    { "type": "titlePage" },
+    { "type": "fieldPage", "title": "Abstract", "field": "abstract", "inToc": true },
+    { "type": "fieldPage", "title": "Acknowledgements", "field": "acknowledgements", "inToc": true },
+    { "type": "tableOfContents", "title": "Table of Contents" }
+  ]
+}

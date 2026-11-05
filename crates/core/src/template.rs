@@ -1,0 +1,409 @@
+//! The template model: everything the visual designer edits. A template compiles
+//! into a LaTeX class (`.cls`), and also drives the editor's on-screen styling.
+//!
+//! Units are explicit in field names (`_mm`, `_pt`) so the designer UI and the code
+//! generator never have to guess.
+
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Template {
+    pub meta: TemplateMeta,
+    pub page: PageSetup,
+    pub fonts: Fonts,
+    pub structure: Structure,
+    pub headings: Headings,
+    pub header_footer: HeaderFooter,
+    pub title_page: TitlePage,
+    /// Metadata the document author fills in (title, team members, advisor…).
+    pub fields: Vec<MetadataField>,
+    /// What comes before the main text, in order.
+    pub front_matter: Vec<FrontMatterItem>,
+    /// Escape hatch: raw LaTeX appended to the end of the generated class.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub raw_preamble: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct TemplateMeta {
+    /// Lowercase slug; also the generated class name (`<id>.cls`).
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    pub version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub author: Option<String>,
+}
+
+// ---------------------------------------------------------------- page
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PageSetup {
+    pub paper: Paper,
+    pub margins: Margins,
+    /// Two-sided printing: inner/outer margins alternate between odd and even pages.
+    pub two_sided: bool,
+    /// Extra space on the inner edge for binding.
+    pub binding_offset_mm: f32,
+    pub line_spacing: LineSpacing,
+    pub paragraph: ParagraphStyle,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum Paper {
+    A4,
+    A5,
+    Letter,
+    Legal,
+    #[serde(rename_all = "camelCase")]
+    Custom { width_mm: f32, height_mm: f32 },
+}
+
+impl Paper {
+    /// Width and height in millimetres.
+    pub fn size_mm(&self) -> (f32, f32) {
+        match *self {
+            Paper::A4 => (210.0, 297.0),
+            Paper::A5 => (148.0, 210.0),
+            Paper::Letter => (215.9, 279.4),
+            Paper::Legal => (215.9, 355.6),
+            Paper::Custom { width_mm, height_mm } => (width_mm, height_mm),
+        }
+    }
+}
+
+/// Distances from the paper edge to the text body. With one-sided printing,
+/// `inner` is the left margin and `outer` the right.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Margins {
+    pub top_mm: f32,
+    pub bottom_mm: f32,
+    pub inner_mm: f32,
+    pub outer_mm: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum LineSpacing {
+    Single,
+    OneHalf,
+    Double,
+    /// Multiplier on the font's normal line spacing.
+    Custom { stretch: f32 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ParagraphStyle {
+    /// First-line indent.
+    pub indent_mm: f32,
+    /// Extra vertical space between paragraphs.
+    pub spacing_pt: f32,
+}
+
+// ---------------------------------------------------------------- fonts
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Fonts {
+    /// Body text size: 10, 11 or 12 (the sizes LaTeX's standard classes support).
+    pub base_size_pt: u8,
+    pub main: FontChoice,
+    pub sans: FontChoice,
+    pub mono: FontChoice,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum FontChoice {
+    /// A font shipped with the TeX distribution: always available, on every machine.
+    Builtin { font: BuiltinFont },
+    /// A font installed on the system, by family name.
+    System { family: String },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum BuiltinFont {
+    /// LaTeX's default (Computer Modern look).
+    LatinModern,
+    /// Times-like serif.
+    Termes,
+    /// Palatino-like serif.
+    Pagella,
+    /// Bookman-like serif.
+    Bonum,
+    /// Century Schoolbook-like serif.
+    Schola,
+    /// Helvetica-like sans.
+    Heros,
+    /// Avant Garde-like sans.
+    Adventor,
+    /// Courier-like monospace.
+    Cursor,
+}
+
+// ---------------------------------------------------------------- structure
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Structure {
+    /// What a level-1 heading in the editor becomes.
+    pub top_level: TopLevel,
+    /// How many heading levels get numbers (0–4).
+    pub numbered_depth: u8,
+    /// How many heading levels appear in the table of contents (0–4).
+    pub toc_depth: u8,
+    pub front_matter_page_numbers: PageNumberStyle,
+    pub main_page_numbers: PageNumberStyle,
+    /// With chapters: number equations, figures and tables per chapter ("2.3")
+    /// instead of continuously ("7").
+    pub per_chapter_numbering: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum TopLevel {
+    Chapter,
+    Section,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum PageNumberStyle {
+    Arabic,
+    LowerRoman,
+    UpperRoman,
+}
+
+// ---------------------------------------------------------------- headings
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Headings {
+    /// Styles for editor heading levels 1–4, in order. Must have exactly 4 entries.
+    pub levels: Vec<HeadingStyle>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct HeadingStyle {
+    pub text: TextStyle,
+    pub layout: HeadingLayout,
+    /// Number label; `{n}` is the number. E.g. `"Chapter {n}"` or `"{n}."`.
+    pub label: String,
+    /// Gap between label and title: vertical for `display`, horizontal for `inline`.
+    pub label_gap_pt: f32,
+    pub space_before_pt: f32,
+    pub space_after_pt: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum HeadingLayout {
+    /// Label and title on one line: "1.2  Background".
+    Inline,
+    /// Label on its own line above the title: "CHAPTER 1" / "Introduction".
+    Display,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct TextStyle {
+    pub size_pt: f32,
+    #[serde(default)]
+    pub bold: bool,
+    #[serde(default)]
+    pub italic: bool,
+    #[serde(default)]
+    pub small_caps: bool,
+    #[serde(default)]
+    pub uppercase: bool,
+    #[serde(default)]
+    pub align: Align,
+    /// `#RRGGBB`; black when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub color: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum Align {
+    #[default]
+    Left,
+    Center,
+    Right,
+}
+
+// ---------------------------------------------------------------- headers & footers
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct HeaderFooter {
+    pub front_matter: PageStyle,
+    pub main: PageStyle,
+    /// Pages where a chapter starts (and other "plain" pages).
+    pub chapter_opening: PageStyle,
+}
+
+/// Header and footer slots. Text may contain placeholders: `{page}`, `{pages}`,
+/// `{chapter}`, `{section}`, or any metadata field id such as `{title}`.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PageStyle {
+    #[serde(default)]
+    pub header: Slots,
+    #[serde(default)]
+    pub footer: Slots,
+    #[serde(default)]
+    pub header_rule_pt: f32,
+    #[serde(default)]
+    pub footer_rule_pt: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Slots {
+    #[serde(default)]
+    pub left: String,
+    #[serde(default)]
+    pub center: String,
+    #[serde(default)]
+    pub right: String,
+}
+
+// ---------------------------------------------------------------- title page
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct TitlePage {
+    pub items: Vec<TitleItem>,
+}
+
+/// An item placed at an exact position on the title page. `x_mm`/`y_mm` locate the
+/// item's `anchor` point, measured from the top-left corner of the paper.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct TitleItem {
+    pub x_mm: f32,
+    pub y_mm: f32,
+    pub anchor: Anchor,
+    pub content: TitleContent,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[ts(export)]
+pub enum TitleContent {
+    /// Text with placeholders, e.g. `"{title}"` or `"Advisor: {advisor}"`.
+    #[serde(rename_all = "camelCase")]
+    Text {
+        text: String,
+        style: TextStyle,
+        /// Wrap width; text doesn't wrap when absent.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        width_mm: Option<f32>,
+    },
+    /// An image file from the template's assets, e.g. `"assets/logo.png"`.
+    #[serde(rename_all = "camelCase")]
+    Image { asset: String, width_mm: f32 },
+    /// A horizontal line.
+    #[serde(rename_all = "camelCase")]
+    Rule { length_mm: f32, thickness_pt: f32 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum Anchor {
+    TopLeft,
+    Top,
+    TopRight,
+    Left,
+    Center,
+    Right,
+    BottomLeft,
+    Bottom,
+    BottomRight,
+}
+
+// ---------------------------------------------------------------- fields & front matter
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct MetadataField {
+    /// Lowercase id used in placeholders: `[a-z][a-z0-9_]*`.
+    pub id: String,
+    pub label: String,
+    pub kind: FieldKind,
+    #[serde(default)]
+    pub required: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum FieldKind {
+    /// One line of text.
+    Text,
+    /// Several paragraphs (e.g. an abstract).
+    Paragraphs,
+    /// A list of entries (e.g. team members). Shown one per line on the title page,
+    /// comma-separated in headers and footers.
+    List,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(tag = "type", rename_all = "camelCase")]
+#[ts(export)]
+pub enum FrontMatterItem {
+    TitlePage,
+    /// An unnumbered page showing a `paragraphs` field, e.g. the abstract.
+    /// Skipped when an optional field is empty.
+    #[serde(rename_all = "camelCase")]
+    FieldPage { title: String, field: String, in_toc: bool },
+    TableOfContents { title: String },
+    ListOfFigures { title: String },
+    ListOfTables { title: String },
+}
+
+impl Template {
+    pub fn field(&self, id: &str) -> Option<&MetadataField> {
+        self.fields.iter().find(|f| f.id == id)
+    }
+}

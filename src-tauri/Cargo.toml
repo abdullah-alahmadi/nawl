@@ -21,7 +21,9 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde.workspace = true
 serde_json.workspace = true
-compile = { path = "../crates/compile" }
-codegen = { path = "../crates/codegen" }
+notify-debouncer-mini = "0.7"
+texloom-core = { path = "../crates/core" }
+texloom-compile = { path = "../crates/compile" }
+texloom-codegen = { path = "../crates/codegen" }
 tauri-plugin-dialog = "2"
 
