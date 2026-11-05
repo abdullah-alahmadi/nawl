@@ -125,9 +125,14 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [ ] Undo/redo inside the designer; caption and TOC styling once figures exist
 
 ### Phase 4: Title-page designer (~2–3 weeks)
-- [ ] Page-sized canvas in mm: drag, resize, snap, align
-- [ ] Text with `{field}` placeholders, images, rules → TikZ overlay
+- [x] Page-sized canvas in mm: drag to move, right-edge handle to resize, snap to the
+      page centre, arrow-key nudging (Shift ×10, Alt 0.1 mm), anchor picker, Centre button
+- [x] Text with `{field}` placeholders (shown with the open document's values), images
+      (imported into the template's `assets/`), lines → TikZ overlay
+- [x] Canvas geometry matches the PDF (checked against the PDF's word positions: within
+      ~0.5 mm; line spacing follows the template's setspace factor)
 - [ ] Extra fixed pages built the same way (approval/signature, declaration)
+- [ ] Snapping to other items / margins; multi-select; undo
 
 ### Phase 5: Structure and academic features (~3–4 weeks)
 - [ ] Skeleton sections (required/locked), metadata form generated from `fields`

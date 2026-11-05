@@ -63,7 +63,7 @@ button.active { background: var(--accent-soft); border-color: var(--accent); col
 .panes { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
 .editor-pane, .preview-pane { overflow: auto; min-height: 0; }
 .editor-pane { padding: 24px; border-right: 1px solid var(--border); }
-.preview-pane { display: flex; flex-direction: column; }
+.preview-pane { display: flex; flex-direction: column; overflow-x: hidden; }
 
 /* The editable "page": approximates the output; Phase 2 derives this from the template. */
 .page {
@@ -257,3 +257,43 @@ select {
   cursor: pointer;
 }
 select option, select optgroup { color: var(--text); background-color: var(--panel); }
+
+/* Title page canvas */
+.designer-panel.wide { max-width: none; }
+.tp { display: grid; gap: 10px; }
+.tp-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tp-toolbar button { border: 1px solid var(--border); }
+.tp-layout { display: grid; grid-template-columns: minmax(260px, 1.1fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 1250px) { .tp-layout { grid-template-columns: minmax(0, 1fr); } }
+.tp-canvas-wrap { min-width: 0; display: grid; gap: 6px; justify-items: center; }
+.tp-page {
+  position: relative; background: #fff; color: #000; overflow: hidden; outline: none;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); user-select: none; touch-action: none;
+}
+.tp-page:focus-visible { box-shadow: 0 0 0 2px var(--accent), 0 1px 6px rgba(0, 0, 0, 0.35); }
+.tp-item { position: absolute; cursor: move; outline: 1px dashed transparent; outline-offset: 1px; }
+.tp-item:hover { outline-color: rgba(47, 111, 222, 0.5); }
+.tp-item.selected { outline: 1.5px solid #2f6fde; }
+.tp-item.error { outline: 1.5px solid #c0362c; }
+.tp-handle {
+  position: absolute; right: -6px; top: 50%; width: 10px; height: 18px; margin-top: -9px;
+  background: #2f6fde; border: 2px solid #fff; border-radius: 3px; cursor: ew-resize;
+}
+.tp-anchor-dot {
+  position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+  background: #e8590c; border: 1.5px solid #fff; pointer-events: none;
+}
+.tp-guide { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed #e8590c; pointer-events: none; z-index: 1; }
+.tp-empty { color: #999; font-style: italic; font-size: 11px; }
+.tp-image-missing {
+  display: flex; align-items: center; justify-content: center; text-align: center; font: 11px system-ui, sans-serif;
+  color: #666; background: repeating-linear-gradient(45deg, #f1f3f5, #f1f3f5 6px, #e3e6ea 6px, #e3e6ea 12px); border: 1px solid #ccd;
+}
+.tp-caption { text-align: center; }
+.tp-props { border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-width: 0; }
+.tp-props-inner { display: grid; gap: 10px; }
+.tp-props .d-row { grid-template-columns: 100px minmax(0, 1fr); }
+.tp-props .danger:hover { color: var(--error); background: var(--error-soft); }
+.tp-anchor { display: grid; grid-template-columns: repeat(3, 18px); gap: 3px; }
+.tp-anchor button { width: 18px; height: 18px; padding: 0; border: 1px solid var(--border); border-radius: 3px; }
+.tp-anchor button.active { background: var(--accent); border-color: var(--accent); }

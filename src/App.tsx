@@ -353,6 +353,8 @@ export default function App() {
               draft={draft}
               dirty={draftDirty}
               issues={draftIssues}
+              metadata={metadata}
+              needsSaveAs={draftNeedsSaveAs}
               onChange={onDraftChange}
               onSave={saveTemplate}
               onSaveAs={saveTemplateAs}

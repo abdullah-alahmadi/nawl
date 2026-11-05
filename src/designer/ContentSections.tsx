@@ -204,32 +204,3 @@ export function FrontMatterSection({ t, edit, issues }: SectionProps) {
     </>
   );
 }
-
-export function TitlePageSection({ t, issues }: SectionProps) {
-  return (
-    <>
-      <p className="d-note">
-        A drag-and-drop title page canvas is coming next (Phase 4). For now, title page items can be edited in the
-        template file. This template has {t.titlePage.items.length} items:
-      </p>
-      <ul className="d-summary">
-        {t.titlePage.items.map((item, i) => (
-          <li key={i}>
-            {item.content.type === "text" && <>Text “{item.content.text}”</>}
-            {item.content.type === "image" && <>Image {item.content.asset}</>}
-            {item.content.type === "rule" && <>Line, {item.content.lengthMm} mm</>}
-            <span className="muted">
-              {" "}
-              at {item.xMm}, {item.yMm} mm
-            </span>
-            {issuesAt(issues, `titlePage.items[${i}]`).map((iss, n) => (
-              <div key={n} className="d-error">
-                {iss.message}
-              </div>
-            ))}
-          </li>
-        ))}
-      </ul>
-    </>
-  );
-}

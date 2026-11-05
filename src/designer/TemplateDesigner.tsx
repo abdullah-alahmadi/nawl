@@ -7,7 +7,8 @@ import { issuesAt } from "./controls";
 import type { Edit } from "./common";
 import { FontsSection, InfoSection, PageSection, StructureSection } from "./PageSections";
 import { HeaderFooterSection, HeadingsSection } from "./StyleSections";
-import { FieldsSection, FrontMatterSection, TitlePageSection } from "./ContentSections";
+import { FieldsSection, FrontMatterSection } from "./ContentSections";
+import { TitlePageCanvas } from "./TitlePageCanvas";
 
 const SECTIONS = [
   { key: "info", label: "Template info", prefix: "meta" },
@@ -28,6 +29,8 @@ export function TemplateDesigner({
   draft,
   dirty,
   issues,
+  metadata,
+  needsSaveAs,
   onChange,
   onSave,
   onSaveAs,
@@ -37,6 +40,10 @@ export function TemplateDesigner({
   draft: Template;
   dirty: boolean;
   issues: Issue[];
+  /** The open document's metadata, used to show real values on the title page. */
+  metadata: api.Metadata;
+  /** True for "New copy" drafts that don't have their own file yet. */
+  needsSaveAs: boolean;
   onChange: (t: Template) => void;
   onSave: () => void;
   onSaveAs: () => void;
@@ -98,7 +105,7 @@ export function TemplateDesigner({
             );
           })}
         </nav>
-        <section className="designer-panel">
+        <section className={`designer-panel${section === "titlePage" ? " wide" : ""}`}>
           <h3>{SECTIONS.find((s) => s.key === section)?.label}</h3>
           {section === "info" && <InfoSection {...props} />}
           {section === "page" && <PageSection {...props} />}
@@ -108,7 +115,9 @@ export function TemplateDesigner({
           {section === "headerFooter" && <HeaderFooterSection {...props} />}
           {section === "fields" && <FieldsSection {...props} />}
           {section === "frontMatter" && <FrontMatterSection {...props} />}
-          {section === "titlePage" && <TitlePageSection {...props} />}
+          {section === "titlePage" && (
+            <TitlePageCanvas {...props} metadata={metadata} templatePath={info.path} canImport={!!info.path && !needsSaveAs} />
+          )}
         </section>
       </div>
     </div>

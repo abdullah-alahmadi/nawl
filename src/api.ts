@@ -56,6 +56,8 @@ export const onTemplateReloaded = (cb: (e: TemplateReloadEvent) => void) =>
 export const setTemplate = (template: Template) => invoke<Issue[]>("set_template", { template });
 export const saveTemplate = (path: string, template: Template) =>
   invoke<TemplateInfo>("save_template", { path, template });
+export const importTemplateAsset = (source: string) => invoke<string>("import_template_asset", { source });
+export const readTemplateAsset = (asset: string) => invoke<ArrayBuffer>("read_template_asset", { asset });
 export const listSystemFonts = () => invoke<string[]>("list_system_fonts");
 export const sampleDocument = () => invoke<OpenedDocument>("sample_document");
 export const checkMetadata = (metadata: Metadata) => invoke<Issue[]>("check_metadata", { metadata });

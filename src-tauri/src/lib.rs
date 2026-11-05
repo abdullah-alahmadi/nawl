@@ -148,6 +148,24 @@ fn save_template(app: AppHandle, state: State<'_, AppState>, path: String, templ
     Ok(info)
 }
 
+/// Copies an image into the active template's `assets/` folder for the title page.
+#[tauri::command]
+fn import_template_asset(state: State<'_, AppState>, source: String) -> Result<String, AppError> {
+    let current = state.templates.current();
+    let file = current
+        .path
+        .ok_or_else(|| AppError::other("Save the template first (Save as…) so its images have a folder to live in."))?;
+    templates::import_asset(&file, Path::new(&source))
+}
+
+/// Raw bytes of one of the active template's assets, for the title page canvas.
+#[tauri::command]
+fn read_template_asset(state: State<'_, AppState>, asset: String) -> Result<Response, AppError> {
+    let current = state.templates.current();
+    let mut loaded = current.load_assets(std::slice::from_ref(&asset))?;
+    Ok(Response::new(loaded.remove(0).1))
+}
+
 /// Font families installed on the system (empty if fontconfig isn't available).
 #[tauri::command]
 async fn list_system_fonts() -> Vec<String> {
@@ -307,6 +325,8 @@ pub fn run() {
             set_template,
             save_template,
             list_system_fonts,
+            import_template_asset,
+            read_template_asset,
             sample_document,
             check_metadata,
             render_pdf,
@@ -356,6 +376,27 @@ mod tests {
         let assets = active.load_assets(&["assets/logo.png".into()]).unwrap();
         assert_eq!(assets[0].1, b"png");
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn importing_assets_never_overwrites_different_files() {
+        let root = std::env::temp_dir().join(format!("texloom-import-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let template = root.join("template.json");
+        let (a, b) = (root.join("My Logo.png"), root.join("other.png"));
+        std::fs::write(&a, b"one").unwrap();
+        std::fs::write(&b, b"two").unwrap();
+
+        assert_eq!(templates::import_asset(&template, &a).unwrap(), "assets/My-Logo.png");
+        // Same content again: reuses the file.
+        assert_eq!(templates::import_asset(&template, &a).unwrap(), "assets/My-Logo.png");
+        // Different content, same name: gets a new name.
+        std::fs::write(&a, b"changed").unwrap();
+        assert_eq!(templates::import_asset(&template, &a).unwrap(), "assets/My-Logo-2.png");
+        assert_eq!(std::fs::read(root.join("assets/My-Logo.png")).unwrap(), b"one");
+        assert!(templates::import_asset(&template, &root.join("x.svg")).is_err());
+        let _ = b;
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

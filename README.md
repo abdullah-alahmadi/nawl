@@ -22,7 +22,10 @@ Switch to **Template** mode (top left). The designer has panels for template inf
 page, fonts, structure, headings, headers & footers, fields and front matter; every
 change updates the PDF preview, and problems appear next to the control that caused
 them. Use **New copy** to start from the current template, then **Save as…**.
-(The title page is still edited in the JSON file; its visual canvas is Phase 4.)
+The **Title page** panel is a drag-and-drop canvas: add text, images and lines, drag
+them into place (they snap to the page centre), and edit text, style, size and
+position on the right. Images are copied into the template's `assets/` folder, so save
+a new template once (Save as…) before adding them.
 
 Template files are plain JSON (`crates/core/src/template.rs` documents every option)
 with images in an `assets/` folder next to them. You can also edit one by hand: open it
