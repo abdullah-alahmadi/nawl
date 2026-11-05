@@ -24,7 +24,7 @@ import { SettingsDialog } from "./SettingsDialog";
 import { NewDocumentDialog } from "./NewDocumentDialog";
 import { Menu, MenuHeading, MenuItem, MenuSeparator } from "./ui/Menu";
 import {
-  BookMarked, Bold, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
+  BookMarked, Bold, FileInput, FileOutput, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
   LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Sigma, Superscript,
   Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut,
@@ -91,6 +91,8 @@ export default function App() {
   // Set when the template file on disk has errors; the last valid version stays in use.
   const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
   const [builtins, setBuiltins] = useState<api.BuiltinTemplate[]>([]);
+  const [userTemplates, setUserTemplates] = useState<api.UserTemplate[]>([]);
+  const refreshUserTemplates = useCallback(() => api.listUserTemplates().then(setUserTemplates, () => setUserTemplates([])), []);
   const [mode, setMode] = useState<"document" | "template">("document");
   // The designer edits a draft; valid drafts become the active template right away.
   const [draft, setDraft] = useState<api.Template | null>(null);
@@ -311,6 +313,7 @@ export default function App() {
 
   useEffect(() => {
     api.listBuiltinTemplates().then(setBuiltins, () => setBuiltins([]));
+    refreshUserTemplates();
   }, []);
 
   // Node views (references, citations) read the template from the editor.
@@ -350,11 +353,10 @@ export default function App() {
   }, [applyTemplate]);
 
   /** Returns whether a template was opened. */
-  const openTemplateFile = async (): Promise<boolean> => {
-    const target = await open({ filters: TEMPLATE_FILTER, multiple: false, directory: false });
-    if (!target) return false;
+  /** Runs a template-loading call; shows template errors in the template panel. */
+  const loadTemplateWith = async (load: () => Promise<api.TemplateInfo>): Promise<boolean> => {
     try {
-      applyTemplate(await api.openTemplate(target));
+      applyTemplate(await load());
       return true;
     } catch (e) {
       const err = api.asAppError(e);
@@ -362,6 +364,37 @@ export default function App() {
       else report(e);
       return false;
     }
+  };
+
+  /** Opens a template file in place (edits to it reload live). Returns whether one was opened. */
+  const openTemplateFile = async (path?: string): Promise<boolean> => {
+    const target = path ?? (await open({ filters: TEMPLATE_FILTER, multiple: false, directory: false }));
+    return target ? loadTemplateWith(() => api.openTemplate(target)) : false;
+  };
+
+  /** Imports a template, template package or publisher kit into My templates. */
+  const importTemplateFile = async (): Promise<boolean> => {
+    const source = await open({
+      multiple: false,
+      directory: false,
+      filters: [{ name: "Template, template package or publisher LaTeX kit", extensions: ["json", "zip"] }],
+    });
+    if (!source) return false;
+    const ok = await loadTemplateWith(() => api.importTemplate(source));
+    refreshUserTemplates();
+    return ok;
+  };
+
+  const exportTemplateFile = async () => {
+    if (!template) return;
+    const target = await save({ filters: [{ name: "Texloom template package", extensions: ["zip"] }], defaultPath: `${template.meta.id}.zip` });
+    if (target) await api.exportTemplate(target).catch(report);
+  };
+
+  const removeUserTemplate = async (t: api.UserTemplate) => {
+    if (!(await ask(`Remove “${t.name}” from My templates? Documents made with it keep a copy of the template.`, { title: "Remove template", kind: "warning" }))) return;
+    await api.removeUserTemplate(t.id).catch(report);
+    refreshUserTemplates();
   };
 
   const switchToBuiltin = async (id: string): Promise<boolean> => {
@@ -693,13 +726,51 @@ export default function App() {
                 }}
               />
               <MenuItem
+                icon={<FileInput />}
+                label="Import template…"
+                title="A Texloom template (.json), a template package (.zip), or any publisher's LaTeX kit (.zip)"
+                onClick={() => {
+                  close();
+                  importTemplateFile();
+                }}
+              />
+              <MenuItem
+                icon={<FileOutput />}
+                label="Export template…"
+                title="Save this template and its files as a .zip others can import"
+                onClick={() => {
+                  close();
+                  exportTemplateFile();
+                }}
+              />
+              <MenuItem
                 icon={<FolderOpen />}
                 label="Open template file…"
+                title="Open a template.json in place; edits to the file reload live"
                 onClick={() => {
                   close();
                   openTemplateFile();
                 }}
               />
+              {userTemplates.length > 0 && (
+                <div>
+                  <MenuHeading>My templates</MenuHeading>
+                  {userTemplates.map((u) => (
+                    <MenuItem
+                      key={u.id}
+                      current={templateInfo?.path === u.path}
+                      icon={templateInfo?.path === u.path ? <CircleCheck /> : undefined}
+                      label={u.name}
+                      shortcut={u.class ?? undefined}
+                      title={u.description}
+                      onClick={() => {
+                        close();
+                        openTemplateFile(u.path);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
               {[
                 { title: "Reports", items: builtins.filter((b) => !b.class) },
                 { title: "Journals and conferences", items: builtins.filter((b) => b.class) },
@@ -889,7 +960,11 @@ export default function App() {
           builtins={builtins}
           currentId={templateInfo?.path ? null : template?.meta.id ?? null}
           onPick={(id) => newFromTemplate(() => switchToBuiltin(id))}
-          onOpenFile={() => newFromTemplate(openTemplateFile)}
+          userTemplates={userTemplates}
+          currentPath={templateInfo?.path ?? null}
+          onPickUser={(u) => newFromTemplate(() => openTemplateFile(u.path))}
+          onRemoveUser={removeUserTemplate}
+          onImport={() => newFromTemplate(importTemplateFile)}
           onClose={() => setShowGallery(false)}
         />
       )}

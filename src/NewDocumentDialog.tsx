@@ -1,21 +1,30 @@
 // "New from template": a gallery of the built-in templates, grouped into reports
 // and journals/conferences. Choosing one starts an empty document with it.
 import { useEffect } from "react";
-import { BookOpen, FileText, FolderOpen, GraduationCap, X } from "lucide-react";
-import type { BuiltinTemplate } from "./api";
+import { BookOpen, FileInput, FileText, FolderHeart, GraduationCap, Trash2, X } from "lucide-react";
+import type { BuiltinTemplate, UserTemplate } from "./api";
 
 export function NewDocumentDialog({
   builtins,
   currentId,
   onPick,
-  onOpenFile,
+  userTemplates,
+  currentPath,
+  onPickUser,
+  onRemoveUser,
+  onImport,
   onClose,
 }: {
   builtins: BuiltinTemplate[];
   /** The active built-in template, if any. */
   currentId: string | null;
   onPick: (id: string) => void;
-  onOpenFile: () => void;
+  userTemplates: UserTemplate[];
+  /** File of the active template, if it isn't built in. */
+  currentPath: string | null;
+  onPickUser: (t: UserTemplate) => void;
+  onRemoveUser: (t: UserTemplate) => void;
+  onImport: () => void;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -64,12 +73,48 @@ export function NewDocumentDialog({
                 </section>
               ),
           )}
+          <section>
+            <h3>
+              <FolderHeart size={15} />
+              My templates
+            </h3>
+            {userTemplates.length === 0 ? (
+              <button className="gallery-import" onClick={onImport}>
+                <FileInput size={20} aria-hidden="true" />
+                <span>
+                  <strong>Import a template for any journal</strong>
+                  <span className="muted">
+                    Choose the publisher’s LaTeX kit (.zip from the journal’s author guidelines), a template package
+                    someone shared, or a Texloom template (.json).
+                  </span>
+                </span>
+              </button>
+            ) : (
+              <div className="gallery-grid">
+                {userTemplates.map((u) => (
+                  <div key={u.id} className={`gallery-card user${u.path === currentPath ? " current" : ""}`}>
+                    <button className="gallery-card-main" onClick={() => onPickUser(u)}>
+                      <span className="gallery-card-top">
+                        <FileText size={18} aria-hidden="true" />
+                        {u.class && <code>{u.class}</code>}
+                      </span>
+                      <strong>{u.name}</strong>
+                      <span className="muted">{u.description}</span>
+                    </button>
+                    <button className="icon-button small gallery-remove" onClick={() => onRemoveUser(u)} title="Remove from My templates" aria-label={`Remove ${u.name}`}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
         <div className="gallery-foot">
-          <button className="tb-button" onClick={onOpenFile}>
-            <FolderOpen size={15} aria-hidden="true" /> Use a template file…
+          <button className="tb-button" onClick={onImport}>
+            <FileInput size={15} aria-hidden="true" /> Import template…
           </button>
-          <span className="muted">The template can be changed later from the title bar.</span>
+          <span className="muted">A publisher’s LaTeX kit, a template package, or a template file. The template can be changed later from the title bar.</span>
         </div>
       </div>
     </div>

@@ -123,3 +123,18 @@ export const discardRecovery = () => invoke<void>("discard_recovery");
 
 export const getSettings = () => invoke<unknown>("get_settings");
 export const saveSettings = (settings: unknown) => invoke<void>("save_settings", { settings });
+
+/** A template in the user's library ("My templates"). */
+export interface UserTemplate {
+  id: string;
+  name: string;
+  description: string;
+  class: string | null;
+  /** The template file. */
+  path: string;
+}
+export const listUserTemplates = () => invoke<UserTemplate[]>("list_user_templates");
+/** Imports a template (.json), a template package or a publisher kit (.zip) into the library. */
+export const importTemplate = (source: string) => invoke<TemplateInfo>("import_template", { source });
+export const removeUserTemplate = (id: string) => invoke<void>("remove_user_template", { id });
+export const exportTemplate = (path: string) => invoke<void>("export_template", { path });

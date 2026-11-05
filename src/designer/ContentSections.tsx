@@ -504,8 +504,8 @@ export function PublisherSection({
       </Row>
       <p className="d-note">
         <strong>Other journals</strong> (Springer Nature, MDPI, Taylor &amp; Francis…): download the publisher’s LaTeX
-        kit, start from the closest built-in template, choose <em>New copy</em> and <em>Save as…</em>, import the kit
-        here, and pick the title block style — or write a <em>Custom recipe</em> if none fits.
+        kit and use <em>Import template…</em> (title bar template menu, or File → New from template). Texloom makes a
+        template around the kit’s class; adjust the title block here if the journal needs a special one.
       </p>
     </>
   );

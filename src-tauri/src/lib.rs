@@ -8,6 +8,7 @@ macro_rules! log {
 
 mod bib;
 mod files;
+mod library;
 mod recovery;
 mod templates;
 
@@ -21,6 +22,7 @@ use tauri::{AppHandle, Manager, State};
 use texloom_compile::{Asset, CompileError, Compiler, TexError};
 use texloom_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
 
+use library::{Library, LibraryEntry};
 use recovery::{Recovery, RecoveryInfo};
 use templates::{ActiveTemplate, TemplateInfo, TemplateStore};
 
@@ -435,6 +437,49 @@ fn restore_recovery(app: AppHandle, state: State<'_, AppState>, recovery: State<
     Ok(RestoredDocument { document, original_path: original })
 }
 
+/// Templates in the user's library ("My templates").
+#[tauri::command]
+fn list_user_templates(library: State<'_, Library>) -> Vec<LibraryEntry> {
+    library.list()
+}
+
+/// Imports a template file, a template package or a publisher kit into the library
+/// and makes it the active template.
+#[tauri::command]
+fn import_template(app: AppHandle, state: State<'_, AppState>, library: State<'_, Library>, source: String) -> Result<TemplateInfo, AppError> {
+    let path = library.import(Path::new(&source))?;
+    match templates::load_file(&path) {
+        Ok(t) => {
+            let info = t.info();
+            state.templates.set(&app, t);
+            Ok(info)
+        }
+        Err(issues) => {
+            if let Some(dir) = path.parent() {
+                let _ = std::fs::remove_dir_all(dir);
+            }
+            Err(AppError::TemplateInvalid { path: source, issues })
+        }
+    }
+}
+
+/// Removes a template from the library (not the one in use).
+#[tauri::command]
+fn remove_user_template(state: State<'_, AppState>, library: State<'_, Library>, id: String) -> Result<(), AppError> {
+    let in_use = state.templates.current().path.as_deref().and_then(Path::parent).and_then(Path::file_name).is_some_and(|n| n == id.as_str());
+    if in_use {
+        return Err(AppError::other("This template is in use; switch to another one first"));
+    }
+    library.remove(&id)
+}
+
+/// Saves the active template and its assets as a .zip others can import.
+#[tauri::command]
+fn export_template(state: State<'_, AppState>, path: String) -> Result<(), AppError> {
+    let active = state.templates.current();
+    library::export_package(&active.template, active.path.as_deref().and_then(Path::parent), Path::new(&path))
+}
+
 /// Where the user's settings live (settings.json in the app's config folder).
 struct SettingsFile(PathBuf);
 
@@ -526,6 +571,7 @@ pub fn run() {
             app.manage(Recovery::new(data.join("recovery")));
             let config = app.path().app_config_dir().unwrap_or_else(|_| data.clone());
             app.manage(SettingsFile(config.join("settings.json")));
+            app.manage(Library::new(data.join("templates")));
             // Start with a template file (and watch it): TEXLOOM_TEMPLATE=path/template.json
             if let Some(path) = std::env::var_os("TEXLOOM_TEMPLATE") {
                 let path = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
@@ -568,6 +614,10 @@ pub fn run() {
             restore_recovery,
             discard_recovery,
             get_settings,
+            list_user_templates,
+            import_template,
+            remove_user_template,
+            export_template,
             save_settings,
             export_tex
         ])
@@ -585,8 +635,7 @@ mod tests {
             let active = ActiveTemplate::builtin_by_id(&info.id).unwrap();
             let errors: Vec<_> = active.template.validate().into_iter().filter(|i| i.severity == texloom_core::Severity::Error).collect();
             assert!(errors.is_empty(), "{}: {errors:?}", info.id);
-            // Only templates that need a downloaded kit may report it missing.
-            assert_eq!(active.missing_kit().is_some(), info.id == "ieee-access", "{}", info.id);
+            assert!(active.missing_kit().is_none(), "{}: built-in templates must work without downloads", info.id);
         }
         assert!(templates::builtin_list().iter().any(|t| t.class.as_deref() == Some("IEEEtran")));
     }

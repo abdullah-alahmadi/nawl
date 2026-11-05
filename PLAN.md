@@ -173,7 +173,7 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] Structured authors (several affiliations, e-mail, ORCID, membership,
       corresponding author, biography + photo) with an author editor; old
       "Name | Affiliation | Email" lines still work
-- [x] IEEE Access with IEEE's own kit (import the .zip; font maps and a spot-colour
+- [x] IEEE Access with IEEE's own kit (removed as a built-in; still works imported: font maps and a spot-colour
       stand-in make the pdfLaTeX kit work under XeTeX; output matches IEEE's sample)
 - [x] Author biographies (IEEEbiography, with or without photo); `\EOD` for IEEE Access
 - [x] Custom title-block recipes (`{title}`, `{#authors|sep}…{/authors}`, `{?x}…{/x}`)
@@ -195,7 +195,10 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       status bar (compile time, pages, words, template, page zoom); light/dark and
       compact themes
 - [x] Settings window (settings.json in the config folder) and recent files
-- [ ] Template import/export and gallery
+- [x] Template library ("My templates"): import a publisher kit (.zip → journal
+      template around its class, sample's options and BibTeX style, standard title
+      block), a template package or a template .json; export as a package; gallery
+- [ ] Shared online template gallery
 
 ### Later
 SyncTeX (jump between PDF and source), import of a .tex subset, syntax highlighting

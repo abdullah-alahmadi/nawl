@@ -26,7 +26,6 @@ pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("acm-conference", include_str!("../../templates/acm-conference/template.json")),
     ("springer-lncs", include_str!("../../templates/springer-lncs/template.json")),
     ("aps-physical-review", include_str!("../../templates/aps-physical-review/template.json")),
-    ("ieee-access", include_str!("../../templates/ieee-access/template.json")),
 ];
 
 /// A built-in template, for the template gallery.

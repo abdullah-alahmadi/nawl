@@ -65,7 +65,6 @@ next start.
 | ACM Conference Paper | `acmart` (`sigconf`; use `acmsmall` for ACM journals) |
 | Springer LNCS | `llncs` |
 | APS Physical Review | `revtex4-2` (`pra`; use `prl` for Letters) |
-| IEEE Access | IEEE's own kit (`ieeeaccess.cls`, fonts, logos): download once, then import the .zip |
 
 Journal templates use the publisher's official class, so layout, fonts and captions
 are exactly the publisher's; Texloom writes the title block, authors (edited in
@@ -73,18 +72,25 @@ are exactly the publisher's; Texloom writes the title block, authors (edited in
 biography and photo), abstract, keywords and the bibliography in each publisher's
 format. Start one with **File → New from template…**.
 
-**IEEE Access**: choose it, open the **Template** tab, and under **Publisher class**
-follow the card: download IEEE's kit and **Import kit (.zip)**. Texloom asks where
-to save the template (the kit is kept next to it) and saves it with the kit.
-Texloom adapts the kit's pdfLaTeX-only parts (font maps, PANTONE spot colour) for its
-XeTeX-based engine; the result matches IEEE's own sample PDF.
+## Templates for any journal
 
-Other journals whose class isn't in the TeX distribution (Springer Nature, MDPI,
-Taylor & Francis…): start from the closest built-in template, choose **New copy**,
-import the publisher's kit, and pick a title block style — or choose
-**Custom recipe** and write the title block once as LaTeX with placeholders such as
-`{title}` and `{#authors| \and }{name}{/authors}` (examples and a placeholder list are
-in the designer).
+**Import template…** (in **File → New from template…** and in the title bar's
+template menu) adds a template to **My templates**. It accepts:
+
+- **A publisher's LaTeX kit** (the .zip from the journal's author guidelines, e.g.
+  Springer Nature, MDPI, Taylor & Francis): Texloom makes a journal
+  template around the kit's class, with the class options and BibTeX style its
+  sample paper uses. Classes Texloom knows get their proven title block (IEEE Access,
+  IEEEtran, elsarticle, llncs, acmart, REVTeX); others get a standard title block.
+  If the publisher wants a special
+  title block, adjust it under **Design template → Publisher class** (a *Custom
+  recipe*: LaTeX with placeholders such as `{title}` and
+  `{#authors| \and }{name}{/authors}`; examples and a placeholder list are there).
+- **A template package** (.zip) that someone exported with **Export template…**.
+- **A Texloom template file** (.json) with its `assets/` folder.
+
+My templates live in Texloom's data folder; remove one from the gallery (trash icon).
+**Export template…** saves the current template and its files as a .zip to share.
 
 ## Making a template
 
