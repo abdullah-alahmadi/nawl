@@ -322,7 +322,7 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }
 /* The editable "page": approximates the output; Phase 2 derives this from the template. */
 .page {
   max-width: 800px; margin: 0 auto; min-height: 100%;
-  background: var(--page); color: #1d2228; padding: 56px 64px;
+  background: var(--page-bg, #f4efe6); color: var(--page-fg, #1d2228); padding: 56px 64px;
   box-shadow: var(--shadow-page); border-radius: 1px;
   font-family: "Latin Modern Roman", "CMU Serif", Georgia, serif; font-size: 16px; line-height: 1.5;
 }
@@ -630,3 +630,35 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
 .gallery-card .muted { font-size: 12px; line-height: 1.4; }
 .gallery-foot { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-top: 1px solid var(--border); background: var(--chrome); font-size: 12px; }
 .menu-anchor:has(> .template-button) > .menu { min-width: 330px; }
+
+/* Editor page colour (Settings → Editor). Tints inside the page are mixed from the
+   text colour, so they work on light and dark pages alike. */
+.page { --page-tint: color-mix(in srgb, var(--page-fg, #1d2228) 7%, transparent); --page-line: color-mix(in srgb, var(--page-fg, #1d2228) 18%, transparent); }
+.page code, .page pre { background: var(--page-tint); }
+.page td, .page th { border-color: color-mix(in srgb, var(--page-fg, #1d2228) 75%, transparent); }
+.page figure.figure:hover, .equation:hover { border-color: var(--page-line); }
+.figure-placeholder { color: color-mix(in srgb, var(--page-fg, #1d2228) 60%, transparent); background: var(--page-tint); }
+.figure-controls { color: color-mix(in srgb, var(--page-fg, #1d2228) 70%, transparent); }
+.equation-number { color: color-mix(in srgb, var(--page-fg, #1d2228) 55%, transparent); }
+.page .appendix-divider { border-color: var(--page-line); color: color-mix(in srgb, var(--page-fg, #1d2228) 65%, transparent); }
+.page .inline-math:hover, .page .ref:hover, .page .citation:hover { background: var(--page-tint); }
+.raw-latex { background: var(--page-tint); border-color: var(--page-line); }
+.raw-latex-label { border-color: var(--page-line); color: color-mix(in srgb, var(--page-fg, #1d2228) 70%, transparent); }
+.raw-latex-label span { color: color-mix(in srgb, var(--page-fg, #1d2228) 50%, transparent); }
+.page .raw-latex textarea { color: inherit; }
+/* Dark pages: lighter link colours, and dark form controls for MathLive and selects. */
+:root[data-page-dark] .page { color-scheme: dark; }
+:root[data-page-dark] .page .ref, :root[data-page-dark] .page .citation, :root[data-page-dark] .figure-controls button { color: #8fb4ff; }
+:root[data-page-dark] .page .ref.is-selected, :root[data-page-dark] .page .citation.is-selected,
+:root[data-page-dark] .page .inline-math.is-selected { background: rgba(143, 180, 255, 0.22); }
+:root[data-page-dark] .page .ref.broken, :root[data-page-dark] .page .citation.broken { color: #ff9a90; background: rgba(255, 120, 110, 0.15); }
+:root[data-page-dark] .page .selectedCell::after { background: rgba(143, 180, 255, 0.2); }
+
+/* Page colour swatches in Settings */
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; max-width: 300px; }
+.swatch { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--border-strong); }
+.swatch:hover { transform: scale(1.08); background: inherit; }
+.swatch.active { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+.swatch-custom { position: relative; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; border: 1px dashed var(--border-strong); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); cursor: pointer; }
+.swatch-custom.active { border-style: solid; box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+.swatch-custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }

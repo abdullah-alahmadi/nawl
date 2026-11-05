@@ -44,7 +44,7 @@ abstract… as the template defines them), **References**, and **Things to check
 (missing required fields, broken references, citations without an entry). The
 status bar shows the compile state, page and word counts, and the page zoom.
 
-**Settings** (gear icon, Ctrl+,): page zoom, spell checking, crash recovery,
+**Settings** (gear icon, Ctrl+,): page zoom, the page color (warm paper by default; presets, dark pages, or any color), spell checking, crash recovery,
 compiling while typing or only on Ctrl+Enter, light/dark theme, compact density,
 the default folder, the number of recent files, and a list of keyboard shortcuts.
 

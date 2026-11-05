@@ -1,8 +1,8 @@
 // Settings window (gear icon or Ctrl+,). Changes apply and save right away.
 import { useEffect, useState, type ReactNode } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { FileText, Keyboard, Monitor, Moon, Palette, PenLine, Sun, X } from "lucide-react";
-import { DEFAULT_SETTINGS, type Settings } from "./settings";
+import { FileText, Keyboard, Monitor, Moon, Palette, PenLine, Pipette, Sun, X } from "lucide-react";
+import { DEFAULT_SETTINGS, PAGE_COLORS, type Settings } from "./settings";
 
 type Section = "editor" | "preview" | "appearance" | "files" | "shortcuts";
 
@@ -85,6 +85,29 @@ export function SettingsDialog({
                     </option>
                   ))}
                 </select>
+              </Field>
+              <Field label="Page color" hint="Background of the page you write on. The PDF preview stays white like paper.">
+                <span className="swatches">
+                  {PAGE_COLORS.map((c) => (
+                    <button
+                      key={c.color}
+                      className={`swatch${settings.pageColor.toLowerCase() === c.color ? " active" : ""}`}
+                      style={{ background: c.color }}
+                      title={c.name}
+                      aria-label={c.name}
+                      aria-pressed={settings.pageColor.toLowerCase() === c.color}
+                      onClick={() => onChange({ pageColor: c.color })}
+                    />
+                  ))}
+                  <label
+                    className={`swatch-custom${PAGE_COLORS.some((c) => c.color === settings.pageColor.toLowerCase()) ? "" : " active"}`}
+                    title="Custom color…"
+                    style={PAGE_COLORS.some((c) => c.color === settings.pageColor.toLowerCase()) ? undefined : { background: settings.pageColor }}
+                  >
+                    <Pipette size={13} aria-hidden="true" />
+                    <input type="color" value={settings.pageColor} onChange={(e) => onChange({ pageColor: e.target.value })} aria-label="Custom page color" />
+                  </label>
+                </span>
               </Field>
               <Field label="Spell checking" hint="Underline misspelled words while typing.">
                 <Switch checked={settings.spellcheck} onChange={(v) => onChange({ spellcheck: v })} />
