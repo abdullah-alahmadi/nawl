@@ -1,0 +1,10 @@
+[package]
+name = "compile"
+description = "Runs Tectonic on generated LaTeX and turns its logs into readable errors"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+tempfile.workspace = true

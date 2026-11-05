@@ -1,0 +1,8 @@
+[package]
+name = "codegen"
+description = "Generates LaTeX from documents (Phase 0: straight from ProseMirror JSON)"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde_json.workspace = true

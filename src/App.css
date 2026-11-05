@@ -1,0 +1,111 @@
+:root {
+  --bg: #eef0f3;
+  --panel: #ffffff;
+  --border: #d7dbe0;
+  --text: #1d2228;
+  --muted: #6b7480;
+  --accent: #2f6fde;
+  --accent-soft: #e3ecfc;
+  --error: #c0362c;
+  --error-soft: #fdecea;
+  --ok: #2c8a4a;
+  --page: #ffffff;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17191d;
+    --panel: #1f2226;
+    --border: #33373d;
+    --text: #e4e7eb;
+    --muted: #9099a4;
+    --accent: #6c9cf0;
+    --accent-soft: #24324a;
+    --error: #f0776d;
+    --error-soft: #3a2220;
+    --ok: #5cc27e;
+    /* The page stays white: it previews paper. */
+  }
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; }
+
+.app { display: flex; flex-direction: column; height: 100%; }
+
+/* Toolbar */
+.toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.group { display: flex; align-items: center; gap: 4px; }
+.group.right { margin-left: auto; gap: 10px; }
+.sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+button {
+  font: inherit; color: var(--text); background: transparent;
+  border: 1px solid transparent; border-radius: 6px; padding: 4px 8px; cursor: pointer;
+}
+button:hover { background: var(--accent-soft); }
+button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.filename { color: var(--muted); }
+.status { padding: 2px 8px; border-radius: 10px; font-size: 12px; background: var(--bg); color: var(--muted); }
+.status-ok { color: var(--ok); }
+.status-compiling { color: var(--accent); }
+.status-error { color: var(--error); background: var(--error-soft); }
+
+/* Panes */
+.panes { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+.editor-pane, .preview-pane { overflow: auto; min-height: 0; }
+.editor-pane { padding: 24px; border-right: 1px solid var(--border); }
+.preview-pane { display: flex; flex-direction: column; }
+
+/* The editable "page": approximates the output; Phase 2 derives this from the template. */
+.page {
+  max-width: 800px; margin: 0 auto; min-height: 100%;
+  background: var(--page); color: #1d2228; padding: 56px 64px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); border-radius: 2px;
+  font-family: "Latin Modern Roman", "CMU Serif", Georgia, serif; font-size: 16px; line-height: 1.5;
+}
+.page .tiptap { outline: none; }
+.page h1 { font-size: 1.45em; margin: 1.2em 0 0.5em; }
+.page h2 { font-size: 1.2em; margin: 1.1em 0 0.4em; }
+.page h3 { font-size: 1.05em; margin: 1em 0 0.3em; }
+.page p { margin: 0 0 0.6em; }
+.page blockquote { margin: 0.6em 2em; font-style: italic; }
+.page code { font-family: ui-monospace, monospace; font-size: 0.9em; background: #f1f3f5; padding: 0 3px; border-radius: 3px; }
+.page pre { background: #f1f3f5; padding: 8px 12px; border-radius: 4px; }
+
+/* Equations */
+.equation {
+  display: flex; align-items: center; justify-content: center; position: relative;
+  margin: 0.8em 0; padding: 4px; border-radius: 4px; border: 1px solid transparent;
+}
+.equation:hover { border-color: #dfe3e8; }
+.equation.is-selected { border-color: var(--accent); }
+.equation-field math-field {
+  font-size: 1.15em; min-width: 6em; border: none; background: transparent; outline: none;
+}
+.equation-number { position: absolute; right: 4px; color: #8a929c; font-size: 0.9em; }
+
+/* Preview */
+.pdf-preview { flex: 1; padding: 16px; }
+.pdf-pages { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.pdf-page { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); background: white; }
+.latex-source {
+  flex: 1; margin: 0; padding: 16px; overflow: auto; white-space: pre-wrap;
+  font-family: ui-monospace, monospace; font-size: 12.5px; background: var(--panel);
+}
+.muted { color: var(--muted); }
+
+.error-panel {
+  margin: 12px 16px 0; padding: 10px 12px; border-radius: 6px;
+  background: var(--error-soft); color: var(--error); border: 1px solid var(--error);
+}
+.error-panel ul { margin: 6px 0; padding-left: 20px; }
+.error-panel pre { max-height: 240px; overflow: auto; font-size: 11px; color: var(--text); white-space: pre-wrap; }
+.equation-field math-field::part(virtual-keyboard-toggle),
+.equation-field math-field::part(menu-toggle) { display: none; }
