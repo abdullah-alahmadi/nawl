@@ -24,7 +24,7 @@ import { SettingsDialog } from "./SettingsDialog";
 import { NewDocumentDialog } from "./NewDocumentDialog";
 import { Menu, MenuHeading, MenuItem, MenuSeparator } from "./ui/Menu";
 import {
-  BookMarked, Bold, FileInput, FileOutput, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
+  BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
   LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Sigma, Superscript,
   Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut,
@@ -82,6 +82,8 @@ export default function App() {
   const togglePanel = (p: SidePanel) => setPanel((cur) => (cur === p ? null : p));
   const [showSettings, setShowSettings] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  // The gallery as the start window: also offers Open, recent files and the example.
+  const [startWindow, setStartWindow] = useState(false);
   const { settings, update: updateSettings, addRecent, removeRecent, latest: settingsRef } = useSettings();
   const [compileMs, setCompileMs] = useState<number | null>(null);
   const [pageCount, setPageCount] = useState(0);
@@ -241,7 +243,8 @@ export default function App() {
     return () => ro.disconnect();
   }, []);
 
-  // Startup: offer to restore unsaved changes from a crash, else open the sample report.
+  // Startup: offer to restore unsaved changes from a crash, else show the start
+  // window (templates, open, recent files) over an empty document.
   useEffect(() => {
     if (!editor || started.current) return;
     started.current = true; // React StrictMode runs effects twice in development
@@ -250,11 +253,11 @@ export default function App() {
       setTemplateInfo(t);
       setDraft(t.template);
       if (await offerRecovery(editor)) return;
-      const sample = await api.sampleDocument();
-      setMetadata(sample.metadata);
-      setBibliography(sample.bibliography ?? "");
-      loadDocument(editor, sample.doc);
+      const blank = await api.newDocument();
+      loadDocument(editor, blank.doc);
       compile();
+      setStartWindow(true);
+      setShowGallery(true);
     })().catch((e) => setStatus({ state: "error", error: api.asAppError(e) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, compile, setMetadata, setBibliography]);
@@ -585,6 +588,29 @@ export default function App() {
     }
   };
 
+  const openGallery = () => {
+    setStartWindow(false);
+    setShowGallery(true);
+  };
+
+  /** The example senior design report, with its template. */
+  const openExample = async () => {
+    if (!editor) return;
+    if (dirty && !(await ask("Discard unsaved changes and open the example?", { title: "Example report", kind: "warning" }))) return;
+    setShowGallery(false);
+    try {
+      const [t, sample] = await Promise.all([api.switchToBuiltinTemplate("senior-design"), api.sampleDocument()]);
+      loadDocument(editor, sample.doc);
+      setBibliography(sample.bibliography ?? "");
+      metadataRef.current = sample.metadata;
+      setPath(null);
+      markClean();
+      applyTemplate(t);
+    } catch (e) {
+      report(e);
+    }
+  };
+
   /** New document with another template: from the gallery, or a template file. */
   const newFromTemplate = async (choose: () => Promise<boolean>) => {
     if (dirty && !(await ask("Discard unsaved changes and start a new document?", { title: "New document", kind: "warning" }))) return;
@@ -604,7 +630,7 @@ export default function App() {
         if (mode === "template") run(e.shiftKey ? saveTemplateAs : saveTemplate);
         else run(e.shiftKey ? saveAs : saveDoc);
       } else if (key === "o" && !e.shiftKey) run(() => openDoc());
-      else if (key === "n" && e.shiftKey) run(() => setShowGallery(true));
+      else if (key === "n" && e.shiftKey) run(() => openGallery());
       else if (key === "n") run(() => newDoc());
       else if (key === "e" && e.shiftKey) run(exportPdfFile);
       else if (key === "enter") run(compile);
@@ -652,8 +678,9 @@ export default function App() {
               return (
                 <>
                   <MenuItem icon={<FilePlus2 />} label="New" shortcut="Ctrl+N" onClick={act(() => newDoc())} title="New empty document with the current template" />
-                  <MenuItem icon={<LayoutTemplate />} label="New from template…" shortcut="Ctrl+Shift+N" onClick={act(() => setShowGallery(true))} title="Reports, IEEE, Elsevier, ACM, Springer…" />
+                  <MenuItem icon={<LayoutTemplate />} label="New from template…" shortcut="Ctrl+Shift+N" onClick={act(() => openGallery())} title="Reports, IEEE, Elsevier, ACM, Springer…" />
                   <MenuItem icon={<FolderOpen />} label="Open…" shortcut="Ctrl+O" onClick={act(() => openDoc())} />
+                  <MenuItem icon={<Sparkles />} label="Open the example report" onClick={act(openExample)} />
                   {settings.recentFiles.length > 0 && (
                     <>
                       <MenuHeading>Recent</MenuHeading>
@@ -722,7 +749,7 @@ export default function App() {
                 label="New document from template…"
                 onClick={() => {
                   close();
-                  setShowGallery(true);
+                  openGallery();
                 }}
               />
               <MenuItem
@@ -965,7 +992,17 @@ export default function App() {
           onPickUser={(u) => newFromTemplate(() => openTemplateFile(u.path))}
           onRemoveUser={removeUserTemplate}
           onImport={() => newFromTemplate(importTemplateFile)}
-          onClose={() => setShowGallery(false)}
+          start={startWindow}
+          recentFiles={settings.recentFiles}
+          onOpen={(p) => {
+            setShowGallery(false);
+            openDoc(p);
+          }}
+          onExample={openExample}
+          onClose={() => {
+            setShowGallery(false);
+            setStartWindow(false);
+          }}
         />
       )}
       {showSettings && <SettingsDialog settings={settings} onChange={updateSettings} onClose={() => setShowSettings(false)} />}

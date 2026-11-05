@@ -1,7 +1,8 @@
 // "New from template": a gallery of the built-in templates, grouped into reports
-// and journals/conferences. Choosing one starts an empty document with it.
+// and journals/conferences. Choosing one starts an empty document with it. At
+// startup it is the start window, with Open, recent files and the example as well.
 import { useEffect } from "react";
-import { BookOpen, FileInput, FileText, FolderHeart, GraduationCap, Trash2, X } from "lucide-react";
+import { BookOpen, FileInput, FileText, FolderHeart, FolderOpen, GraduationCap, History, Sparkles, Trash2, X } from "lucide-react";
 import type { BuiltinTemplate, UserTemplate } from "./api";
 
 export function NewDocumentDialog({
@@ -13,6 +14,10 @@ export function NewDocumentDialog({
   onPickUser,
   onRemoveUser,
   onImport,
+  start = false,
+  recentFiles = [],
+  onOpen,
+  onExample,
   onClose,
 }: {
   builtins: BuiltinTemplate[];
@@ -25,6 +30,12 @@ export function NewDocumentDialog({
   onPickUser: (t: UserTemplate) => void;
   onRemoveUser: (t: UserTemplate) => void;
   onImport: () => void;
+  /** Shown at startup: adds Open, recent files and the example report. */
+  start?: boolean;
+  recentFiles?: string[];
+  /** Opens a document: the dialog without a path, else that recent file. */
+  onOpen?: (path?: string) => void;
+  onExample?: () => void;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -42,10 +53,39 @@ export function NewDocumentDialog({
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal gallery" role="dialog" aria-modal="true" aria-label="New from template">
+      <div className={`modal gallery${start ? " start" : ""}`} role="dialog" aria-modal="true" aria-label={start ? "Start" : "New from template"}>
+        {start && (
+          <aside className="start-side">
+            <div className="start-brand">
+              <strong>Texloom</strong>
+              <span className="muted">LaTeX documents, visually</span>
+            </div>
+            <button className="start-action" onClick={() => onOpen?.()}>
+              <FolderOpen size={16} aria-hidden="true" /> Open document…
+            </button>
+            <button className="start-action" onClick={onExample}>
+              <Sparkles size={16} aria-hidden="true" /> Open the example report
+            </button>
+            {recentFiles.length > 0 && (
+              <>
+                <div className="start-heading">Recent</div>
+                {recentFiles.map((f) => (
+                  <button key={f} className="start-recent" onClick={() => onOpen?.(f)} title={f}>
+                    <History size={14} aria-hidden="true" />
+                    <span className="start-recent-text">
+                      <span>{f.split(/[\\/]/).pop()}</span>
+                      <span className="muted">{f.replace(/[\\/][^\\/]*$/, "").replace(/^\/home\/[^/]+/, "~")}</span>
+                    </span>
+                  </button>
+                ))}
+              </>
+            )}
+          </aside>
+        )}
+        <div className="gallery-main">
         <div className="gallery-head">
-          <h2>New from template</h2>
-          <button className="icon-button" onClick={onClose} aria-label="Close" title="Close (Esc)">
+          <h2>{start ? "Start a new document" : "New from template"}</h2>
+          <button className="icon-button" onClick={onClose} aria-label="Close" title={start ? "Start with an empty document (Esc)" : "Close (Esc)"}>
             <X size={17} />
           </button>
         </div>
@@ -115,6 +155,7 @@ export function NewDocumentDialog({
             <FileInput size={15} aria-hidden="true" /> Import template…
           </button>
           <span className="muted">A publisher’s LaTeX kit, a template package, or a template file. The template can be changed later from the title bar.</span>
+        </div>
         </div>
       </div>
     </div>

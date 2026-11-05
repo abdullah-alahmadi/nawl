@@ -18,6 +18,10 @@ after that it's cached in `~/.cache/Tectonic`.
 
 ## Writing a document
 
+Texloom starts with a start window: pick a template for a new document (reports,
+journals and conferences, or your own under **My templates**), open a document or a
+recent file, or open the example report. Close it (Esc) to start with an empty page.
+
 The window has a **File** menu (New, Open, recent files, Save, Export) and a
 **Write / Design template** switch at the top. The editor page is styled by the
 template, so it looks like the PDF next to it.
