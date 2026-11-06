@@ -115,6 +115,10 @@ export default function App() {
   const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
   const [builtins, setBuiltins] = useState<api.BuiltinTemplate[]>([]);
   const [installedTemplates, setInstalledTemplates] = useState<api.InstalledTemplate[]>([]);
+  /** Installed classes of kinds Texloom can't write yet (letters, CVs…). */
+  const [installedWaiting, setInstalledWaiting] = useState<api.InstalledList["waiting"]>([]);
+  /** Beamer themes the installed TeX adds to the theme picker. */
+  const [installedThemeCount, setInstalledThemeCount] = useState(0);
   /** The template window with only the installed-TeX templates (from the template menu). */
   const [showTexPicker, setShowTexPicker] = useState(false);
   /** The presentation theme picker. */
@@ -348,7 +352,14 @@ export default function App() {
 
   useEffect(() => {
     api.listBuiltinTemplates().then(setBuiltins, () => setBuiltins([]));
-    api.listInstalledTemplates().then(setInstalledTemplates, () => setInstalledTemplates([]));
+    api.listInstalledTemplates().then(
+      (l) => {
+        setInstalledTemplates(l.templates);
+        setInstalledWaiting(l.waiting);
+      },
+      () => setInstalledTemplates([]),
+    );
+    api.listBeamerThemes().then((t) => setInstalledThemeCount(t.themes.length), () => {});
     refreshUserTemplates();
   }, []);
 
@@ -988,8 +999,8 @@ export default function App() {
                   )}
                   <MenuItem
                     icon={<Library />}
-                    label={`Choose from ${texTemplates.length} journal classes…`}
-                    title="Journal and conference classes found in your TeX distribution"
+                    label={`Choose from ${texTemplates.length} classes…`}
+                    title="Journal, thesis, book and article classes found in your TeX distribution"
                     onClick={() => {
                       close();
                       setShowTexPicker(true);
@@ -1168,6 +1179,8 @@ export default function App() {
           onRemoveUser={removeUserTemplate}
           onImport={() => newFromTemplate(importTemplateFile)}
           installed={installedTemplates}
+          waiting={installedWaiting}
+          installedThemes={installedThemeCount}
           currentClass={currentTexClass}
           onPickInstalled={(c) => newFromTemplate(() => switchToInstalled(c))}
           engine={settings.engine}
@@ -1199,14 +1212,19 @@ export default function App() {
         <NewDocumentDialog
           only="installed"
           builtins={builtins}
-          currentId={null}
-          onPick={() => {}}
+          currentId={templateInfo?.path ? null : template?.meta.id ?? null}
+          onPick={(id) => {
+            setShowTexPicker(false);
+            switchToBuiltin(id);
+          }}
           userTemplates={[]}
           currentPath={null}
           onPickUser={() => {}}
           onRemoveUser={() => {}}
           onImport={() => {}}
           installed={installedTemplates}
+          waiting={installedWaiting}
+          installedThemes={installedThemeCount}
           currentClass={currentTexClass}
           onPickInstalled={(c) => {
             setShowTexPicker(false);

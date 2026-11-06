@@ -138,6 +138,9 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
     };
     w!(o, "  {{\\newcommand\\texloombibliography{{{style}\\bibliography{{refs}}}}}}");
     w!(o, "\\newcommand\\texloomappendix{{\\appendix}}");
+    // Book classes have no abstract environment: a simple one, like article's.
+    w!(o, "\\@ifundefined{{abstract}}{{\\providecommand\\abstractname{{Abstract}}%");
+    w!(o, "  \\newenvironment{{abstract}}{{\\begin{{center}}\\bfseries\\abstractname\\end{{center}}\\begin{{quote}}}}{{\\end{{quote}}}}}}{{}}");
     w!(o, "% A caption outside a float (figures and tables inside columns)");
     w!(o, "\\newcommand\\texloomcaptionof[2]{{\\def\\@captype{{#1}}\\caption{{#2}}}}");
     w!(o);

@@ -300,7 +300,7 @@ fn use_builtin_template(app: AppHandle, state: State<'_, AppState>, id: Option<S
 /// Journal templates for the classes of the installed TeX distribution (empty
 /// without one).
 #[tauri::command]
-async fn list_installed_templates(app: AppHandle) -> Result<Vec<installed::InstalledTemplate>, AppError> {
+async fn list_installed_templates(app: AppHandle) -> Result<installed::InstalledList, AppError> {
     tauri::async_runtime::spawn_blocking(move || installed::list(&app.state::<AppState>().installed_classes()))
         .await
         .map_err(AppError::other)

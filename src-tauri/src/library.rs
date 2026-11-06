@@ -277,7 +277,7 @@ fn create_from_kit(zip_path: &Path, name: &str, folder: &Path) -> Result<(), App
         Some(l) => format!("Made from {kit_name} (class {class}, {l} title block)"),
         None => format!("Made from {kit_name} (class {class})"),
     };
-    let t = journal_template(JournalSpec { id, name: name.to_string(), description, class, options, bib_style, files: imported, title_block: None });
+    let t = journal_template(JournalSpec { id, name: name.to_string(), description, class, options, bib_style, files: imported, title_block: None, chapters: false });
     let mut f = std::fs::File::create(&template_file)?;
     f.write_all(serde_json::to_string_pretty(&t).map_err(AppError::other)?.as_bytes())?;
     Ok(())
@@ -295,6 +295,8 @@ pub struct JournalSpec {
     pub files: Vec<String>,
     /// Title block for classes without a built-in style; `None` for the generic one.
     pub title_block: Option<String>,
+    /// Chapters at the top (books, theses) instead of sections.
+    pub chapters: bool,
 }
 
 /// A journal template around a publisher class. Fields (title, authors, abstract,
@@ -311,6 +313,9 @@ pub fn journal_template(spec: JournalSpec) -> Template {
     t.meta.description = spec.description;
     t.meta.version = "0.1.0".into();
     t.meta.author = None;
+    if spec.chapters {
+        t.structure.top_level = texloom_core::TopLevel::Chapter;
+    }
     let known = known_class(&spec.class);
     if let Some(k) = &known {
         for (id, label, kind) in k.extra_fields {

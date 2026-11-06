@@ -794,3 +794,8 @@ button.refs-entry:hover { border-color: var(--accent); }
 .page .ProseMirror { white-space: break-spaces; }
 .page .ProseMirror pre, .page .ProseMirror code { white-space: pre-wrap; }
 body.dragging-dialog, body.dragging-dialog * { cursor: move !important; user-select: none !important; }
+
+/* "From your TeX installation", grouped by kind of document */
+.tex-group { margin-bottom: 14px; }
+.tex-group h4 { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; font-size: 12.5px; font-weight: 600; color: var(--text); }
+.tex-waiting { margin-top: 4px; }

@@ -1,6 +1,6 @@
-//! What an installed TeX distribution offers: the journal and conference classes
-//! listed in TeX Live's package database (packages the TeX Catalogue files under the
-//! "journalpub" topic), plus a lookup of any class or style by name with `kpsewhich`.
+//! What an installed TeX distribution offers: the document classes listed in TeX
+//! Live's package database, with the TeX Catalogue's topics for each ("journalpub",
+//! "dissertation", "book-pub", "letter"…), and a lookup of any file by name.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -18,6 +18,28 @@ pub struct InstalledClass {
     pub description: String,
     /// BibTeX styles shipped in the same package.
     pub bib_styles: Vec<String>,
+    /// The package's TeX Catalogue topics ("journalpub", "dissertation"…).
+    pub topics: Vec<String>,
+    /// The class file, when known.
+    pub path: Option<PathBuf>,
+}
+
+impl InstalledClass {
+    /// The class has chapters: it defines `\chapter` or loads a class that does.
+    pub fn has_chapters(&self) -> bool {
+        let Some(text) = self.path.as_ref().and_then(|p| std::fs::read_to_string(p).ok()) else { return false };
+        let defines = ["\\newcommand\\chapter", "\\newcommand*\\chapter", "\\newcommand{\\chapter}", "\\newcommand*{\\chapter}", "\\def\\chapter", "\\DeclareRobustCommand\\chapter", "\\DeclareRobustCommand{\\chapter}"];
+        if defines.iter().any(|d| text.contains(d)) {
+            return true;
+        }
+        // \LoadClass[…]{book}, {report}, {memoir}, {scrbook}…
+        text.match_indices("\\LoadClass").any(|(i, _)| {
+            // By characters: class files may hold non-ASCII text (Cyrillic, Chinese…).
+            let rest: String = text[i..].chars().take(200).collect();
+            let name = rest.split('{').nth(1).and_then(|r| r.split('}').next()).unwrap_or("");
+            ["book", "report", "memoir", "scrbook", "scrreprt", "extbook", "extreport", "bookest"].iter().any(|b| name.trim() == *b)
+        })
+    }
 }
 
 /// Runs `kpsewhich` with `args`; its output lines (empty when TeX isn't installed).
@@ -44,10 +66,10 @@ pub fn find_files(files: &[&str]) -> Vec<(String, PathBuf)> {
         .collect()
 }
 
-/// The journal and conference classes of the installed TeX Live, by class name.
-/// Empty when there is no TeX Live or its package database can't be found (MiKTeX,
-/// for instance); use [`find_files`] for known classes then.
-pub fn journal_classes() -> Vec<InstalledClass> {
+/// The document classes of the installed TeX Live (packages with the Catalogue topic
+/// "class"), by class name. Empty when there is no TeX Live or its package database
+/// can't be found (MiKTeX, for instance); use [`find_files`] for known classes then.
+pub fn document_classes() -> Vec<InstalledClass> {
     // kpsewhich answers only the last -var-value of a call.
     let var = |name: &str| kpsewhich(&["-var-value", name]).into_iter().next().map(PathBuf::from);
     let (Some(root), Some(dist)) = (var("TEXMFROOT"), var("TEXMFDIST")) else { return Vec::new() };
@@ -159,6 +181,28 @@ fn records(text: &str) -> Vec<Record<'_>> {
     out
 }
 
+/// Where `class`.cls is: from the package's file list, else in its folder.
+fn class_path(root: &Path, dir: &Path, runfiles: &[&str], class: &str) -> Option<PathBuf> {
+    let file = format!("{class}.cls");
+    if let Some(f) = runfiles.iter().find(|f| f.ends_with(&format!("/{file}"))) {
+        return Some(root.join(f));
+    }
+    fn find(dir: &Path, file: &str, depth: u8) -> Option<PathBuf> {
+        for e in std::fs::read_dir(dir).ok()?.flatten() {
+            let p = e.path();
+            if p.is_dir() && depth > 0 {
+                if let Some(found) = find(&p, file, depth - 1) {
+                    return Some(found);
+                }
+            } else if p.file_name().is_some_and(|n| n == file) {
+                return Some(p);
+            }
+        }
+        None
+    }
+    find(dir, &file, 2)
+}
+
 fn stem(path: &str, ext: &str) -> Option<String> {
     let p = Path::new(path);
     (p.extension()? == ext).then(|| p.file_stem()?.to_str().map(str::to_string))?
@@ -183,11 +227,12 @@ fn files_in(dir: &Path, ext: &str, depth: u8) -> Vec<String> {
 fn from_database(text: &str, root: &Path, dist: &Path) -> Vec<InstalledClass> {
     let mut out = Vec::new();
     for r in records(text) {
-        if !r.topics.contains(&"journalpub") {
+        if !r.topics.contains(&"class") {
             continue;
         }
+        let class_dir = dist.join("tex/latex").join(r.name);
         let (classes, bib_styles) = if r.runfiles.is_empty() {
-            (files_in(&dist.join("tex/latex").join(r.name), "cls", 2), files_in(&dist.join("bibtex/bst").join(r.name), "bst", 1))
+            (files_in(&class_dir, "cls", 2), files_in(&dist.join("bibtex/bst").join(r.name), "bst", 1))
         } else {
             // Listed files only count when they're really there.
             let pick = |ext: &str| -> Vec<String> {
@@ -200,10 +245,12 @@ fn from_database(text: &str, root: &Path, dist: &Path) -> Vec<InstalledClass> {
         };
         for class in classes {
             out.push(InstalledClass {
-                class,
                 package: r.name.to_string(),
                 description: r.shortdesc.to_string(),
                 bib_styles: bib_styles.clone(),
+                topics: r.topics.iter().map(|t| t.to_string()).collect(),
+                path: class_path(root, &class_dir, &r.runfiles, &class),
+                class,
             });
         }
     }
@@ -236,6 +283,8 @@ name beamer\nshortdesc Slides\nrunfiles size=1\n texmf-dist/tex/latex/beamer/bea
                 package: "mnras".into(),
                 description: "Monthly Notices of the Royal Astronomical Society".into(),
                 bib_styles: vec!["mnras".into()],
+                topics: vec!["astronomy".into(), "class".into(), "journalpub".into()],
+                path: Some(root.join("texmf-dist/tex/latex/mnras/mnras.cls")),
             }]
         );
     }
@@ -269,11 +318,25 @@ name absent\nshortdesc Not installed\ncatalogue-topics class journalpub\n";
         assert_eq!(out.font_themes, vec!["serif"]);
     }
 
+    #[test]
+    fn chapters_come_from_the_class_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let class = |name: &str, text: &str| {
+            let path = dir.path().join(format!("{name}.cls"));
+            std::fs::write(&path, text).unwrap();
+            InstalledClass { class: name.into(), package: name.into(), description: String::new(), bib_styles: vec![], topics: vec![], path: Some(path) }
+        };
+        assert!(class("a", "% Диссертация, кириллица\n\\LoadClass[12pt]{report}").has_chapters());
+        assert!(class("b", "\\newcommand\\chapter{\\section}").has_chapters());
+        assert!(!class("c", "% Статья\n\\LoadClass{article}\n\\@ifundefined{chapter}{}{}").has_chapters());
+        assert!(!InstalledClass { path: None, ..class("d", "") }.has_chapters());
+    }
+
     /// Lists what this computer's TeX Live offers. Run with --ignored --nocapture.
     #[test]
     #[ignore]
     fn lists_installed_journal_classes() {
-        let found = journal_classes();
+        let found = document_classes();
         for c in &found {
             println!("{:28} {:24} {:?} {}", c.class, c.package, c.bib_styles, c.description);
         }

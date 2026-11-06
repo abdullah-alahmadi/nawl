@@ -142,15 +142,23 @@ template menu) adds a template to **My templates**. It accepts:
 My templates live in Texloom's data folder; remove one from the gallery (trash icon).
 **Export template…** saves the current template and its files as a .zip to share.
 
-### Journals from your TeX installation
+### Templates from your TeX installation
 
-With TeX Live installed, the gallery also lists **From your TeX installation**: every
-journal or conference class TeX Live's package database files under the TeX
-Catalogue's *journalpub* topic (MNRAS, Nature, ACS, AAS, Oxford University Press,
-Elsevier CAS, JMLR, Quantum, APA, ASCE, AIAA, LNI and more, about 40 on a full
-TeX Live). Nothing is copied: the template uses the class as installed. Well-known
-classes get a tuned title block; the rest the standard one. Classes that need
-special fonts or title commands Texloom can't write yet are left out. The gallery's
+With TeX Live installed, the gallery also lists **From your TeX installation**: the
+document classes in TeX Live's package database, grouped by kind using the TeX
+Catalogue's topics: **journals and conferences** (MNRAS, Nature, ACS, AAS, Oxford
+University Press, Elsevier CAS, JMLR, Quantum…), **theses and dissertations**,
+**books**, and **articles and reports** (KOMA-Script, memoir and the like). Book and
+thesis templates start with chapters. Nothing is copied: the template uses the class
+as installed. Well-known classes get a tuned title block; the rest the standard one.
+Classes that don't compile with Texloom's standard title block (they need their own
+commands, fonts or files) are left out. The template menu's **From your TeX
+installation** entry opens the same list, with the presentation template and your
+installed beamer themes.
+
+Letter, CV, poster, exam and non-beamer presentation classes are counted but not
+offered yet: Texloom can't write those kinds of documents. With MiKTeX (no TeX Live
+package database) only the classes Texloom knows by name are found. The gallery's
 search box filters all templates by name, description or class.
 
 To check the list against your installation (prints which classes compile with the

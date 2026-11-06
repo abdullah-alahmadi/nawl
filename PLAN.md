@@ -181,6 +181,9 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       plus an optional end block, for publishers without a built-in style
 - [x] Typographic punctuation and Latin-1 symbols written as TeX commands, so they
       render in old 8-bit publisher fonts
+- [x] Installed TeX classes grouped by kind from Catalogue topics: journals and
+      conferences, theses, books (chapters), articles and reports; letters, CVs,
+      posters, exams and other presentation classes counted, offered once supported
 - [x] Journal templates from the installed TeX: classes TeX Live lists under the
       Catalogue's "journalpub" topic appear in the gallery (with search); tuned title
       blocks for MNRAS, ACS, AAS, OUP, Annals of Mathematics…; title blocks may start

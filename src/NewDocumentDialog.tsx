@@ -4,7 +4,24 @@
 // startup it is the start window, with Open, recent files and the example as well.
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, FileInput, FileText, FolderHeart, FolderOpen, GraduationCap, History, Library, Presentation, Search, Sparkles, Trash2, X } from "lucide-react";
-import type { BuiltinTemplate, InstalledTemplate, UserTemplate } from "./api";
+import type { BuiltinTemplate, InstalledCategory, InstalledList, InstalledTemplate, UserTemplate } from "./api";
+
+/** The groups of the "From your TeX installation" section, in order. */
+const TEX_GROUPS: { category: InstalledCategory; title: string }[] = [
+  { category: "journal", title: "Journals and conferences" },
+  { category: "thesis", title: "Theses and dissertations" },
+  { category: "book", title: "Books" },
+  { category: "general", title: "Articles and reports" },
+];
+
+/** Names for the kinds Texloom can't write yet. */
+const WAITING_NAMES: Partial<Record<InstalledCategory, string>> = {
+  letter: "letter",
+  cv: "CV",
+  poster: "poster",
+  exam: "exam and exercise",
+  presentation: "presentation (other than beamer)",
+};
 
 /** Whether a template matches the search box (name, description or class). */
 function matches(query: string, ...texts: (string | null | undefined)[]) {
@@ -22,6 +39,8 @@ export function NewDocumentDialog({
   onRemoveUser,
   onImport,
   installed = [],
+  waiting = [],
+  installedThemes = 0,
   currentClass = null,
   onPickInstalled,
   engine = "tectonic",
@@ -43,8 +62,12 @@ export function NewDocumentDialog({
   onPickUser: (t: UserTemplate) => void;
   onRemoveUser: (t: UserTemplate) => void;
   onImport: () => void;
-  /** Journal templates from the installed TeX distribution. */
+  /** Templates from the installed TeX distribution. */
   installed?: InstalledTemplate[];
+  /** Installed classes of kinds Texloom can't write yet. */
+  waiting?: InstalledList["waiting"];
+  /** Beamer themes the installed TeX adds to the theme picker. */
+  installedThemes?: number;
   /** Class of the active installed template, if any. */
   currentClass?: string | null;
   onPickInstalled?: (cls: string) => void;
@@ -130,7 +153,7 @@ export function NewDocumentDialog({
             <Search size={14} aria-hidden="true" />
             <input
               type="search"
-              placeholder={tex ? `Search ${fromTex.length} journal classes` : "Search templates"}
+              placeholder={tex ? `Search ${fromTex.length} classes` : "Search templates"}
               autoFocus={tex}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -205,7 +228,7 @@ export function NewDocumentDialog({
             )}
           </section>
           )}
-          {fromTex.length > 0 && (
+          {(fromTex.length > 0 || (tex && !query.trim())) && (
             <section>
               {!tex && (
                 <h3>
@@ -215,27 +238,71 @@ export function NewDocumentDialog({
                 </h3>
               )}
               <p className="muted gallery-note">
-                Journal classes found in your TeX distribution, with a standard title block you can adjust under Design.
+                Classes found in your TeX distribution, by kind of document, with a standard title block you can adjust under Design.
                 {tex && " Choosing one restyles this document; its text stays."}
                 {engine === "tectonic" && " They compile with your installed TeX; picking one offers to switch the engine from Tectonic to pdfLaTeX."}
               </p>
-              <div className="gallery-grid compact">
-                {fromTex.map((t) => (
-                  <button
-                    key={t.class}
-                    className={`gallery-card${t.class === currentClass ? " current" : ""}`}
-                    onClick={() => onPickInstalled?.(t.class)}
-                    title={`${t.description} (package ${t.package})`}
-                  >
-                    <span className="gallery-card-top">
-                      <FileText size={16} aria-hidden="true" />
-                      <code>{t.class}</code>
-                    </span>
-                    <strong>{t.name}</strong>
-                    {t.name !== t.description && <span className="muted">{t.description}</span>}
-                  </button>
-                ))}
-              </div>
+              {TEX_GROUPS.map((g) => {
+                const items = fromTex.filter((t) => t.category === g.category);
+                if (items.length === 0) return null;
+                return (
+                  <div key={g.category} className="tex-group">
+                    <h4>
+                      {g.title} <span className="gallery-count">{items.length}</span>
+                    </h4>
+                    <div className="gallery-grid compact">
+                      {items.map((t) => (
+                        <button
+                          key={t.class}
+                          className={`gallery-card${t.class === currentClass ? " current" : ""}`}
+                          onClick={() => onPickInstalled?.(t.class)}
+                          title={`${t.description} (package ${t.package})`}
+                        >
+                          <span className="gallery-card-top">
+                            <FileText size={16} aria-hidden="true" />
+                            <code>{t.class}</code>
+                          </span>
+                          <strong>{t.name}</strong>
+                          {t.name !== t.description && <span className="muted">{t.description}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {tex && !query.trim() && (
+                <div className="tex-group">
+                  <h4>Presentations</h4>
+                  <div className="gallery-grid compact">
+                    {builtins
+                      .filter((b) => b.kind === "presentation")
+                      .map((b) => (
+                        <button key={b.id} className={`gallery-card${b.id === currentId ? " current" : ""}`} onClick={() => onPick(b.id)}>
+                          <span className="gallery-card-top">
+                            <Presentation size={16} aria-hidden="true" />
+                            <code>beamer</code>
+                          </span>
+                          <strong>{b.name}</strong>
+                          <span className="muted">
+                            {installedThemes > 0
+                              ? `With ${installedThemes} beamer themes from your TeX installation in the theme picker (Theme in the toolbar).`
+                              : b.description}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+              {waiting.length > 0 && !query.trim() && (
+                <p className="muted gallery-note tex-waiting">
+                  Also installed:{" "}
+                  {waiting
+                    .filter((w) => WAITING_NAMES[w.category])
+                    .map((w) => `${w.count} ${WAITING_NAMES[w.category]} class${w.count === 1 ? "" : "es"}`)
+                    .join(", ")}
+                  . Texloom will offer them once it can write those kinds of documents.
+                </p>
+              )}
             </section>
           )}
         </div>

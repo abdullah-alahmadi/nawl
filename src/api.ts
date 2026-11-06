@@ -86,9 +86,16 @@ export interface InstalledTemplate {
   package: string;
   /** Fails under XeLaTeX and LuaLaTeX (and Tectonic). */
   pdflatexOnly: boolean;
+  category: InstalledCategory;
 }
-/** Journal templates from the installed TeX (empty without one). */
-export const listInstalledTemplates = () => invoke<InstalledTemplate[]>("list_installed_templates");
+export type InstalledCategory = "journal" | "thesis" | "book" | "general" | "letter" | "cv" | "poster" | "exam" | "presentation";
+/** What the installed TeX offers: templates, and how many classes of kinds Texloom
+ *  can't write yet are installed. */
+export interface InstalledList {
+  templates: InstalledTemplate[];
+  waiting: { category: InstalledCategory; count: number }[];
+}
+export const listInstalledTemplates = () => invoke<InstalledList>("list_installed_templates");
 export const switchToInstalledTemplate = (cls: string) => invoke<TemplateInfo>("use_installed_template", { class: cls });
 /** Beamer themes of the installed TeX distribution (empty without one). */
 export interface BeamerThemeList {

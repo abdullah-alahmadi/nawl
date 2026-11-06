@@ -139,32 +139,123 @@ const PROFILES: &[Profile] = &[
     p("sugconf", "SAS User Group conference"),
     p("sageep", "SAGEEP (EEGS annual meeting)"),
     p("SFEE", "Smart Factory and Energy Efficiency (SFEE)"),
+    p("scrartcl", "KOMA-Script article"),
+    p("scrreprt", "KOMA-Script report"),
+    p("scrbook", "KOMA-Script book"),
+    p("memoir", "Memoir (books and reports)"),
+    p("extarticle", "Article with more font sizes"),
+    p("extreport", "Report with more font sizes"),
+    p("extbook", "Book with more font sizes"),
+    p("elegantbook", "ElegantBook"),
     p("IEEEtran", "IEEE (IEEEtran)"),
     p("elsarticle", "Elsevier (elsarticle)"),
     p("llncs", "Springer LNCS"),
     p("acmart", "ACM (acmart)"),
 ];
 
-/// Classes in the catalogue Texloom doesn't offer: books, issue and cover classes and
-/// superseded versions; classes that need fonts or an engine of their own; and
-/// classes whose title commands Texloom can't write yet (each fails on the sample
-/// article; see `installed_journal_templates_compile`).
+/// Installed classes that don't compile with Texloom's standard title block and sample
+/// document (pdfLaTeX, full TeX Live): they need commands of their own, particular
+/// fonts or files (logos, Chinese fonts), another engine, or aren't for documents
+/// at all (issues, covers, superseded versions). Found with
+/// `installed_journal_templates_compile`; the gallery leaves them out.
 const SKIP: &[&str] = &[
-    // Not for an article, or superseded
-    "acmconf", "apa", "apa6e", "csbulobalka", "csbulv1", "emulateapj", "fhjbook", "gzt", "ijdc-v9", "jmlrbook",
-    "ltugproc", "nwejm", "nwejm-2024-02-08", "quantumview", "revtex4", "revtex4-1", "schwalbe", "smfbook",
-    // Particular fonts, XeLaTeX or LuaLaTeX only
-    "aalok", "deutschesmuseum", "dtk", "ijsra", "phimisci",
-    // Front matter Texloom can't write yet
-    "aguplus", "articleingud", "asmejour", "beilstein", "cascadilla", "cc", "cje", "cjs-rcs-article", "ejpecp",
-    "fhjpaper", "gammas", "gztarticle", "iacrj", "idcc", "ijdc-v14", "jpsj2", "lps", "matapli", "nrc1", "nrc2",
+    // Journals and conferences
+    "aalok", "acmconf", "apa", "apa6e", "articleingud", "asmejour", "cc", "cjs-rcs-article", "csbulobalka",
+    "csbulv1", "dtk", "ejpecp", "emulateapj", "fhjpaper", "gammas", "gzt", "gztarticle", "idcc", "IEEEconf",
+    "ijdc-v14", "ijdc-v9", "jmlrbook", "lps", "mucproc", "nwejm", "nwejm-2024-02-08", "phimisci", "quantumview",
+    "schwalbe",
+    // Theses
+    "afthesis", "aucklandthesis", "bangorcsthesis", "bitbeamer", "bithesis", "bitreport", "bjfuthesis",
+    "cquthesis", "disser", "droit-fr", "easybook", "elteiktdk", "elteikthesis", "fcavtex", "fdudoc",
+    "fduthesis", "fduthesis-en", "fei", "gost732", "hduthesis", "hecthese", "hepthesis", "hgbarticle",
+    "hgbreport", "hgbthesis", "hitszthesis", "hpsdiss", "hustthesis", "IMTEKda", "infufrgs", "kdgcoursetext",
+    "kdgmasterthesis", "ksp-thesis", "maine-thesis", "mcmthesis", "mitthesis", "msu-thesis", "nddiss2e",
+    "njurepo", "njuthesis", "njuthesis-doc", "nwafuthesis", "nxuthesis", "pkuthss", "ryersonSGSThesis",
+    "sapthesis", "sduthesis", "se2thesis", "seuthesix", "shtthesis", "sjtuarticle", "sjtureport", "sjtuthesis",
+    "sysuthesis", "tabriz-thesis", "thesis-gwu", "thuthesis", "tudabeamer", "tudaexercise", "tudaleaflet",
+    "tudaletter", "tudaposter", "tudapub", "tudscrartcl", "tudscrbook", "tudscrmanual", "tudscrposter",
+    "tudscrreprt", "tui", "ualberta", "uantwerpenbamathesis", "uantwerpenletter", "uantwerpenphdthesis",
+    "uantwerpenreport", "ucsmonograph", "udes-genie-these", "udesoftec", "udiss", "ulthese", "unam-thesis",
+    "unbtex", "unifith", "univie-ling-handout", "univie-ling-wlg", "xmuthesis", "yathesis",
+    // Books
+    "beaulivre", "beautybook", "beautynote", "bgteubner", "colorbook", "ctexart", "ctexbeamer", "ctexbook",
+    "ctexrep", "ctxdoc", "extletter", "juraurtl", "mentis", "minimbook", "mwart", "nostarch", "octavo", "qyxf-
+    book", "scrlttr2", "simplivre", "tufte-book", "tufte-handout", "xtufte-book", "xtufte-handout",
+    // Articles and reports
+    "amnestyreport", "BMSTU-IU8", "cs-techrep", "einfart", "erdc", "grant", "grant-afosr", "grant-aro", "grant-
+    darpa", "grant-doe", "grant-nih", "grant-nrl", "grant-nsf", "grant-onr", "h2020proposal", "hausarbeit-jura",
+    "heria", "hitreport", "jlreq", "jwjournal", "korigamik", "lebhart", "mynsfc", "omgtudoc-asoiu", "Q-and-A",
+    "spimubephdthesis", "spimumlpphdthesis", "spimutbmphdthesis", "uol-physics-report", "utbmciadreport", "uwa-
+    pcf", "uwa-pif",
 ];
+
+/// Classes that compile but aren't for writing a document of their kind: a package's
+/// documentation class, compatibility aliases, covers.
+const NOT_DOCUMENTS: &[&str] = &["koma-script-source-doc", "scrarticle", "scrreport", "kdpcover"];
 
 /// Classes that compile with pdfLaTeX only (not XeLaTeX or LuaLaTeX): 8-bit input
 /// or fonts that only pdfTeX finds.
 const PDFLATEX_ONLY: &[&str] = &["cidarticle", "lni", "nwejmart", "sugconf"];
 
-/// A journal template offered by the installed TeX, for the gallery.
+/// What kind of document an installed class makes, from its TeX Catalogue topics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Category {
+    /// Journal and conference papers.
+    Journal,
+    /// Theses and dissertations.
+    Thesis,
+    Book,
+    /// General articles, reports, essays and proposals.
+    General,
+    // Kinds of document Texloom can't write yet: listed, not offered.
+    Letter,
+    Cv,
+    Poster,
+    Exam,
+    Presentation,
+}
+
+impl Category {
+    /// Texloom can make a template around classes of this kind.
+    pub fn supported(self) -> bool {
+        matches!(self, Category::Journal | Category::Thesis | Category::Book | Category::General)
+    }
+
+}
+
+/// The kind of document from the Catalogue topics; `None` for classes that aren't
+/// for writing a document of one of these kinds (language support, internals…).
+pub fn category(c: &InstalledClass) -> Option<Category> {
+    let has = |t: &str| c.topics.iter().any(|x| x == t);
+    // The most specific topic wins: a thesis class may also be "article-like".
+    Some(if has("journalpub") || has("confproc") {
+        Category::Journal
+    } else if has("dissertation") {
+        Category::Thesis
+    } else if has("book-pub") {
+        Category::Book
+    } else if has("letter") {
+        Category::Letter
+    } else if has("cv") {
+        Category::Cv
+    } else if has("poster") {
+        Category::Poster
+    } else if has("exam") || has("exercise") {
+        Category::Exam
+    } else if has("presentation") {
+        Category::Presentation
+    } else if ["article-like", "report-like", "essay", "proposal", "std-conform"].iter().any(|t| has(t)) {
+        Category::General
+    } else if c.topics.is_empty() {
+        // Found without a package database (MiKTeX): one of Texloom's journal classes.
+        Category::Journal
+    } else {
+        return None;
+    })
+}
+
+/// A template offered by the installed TeX, for the gallery.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledTemplate {
@@ -172,8 +263,25 @@ pub struct InstalledTemplate {
     pub name: String,
     pub description: String,
     pub package: String,
+    pub category: Category,
     /// Fails under XeLaTeX and LuaLaTeX (and Tectonic).
     pub pdflatex_only: bool,
+}
+
+/// Installed classes of a kind Texloom can't write yet, for a note in the gallery.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Waiting {
+    pub category: Category,
+    pub count: usize,
+}
+
+/// What the installed TeX offers: templates by category, and what's waiting.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledList {
+    pub templates: Vec<InstalledTemplate>,
+    pub waiting: Vec<Waiting>,
 }
 
 fn profile(class: &str) -> Option<&'static Profile> {
@@ -183,36 +291,63 @@ fn profile(class: &str) -> Option<&'static Profile> {
 /// What the installed TeX offers, by name. Blocking (runs kpsewhich, reads the
 /// package database): about a tenth of a second.
 pub fn find() -> Vec<InstalledClass> {
-    let mut found = installed::journal_classes();
+    let mut found = installed::document_classes();
     if found.is_empty() {
         // No package database: look for the classes Texloom knows.
         let files: Vec<String> = PROFILES.iter().map(|p| format!("{}.cls", p.class)).collect();
         let names: Vec<&str> = files.iter().map(String::as_str).collect();
         found = installed::find_files(&names)
             .into_iter()
-            .map(|(file, _)| {
+            .map(|(file, path)| {
                 let class = file.trim_end_matches(".cls").to_string();
-                InstalledClass { package: class.clone(), description: String::new(), bib_styles: Vec::new(), class }
+                InstalledClass { package: class.clone(), description: String::new(), bib_styles: Vec::new(), topics: Vec::new(), path: Some(path), class }
             })
             .collect();
     }
-    found.retain(|c| !SKIP.contains(&c.class.as_str()));
+    found.retain(|c| category(c).is_some());
     found
 }
 
-pub fn list(found: &[InstalledClass]) -> Vec<InstalledTemplate> {
-    let mut out: Vec<InstalledTemplate> = found
+/// The templates Texloom can offer (supported kinds, minus classes known not to work
+/// with it), and how many classes of the other kinds are installed.
+pub fn list(found: &[InstalledClass]) -> InstalledList {
+    let mut templates: Vec<InstalledTemplate> = found
         .iter()
-        .map(|c| InstalledTemplate {
+        .filter_map(|c| Some((c, category(c)?)))
+        .filter(|(c, cat)| cat.supported() && !SKIP.contains(&c.class.as_str()) && !NOT_DOCUMENTS.contains(&c.class.as_str()))
+        // Letter classes inside packages filed under other kinds (KOMA's scrletter…).
+        .filter(|(c, _)| !c.class.contains("letter") && !c.class.contains("lttr"))
+        .map(|(c, category)| InstalledTemplate {
             class: c.class.clone(),
             name: display_name(c),
             description: if c.description.is_empty() { format!("Class {} from your TeX installation", c.class) } else { c.description.clone() },
             package: c.package.clone(),
+            category,
             pdflatex_only: PDFLATEX_ONLY.contains(&c.class.as_str()),
         })
         .collect();
-    out.sort_by_key(|t| t.name.to_lowercase());
-    out
+    // Classes of one package share its description: tell them apart by class name.
+    let names: Vec<String> = templates.iter().map(|t| t.name.clone()).collect();
+    for t in &mut templates {
+        if names.iter().filter(|n| **n == t.name).count() > 1 {
+            t.name = format!("{} ({})", t.name, t.class);
+        }
+    }
+    templates.sort_by_key(|t| t.name.to_lowercase());
+    let mut waiting: Vec<Waiting> = Vec::new();
+    for c in found {
+        // Beamer itself is how Texloom makes presentations.
+        if c.package == "beamer" {
+            continue;
+        }
+        if let Some(cat) = category(c).filter(|cat| !cat.supported()) {
+            match waiting.iter_mut().find(|w| w.category == cat) {
+                Some(w) => w.count += 1,
+                None => waiting.push(Waiting { category: cat, count: 1 }),
+            }
+        }
+    }
+    InstalledList { templates, waiting }
 }
 
 fn display_name(c: &InstalledClass) -> String {
@@ -273,7 +408,7 @@ pub fn template(c: &InstalledClass) -> Template {
         name: display_name(c),
         description: format!(
             "{} — class {} from your TeX installation (package {})",
-            if c.description.is_empty() { "Journal template" } else { &c.description },
+            if c.description.is_empty() { "Template" } else { &c.description },
             c.class,
             c.package
         ),
@@ -282,6 +417,8 @@ pub fn template(c: &InstalledClass) -> Template {
         bib_style,
         files: Vec::new(),
         title_block: prof.and_then(|p| p.title_block).map(str::to_string),
+        // By the class itself: a package filed under books may hold article classes too.
+        chapters: category(c).is_some_and(|k| k != Category::Journal) && c.has_chapters(),
     })
 }
 
@@ -294,7 +431,7 @@ mod tests {
 
     #[test]
     fn templates_are_valid_for_any_class() {
-        let c = InstalledClass { class: "someclass".into(), package: "somepkg".into(), description: "Some journal".into(), bib_styles: vec!["a".into(), "somepkg".into()] };
+        let c = InstalledClass { class: "someclass".into(), package: "somepkg".into(), description: "Some journal".into(), bib_styles: vec!["a".into(), "somepkg".into()], topics: vec!["class".into(), "journalpub".into()], path: None };
         let t = template(&c);
         assert!(t.validate().is_empty(), "{:?}", t.validate());
         let base = t.base.unwrap();
@@ -312,6 +449,17 @@ mod tests {
         assert_eq!(n("Monthly Notices of the Royal Astronomical Society").as_deref(), Some("Monthly Notices of the Royal Astronomical Society"));
         assert_eq!(n("Support for submissions to the \"Beilstein Journal of Nanotechnology\"").as_deref(), Some("Beilstein Journal of Nanotechnology"));
         assert_eq!(n(""), None);
+    }
+
+    /// Prints what the gallery offers on this computer. Run with --ignored --nocapture.
+    #[test]
+    #[ignore]
+    fn prints_installed_list() {
+        let l = list(&find());
+        for t in &l.templates {
+            println!("{:?}\t{}\t{}", t.category, t.class, t.name);
+        }
+        println!("waiting: {:?}", l.waiting.iter().map(|w| (w.category, w.count)).collect::<Vec<_>>());
     }
 
     /// Compiles the sample article with every installed journal class and prints
@@ -343,7 +491,9 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(root.join("examples/journal-article.loom")).unwrap()).unwrap();
         let only = std::env::var("TEXLOOM_ONLY").ok();
         let mut failed = Vec::new();
-        let found = find();
+        // Every class of a supported kind, skipped ones included (to see if they still fail).
+        let found: Vec<InstalledClass> =
+            find().into_iter().filter(|c| category(c).is_some_and(Category::supported)).collect();
         for c in found.iter().filter(|c| only.as_deref().is_none_or(|o| o == c.class)) {
             let g = texloom_codegen::generate_for(&template(c), &file.document, engine);
             let figures: Vec<(String, Vec<u8>)> =
@@ -355,14 +505,14 @@ mod tests {
                 std::fs::write(Path::new(&dir).join(g.cls_file_name()), &g.cls).unwrap();
             }
             match compile(&g.tex, &assets) {
-                Ok(_) => println!("ok    {:24} {}", c.class, display_name(c)),
+                Ok(_) => println!("ok    {:24} {:?} {}", c.class, category(c).unwrap(), display_name(c)),
                 Err(texloom_compile::CompileError::Failed { errors, .. }) => {
                     let first = errors.first().map(|e| format!("l.{:?} {}", e.line, e.message.lines().next().unwrap_or(""))).unwrap_or_default();
-                    println!("FAIL  {:24} {}", c.class, first);
+                    println!("FAIL  {:24} {:?} {}", c.class, category(c).unwrap(), first);
                     failed.push(c.class.clone());
                 }
                 Err(e) => {
-                    println!("FAIL  {:24} {e}", c.class);
+                    println!("FAIL  {:24} {:?} {e}", c.class, category(c).unwrap());
                     failed.push(c.class.clone());
                 }
             }
