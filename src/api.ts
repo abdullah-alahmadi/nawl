@@ -41,6 +41,8 @@ export interface OpenedDocument {
   bibliography: string;
   /** The template the document was saved with, now active (absent for old files). */
   template?: TemplateInfo | null;
+  /** A single-file document (images inside); saving keeps it one. */
+  bundled?: boolean;
 }
 
 export type TemplateReloadEvent =
@@ -51,6 +53,8 @@ export interface TexError {
   file: string | null;
   line: number | null;
   message: string;
+  /** The top-level block of the document whose LaTeX failed, when known. */
+  block?: number | null;
 }
 
 export type AppError =
@@ -119,6 +123,9 @@ export const onTemplateReloaded = (cb: (e: TemplateReloadEvent) => void) =>
 export const setTemplate = (template: Template) => invoke<Issue[]>("set_template", { template });
 export const saveTemplate = (path: string, template: Template) =>
   invoke<TemplateInfo>("save_template", { path, template });
+/** Saves the template into My templates as a new template called `name` and makes it active. */
+export const saveTemplateToLibrary = (name: string, template: Template) =>
+  invoke<TemplateInfo>("save_template_to_library", { name, template });
 export const importTemplateAsset = (source: string) => invoke<string>("import_template_asset", { source });
 export const readTemplateAsset = (asset: string) => invoke<ArrayBuffer>("read_template_asset", { asset });
 export const importFigure = (source: string) => invoke<string>("import_figure", { source });
@@ -135,9 +142,23 @@ export interface DocState {
 }
 
 export const checkDocument = (d: DocState) => invoke<Issue[]>("check_document", { ...d });
+/** A place in the PDF, in PDF points from the page's top left (SyncTeX). */
+export interface PdfSpot {
+  /** 1-based. */
+  page: number;
+  x: number;
+  y: number;
+  height: number;
+}
+/** The top-level block behind a point of the last compiled PDF, if known. */
+export const pdfToBlock = (page: number, x: number, y: number) => invoke<number | null>("pdf_to_block", { page, x, y });
+/** Where a top-level block is in the last compiled PDF, if known. */
+export const blockToPdf = (block: number) => invoke<PdfSpot | null>("block_to_pdf", { block });
 export const renderPdf = (d: DocState) => invoke<ArrayBuffer>("render_pdf", { ...d });
 export const toLatex = (d: DocState) => invoke<string>("to_latex", { ...d });
-export const saveDocument = (path: string, d: DocState) => invoke<void>("save_document", { path, ...d });
+/** Saves a document. `bundled`: one file with its images inside (true), a .loom with
+ *  the images in a folder next to it (false), or the format the file already has. */
+export const saveDocument = (path: string, d: DocState, bundled?: boolean) => invoke<void>("save_document", { path, ...d, bundled });
 export const parseBibliography = (source: string) => invoke<BibInfo>("parse_bibliography", { source });
 export const readBibFile = (path: string) => invoke<string>("read_bib_file", { path });
 export const newDocument = () => invoke<OpenedDocument>("new_document");

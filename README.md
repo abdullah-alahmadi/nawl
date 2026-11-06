@@ -41,10 +41,22 @@ The toolbar has the **paragraph style** (Body text, Chapter, Section… as in Ly
 bold/italic/code, lists, and inserts: **inline math** (type `$x^2$` in a sentence,
 or Ctrl+M), **equations** (`$$` + space; hover one to make it unnumbered or
 multi-line, with **+ Line** for aligned derivations), **figures** (pick an image;
-type the caption below it), **tables** (caption above; row and column buttons
-appear on the right while the cursor is in the table) and **raw LaTeX blocks**
-(written into the PDF exactly as typed, for TikZ drawings and the like). Figure
-images are stored in a `figures/` folder next to the `.loom` file.
+type the caption below it; **Crop…** cuts off its edges by dragging), **tables**
+(caption above; row and column buttons appear on the right while the cursor is in the
+table, and **Merge** joins the cells you drag across, spanning rows and columns) and
+**raw LaTeX blocks** (written into the PDF exactly as typed, for TikZ drawings and the
+like). Figure images are stored in a `figures/` folder next to the `.loom` file;
+**File → Save as single file…** puts them inside the `.loom` instead, to email or
+upload one file (saving it again keeps it one file).
+
+**Ctrl+F** finds text in the document (headings, paragraphs, captions, tables) and
+**Ctrl+H** replaces it, one match at a time or all at once (one undo).
+
+The preview and the editor are linked: **double-click the PDF** to put the cursor in
+the paragraph, heading or figure you clicked, and **Ctrl+J** (or the target button
+above the preview) scrolls the PDF to the cursor's place and marks it (SyncTeX). When
+LaTeX reports errors, the list says what each one usually means and where it is
+("in Heading “Results”"); click one to go there.
 
 **Cross-reference** inserts "Figure 3.1", "Chapter 2" or "(3.2)" and stays correct
 as things move; **Citation** inserts a reference from the **References** panel.
@@ -183,13 +195,30 @@ page, fonts, structure, headings, headers & footers, fields and front matter; ev
 change updates the PDF preview, and problems appear next to the control that caused
 them. Use **New copy** to start from the current template, then **Save as…**.
 The **Title page** panel is a drag-and-drop canvas: add text, images and lines, drag
-them into place (they snap to the page centre), and edit text, style, size and
-position on the right. Images are copied into the template's `assets/` folder, so save
-a new template once (Save as…) before adding them.
+them into place, and edit text, style, size and position on the right. Items snap to
+the page's centre and margins and to each other's edges (hold Alt for none). Select
+several with Shift-click or by dragging a frame around them, then move them together
+or line them up (**Align**: left edges, centres, tops…; **Spread** for equal gaps).
+**+ Fixed page** adds a page laid out the same way, such as an approval or signature
+page or a declaration; it goes into the front matter after the title page (move it
+under **Front matter**) and can be listed in the table of contents. Images are copied
+into the template's `assets/` folder, so save a new template once (Save as…) before
+adding them.
+
+While designing, the preview's **Page** view shows the document's page with the
+template as you change it, without waiting for a compile; **PDF** is the exact
+version.
+
+**Save as…** asks for a name and saves the template into **My templates** (the app's
+data folder, one folder per template, images and kit files included). It then appears
+under My templates in **File → New from template…** and the title bar's template menu,
+ready for new documents; **Save template** (Ctrl+S) keeps saving it in place. To share
+it, use **Export template…** (a `.zip` others can import).
 
 Template files are plain JSON (`crates/core/src/template.rs` documents every option)
-with images in an `assets/` folder next to them. You can also edit one by hand: open it
-with **Open template file…** in the title bar's template menu (or `TEXLOOM_TEMPLATE=path npm run tauri dev`)
+with images in an `assets/` folder next to them. To keep one elsewhere, for example to
+edit it by hand, choose **Save to file…** in the Save as dialog. Open such a file with
+**Open template file…** in the title bar's template menu (or `TEXLOOM_TEMPLATE=path npm run tauri dev`)
 and every save in your editor reloads it.
 
 Saved documents remember their template (path plus an embedded copy), so they reopen

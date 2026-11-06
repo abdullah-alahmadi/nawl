@@ -184,3 +184,178 @@ fn pdflatex_class_uses_classic_fonts() {
     assert!(texloom_codegen::kit_override("spotcolor.sty", Engine::Pdf).is_none());
     assert!(texloom_codegen::kit_override("spotcolor.sty", Engine::Xe).is_some());
 }
+
+#[test]
+fn block_lines_point_at_each_block() {
+    let doc = document().document;
+    let (tex, lines) = texloom_codegen::document_to_tex_mapped(&template(), &doc);
+    let tex_lines: Vec<&str> = tex.lines().collect();
+    assert_eq!(lines.len(), doc.body.content.len());
+    assert!(lines.windows(2).all(|w| w[0] <= w[1]), "lines only go down: {lines:?}");
+    // Headings start exactly on their line.
+    for (b, &line) in doc.body.content.iter().zip(&lines) {
+        if let texloom_core::Block::Heading { content, .. } = b {
+            let text: String = content.iter().filter_map(|i| match i {
+                texloom_core::Inline::Text { text, .. } => Some(text.as_str()),
+                _ => None,
+            }).collect();
+            let first_word = text.split_whitespace().next().unwrap();
+            assert!(tex_lines[line as usize - 1].contains(first_word), "line {line}: {:?} for {text:?}", tex_lines[line as usize - 1]);
+        }
+    }
+}
+
+/// A table whose first cell spans two rows and whose header spans two columns.
+fn spanning_table_doc() -> texloom_core::Document {
+    let mut doc = document().document;
+    let cell = |kind: &str, text: &str, colspan: u32, rowspan: u32| {
+        serde_json::json!({"type": kind, "attrs": {"colspan": colspan, "rowspan": rowspan},
+            "content": [{"type": "paragraph", "content": [{"type": "text", "text": text}]}]})
+    };
+    let table: texloom_core::Block = serde_json::from_value(serde_json::json!({"type": "table", "content": [
+        {"type": "tableRow", "content": [cell("tableHeader", "Group", 1, 2), cell("tableHeader", "Results", 2, 1)]},
+        {"type": "tableRow", "content": [cell("tableCell", "Low", 1, 1), cell("tableCell", "High", 1, 1)]},
+        {"type": "tableRow", "content": [cell("tableCell", "A", 1, 1), cell("tableCell", "1", 1, 1), cell("tableCell", "2", 1, 1)]}
+    ]}))
+    .unwrap();
+    doc.body.content.push(table);
+    doc
+}
+
+#[test]
+fn row_spans_become_multirow() {
+    let tex = texloom_codegen::document_to_tex(&template(), &spanning_table_doc());
+    assert!(tex.contains(r"\usepackage{multirow}"));
+    assert!(tex.contains("\\multirow{2}{=}{{\\bfseries Group}} & \\multicolumn{2}{l|}{{\\bfseries Results}} \\\\ \\cline{2-3}\n"), "{tex}");
+    // The second row leaves the spanned column empty; its cells move right.
+    assert!(tex.contains(" & Low & High \\\\ \\hline\n"), "{tex}");
+    assert!(tex.contains("A & 1 & 2 \\\\ \\hline\n"));
+    assert!(!texloom_codegen::document_to_tex(&template(), &document().document).contains("multirow"), "only when needed");
+}
+
+/// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p texloom-codegen -- --ignored
+#[test]
+#[ignore]
+fn row_spans_compile() {
+    let g = texloom_codegen::generate(&template(), &spanning_table_doc());
+    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> = support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = compiler.compile(&g.tex, &files).unwrap_or_else(|e| panic!("{e:?}"));
+    assert!(out.pdf.starts_with(b"%PDF"));
+}
+
+/// The example's figure, cropped: 10% off the left, 20% off the top.
+fn cropped_doc() -> texloom_core::Document {
+    let mut doc = document().document;
+    for b in &mut doc.body.content {
+        if let texloom_core::Block::Figure { attrs, .. } = b {
+            attrs.crop = Some(texloom_core::Crop { left: 10.0, top: 20.0, ..Default::default() });
+        }
+    }
+    doc
+}
+
+#[test]
+fn cropped_images_are_trimmed() {
+    let tex = texloom_codegen::document_to_tex(&template(), &cropped_doc());
+    assert!(tex.contains("\\usepackage{adjustbox}"));
+    assert!(
+        tex.contains("\\adjincludegraphics[trim={0.1000\\width} {0.0000\\height} {0.0000\\width} {0.2000\\height},clip,width=0.85\\linewidth]{figures/system-diagram.png}"),
+        "{tex}"
+    );
+    let plain = texloom_codegen::document_to_tex(&template(), &document().document);
+    assert!(!plain.contains("adjustbox") && !plain.contains("trim="), "only cropped images");
+    // Too much cropping is limited: something always remains.
+    assert_eq!(texloom_core::Crop { left: 80.0, right: -5.0, top: f32::NAN, bottom: 0.0 }.trim(), Some([0.45, 0.0, 0.0, 0.0]));
+    assert_eq!(texloom_core::Crop::default().trim(), None);
+}
+
+/// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p texloom-codegen -- --ignored
+#[test]
+#[ignore]
+fn cropped_images_compile() {
+    let g = texloom_codegen::generate(&template(), &cropped_doc());
+    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> = support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = compiler.compile(&g.tex, &files).unwrap_or_else(|e| panic!("{e:?}"));
+    assert!(out.pdf.starts_with(b"%PDF"));
+}
+
+/// Row spans and cropped images with an installed pdfLaTeX (skipped without one).
+/// Run with: cargo test -p texloom-codegen --test senior_design pdflatex -- --ignored
+#[test]
+#[ignore]
+fn spans_and_crops_compile_with_pdflatex() {
+    let Some(latex) = texloom_compile::SystemLatex::find(texloom_compile::LatexProgram::PdfLatex) else {
+        eprintln!("no pdfLaTeX installed");
+        return;
+    };
+    let mut doc = cropped_doc();
+    doc.body.content.extend(spanning_table_doc().body.content.pop());
+    let g = texloom_codegen::generate_for(&template(), &doc, texloom_codegen::Engine::Pdf);
+    let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> = support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = latex.compile(&g.tex, &files).unwrap_or_else(|e| panic!("{e:?}"));
+    assert!(out.pdf.starts_with(b"%PDF"));
+    assert!(out.synctex.is_some(), "pdfLaTeX writes SyncTeX data too");
+}
+
+/// The reference template with an approval page (made of title-page items) after
+/// the title page, listed in the contents.
+fn template_with_fixed_page() -> Template {
+    let mut t = template();
+    let at = t.front_matter.iter().position(|f| matches!(f, texloom_core::FrontMatterItem::TitlePage)).unwrap() + 1;
+    let items = t.title_page.items.iter().filter(|i| !matches!(i.content, texloom_core::TitleContent::Image { .. })).take(3).cloned().collect();
+    t.front_matter.insert(at, texloom_core::FrontMatterItem::FixedPage { title: "Approval Page".into(), items, in_toc: true });
+    t
+}
+
+#[test]
+fn fixed_pages_are_placed_like_the_title_page() {
+    let t = template_with_fixed_page();
+    assert!(!has_errors(&t.validate()), "{:#?}", t.validate());
+    let cls = texloom_codegen::template_to_cls(&t);
+    let front = &cls[cls.find("\\newcommand\\texloomfrontmatter").unwrap()..];
+    let title = front.find("\\tl@titlepage").unwrap();
+    let fixed = front.find("\\addcontentsline{toc}{chapter}{Approval Page}").expect("listed in the contents");
+    assert!(title < fixed, "after the title page");
+    assert!(front[fixed..].contains("\\begin{tikzpicture}[remember picture,overlay]"));
+    // Issues on its items point at the fixed page.
+    let mut broken = t.clone();
+    if let texloom_core::FrontMatterItem::FixedPage { items, .. } = &mut broken.front_matter[1] {
+        items[0].content = texloom_core::TitleContent::Rule { length_mm: -1.0, thickness_pt: 1.0 };
+    }
+    assert!(broken.validate().iter().any(|i| i.path.starts_with("frontMatter[1].items[0]")), "{:#?}", broken.validate());
+}
+
+/// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p texloom-codegen -- --ignored
+#[test]
+#[ignore]
+fn fixed_pages_compile() {
+    let t = template_with_fixed_page();
+    let doc = document().document;
+    let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    let run = |engine: texloom_codegen::Engine, latex: Option<texloom_compile::SystemLatex>| {
+        let g = texloom_codegen::generate_for(&t, &doc, engine);
+        let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
+        let support = g.support_files();
+        let files: Vec<texloom_compile::Asset> = support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+        let out = match latex {
+            Some(l) => l.compile(&g.tex, &files),
+            None => texloom_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files),
+        };
+        assert!(out.unwrap_or_else(|e| panic!("{engine:?}: {e:?}")).pdf.starts_with(b"%PDF"));
+    };
+    run(texloom_codegen::Engine::Xe, None);
+    if let Some(l) = texloom_compile::SystemLatex::find(texloom_compile::LatexProgram::PdfLatex) {
+        run(texloom_codegen::Engine::Pdf, Some(l));
+    }
+}

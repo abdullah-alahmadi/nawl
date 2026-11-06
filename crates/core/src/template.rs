@@ -774,10 +774,34 @@ pub enum FrontMatterItem {
     TableOfContents { title: String },
     ListOfFigures { title: String },
     ListOfTables { title: String },
+    /// A page laid out like the title page, with items at exact positions: an
+    /// approval or signature page, a declaration of originality…
+    #[serde(rename_all = "camelCase")]
+    FixedPage {
+        /// Its name in the designer, and its entry in the table of contents.
+        title: String,
+        #[serde(default)]
+        items: Vec<TitleItem>,
+        #[serde(default)]
+        in_toc: bool,
+    },
 }
 
 impl Template {
     pub fn field(&self, id: &str) -> Option<&MetadataField> {
         self.fields.iter().find(|f| f.id == id)
+    }
+
+    /// Every item placed at an exact position (the title page and fixed pages), with
+    /// its path for issues: `titlePage.items[0]`, `frontMatter[2].items[1]`.
+    pub fn placed_items(&self) -> Vec<(String, &TitleItem)> {
+        let mut out: Vec<(String, &TitleItem)> =
+            self.title_page.items.iter().enumerate().map(|(i, it)| (format!("titlePage.items[{i}]"), it)).collect();
+        for (p, page) in self.front_matter.iter().enumerate() {
+            if let FrontMatterItem::FixedPage { items, .. } = page {
+                out.extend(items.iter().enumerate().map(|(i, it)| (format!("frontMatter[{p}].items[{i}]"), it)));
+            }
+        }
+        out
     }
 }

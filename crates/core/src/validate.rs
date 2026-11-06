@@ -188,14 +188,13 @@ impl Template {
             c.non_negative(&format!("headerFooter.{name}.footerRulePt"), style.footer_rule_pt);
         }
 
-        for (i, item) in t.title_page.items.iter().enumerate() {
-            let p = format!("titlePage.items[{i}]");
+        for (p, item) in t.placed_items() {
             match &item.content {
                 TitleContent::Text { text, style, width_mm } => {
                     c.placeholders(&format!("{p}.content.text"), text, false);
                     for n in placeholder::names(text) {
                         if matches!(n, "chapter" | "section") {
-                            c.error(format!("{p}.content.text"), format!("{{{n}}} has no value on the title page"));
+                            c.error(format!("{p}.content.text"), format!("{{{n}}} has no value outside chapters"));
                         }
                     }
                     c.text_style(&format!("{p}.content.style"), style);
@@ -316,6 +315,14 @@ impl Template {
                     }
                     Some(_) => {}
                 },
+                FrontMatterItem::FixedPage { title, items, in_toc } => {
+                    if *in_toc && title.trim().is_empty() {
+                        c.error(format!("frontMatter[{i}].title"), "needs a title to be listed in the table of contents");
+                    }
+                    if items.is_empty() {
+                        c.warn(format!("frontMatter[{i}].items"), "the page is empty");
+                    }
+                }
                 _ => {}
             }
         }

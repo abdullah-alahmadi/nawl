@@ -137,6 +137,33 @@ impl Library {
         }
     }
 
+    /// Saves `template` as a new library template called `name` ("Save as…"): a new
+    /// folder named after it, with the template's files copied from the folder of
+    /// `previous` (the template it was edited from). Nothing is left behind when it
+    /// fails.
+    pub fn save_new(&self, name: &str, mut template: Template, previous: Option<&Path>) -> Result<templates::ActiveTemplate, AppError> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Err(AppError::other("Give the template a name"));
+        }
+        let folder = self.new_folder(name)?;
+        let id = folder.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| slug(name));
+        template.meta.name = name.to_string();
+        // The id names the generated class, which must not be a kit class's own name.
+        let kit_class = |id: &str| template.base.iter().flat_map(|b| &b.files).any(|f| f.rsplit('/').next() == Some(&format!("{id}.cls")));
+        template.meta.id = if kit_class(&id) { format!("{id}-texloom") } else { id };
+        let file = folder.join("template.json");
+        match templates::save_to(&file, template, previous) {
+            // The path as `list` gives it (canonical paths on Windows start with `\\?\`),
+            // so the app can tell this template is the open one.
+            Ok(t) => Ok(templates::ActiveTemplate { path: Some(file), ..t }),
+            Err(e) => {
+                let _ = std::fs::remove_dir_all(&folder);
+                Err(e)
+            }
+        }
+    }
+
     /// Removes a template from the library (only folders inside the library).
     pub fn remove(&self, id: &str) -> Result<(), AppError> {
         if !files::is_safe_relative(id) || id.contains('/') {
@@ -536,6 +563,58 @@ mod tests {
         assert!(lib.import(&root.join("nothing.zip")).is_err());
         assert_eq!(lib.list().len(), 1, "a failed import leaves no folder");
         assert!(lib.remove("../src").is_err());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn save_as_puts_a_template_in_the_library() {
+        let root = temp("saveas");
+        let lib = Library::new(root.join("library"));
+        // An edited template in some folder, with a title-page image and a kit file.
+        let src = root.join("Documents");
+        std::fs::create_dir_all(src.join("assets")).unwrap();
+        std::fs::write(src.join("assets/logo.png"), b"png").unwrap();
+        std::fs::write(src.join("assets/myclass.cls"), b"cls").unwrap();
+        let mut t: Template = serde_json::from_str(templates::BUILTIN_TEMPLATE).unwrap();
+        t.title_page.items.push(texloom_core::TitleItem {
+            content: texloom_core::TitleContent::Image { asset: "assets/logo.png".into(), width_mm: 30.0 },
+            ..t.title_page.items[0].clone()
+        });
+        let mut journal = journal_template(JournalSpec {
+            id: "x".into(),
+            name: "x".into(),
+            description: String::new(),
+            class: "myclass".into(),
+            options: Vec::new(),
+            bib_style: "plain".into(),
+            files: vec!["assets/myclass.cls".into()],
+            title_block: None,
+            chapters: false,
+        });
+
+        let saved = lib.save_new("  My Senior Design  ", t.clone(), Some(&src.join("senior-design.json"))).unwrap();
+        let file = saved.path.clone().unwrap();
+        assert!(file.parent().unwrap().ends_with("my-senior-design"));
+        assert_eq!((saved.template.meta.name.as_str(), saved.template.meta.id.as_str()), ("My Senior Design", "my-senior-design"));
+        assert_eq!(std::fs::read(file.parent().unwrap().join("assets/logo.png")).unwrap(), b"png");
+        let listed = lib.list();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].name, "My Senior Design");
+        assert_eq!(Path::new(&listed[0].path), file, "the same path the library lists");
+        assert!(templates::load_file(&file).is_ok());
+
+        // The same name again gets its own folder; a kit's files come along, and the
+        // id stays clear of the kit class's name.
+        journal.meta.name = "My Senior Design".into();
+        let second = lib.save_new("My Senior Design", journal.clone(), Some(&src.join("senior-design.json"))).unwrap();
+        assert!(second.path.as_ref().unwrap().parent().unwrap().ends_with("my-senior-design-2"));
+        assert_eq!(std::fs::read(second.path.as_ref().unwrap().parent().unwrap().join("assets/myclass.cls")).unwrap(), b"cls");
+        let third = lib.save_new("MyClass", journal, Some(&src.join("senior-design.json"))).unwrap();
+        assert_eq!(third.template.meta.id, "myclass-texloom");
+        assert_eq!(lib.list().len(), 3);
+
+        assert!(lib.save_new("   ", t, None).is_err());
+        assert_eq!(lib.list().len(), 3, "a failed save leaves no folder");
         std::fs::remove_dir_all(root).unwrap();
     }
 

@@ -48,7 +48,11 @@ export function fieldUses(t: Template): Map<string, string[]> {
     for (const s of [style?.header?.left, style?.header?.center, style?.header?.right]) scan(s, "the page header");
     for (const s of [style?.footer?.left, style?.footer?.center, style?.footer?.right]) scan(s, "the page footer");
   }
-  for (const item of t.frontMatter) if (item.type === "fieldPage") note(item.field, `the “${item.title}” page`);
+  for (const item of t.frontMatter) {
+    if (item.type === "fieldPage") note(item.field, `the “${item.title}” page`);
+    if (item.type === "fixedPage")
+      for (const it of item.items) if (it.content.type === "text") scan(it.content.text, `the “${item.title}” page`);
+  }
   for (const f of t.fields) if (t.rawPreamble && new RegExp(`\\b${f.id}\\b`).test(t.rawPreamble)) note(f.id, "the raw preamble");
   return uses;
 }

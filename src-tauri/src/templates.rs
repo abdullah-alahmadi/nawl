@@ -178,12 +178,12 @@ pub fn check(template: &Template, dir: Option<&Path>) -> Vec<Issue> {
         }
     }
     if let Some(dir) = dir {
-        for (i, item) in template.title_page.items.iter().enumerate() {
+        for (path, item) in template.placed_items() {
             if let TitleContent::Image { asset, .. } = &item.content
                 && !dir.join(asset).is_file()
             {
                 issues.push(issue(
-                    &format!("titlePage.items[{i}].content.asset"),
+                    &format!("{path}.content.asset"),
                     format!("file not found: {}", dir.join(asset).display()),
                 ));
             }
@@ -210,22 +210,26 @@ pub fn from_parsed(template: Template, path: Option<PathBuf>) -> Result<ActiveTe
 }
 
 /// Saves `template` as `dest`. When the template came from another folder
-/// (`previous`), its image assets are copied along. Nothing is written if the
-/// template has errors.
+/// (`previous`), its files (title-page images, publisher-kit files) are copied
+/// along. Nothing is written if the template has errors.
 pub fn save_to(dest: &Path, template: Template, previous: Option<&Path>) -> Result<ActiveTemplate, AppError> {
     let new_dir = dest.parent().map(Path::to_path_buf).unwrap_or_default();
     if let Some(old_dir) = previous.and_then(Path::parent)
         && std::fs::canonicalize(old_dir).ok() != std::fs::canonicalize(&new_dir).ok()
     {
-        for item in &template.title_page.items {
-            if let TitleContent::Image { asset, .. } = &item.content {
-                let (from, to) = (old_dir.join(asset), new_dir.join(asset));
-                if from.is_file() && !to.exists() {
-                    if let Some(parent) = to.parent() {
-                        std::fs::create_dir_all(parent)?;
-                    }
-                    std::fs::copy(from, to)?;
+        let placed = template.placed_items();
+        let images = placed.iter().filter_map(|(_, item)| match &item.content {
+            TitleContent::Image { asset, .. } => Some(asset),
+            _ => None,
+        });
+        let kit = template.base.iter().flat_map(|b| &b.files);
+        for asset in images.chain(kit).filter(|a| crate::files::is_safe_relative(a)) {
+            let (from, to) = (old_dir.join(asset), new_dir.join(asset));
+            if from.is_file() && !to.exists() {
+                if let Some(parent) = to.parent() {
+                    std::fs::create_dir_all(parent)?;
                 }
+                std::fs::copy(from, to)?;
             }
         }
     }

@@ -1,6 +1,6 @@
 // Figures (image + caption below) and captioned tables (caption above + table).
 // Numbering ("Figure 3.1") comes from CSS counters set up by the template styles.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   Node,
   mergeAttributes,
@@ -97,11 +97,81 @@ export async function pickFigureImage(): Promise<string | null> {
   return api.importFigure(file);
 }
 
+/** Percent cut off at each edge of an image. */
+export interface Crop {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+const NO_CROP: Crop = { left: 0, right: 0, top: 0, bottom: 0 };
+/** Most of an edge that can be cut (the LaTeX side keeps the same limit). */
+const MAX_CROP = 45;
+
+/** Styles that show only the uncropped part of an image: the image is made larger
+ *  and shifted inside a box that hides the rest. Margins in percent are of the box's
+ *  width, so the vertical ones need the image's proportions. */
+function croppedImageStyle(c: Crop, aspect: number): React.CSSProperties {
+  const visible = Math.max(0.1, 1 - (c.left + c.right) / 100);
+  const w = 100 / visible; // image width, % of the box
+  return {
+    width: `${w}%`,
+    maxWidth: "none",
+    marginLeft: `${(-c.left / 100) * w}%`,
+    marginTop: `${(-c.top / 100) * w * aspect}%`,
+    marginBottom: `${(-c.bottom / 100) * w * aspect}%`,
+  };
+}
+
+/** Crop mode: the whole image with a frame whose edges are dragged. */
+function CropFrame({ url, crop, onChange }: { url: string; crop: Crop; onChange: (c: Crop) => void }) {
+  const box = useRef<HTMLDivElement>(null);
+  const drag = (side: keyof Crop) => (e: ReactPointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = box.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const start = { ...crop };
+    const move = (ev: PointerEvent) => {
+      const fx = ((ev.clientX - rect.left) / rect.width) * 100;
+      const fy = ((ev.clientY - rect.top) / rect.height) * 100;
+      const v = { left: fx, right: 100 - fx, top: fy, bottom: 100 - fy }[side];
+      // Each edge stays within its limit and leaves at least 10% of the image.
+      const opposite = { left: start.right, right: start.left, top: start.bottom, bottom: start.top }[side];
+      const clamped = Math.round(Math.min(MAX_CROP, 90 - opposite, Math.max(0, v)) * 10) / 10;
+      onChange({ ...start, [side]: clamped });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+  return (
+    <div className="crop-area" ref={box}>
+      <img src={url} alt="" draggable={false} />
+      <div className="crop-frame" style={{ left: `${crop.left}%`, right: `${crop.right}%`, top: `${crop.top}%`, bottom: `${crop.bottom}%` }}>
+        {(["left", "right", "top", "bottom"] as const).map((side) => (
+          <span key={side} className={`crop-handle crop-${side}`} onPointerDown={drag(side)} title="Drag to crop" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FigureView({ node, updateAttributes, selected }: ReactNodeViewProps) {
   const src: string = node.attrs.src;
   const width: number = node.attrs.widthPercent;
+  const crop: Crop = { ...NO_CROP, ...(node.attrs.crop ?? {}) };
+  const cropped = crop.left + crop.right + crop.top + crop.bottom > 0;
   const { url, error } = useDocumentImage(src);
   const [problem, setProblem] = useState<string | null>(null);
+  /** The image's height / width, for showing a crop. */
+  const [aspect, setAspect] = useState(0.75);
+  /** Crop mode's frame (null when not cropping). */
+  const [cropDraft, setCropDraft] = useState<Crop | null>(null);
 
   const replace = async () => {
     try {
@@ -114,22 +184,58 @@ function FigureView({ node, updateAttributes, selected }: ReactNodeViewProps) {
 
   return (
     <NodeViewWrapper as="figure" className={`figure${selected ? " is-selected" : ""}`} data-figure="">
-      <div className="figure-image" contentEditable={false} style={{ width: `${width}%` }}>
-        {url ? (
-          <img src={url} alt="" draggable={false} />
+      <div className={`figure-image${cropped && !cropDraft ? " cropped" : ""}`} contentEditable={false} style={{ width: `${width}%` }}>
+        {url && cropDraft ? (
+          <CropFrame url={url} crop={cropDraft} onChange={setCropDraft} />
+        ) : url ? (
+          <img
+            src={url}
+            alt=""
+            draggable={false}
+            onLoad={(e) => e.currentTarget.naturalWidth && setAspect(e.currentTarget.naturalHeight / e.currentTarget.naturalWidth)}
+            style={cropped ? croppedImageStyle(crop, aspect) : undefined}
+          />
         ) : (
           <div className="figure-placeholder">{error ?? (src ? `${src} (PDF image: shown in the preview)` : "No image")}</div>
         )}
       </div>
-      <div className="figure-controls" contentEditable={false}>
-        <label>
-          Width
-          <input type="range" min={10} max={100} step={5} value={width} onChange={(e) => updateAttributes({ widthPercent: Number(e.target.value) })} />
-          <span>{width}%</span>
-        </label>
-        <button type="button" onClick={replace}>
-          Replace image…
-        </button>
+      <div className={`figure-controls${cropDraft ? " cropping" : ""}`} contentEditable={false}>
+        {cropDraft ? (
+          <>
+            <span>Drag the edges to crop</span>
+            <button type="button" onClick={() => setCropDraft({ ...NO_CROP })}>
+              Reset
+            </button>
+            <button type="button" onClick={() => setCropDraft(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                const c = cropDraft;
+                updateAttributes({ crop: c.left + c.right + c.top + c.bottom > 0 ? c : null });
+                setCropDraft(null);
+              }}
+            >
+              Done
+            </button>
+          </>
+        ) : (
+          <>
+            <label>
+              Width
+              <input type="range" min={10} max={100} step={5} value={width} onChange={(e) => updateAttributes({ widthPercent: Number(e.target.value) })} />
+              <span>{width}%</span>
+            </label>
+            <button type="button" onClick={() => setCropDraft({ ...crop })} disabled={!url} title={url ? "Cut off parts of the image at its edges" : "PDF images can't be cropped here"}>
+              Crop…
+            </button>
+            <button type="button" onClick={replace}>
+              Replace image…
+            </button>
+          </>
+        )}
         {problem && <span className="figure-problem">{problem}</span>}
       </div>
       <NodeViewContent className="figure-caption" />
@@ -148,6 +254,8 @@ export const Figure = Node.create({
     return {
       src: { default: "" },
       widthPercent: { default: 80 },
+      // Percent cut off at each edge ({left, right, top, bottom}); null for none.
+      crop: { default: null, rendered: false },
     };
   },
 
@@ -157,7 +265,7 @@ export const Figure = Node.create({
   addNodeView() {
     // Let the width slider and buttons work without ProseMirror grabbing the events.
     return ReactNodeViewRenderer(FigureView, {
-      stopEvent: ({ event }) => !!(event.target as HTMLElement).closest?.(".figure-controls"),
+      stopEvent: ({ event }) => !!(event.target as HTMLElement).closest?.(".figure-controls, .crop-area"),
     });
   },
 

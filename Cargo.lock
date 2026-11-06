@@ -4042,6 +4042,7 @@ dependencies = [
 name = "texloom-compile"
 version = "0.1.0"
 dependencies = [
+ "flate2",
  "serde",
  "tempfile",
  "thiserror 2.0.21",

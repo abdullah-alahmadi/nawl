@@ -1,4 +1,7 @@
-// Title page designer: a page-sized canvas where items are placed by dragging.
+// Title page designer: a page-sized canvas where items are placed by dragging. The
+// same canvas lays out fixed pages (approval and signature pages, declarations…).
+// Items snap to the page's centre and margins and to each other; several can be
+// selected (Shift-click or drag a frame around them) to move and align together.
 //
 // Geometry matches the generated TikZ exactly: each item's (xMm, yMm) is its anchor
 // point measured from the paper's top-left corner, text boxes are `widthMm` wide with
@@ -7,6 +10,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ask, open } from "@tauri-apps/plugin-dialog";
 import * as api from "../api";
 import type { Anchor } from "../bindings/Anchor";
+import type { Template } from "../bindings/Template";
 import type { FontChoice } from "../bindings/FontChoice";
 import type { TitleItem } from "../bindings/TitleItem";
 import { NumberInput, PlaceholderInput, Row, Toggle, issuesAt } from "./controls";
@@ -14,7 +18,7 @@ import { fieldPlaceholders, fieldUses, placeholderNames, type SectionProps } fro
 import { TextStyleControls } from "./StyleSections";
 
 const MM_PER_PT = 25.4 / 72.27; // TeX points
-const SNAP_MM = 2; // distance at which items snap to the page's centre line
+const SNAP_MM = 2; // distance at which items snap to the page's centre, margins and other items
 
 const ANCHORS: Anchor[][] = [
   ["topLeft", "top", "topRight"],
@@ -108,11 +112,70 @@ function useAssetUrls(assets: string[], templatePath: string | null) {
 }
 
 interface Drag {
+  /** The item under the pointer (it snaps; resizing changes only it). */
   index: number;
   mode: "move" | "resize";
   startX: number;
   startY: number;
-  orig: TitleItem;
+  /** Every item that moves, with where it started. */
+  origs: Map<number, TitleItem>;
+}
+
+/** A frame dragged on the empty page to select the items it touches (in mm). */
+interface Marquee {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  /** Shift held: add to the selection instead of replacing it. */
+  add: boolean;
+  base: number[];
+}
+
+/** Keeps pointer events coming to the element while dragging (a pointer that's no
+ *  longer down can't be captured; then the drag just ends at the element's edge). */
+function capture(e: React.PointerEvent) {
+  try {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  } catch {
+    // nothing to capture
+  }
+}
+
+/** An item's box on the page in mm. Lines are as thin as their position. */
+interface Box {
+  left: number;
+  top: number;
+  w: number;
+  h: number;
+}
+
+/** The items of the page being designed: the title page, or fixed page `page`. */
+function pageItems(t: Template, page: number): TitleItem[] {
+  if (page < 0) return t.titlePage.items;
+  const fp = t.frontMatter[page];
+  return fp?.type === "fixedPage" ? fp.items : t.titlePage.items;
+}
+
+/** A starting layout for a new fixed page: a heading and three signature lines. */
+export function approvalPageItems(pageW: number): TitleItem[] {
+  const text = (text: string, y: number, size: number, bold = false): TitleItem => ({
+    xMm: pageW / 2,
+    yMm: y,
+    anchor: "top",
+    content: { type: "text", text, widthMm: 150, style: { sizePt: size, bold, italic: false, smallCaps: false, uppercase: false, align: "center" } },
+  });
+  const signature = (label: string, y: number): TitleItem[] => [
+    { xMm: pageW / 2, yMm: y, anchor: "top", content: { type: "rule", lengthMm: 90, thicknessPt: 0.6 } },
+    text(label, y + 2, 11),
+  ];
+  return [
+    text("APPROVAL PAGE", 40, 16, true),
+    text("This report, “{title}”, has been read and approved by:", 70, 12),
+    ...signature("Advisor", 130),
+    ...signature("Committee member", 170),
+    ...signature("Department chair", 210),
+  ];
 }
 
 export function TitlePageCanvas({
@@ -123,8 +186,15 @@ export function TitlePageCanvas({
   templatePath,
   canImport,
 }: SectionProps & { metadata: api.Metadata; templatePath: string | null; canImport: boolean }) {
-  const [selected, setSelected] = useState<number | null>(null);
-  const [guide, setGuide] = useState(false);
+  /** The page being designed: -1 for the title page, else a fixed page's index in the front matter. */
+  const [page, setPage] = useState(-1);
+  const [selection, setSelection] = useState<number[]>([]);
+  /** The one selected item, whose properties show on the right. */
+  const selected = selection.length === 1 ? selection[0] : null;
+  const setSelected = (i: number | null) => setSelection(i === null ? [] : [i]);
+  /** Snap lines shown while dragging (mm). */
+  const [guides, setGuides] = useState<{ x?: number; y?: number }>({});
+  const [marquee, setMarquee] = useState<Marquee | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -142,8 +212,13 @@ export function TitlePageCanvas({
     custom: paper.kind === "custom" ? [paper.widthMm, paper.heightMm] : [210, 297],
   }[paper.kind];
   const scale = Math.min(width, 560) / pageW; // px per mm
-  const items = t.titlePage.items;
+  const fixedPage = page >= 0 && t.frontMatter[page]?.type === "fixedPage" ? t.frontMatter[page] : null;
+  const items = pageItems(t, fixedPage ? page : -1);
+  const itemsOf = (d: Template) => pageItems(d, fixedPage ? page : -1);
+  const pathPrefix = fixedPage ? `frontMatter[${page}].items` : "titlePage.items";
   const item = selected !== null ? items[selected] : undefined;
+  const margins = t.page.margins;
+  const marginBox = { left: margins.innerMm + t.page.bindingOffsetMm, right: pageW - margins.outerMm, top: margins.topMm, bottom: pageH - margins.bottomMm };
 
   useLayoutEffect(() => {
     const el = wrap.current;
@@ -154,54 +229,125 @@ export function TitlePageCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // Keep the selection valid when items are removed elsewhere (undo, reload).
+  // Keep the selection valid when items are removed elsewhere (undo, reload), and
+  // go back to the title page when the fixed page being designed is removed.
   useEffect(() => {
-    if (selected !== null && selected >= items.length) setSelected(null);
-  }, [items.length, selected]);
+    if (selection.some((i) => i >= items.length)) setSelection((sel) => sel.filter((i) => i < items.length));
+  }, [items.length, selection]);
+  useEffect(() => {
+    if (page >= 0 && !fixedPage) setPage(-1);
+  }, [page, fixedPage]);
+  const choosePage = (p: number) => {
+    setPage(p);
+    setSelection([]);
+    sizes.current.clear();
+    setNotice(null);
+  };
 
   const assets = useMemo(
     () => items.flatMap((i) => (i.content.type === "image" ? [i.content.asset] : [])),
     [items],
   );
+
+  /** An item's box in mm, from its measured size. */
+  const boxOf = (it: TitleItem, i: number): Box => {
+    const size = sizes.current.get(i) ?? { w: 0, h: 0 };
+    const [h, v] = anchorShift(it.anchor);
+    if (it.content.type === "rule") return { left: it.xMm - h * it.content.lengthMm, top: it.yMm, w: it.content.lengthMm, h: 0 };
+    return { left: it.xMm - h * size.w, top: it.yMm - v * size.h, w: size.w, h: size.h };
+  };
   const assetUrls = useAssetUrls(assets, templatePath);
 
-  const setItem = (index: number, fn: (it: TitleItem) => void) => edit((d) => fn(d.titlePage.items[index]));
+  const setItem = (index: number, fn: (it: TitleItem) => void) => edit((d) => fn(itemsOf(d)[index]));
 
   // ---- dragging (pointer events work for mouse, pen and touch)
   const onPointerDown = (e: React.PointerEvent, index: number, mode: Drag["mode"]) => {
     e.preventDefault(); // no text selection while dragging…
     e.stopPropagation();
     pageRef.current?.focus({ preventScroll: true }); // …but keep keyboard nudging working
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    setSelected(index);
-    drag.current = { index, mode, startX: e.clientX, startY: e.clientY, orig: structuredClone(items[index]) };
+    let moving = selection;
+    if ((e.shiftKey || e.ctrlKey || e.metaKey) && mode === "move") {
+      // Shift/Ctrl-click adds or removes an item from the selection.
+      if (selection.includes(index)) {
+        setSelection(selection.filter((i) => i !== index));
+        return;
+      }
+      moving = [...selection, index];
+    } else if (!selection.includes(index) || mode === "resize") {
+      moving = [index];
+    }
+    setSelection(moving);
+    capture(e);
+    const origs = new Map(moving.map((i) => [i, structuredClone(items[i])] as const));
+    drag.current = { index, mode, startX: e.clientX, startY: e.clientY, origs };
+  };
+
+  /** Where the dragged item's edges snap: the page's centre and margins, and the
+   *  other items' edges and centres. Returns the shift to apply (mm). */
+  const snap = (box: Box, moving: Map<number, TitleItem>): { dx: number; dy: number; x?: number; y?: number } => {
+    const xs = [pageW / 2, marginBox.left, marginBox.right];
+    const ys = [pageH / 2, marginBox.top, marginBox.bottom];
+    items.forEach((it, i) => {
+      if (moving.has(i)) return;
+      const b = boxOf(it, i);
+      xs.push(b.left, b.left + b.w / 2, b.left + b.w);
+      ys.push(b.top, b.top + b.h / 2, b.top + b.h);
+    });
+    const best = (edges: number[], targets: number[]) => {
+      let found: { d: number; at: number } | undefined;
+      for (const e of edges)
+        for (const at of targets) {
+          const d = at - e;
+          if (Math.abs(d) < SNAP_MM && (!found || Math.abs(d) < Math.abs(found.d))) found = { d, at };
+        }
+      return found;
+    };
+    const bx = best([box.left, box.left + box.w / 2, box.left + box.w], xs);
+    const by = best([box.top, box.top + box.h / 2, box.top + box.h], ys);
+    return { dx: bx?.d ?? 0, dy: by?.d ?? 0, x: bx?.at, y: by?.at };
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (marquee) {
+      const r = pageRef.current!.getBoundingClientRect();
+      setMarquee({ ...marquee, x1: (e.clientX - r.left) / scale, y1: (e.clientY - r.top) / scale });
+      return;
+    }
     const d = drag.current;
     if (!d) return;
     const dx = (e.clientX - d.startX) / scale;
     const dy = (e.clientY - d.startY) / scale;
     const free = e.altKey; // hold Alt for 0.1 mm steps and no snapping
     const round = (v: number) => (free ? Math.round(v * 10) / 10 : Math.round(v));
+    const orig = d.origs.get(d.index)!;
     if (d.mode === "move") {
-      let x = round(d.orig.xMm + dx);
-      const y = round(d.orig.yMm + dy);
-      const [h] = anchorShift(d.orig.anchor);
-      const snaps = h === 0.5 && !free && Math.abs(x - pageW / 2) < SNAP_MM;
-      if (snaps) x = Math.round(pageW / 2 * 10) / 10;
-      setGuide(snaps);
-      setItem(d.index, (it) => {
-        it.xMm = x;
-        it.yMm = y;
+      // Move the dragged item, snap it, and move the others by the same amount.
+      let mx = round(orig.xMm + dx) - orig.xMm;
+      let my = round(orig.yMm + dy) - orig.yMm;
+      let shown: { x?: number; y?: number } = {};
+      if (!free) {
+        const b = boxOf(orig, d.index);
+        const s = snap({ ...b, left: b.left + mx, top: b.top + my }, d.origs);
+        mx = Math.round((mx + s.dx) * 10) / 10;
+        my = Math.round((my + s.dy) * 10) / 10;
+        shown = { x: s.x, y: s.y };
+      }
+      setGuides(shown);
+      edit((draft) => {
+        const list = itemsOf(draft);
+        for (const [i, o] of d.origs) {
+          if (!list[i]) continue;
+          list[i].xMm = Math.round((o.xMm + mx) * 10) / 10;
+          list[i].yMm = Math.round((o.yMm + my) * 10) / 10;
+        }
       });
     } else {
       // Resize from the right edge; a centred box grows on both sides.
-      const [h] = anchorShift(d.orig.anchor);
+      const [h] = anchorShift(orig.anchor);
       const factor = h === 0.5 ? 2 : h === 1 ? -1 : 1;
       setItem(d.index, (it) => {
         const c = it.content;
-        const o = d.orig.content;
+        const o = orig.content;
         if (c.type === "text" && o.type === "text") c.widthMm = Math.max(10, round((o.widthMm ?? 60) + dx * factor));
         if (c.type === "image" && o.type === "image") c.widthMm = Math.max(5, round(o.widthMm + dx * factor));
         if (c.type === "rule" && o.type === "rule") c.lengthMm = Math.max(5, round(o.lengthMm + dx * factor));
@@ -211,12 +357,28 @@ export function TitlePageCanvas({
 
   const onPointerUp = () => {
     drag.current = null;
-    setGuide(false);
+    setGuides({});
+    if (marquee) {
+      // Select every item the frame touches.
+      const [l, r] = [Math.min(marquee.x0, marquee.x1), Math.max(marquee.x0, marquee.x1)];
+      const [tp, bt] = [Math.min(marquee.y0, marquee.y1), Math.max(marquee.y0, marquee.y1)];
+      const hit = items
+        .map((it, i) => [boxOf(it, i), i] as const)
+        .filter(([b]) => b.left <= r && b.left + b.w >= l && b.top <= bt && b.top + b.h >= tp)
+        .map(([, i]) => i);
+      setSelection(marquee.add ? [...new Set([...marquee.base, ...hit])] : hit);
+      setMarquee(null);
+    }
   };
 
   // ---- keyboard: arrows nudge (Shift = 10 mm), Delete removes
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (selected === null) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      setSelection(items.map((_, i) => i));
+      return;
+    }
+    if (selection.length === 0) return;
     const step = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
     const moves: Record<string, [number, number]> = {
       ArrowLeft: [-step, 0],
@@ -227,13 +389,17 @@ export function TitlePageCanvas({
     if (moves[e.key]) {
       e.preventDefault();
       const [mx, my] = moves[e.key];
-      setItem(selected, (it) => {
-        it.xMm = Math.round((it.xMm + mx) * 10) / 10;
-        it.yMm = Math.round((it.yMm + my) * 10) / 10;
+      edit((d) => {
+        for (const i of selection) {
+          const it = itemsOf(d)[i];
+          if (!it) continue;
+          it.xMm = Math.round((it.xMm + mx) * 10) / 10;
+          it.yMm = Math.round((it.yMm + my) * 10) / 10;
+        }
       });
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
-      remove(selected);
+      remove(selection);
     } else if (e.key === "Escape") {
       setSelected(null);
     }
@@ -241,7 +407,7 @@ export function TitlePageCanvas({
 
   // ---- item actions
   const add = (it: TitleItem) => {
-    edit((d) => void d.titlePage.items.push(it));
+    edit((d) => void itemsOf(d).push(it));
     setSelected(items.length);
   };
   const addText = () =>
@@ -273,11 +439,16 @@ export function TitlePageCanvas({
   };
   // Removing the only text that shows a field ({course}) offers to remove the field
   // too; otherwise Document info keeps asking for a value that appears nowhere.
-  const remove = async (index: number) => {
-    const content = items[index].content;
-    const shown = content.type === "text" ? placeholderNames(content.text) : [];
+  const remove = async (indices: number[]) => {
+    const gone = new Set(indices);
+    const shown = indices.flatMap((i) => {
+      const content = items[i]?.content;
+      return content?.type === "text" ? placeholderNames(content.text) : [];
+    });
+    const keep = (list: TitleItem[]) => list.filter((_, i) => !gone.has(i));
     const after = structuredClone(t);
-    after.titlePage.items.splice(index, 1);
+    const afterList = itemsOf(after);
+    afterList.splice(0, afterList.length, ...keep(afterList));
     const uses = fieldUses(after);
     const orphans = t.fields.filter((f) => shown.includes(f.id) && !uses.has(f.id));
     setSelected(null);
@@ -298,7 +469,8 @@ export function TitlePageCanvas({
       );
     }
     edit((d) => {
-      d.titlePage.items.splice(index, 1);
+      const list = itemsOf(d);
+      list.splice(0, list.length, ...keep(list));
       if (dropFields) d.fields = d.fields.filter((f) => !orphans.some((o) => o.id === f.id));
     });
   };
@@ -308,10 +480,87 @@ export function TitlePageCanvas({
     add(copy);
   };
 
+  /** Lines up the selected items: their left edges, centres… (relative to the group). */
+  const align = (how: "left" | "center" | "right" | "top" | "middle" | "bottom" | "page") => {
+    const boxes = selection.map((i) => [i, boxOf(items[i], i)] as const);
+    const minL = Math.min(...boxes.map(([, b]) => b.left));
+    const maxR = Math.max(...boxes.map(([, b]) => b.left + b.w));
+    const minT = Math.min(...boxes.map(([, b]) => b.top));
+    const maxB = Math.max(...boxes.map(([, b]) => b.top + b.h));
+    edit((d) => {
+      const list = itemsOf(d);
+      for (const [i, b] of boxes) {
+        const it = list[i];
+        if (!it) continue;
+        const shift = {
+          left: [minL - b.left, 0],
+          center: [(minL + maxR) / 2 - (b.left + b.w / 2), 0],
+          right: [maxR - (b.left + b.w), 0],
+          top: [0, minT - b.top],
+          middle: [0, (minT + maxB) / 2 - (b.top + b.h / 2)],
+          bottom: [0, maxB - (b.top + b.h)],
+          // The group as a whole, centred between the page's edges.
+          page: [pageW / 2 - (minL + maxR) / 2, 0],
+        }[how];
+        it.xMm = Math.round((it.xMm + shift[0]) * 10) / 10;
+        it.yMm = Math.round((it.yMm + shift[1]) * 10) / 10;
+      }
+    });
+  };
+
+  /** Spreads three or more items so the gaps between them are equal. */
+  const distribute = (axis: "x" | "y") => {
+    const boxes = selection.map((i) => [i, boxOf(items[i], i)] as const);
+    const start = (b: Box) => (axis === "x" ? b.left : b.top);
+    const size = (b: Box) => (axis === "x" ? b.w : b.h);
+    boxes.sort((a, b) => start(a[1]) - start(b[1]));
+    const first = start(boxes[0][1]);
+    const last = boxes[boxes.length - 1][1];
+    const total = start(last) + size(last) - first;
+    const gap = (total - boxes.reduce((sum, [, b]) => sum + size(b), 0)) / (boxes.length - 1);
+    let at = first;
+    edit((d) => {
+      const list = itemsOf(d);
+      for (const [i, b] of boxes) {
+        const it = list[i];
+        if (it) {
+          const delta = Math.round((at - start(b)) * 10) / 10;
+          if (axis === "x") it.xMm = Math.round((it.xMm + delta) * 10) / 10;
+          else it.yMm = Math.round((it.yMm + delta) * 10) / 10;
+        }
+        at += size(b) + gap;
+      }
+    });
+  };
+
+  const addFixedPage = () => {
+    // After the title page (or first), with a starting layout to adapt.
+    const at = Math.max(0, t.frontMatter.findIndex((f) => f.type === "titlePage") + 1);
+    edit((d) => void d.frontMatter.splice(at, 0, { type: "fixedPage", title: "Approval page", items: approvalPageItems(pageW), inToc: false }));
+    choosePage(at);
+  };
+  const fixedPages = t.frontMatter.flatMap((f, i) => (f.type === "fixedPage" ? [{ index: i, title: f.title }] : []));
+
   const font = cssFont(t.fonts.main);
 
   return (
     <div className="tp">
+      <div className="tp-toolbar tp-pages">
+        <label>
+          Page{" "}
+          <select value={fixedPage ? page : -1} onChange={(e) => choosePage(Number(e.target.value))} aria-label="Page to design">
+            <option value={-1}>Title page</option>
+            {fixedPages.map((f) => (
+              <option key={f.index} value={f.index}>
+                {f.title.trim() || "Fixed page"}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={addFixedPage} title="A page laid out like the title page: approval or signature page, declaration… It goes into the front matter after the title page.">
+          + Fixed page
+        </button>
+      </div>
       <div className="tp-toolbar">
         <button type="button" onClick={addText}>
           + Text
@@ -322,7 +571,7 @@ export function TitlePageCanvas({
         <button type="button" onClick={addLine}>
           + Line
         </button>
-        <span className="d-hint">Drag to move · drag the right handle to resize · arrows nudge (Shift ×10, Alt fine)</span>
+        <span className="d-hint">Drag to move · Shift-click or drag a frame to select several · right handle resizes · arrows nudge (Shift ×10, Alt fine and no snapping)</span>
       </div>
       {notice && <div className="d-warning">{notice}</div>}
 
@@ -339,19 +588,37 @@ export function TitlePageCanvas({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            onPointerDown={() => {
+            onPointerDown={(e) => {
               pageRef.current?.focus({ preventScroll: true });
-              setSelected(null);
+              // On the empty page: start a selection frame.
+              const r = pageRef.current!.getBoundingClientRect();
+              const x = (e.clientX - r.left) / scale;
+              const y = (e.clientY - r.top) / scale;
+              capture(e);
+              setMarquee({ x0: x, y0: y, x1: x, y1: y, add: e.shiftKey, base: selection });
+              if (!e.shiftKey) setSelection([]);
             }}
           >
-            {guide && <div className="tp-guide" style={{ left: (pageW / 2) * scale }} />}
+            {guides.x !== undefined && <div className="tp-guide" style={{ left: guides.x * scale }} />}
+            {guides.y !== undefined && <div className="tp-guide tp-guide-h" style={{ top: guides.y * scale }} />}
+            {marquee && (
+              <div
+                className="tp-marquee"
+                style={{
+                  left: Math.min(marquee.x0, marquee.x1) * scale,
+                  top: Math.min(marquee.y0, marquee.y1) * scale,
+                  width: Math.abs(marquee.x1 - marquee.x0) * scale,
+                  height: Math.abs(marquee.y1 - marquee.y0) * scale,
+                }}
+              />
+            )}
             {items.map((it, i) => (
               <CanvasItem
                 key={i}
                 item={it}
                 scale={scale}
-                selected={i === selected}
-                hasError={issuesAt(issues, `titlePage.items[${i}]`).length > 0}
+                selected={selection.includes(i)}
+                hasError={issuesAt(issues, `${pathPrefix}[${i}]`).length > 0}
                 metadata={metadata}
                 stretch={lineStretch(t)}
                 onMeasure={(el) => {
@@ -368,20 +635,93 @@ export function TitlePageCanvas({
         </div>
 
         <div className="tp-props">
-          {item === undefined || selected === null ? (
-            <p className="d-note">Select an item on the page to edit it, or add one above.</p>
+          {selection.length > 1 ? (
+            <div className="tp-props-inner">
+              <div className="d-list-row">
+                <strong>{selection.length} items</strong>
+                <button type="button" className="d-remove" onClick={() => remove(selection)}>
+                  Remove
+                </button>
+              </div>
+              <Row label="Align">
+                <div className="tp-align">
+                  {(
+                    [
+                      ["left", "Left edges"],
+                      ["center", "Centres"],
+                      ["right", "Right edges"],
+                      ["top", "Tops"],
+                      ["middle", "Middles"],
+                      ["bottom", "Bottoms"],
+                    ] as const
+                  ).map(([how, label]) => (
+                    <button key={how} type="button" onClick={() => align(how)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </Row>
+              <Row label="Spread">
+                <div className="tp-align">
+                  <button type="button" disabled={selection.length < 3} onClick={() => distribute("x")} title="Equal gaps from left to right (three or more items)">
+                    Across
+                  </button>
+                  <button type="button" disabled={selection.length < 3} onClick={() => distribute("y")} title="Equal gaps from top to bottom (three or more items)">
+                    Down
+                  </button>
+                  <button type="button" onClick={() => align("page")} title="Move the group so it's centred on the page">
+                    Centre on page
+                  </button>
+                </div>
+              </Row>
+            </div>
+          ) : item === undefined || selected === null ? (
+            <>
+              {fixedPage && fixedPage.type === "fixedPage" && (
+                <div className="tp-props-inner">
+                  <Row label="Name" issues={issuesAt(issues, `frontMatter[${page}].title`)}>
+                    <input
+                      value={fixedPage.title}
+                      onChange={(e) =>
+                        edit((d) => {
+                          const f = d.frontMatter[page];
+                          if (f.type === "fixedPage") f.title = e.target.value;
+                        })
+                      }
+                    />
+                  </Row>
+                  <Row label="Contents">
+                    <Toggle
+                      checked={fixedPage.inToc}
+                      label="List in the table of contents"
+                      onChange={(v) =>
+                        edit((d) => {
+                          const f = d.frontMatter[page];
+                          if (f.type === "fixedPage") f.inToc = v;
+                        })
+                      }
+                    />
+                  </Row>
+                  <p className="d-note">Its place among the front-matter pages is set under Front matter.</p>
+                  <button type="button" className="d-remove" onClick={() => edit((d) => void d.frontMatter.splice(page, 1))}>
+                    Remove this page
+                  </button>
+                </div>
+              )}
+              <p className="d-note">Select an item on the page to edit it, or add one above.</p>
+            </>
           ) : (
             <ItemProperties
               key={selected}
               item={item}
-              index={selected}
+              path={`${pathPrefix}[${selected}]`}
               pageW={pageW}
               t={t}
               issues={issues}
               set={(fn) => setItem(selected, fn)}
               boxSize={() => sizes.current.get(selected)}
               onDuplicate={() => duplicate(selected)}
-              onRemove={() => remove(selected)}
+              onRemove={() => remove([selected])}
               onReplaceImage={async () => {
                 const asset = await pickImage();
                 if (asset) setItem(selected, (it) => void (it.content.type === "image" && (it.content.asset = asset)));
@@ -494,7 +834,7 @@ function AnchorPicker({ value, onChange }: { value: Anchor; onChange: (a: Anchor
 
 function ItemProperties({
   item,
-  index,
+  path,
   pageW,
   t,
   issues,
@@ -506,7 +846,8 @@ function ItemProperties({
   canImport,
 }: {
   item: TitleItem;
-  index: number;
+  /** Where its issues are reported, e.g. titlePage.items[2]. */
+  path: string;
   pageW: number;
   t: SectionProps["t"];
   issues: SectionProps["issues"];
@@ -518,7 +859,6 @@ function ItemProperties({
   canImport: boolean;
 }) {
   const c = item.content;
-  const path = `titlePage.items[${index}]`;
   const kind = c.type === "text" ? "Text" : c.type === "image" ? "Image" : "Line";
   const centre = () =>
     set((it) => {

@@ -19,9 +19,14 @@ import { useDocumentImage } from "./editor/Figures";
 import { toAuthors } from "./editor/AuthorsEditor";
 import { DeckDocument, SLIDE_EXTENSIONS } from "./editor/Slides";
 import { Spaces } from "./editor/Spaces";
+import { Search } from "./editor/Search";
+import { Flash, flashBlock } from "./editor/Flash";
+import { SearchBar } from "./editor/SearchBar";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
+import { SaveTemplateDialog, type SaveAsChoice } from "./designer/SaveTemplateDialog";
 import { withKitFiles } from "./designer/ContentSections";
 import { PdfPreview } from "./preview/PdfPreview";
+import { PagePreview } from "./preview/PagePreview";
 import * as api from "./api";
 import type { AppError } from "./api";
 import { useSettings } from "./settings";
@@ -34,7 +39,7 @@ import {
   BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
   LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Palette, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
-  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut,
+  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit,
 } from "lucide-react";
 import "./App.css";
 
@@ -98,6 +103,12 @@ export default function App() {
   const [path, setPath] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [showLatex, setShowLatex] = useState(false);
+  /** The find bar: closed, or open (with the replace row when asked for with Ctrl+H). */
+  const [search, setSearchBar] = useState<{ replace: boolean } | null>(null);
+  /** Design mode's preview: the compiled PDF, or the instant page preview. */
+  const [designPreview, setDesignPreview] = useState<"pdf" | "page">("pdf");
+  /** A place the PDF preview scrolls to and marks ("Show in PDF"). */
+  const [pdfSpot, setPdfSpot] = useState<api.PdfSpot | null>(null);
   // One side panel at a time, chosen on the left rail.
   const [panel, setPanel] = useState<SidePanel | null>("outline");
   const togglePanel = (p: SidePanel) => setPanel((cur) => (cur === p ? null : p));
@@ -127,6 +138,8 @@ export default function App() {
   const askedThemeEngine = useRef(false);
   const [userTemplates, setUserTemplates] = useState<api.UserTemplate[]>([]);
   const refreshUserTemplates = useCallback(() => api.listUserTemplates().then(setUserTemplates, () => setUserTemplates([])), []);
+  /** The open "Save template as" dialog, answered through `resolve`. */
+  const [saveAsRequest, setSaveAsRequest] = useState<{ defaultName: string; title?: string; resolve: (c: SaveAsChoice | null) => void } | null>(null);
   const [mode, setMode] = useState<"document" | "template">("document");
   // The designer edits a draft; valid drafts become the active template right away.
   const [draft, setDraft] = useState<api.Template | null>(null);
@@ -255,6 +268,8 @@ export default function App() {
       InlineMath,
       RawLatex,
       EmptyLines,
+      Search,
+      Flash,
       Spaces,
       Caption,
       Figure,
@@ -539,18 +554,38 @@ export default function App() {
     [compile, setMetadata],
   );
 
+  /** Saves `t` under a new name: into My templates (the default), or to a .json file
+   *  the user picks ("Save to file…" in the dialog). Null when cancelled. */
+  const saveDraftAs = useCallback(
+    async (t: api.Template, title?: string): Promise<api.TemplateInfo | null> => {
+      // A copy already has its own name; otherwise a name My templates doesn't have yet.
+      const name = t.meta.name;
+      const defaultName = draftNeedsSaveAs || !userTemplates.some((u) => u.name === name) ? name : `${name} (copy)`;
+      const choice = await new Promise<SaveAsChoice | null>((resolve) => setSaveAsRequest({ defaultName, title, resolve }));
+      setSaveAsRequest(null);
+      if (!choice) return null;
+      if (choice.kind === "file") {
+        const target = await save({ filters: TEMPLATE_FILTER, defaultPath: `${t.meta.id}.json` });
+        return target ? api.saveTemplate(target, t) : null;
+      }
+      const info = await api.saveTemplateToLibrary(choice.name, t);
+      refreshUserTemplates();
+      return info;
+    },
+    [draftNeedsSaveAs, userTemplates, refreshUserTemplates],
+  );
+
   const saveTemplateAs = useCallback(async () => {
     if (!draft) return;
-    const target = await save({ filters: TEMPLATE_FILTER, defaultPath: `${draft.meta.id}.json` });
-    if (!target) return;
     try {
-      applyTemplate(await api.saveTemplate(target, draft));
+      const info = await saveDraftAs(draft);
+      if (info) applyTemplate(info);
     } catch (e) {
       const err = api.asAppError(e);
       if (err.kind === "templateInvalid") setDraftIssues(err.issues);
       else setStatus({ state: "error", error: err });
     }
-  }, [draft, applyTemplate]);
+  }, [draft, saveDraftAs, applyTemplate]);
 
   const saveTemplate = useCallback(async () => {
     if (!draft) return;
@@ -572,15 +607,11 @@ export default function App() {
     let t = draft;
     let target = templateInfo?.path ?? null;
     if (!target || draftNeedsSaveAs) {
-      target = await save({
-        title: "Save the template: the kit is stored next to it",
-        filters: TEMPLATE_FILTER,
-        defaultPath: `${draft.meta.id}.json`,
-      });
-      if (!target) return;
-      const info = await api.saveTemplate(target, t);
+      const info = await saveDraftAs(t, "Save the template first: the kit is stored with it.");
+      if (!info?.path) return;
       applyTemplate(info);
       t = info.template;
+      target = info.path;
     }
     const next = withKitFiles(t, await api.importKitZip(zip));
     try {
@@ -628,6 +659,22 @@ export default function App() {
       markClean();
     }, report);
   }, [editor, path, markClean, addRecent, settingsRef]);
+
+  /** Saves the document and its images as one .loom file, to email or upload. */
+  const saveAsSingleFile = async () => {
+    if (!editor) return;
+    const target = await save({
+      title: "Save as a single file (images included)",
+      filters: DOC_FILTER,
+      defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom"),
+    });
+    if (!target) return;
+    await api.saveDocument(target, docState(), true).then(() => {
+      setPath(target);
+      addRecent(target);
+      markClean();
+    }, report);
+  };
 
   const saveDoc = useCallback(async () => {
     if (!editor) return;
@@ -734,6 +781,64 @@ export default function App() {
     await newDoc(true);
   };
 
+  /** SyncTeX, PDF → editor: puts the cursor in the block behind a double-clicked spot. */
+  const jumpFromPdf = async (page: number, x: number, y: number) => {
+    const index = await api.pdfToBlock(page, x, y).catch(() => null);
+    if (index != null) jumpToBlock(index);
+  };
+
+  /** Puts the cursor in top-level block `index` of the document and marks it briefly. */
+  const jumpToBlock = (index: number) => {
+    if (!editor || index >= editor.state.doc.childCount) return;
+    const go = () => {
+      let pos = 0;
+      for (let i = 0; i < index; i++) pos += editor.state.doc.child(i).nodeSize;
+      const { state, view } = editor;
+      view.dispatch(state.tr.setSelection(Selection.near(state.doc.resolve(Math.min(pos + 1, state.doc.content.size)))));
+      view.focus();
+      flashBlock(editor, pos);
+      const dom = editor.view.nodeDOM(pos);
+      if (dom instanceof HTMLElement) dom.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+    // From the designer: show the editor first (it's hidden there), then go.
+    if (mode !== "document") {
+      setMode("document");
+      window.setTimeout(go, 0);
+    } else go();
+  };
+
+  /** A few words about block `index` for the error list: "Heading “Results”". */
+  const describeBlock = (index: number): string => {
+    const node = editor?.state.doc.maybeChild(index);
+    if (!node) return "";
+    const kind: Record<string, string> = {
+      heading: "Heading",
+      paragraph: "Paragraph",
+      figure: "Figure",
+      tableFigure: "Table",
+      table: "Table",
+      equation: "Equation",
+      rawLatex: "Raw LaTeX",
+      bulletList: "List",
+      orderedList: "List",
+      blockquote: "Quote",
+      codeBlock: "Code",
+      slide: "Slide",
+    };
+    const text = node.textContent.trim().replace(/\s+/g, " ");
+    const name = kind[node.type.name] ?? "Block";
+    return text ? `${name} “${text.length > 40 ? text.slice(0, 40) + "…" : text}”` : name;
+  };
+
+  /** SyncTeX, editor → PDF: scrolls the preview to the block with the cursor. */
+  const showInPdf = async () => {
+    if (!editor) return;
+    const spot = await api.blockToPdf(editor.state.selection.$from.index(0)).catch(() => null);
+    if (!spot) return;
+    setShowLatex(false);
+    setPdfSpot({ ...spot }); // a new object, so showing the same place again works
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
@@ -759,6 +864,8 @@ export default function App() {
       else if (key === "n") run(() => newDoc());
       else if (key === "e" && e.shiftKey) run(exportPdfFile);
       else if (key === "enter") run(compile);
+      else if (key === "j" && mode === "document") run(showInPdf);
+      else if ((key === "f" || key === "h") && mode === "document" && !e.shiftKey) run(() => setSearchBar({ replace: key === "h" }));
       else if (key === ",") run(() => setShowSettings(true));
     };
     // Capture phase: these shortcuts must win over the editor's own keymap, which runs
@@ -863,6 +970,11 @@ export default function App() {
                   <MenuSeparator />
                   <MenuItem icon={<Save />} label="Save" shortcut="Ctrl+S" onClick={act(saveDoc)} />
                   <MenuItem label="Save as…" shortcut="Ctrl+Shift+S" onClick={act(saveAs)} />
+                  <MenuItem
+                    label="Save as single file…"
+                    onClick={act(saveAsSingleFile)}
+                    title="One .loom file with the images inside, to email or upload. Saving it again keeps it one file."
+                  />
                   <MenuSeparator />
                   <MenuItem icon={<FileDown />} label="Export PDF…" shortcut="Ctrl+Shift+E" onClick={act(exportPdfFile)} />
                   <MenuItem
@@ -1087,7 +1199,8 @@ export default function App() {
         )}
         {/* Kept mounted (just hidden) in template mode so the editor keeps its state. */}
         <section className="editor-pane" hidden={mode !== "document"}>
-          {template && <style>{templateCss(template, ".page", deckInfo)}</style>}
+          {template && <style>{templateCss(template, ".editor-pane .page", deckInfo)}</style>}
+          {search && editor && <SearchBar editor={editor} withReplace={search.replace} onClose={() => setSearchBar(null)} />}
           {picker && editor && (
             <div className="picker-anchor">
               {picker === "ref" ? (
@@ -1106,6 +1219,16 @@ export default function App() {
         <section className="preview-pane">
           <div className="pane-head">
             <span className="pane-title">{showLatex ? "LaTeX source" : "Preview"}</span>
+            {mode === "template" && !showLatex && (
+              <span className="segmented" role="group" aria-label="Preview kind">
+                <button className={designPreview === "pdf" ? "active" : ""} aria-pressed={designPreview === "pdf"} onClick={() => setDesignPreview("pdf")} title="The compiled PDF (exact)">
+                  PDF
+                </button>
+                <button className={designPreview === "page" ? "active" : ""} aria-pressed={designPreview === "page"} onClick={() => setDesignPreview("page")} title="The document's page with this template, updated instantly (no compile)">
+                  Page
+                </button>
+              </span>
+            )}
             <span className="spacer" />
             {!settings.autoCompile && (
               <button className="tb-button" onClick={compile} title="Compile now (Ctrl+Enter)">
@@ -1125,6 +1248,17 @@ export default function App() {
                 </button>
               </span>
             )}
+            {mode === "document" && (
+              <button
+                className="icon-button small"
+                onClick={showInPdf}
+                disabled={!pdf}
+                aria-label="Show in PDF"
+                title="Show the cursor's place in the PDF (Ctrl+J). Double-click the PDF to go back to the editor."
+              >
+                <LocateFixed size={15} />
+              </button>
+            )}
             <button
               className={`icon-button small${showLatex ? " active" : ""}`}
               onClick={() => setShowLatex((v) => !v)}
@@ -1135,8 +1269,14 @@ export default function App() {
             </button>
           </div>
           {templateProblem && <TemplateProblemPanel problem={templateProblem} onDismiss={() => setTemplateProblem(null)} />}
-          {status.state === "error" && <ErrorPanel error={status.error} />}
-          {showLatex ? <pre className="latex-source">{latex}</pre> : <PdfPreview pdf={pdf} zoom={previewZoom} onPages={setPageCount} />}
+          {status.state === "error" && <ErrorPanel error={status.error} onJump={jumpToBlock} describe={describeBlock} />}
+          {showLatex ? (
+            <pre className="latex-source">{latex}</pre>
+          ) : mode === "template" && designPreview === "page" && draft ? (
+            <PagePreview editor={editor} template={draft} deck={deckInfo} />
+          ) : (
+            <PdfPreview pdf={pdf} zoom={previewZoom} onPages={setPageCount} onLocate={mode === "document" ? jumpFromPdf : undefined} spot={pdfSpot} />
+          )}
         </section>
       </main>
 
@@ -1175,6 +1315,14 @@ export default function App() {
         )}
       </footer>
 
+      {saveAsRequest && (
+        <SaveTemplateDialog
+          defaultName={saveAsRequest.defaultName}
+          title={saveAsRequest.title}
+          taken={userTemplates.map((u) => u.name)}
+          onDone={saveAsRequest.resolve}
+        />
+      )}
       {showGallery && (
         <NewDocumentDialog
           builtins={builtins}
@@ -1324,6 +1472,8 @@ function FormatBar({
       ordered: editor.isActive("orderedList"),
       quote: editor.isActive("blockquote"),
       inTable: editor.isActive("table"),
+      canMerge: editor.can().mergeCells(),
+      canSplit: editor.can().splitCell(),
       headingNumbered: editor.getAttributes("heading").numbered !== false,
       canUndo: editor.can().undo(),
       canRedo: editor.can().redo(),
@@ -1421,6 +1571,8 @@ function FormatBar({
           <T icon={<Rows3 size={15} />} label="− Row" title="Delete this row" run={() => c().deleteRow().run()} />
           <T icon={<Columns3 size={15} />} label="− Col" title="Delete this column" run={() => c().deleteColumn().run()} />
           <T icon={<Table size={15} />} label="Header" title="Toggle the header row" run={() => c().toggleHeaderRow().run()} />
+          <T icon={<TableCellsMerge size={15} />} label="Merge" title="Merge the selected cells into one (drag across cells to select them); it can span rows and columns" run={() => c().mergeCells().run()} disabled={!s.canMerge} />
+          <T icon={<TableCellsSplit size={15} />} label="Split" title="Split a merged cell back into single cells" run={() => c().splitCell().run()} disabled={!s.canSplit} />
           <T icon={<Trash2 size={15} />} title="Delete the table and its caption" run={() => c().deleteCaptionedTable().run()} />
         </span>
       )}
@@ -1478,18 +1630,48 @@ function TemplateProblemPanel({
   );
 }
 
-function ErrorPanel({ error }: { error: AppError }) {
+/** What a TeX error usually means, for people who don't read LaTeX logs. */
+function errorHint(message: string): string | null {
+  const m = message.toLowerCase();
+  if (m.includes("undefined control sequence")) return "A LaTeX command that doesn't exist: check formulas and raw LaTeX blocks for a typo.";
+  if (m.includes("missing $ inserted")) return "A maths symbol (^, _, \\alpha…) outside a formula: put it in a formula, or check raw LaTeX.";
+  if (m.includes("missing } inserted") || m.includes("extra }") || m.includes("runaway argument")) return "Unbalanced braces { } in a formula or raw LaTeX block.";
+  if (m.includes("not found") && (m.includes("file") || m.includes(".png") || m.includes(".jpg"))) return "A file is missing: an image moved or a package isn't installed.";
+  if (m.includes("misplaced alignment tab")) return "An & outside a table or aligned formula.";
+  if (m.includes("there's no line here to end")) return "A line break (\\\\) where nothing came before it.";
+  return null;
+}
+
+function ErrorPanel({ error, onJump, describe }: { error: AppError; onJump?: (block: number) => void; describe?: (block: number) => string }) {
   if (error.kind === "texErrors") {
     return (
       <div className="error-panel">
         <strong>LaTeX reported errors (the preview shows the last good version):</strong>
-        <ul>
-          {error.errors.map((e, i) => (
-            <li key={i}>
-              {e.line != null && <span className="muted">line {e.line}: </span>}
-              {e.message}
-            </li>
-          ))}
+        <ul className="error-list">
+          {error.errors.map((e, i) => {
+            const hint = errorHint(e.message);
+            const body = (
+              <>
+                <span className="error-message">{e.message}</span>
+                {hint && <span className="error-hint">{hint}</span>}
+                {e.block != null && describe && <span className="error-where">in {describe(e.block)}</span>}
+              </>
+            );
+            return (
+              <li key={i}>
+                {e.block != null && onJump ? (
+                  <button type="button" className="error-jump" onClick={() => onJump(e.block!)} title="Go to this place in the editor">
+                    {body}
+                  </button>
+                ) : (
+                  <div className="error-item">
+                    {e.line != null && <span className="muted">line {e.line}: </span>}
+                    {body}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <details>
           <summary>Full log</summary>

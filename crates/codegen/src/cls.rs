@@ -270,6 +270,21 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
             FrontMatterItem::ListOfFigures { title } => {
                 w!(o, "  \\renewcommand\\listfigurename{{{}}}\\listoffigures{after_item}", escape(title))
             }
+            FrontMatterItem::FixedPage { title, items, in_toc } => {
+                // Like the title page, on a page of its own with the front matter's page
+                // style; \null gives the page something to ship besides the overlay.
+                let toc = if *in_toc {
+                    format!("\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}", escape(title))
+                } else {
+                    String::new()
+                };
+                w!(o, "  \\clearpage{{\\renewcommand\\texloomsep{{\\\\}}\\hyphenpenalty=10000\\exhyphenpenalty=10000\\null{toc}%");
+                w!(o, "  \\begin{{tikzpicture}}[remember picture,overlay]%");
+                for item in items {
+                    w!(o, "  {}%", title_item(item));
+                }
+                w!(o, "  \\end{{tikzpicture}}\\par}}{new_page}%");
+            }
             FrontMatterItem::ListOfTables { title } => {
                 w!(o, "  \\renewcommand\\listtablename{{{}}}\\listoftables{after_item}", escape(title))
             }

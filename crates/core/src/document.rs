@@ -278,6 +278,34 @@ pub struct FigureAttrs {
     /// Stable id that cross-references point at.
     #[serde(default)]
     pub id: Option<String>,
+    /// Parts of the image cut off at its edges.
+    #[serde(default)]
+    pub crop: Option<Crop>,
+}
+
+/// How much of an image is cut off at each edge, in percent of its width (left,
+/// right) or height (top, bottom).
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+pub struct Crop {
+    #[serde(default)]
+    pub left: f32,
+    #[serde(default)]
+    pub right: f32,
+    #[serde(default)]
+    pub top: f32,
+    #[serde(default)]
+    pub bottom: f32,
+}
+
+impl Crop {
+    /// The four edges as fractions (left, bottom, right, top: graphicx's `trim`
+    /// order), each kept between 0 and 0.45 so part of the image always remains.
+    /// `None` when nothing is cut.
+    pub fn trim(&self) -> Option<[f32; 4]> {
+        let f = |v: f32| if v.is_finite() { (v / 100.0).clamp(0.0, 0.45) } else { 0.0 };
+        let t = [f(self.left), f(self.bottom), f(self.right), f(self.top)];
+        t.iter().any(|v| *v > 0.0005).then_some(t)
+    }
 }
 
 /// Just a stable id, for nodes that cross-references can point at.

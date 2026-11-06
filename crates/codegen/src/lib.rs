@@ -13,7 +13,7 @@ mod tex;
 pub use cls::{template_to_cls, template_to_cls_for};
 pub use latex::escape;
 pub use publisher::{check_recipe, kit_override, xetex_override, Authors};
-pub use tex::{document_to_tex, has_bibliography};
+pub use tex::{document_to_tex, document_to_tex_mapped, has_bibliography};
 
 use texloom_core::{Document, DocumentKind, Template, TitleContent};
 
@@ -51,6 +51,8 @@ pub struct Generated {
     pub kit_files: Vec<String>,
     /// Contents of `refs.bib`, when the document has a reference list.
     pub bibliography: Option<String>,
+    /// Line of `tex` (1-based) where each top-level block of the body starts.
+    pub block_lines: Vec<u32>,
 }
 
 /// Where a kit file goes in the build folder: its file name only.
@@ -81,20 +83,20 @@ pub fn generate(template: &Template, doc: &Document) -> Generated {
 /// Like [`generate`], for a particular engine.
 pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Generated {
     let assets: Vec<String> = template
-        .title_page
-        .items
-        .iter()
-        .filter_map(|i| match &i.content {
+        .placed_items()
+        .into_iter()
+        .filter_map(|(_, i)| match &i.content {
             TitleContent::Image { asset, .. } if template.base.is_none() && template.kind == DocumentKind::Article => {
                 Some(asset.clone())
             }
             _ => None,
         })
         .collect();
+    let (tex, block_lines) = document_to_tex_mapped(template, doc);
     Generated {
         class_name: template.meta.id.clone(),
         cls: template_to_cls_for(template, engine),
-        tex: document_to_tex(template, doc),
+        tex,
         assets,
         figures: {
             // Figure images plus biography photos, all relative to the document folder.
@@ -108,5 +110,6 @@ pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Gene
         },
         kit_files: template.base.as_ref().map(|b| b.files.clone()).unwrap_or_default(),
         bibliography: has_bibliography(doc).then(|| doc.bibliography.clone()),
+        block_lines,
     }
 }

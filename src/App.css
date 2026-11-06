@@ -244,7 +244,33 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }
 /* ---------------------------------------------------------------- preview */
 .pdf-preview { flex: 1; overflow: auto; padding: 20px 16px; min-height: 0; }
 .pdf-pages { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.pdf-page { box-shadow: var(--shadow-page); background: white; }
+.pdf-page { box-shadow: var(--shadow-page); background: white; display: block; }
+.pdf-page-box { position: relative; }
+/* The compile error list: each error that comes from the document jumps there. */
+.error-list { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
+.error-jump, .error-item { display: grid; gap: 2px; width: 100%; text-align: left; padding: 5px 8px; border-radius: 6px; font: inherit; color: inherit; }
+.error-jump { cursor: pointer; border: 1px solid transparent; background: transparent; }
+.error-jump:hover { border-color: var(--error); background: var(--error-soft, #fdecea); }
+.error-message { font-weight: 600; }
+.error-hint { font-size: 12px; }
+.error-where { font-size: 12px; color: var(--accent-text, #1f4fa8); }
+/* Design mode's instant page preview */
+.page-preview { flex: 1; overflow: auto; padding: 16px; min-height: 0; background: var(--bg); }
+.page-preview .page { pointer-events: none; }
+.segmented { display: inline-flex; margin-left: 10px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.segmented button { border: none; border-radius: 0; padding: 2px 10px; font-size: 12px; background: transparent; color: var(--muted); }
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button.active { background: var(--accent-soft, var(--chrome)); color: var(--text); font-weight: 600; }
+/* "Show in PDF": a band over the place, fading out. */
+.pdf-sync-mark {
+  position: absolute; left: 0; right: 0; pointer-events: none; border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent); border-left: 3px solid var(--accent);
+  animation: sync-fade 2.2s ease-out forwards;
+}
+@keyframes sync-fade { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
+/* The block a double-click in the PDF found, marked briefly in the editor. */
+.page .ProseMirror > .sync-flash { animation: sync-flash 1.6s ease-out; border-radius: 3px; }
+@keyframes sync-flash { 0%, 40% { background: color-mix(in srgb, var(--accent) 20%, transparent); } 100% { background: transparent; } }
 .pdf-empty { text-align: center; margin-top: 40px; }
 .latex-source {
   flex: 1; margin: 0; padding: 16px; overflow: auto; white-space: pre-wrap; min-height: 0;
@@ -264,6 +290,20 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }
 
 /* ---------------------------------------------------------------- pickers */
 .picker-anchor { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20; }
+/* Find and replace, at the editor's top right */
+.search-bar {
+  position: absolute; top: 10px; right: 22px; z-index: 21; display: grid; gap: 6px; padding: 8px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-pop);
+}
+.search-row { display: flex; align-items: center; gap: 4px; }
+.search-row input { width: 220px; padding: 4px 8px; }
+.search-spacer { width: 26px; flex: none; }
+.search-count { min-width: 64px; font-size: 12px; color: var(--muted); text-align: center; white-space: nowrap; }
+.search-count.none { color: var(--error); }
+.search-case { font: 600 12px system-ui, sans-serif; padding: 2px 6px; border-radius: 4px; color: var(--muted); }
+.search-case.active { background: var(--accent-soft); color: var(--accent-text); }
+.page .search-match { background: rgba(255, 200, 0, 0.35); border-radius: 2px; }
+.page .search-match.current { background: rgba(255, 140, 0, 0.7); }
 .picker {
   width: min(520px, 90vw); max-height: 60vh; display: flex; flex-direction: column; gap: 6px; padding: 8px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-pop);
@@ -475,6 +515,11 @@ select option, select optgroup { color: var(--text); background-color: var(--pan
   background: #e8590c; border: 1.5px solid #fff; pointer-events: none;
 }
 .tp-guide { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed #e8590c; pointer-events: none; z-index: 1; }
+.tp-guide-h { top: auto; bottom: auto; left: 0; right: 0; width: auto; height: 0; border-left: none; border-top: 1px dashed #e8590c; }
+.tp-marquee { position: absolute; border: 1px solid #2f6fde; background: rgba(47, 111, 222, 0.08); pointer-events: none; z-index: 2; }
+.tp-align { display: flex; flex-wrap: wrap; gap: 4px; }
+.tp-align button { border: 1px solid var(--border); padding: 2px 8px; font-size: 12px; }
+.tp-pages label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .tp-empty { color: #999; font-style: italic; font-size: 11px; }
 .tp-image-missing {
   display: flex; align-items: center; justify-content: center; text-align: center; font: 11px system-ui, sans-serif;
@@ -498,6 +543,21 @@ select option, select optgroup { color: var(--text); background-color: var(--pan
 .page figure.figure.is-selected { border-color: var(--accent); }
 .figure-image { margin: 0 auto; }
 .figure-image img { width: 100%; display: block; }
+/* A cropped image: the hidden parts sit outside the box. */
+.figure-image.cropped { overflow: hidden; }
+/* Crop mode: the whole image, a frame with draggable edges, the cut parts dimmed. */
+.crop-area { position: relative; overflow: hidden; touch-action: none; user-select: none; }
+.crop-frame { position: absolute; box-shadow: 0 0 0 9999px rgba(15, 18, 24, 0.55); outline: 1.5px solid #fff; }
+.crop-handle { position: absolute; background: #fff; border: 1px solid #2f6fde; border-radius: 3px; }
+.crop-left, .crop-right { top: 50%; width: 8px; height: 34px; margin-top: -17px; cursor: ew-resize; }
+.crop-left { left: -5px; }
+.crop-right { right: -5px; }
+.crop-top, .crop-bottom { left: 50%; height: 8px; width: 34px; margin-left: -17px; cursor: ns-resize; }
+.crop-top { top: -5px; }
+.crop-bottom { bottom: -5px; }
+.figure-controls.cropping { opacity: 1; }
+.figure-controls button.primary { background: #2f6fde; color: #fff; border-radius: 4px; }
+.figure-controls button:disabled { color: #999; cursor: default; }
 .figure-placeholder {
   display: flex; align-items: center; justify-content: center; min-height: 120px; padding: 12px; text-align: center;
   font: 13px system-ui, sans-serif; color: #666; background: repeating-linear-gradient(45deg, #f4f5f7, #f4f5f7 8px, #eceef1 8px, #eceef1 16px);
@@ -784,6 +844,9 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
   background: var(--panel); border-top: 1px solid var(--border);
 }
 .ref-problems { flex: 1; font-size: 12px; text-align: right; }
+.save-template-dialog { width: min(480px, 100%); display: flex; flex-direction: column; overflow: hidden; }
+.save-template-dialog .ref-row { grid-template-columns: 60px minmax(0, 1fr); }
+.save-template-why { margin: 4px 0 0; font-size: 13px; }
 .tb-button.danger:hover { color: var(--error); background: var(--error-soft); }
 button.refs-entry { text-align: left; cursor: pointer; font: inherit; color: inherit; }
 button.refs-entry:hover { border-color: var(--accent); }

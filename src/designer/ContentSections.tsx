@@ -7,6 +7,7 @@ import type { FieldKind } from "../bindings/FieldKind";
 import type { FrontMatterItem } from "../bindings/FrontMatterItem";
 import { Row, Select, Toggle, issuesAt } from "./controls";
 import { fieldUses, slugId, type SectionProps } from "./common";
+import { approvalPageItems } from "./TitlePageCanvas";
 
 const KINDS: { value: FieldKind; label: string }[] = [
   { value: "text", label: "One line" },
@@ -116,6 +117,7 @@ const FRONT_TYPES: { value: FrontMatterItem["type"]; label: string }[] = [
   { value: "tableOfContents", label: "Table of contents" },
   { value: "listOfFigures", label: "List of figures" },
   { value: "listOfTables", label: "List of tables" },
+  { value: "fixedPage", label: "Fixed page (approval, signatures, declaration…)" },
 ];
 
 function newItem(type: FrontMatterItem["type"], t: SectionProps["t"]): FrontMatterItem {
@@ -132,6 +134,11 @@ function newItem(type: FrontMatterItem["type"], t: SectionProps["t"]): FrontMatt
       return { type, title: "List of Figures" };
     case "listOfTables":
       return { type, title: "List of Tables" };
+    case "fixedPage": {
+      const p = t.page.paper;
+      const width = p.kind === "custom" ? p.widthMm : p.kind === "a5" ? 148 : p.kind === "a4" ? 210 : 215.9;
+      return { type, title: "Approval page", items: approvalPageItems(width), inToc: false };
+    }
   }
 }
 
@@ -165,6 +172,23 @@ export function FrontMatterSection({ t, edit, issues }: SectionProps) {
                   }
                 />
               </Row>
+            )}
+            {item.type === "fixedPage" && (
+              <>
+                <Row label="Contents">
+                  <Toggle
+                    checked={item.inToc}
+                    label="List in the table of contents"
+                    onChange={(v) =>
+                      edit((d) => {
+                        const it = d.frontMatter[i];
+                        if (it.type === "fixedPage") it.inToc = v;
+                      })
+                    }
+                  />
+                </Row>
+                <p className="d-note">Lay it out under Title page: choose it in the Page list above the canvas.</p>
+              </>
             )}
             {item.type === "fieldPage" && (
               <>

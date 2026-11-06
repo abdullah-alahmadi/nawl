@@ -7,6 +7,7 @@ macro_rules! log {
 }
 
 mod bib;
+mod bundle;
 mod files;
 mod installed;
 mod library;
@@ -21,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State};
-use texloom_compile::{Asset, CompileError, CompileOutput, Compiler, LatexProgram, SystemLatex, TexError};
+use texloom_compile::{Asset, CompileError, CompileOutput, Compiler, LatexProgram, PdfSpot, SyncTex, SystemLatex, TexError};
 use texloom_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
 
 use library::{Library, LibraryEntry};
@@ -48,6 +49,34 @@ pub struct AppState {
     installed: std::sync::Mutex<Option<Vec<texloom_compile::installed::InstalledClass>>>,
     /// Beamer themes of the installed TeX, looked up once.
     beamer_themes: std::sync::Mutex<Option<texloom_compile::installed::BeamerThemes>>,
+    /// SyncTeX data of the last compile, for jumps between the PDF and the editor.
+    sync: std::sync::Mutex<Option<SyncState>>,
+}
+
+/// Where the last compiled document's blocks are in its `.tex` and in its PDF.
+struct SyncState {
+    synctex: SyncTex,
+    /// Line of the `.tex` where each top-level block starts.
+    block_lines: Vec<u32>,
+}
+
+impl SyncState {
+    /// The top-level block whose LaTeX made what's at (`x`, `y`) on `page`.
+    fn block_at(&self, page: u32, x: f32, y: f32) -> Option<usize> {
+        let line = self.synctex.line_at(page, x, y)?;
+        // The last block starting at or before the line (a block can be several lines).
+        let i = self.block_lines.partition_point(|&l| l <= line);
+        i.checked_sub(1)
+    }
+
+    /// Where block `index` starts in the PDF (blocks that print nothing: the next one).
+    fn spot_of(&self, index: usize) -> Option<PdfSpot> {
+        (index..self.block_lines.len()).find_map(|i| {
+            let first = self.block_lines[i];
+            let end = self.block_lines.get(i + 1).copied().unwrap_or(u32::MAX);
+            self.synctex.spot_of(first, end)
+        })
+    }
 }
 
 impl AppState {
@@ -63,7 +92,7 @@ impl AppState {
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum AppError {
     TectonicMissing { message: String },
-    TexErrors { errors: Vec<TexError>, log: String },
+    TexErrors { errors: Vec<LocatedTexError>, log: String },
     TemplateInvalid { path: String, issues: Vec<Issue> },
     Other { message: String },
 }
@@ -74,10 +103,37 @@ impl AppError {
     }
 }
 
+/// A TeX error with the document block it came from, when known (the error list
+/// jumps there).
+#[derive(Debug, Serialize)]
+pub struct LocatedTexError {
+    #[serde(flatten)]
+    error: TexError,
+    /// Index of the top-level block of the document whose LaTeX failed.
+    block: Option<usize>,
+}
+
+impl LocatedTexError {
+    /// Finds the block from the error's line in the main file.
+    fn locate(error: TexError, block_lines: &[u32]) -> Self {
+        let in_main = error.file.as_deref().is_none_or(|f| f.replace('\\', "/").rsplit('/').next() == Some("main.tex"));
+        let block = match error.line {
+            // Lines before the first block are the preamble and title matter.
+            Some(line) if in_main && block_lines.first().is_some_and(|&first| line >= first) => {
+                block_lines.partition_point(|&l| l <= line).checked_sub(1)
+            }
+            _ => None,
+        };
+        Self { error, block }
+    }
+}
+
 impl From<CompileError> for AppError {
     fn from(e: CompileError) -> Self {
         match e {
-            CompileError::Failed { errors, log } => AppError::TexErrors { errors, log },
+            CompileError::Failed { errors, log } => {
+                AppError::TexErrors { errors: errors.into_iter().map(|error| LocatedTexError { error, block: None }).collect(), log }
+            }
             CompileError::NotFound(_) => AppError::TectonicMissing { message: e.to_string() },
             other => AppError::other(other),
         }
@@ -197,6 +253,10 @@ struct OpenedDocument {
     bibliography: String,
     #[serde(default, skip_deserializing)]
     template: Option<TemplateInfo>,
+    /// Opened from a single-file `.loom` (document and images in one zip): saving
+    /// it again writes one too.
+    #[serde(default, skip_deserializing)]
+    bundled: bool,
 }
 
 /// The template fields saved inside a `.loom` file.
@@ -441,6 +501,23 @@ fn save_template(app: AppHandle, state: State<'_, AppState>, path: String, templ
     Ok(info)
 }
 
+/// Saves the template into My templates as a new template called `name` (Save as…),
+/// copying its files along, then makes it the active, watched template.
+#[tauri::command]
+fn save_template_to_library(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    library: State<'_, Library>,
+    name: String,
+    template: Template,
+) -> Result<TemplateInfo, AppError> {
+    let current = state.templates.current();
+    let t = library.save_new(&name, template, current.path.as_deref())?;
+    let info = t.info();
+    state.templates.set(&app, t);
+    Ok(info)
+}
+
 /// Copies an image into the active template's `assets/` folder for the title page.
 #[tauri::command]
 fn import_template_asset(state: State<'_, AppState>, source: String) -> Result<String, AppError> {
@@ -549,6 +626,7 @@ fn new_document(state: State<'_, AppState>) -> Result<OpenedDocument, AppError> 
         metadata: Metadata::new(),
         bibliography: String::new(),
         template: None,
+        bundled: false,
     })
 }
 
@@ -576,14 +654,37 @@ async fn compile_document(
     let mut assets = active.load_assets(&generated.assets)?;
     assets.extend(active.load_kit_files(&generated.kit_files, target)?);
     assets.extend(state.doc_folder.load(&generated.figures)?);
+    let block_lines = generated.block_lines.clone();
     let out = tauri::async_runtime::spawn_blocking(move || {
         let support = generated.support_files();
         let files: Vec<Asset> = support.iter().chain(assets.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
         runner.compile(&generated.tex, &files)
     })
     .await
-    .map_err(AppError::other)??;
+    .map_err(AppError::other)?
+    .map_err(|e| match e {
+        // Errors say which block of the document they came from.
+        CompileError::Failed { errors, log } => AppError::TexErrors {
+            errors: errors.into_iter().map(|e| LocatedTexError::locate(e, &block_lines)).collect(),
+            log,
+        },
+        other => other.into(),
+    })?;
+    *state.sync.lock().expect("sync lock") = out.synctex.map(|synctex| SyncState { synctex, block_lines });
     Ok(out.pdf)
+}
+
+/// The top-level block of the document behind a point of the PDF preview (in PDF
+/// points from the page's top-left corner), from the last compile.
+#[tauri::command]
+fn pdf_to_block(state: State<'_, AppState>, page: u32, x: f32, y: f32) -> Option<usize> {
+    state.sync.lock().expect("sync lock").as_ref()?.block_at(page, x, y)
+}
+
+/// Where a top-level block of the document is in the PDF of the last compile.
+#[tauri::command]
+fn block_to_pdf(state: State<'_, AppState>, block: usize) -> Option<PdfSpot> {
+    state.sync.lock().expect("sync lock").as_ref()?.spot_of(block)
 }
 
 /// The generated `.tex` followed by the class, for the source view.
@@ -614,7 +715,31 @@ fn figure_sources(doc: &Value) -> Result<Vec<String>, AppError> {
 }
 
 #[tauri::command]
-fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<(), AppError> {
+fn save_document(
+    state: State<'_, AppState>,
+    path: String,
+    doc: Value,
+    metadata: Metadata,
+    bibliography: Option<String>,
+    bundled: Option<bool>,
+) -> Result<(), AppError> {
+    // Unless asked, a file keeps its format: a single-file .loom stays one.
+    let bundled = bundled.unwrap_or_else(|| {
+        let mut head = [0u8; 4];
+        std::fs::File::open(&path).and_then(|mut f| std::io::Read::read_exact(&mut f, &mut head)).is_ok() && bundle::is_bundle(&head)
+    });
+    if bundled {
+        // One file with the images inside; the images stay where they are for now.
+        let document = to_document(doc.clone(), metadata.clone(), bibliography.clone())?;
+        let images: Vec<(String, Vec<u8>)> = texloom_codegen::generate(&state.templates.current().template, &document)
+            .figures
+            .into_iter()
+            .filter_map(|rel| state.doc_folder.load(std::slice::from_ref(&rel)).ok())
+            .flatten()
+            .collect();
+        let file = document_file(&state, doc, metadata, bibliography);
+        return bundle::write(Path::new(&path), &serde_json::to_string_pretty(&file).map_err(AppError::other)?, &images);
+    }
     // Saving to another folder takes the figures along.
     let new_dir = Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default();
     files::copy_relative(&figure_sources(&doc)?, &state.doc_folder.get(), &new_dir)?;
@@ -628,7 +753,18 @@ fn save_document(state: State<'_, AppState>, path: String, doc: Value, metadata:
 /// still exists and is valid (it may have been edited since), else the saved copy.
 #[tauri::command]
 fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<OpenedDocument, AppError> {
-    let opened = read_document(&app, &state, &std::fs::read_to_string(&path)?)?;
+    let bytes = std::fs::read(&path)?;
+    if bundle::is_bundle(&bytes) {
+        // A single-file document: its images go to a folder of their own.
+        let (json, images) = bundle::read(Path::new(&path))?;
+        let mut opened = read_document(&app, &state, &json)?;
+        let seed: Vec<(&str, &[u8])> = images.iter().map(|(p, b)| (p.as_str(), b.as_slice())).collect();
+        state.doc_folder.reset_with(&seed)?;
+        opened.bundled = true;
+        return Ok(opened);
+    }
+    let text = String::from_utf8(bytes).map_err(|_| AppError::other("Not a Texloom document"))?;
+    let opened = read_document(&app, &state, &text)?;
     state.doc_folder.set(Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default());
     Ok(opened)
 }
@@ -835,6 +971,7 @@ pub fn run() {
             doc_folder: files::DocumentFolder::new(SAMPLE_FILES).expect("can create a temporary folder"),
             installed: std::sync::Mutex::new(None),
             beamer_themes: std::sync::Mutex::new(None),
+            sync: std::sync::Mutex::new(None),
         })
         .setup(|app| {
             enable_spell_checking(app);
@@ -869,6 +1006,9 @@ pub fn run() {
             import_kit_zip,
             set_template,
             save_template,
+            save_template_to_library,
+            pdf_to_block,
+            block_to_pdf,
             list_system_fonts,
             import_template_asset,
             import_figure,
@@ -905,6 +1045,27 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn errors_and_pdf_spots_find_their_block() {
+        let lines = [10, 12, 20];
+        let err = |file: Option<&str>, line: Option<u32>| TexError { file: file.map(str::to_string), line, message: "x".into() };
+        let block = |e| LocatedTexError::locate(e, &lines).block;
+        assert_eq!(block(err(Some("main.tex"), Some(13))), Some(1));
+        assert_eq!(block(err(Some("./main.tex"), Some(20))), Some(2));
+        assert_eq!(block(err(None, Some(99))), Some(2));
+        assert_eq!(block(err(Some("main.tex"), Some(4))), None, "the preamble is no block");
+        assert_eq!(block(err(Some("senior-design.cls"), Some(13))), None, "another file");
+        assert_eq!(block(err(Some("main.tex"), None)), None);
+
+        // SyncTeX: a box made by line 13 belongs to block 1; block 0 (lines 10-11)
+        // printed nothing, so showing it shows the next block that did.
+        let synctex = SyncTex::parse("Input:1:main.tex\n{1\n(1,13:100,200:300,10,2\n)\n}1\n", "main.tex");
+        let state = SyncState { synctex, block_lines: lines.to_vec() };
+        assert_eq!(state.block_at(1, 0.01, 0.0), Some(1));
+        assert_eq!(state.spot_of(0).map(|s| s.page), Some(1));
+        assert_eq!(state.spot_of(2), None);
+    }
 
     #[test]
     fn all_builtin_templates_are_valid() {

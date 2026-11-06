@@ -13,6 +13,9 @@ use std::process::Command;
 use serde::Serialize;
 
 pub mod installed;
+pub mod synctex;
+
+pub use synctex::{PdfSpot, SyncTex};
 
 /// A command for an external program. On Windows it runs without opening a console
 /// window (a GUI app's child processes get one otherwise, flashing on every compile).
@@ -55,6 +58,8 @@ pub struct TexError {
 pub struct CompileOutput {
     pub pdf: Vec<u8>,
     pub log: String,
+    /// Which line of the main file made what's where in the PDF, when TeX wrote it.
+    pub synctex: Option<SyncTex>,
 }
 
 /// An extra file written next to the main `.tex` file before compiling.
@@ -132,7 +137,7 @@ impl SystemLatex {
         let root = dir.path();
         // Never shell escape: documents and templates may be shared. Stop at the first
         // error instead of waiting for input.
-        let tex_args = ["-interaction=nonstopmode", "-halt-on-error", "-no-shell-escape"];
+        let tex_args = ["-interaction=nonstopmode", "-halt-on-error", "-no-shell-escape", "-synctex=1"];
         let mut transcript = String::new();
         let mut run = |cmd: &mut Command| run_limited(cmd, root, &mut transcript);
         let ok = match &self.latexmk {
@@ -240,7 +245,7 @@ fn finish(root: &Path, ok: bool, output: &str) -> Result<CompileOutput, CompileE
     let log = std::fs::read_to_string(root.join(format!("{MAIN}.log"))).unwrap_or_default();
     let pdf_path = root.join(format!("{MAIN}.pdf"));
     if ok && pdf_path.is_file() {
-        return Ok(CompileOutput { pdf: std::fs::read(pdf_path)?, log });
+        return Ok(CompileOutput { pdf: std::fs::read(pdf_path)?, log, synctex: SyncTex::read(root, MAIN) });
     }
     let mut errors = parse_log(&log);
     if errors.is_empty() {
@@ -308,6 +313,7 @@ impl Compiler {
             // Never allow \write18 shell escape: documents and templates may be shared.
             .arg("--untrusted")
             .arg("--keep-logs")
+            .arg("--synctex")
             .args(["--outdir", "."])
             .arg(format!("{MAIN}.tex"))
             .output()?;
@@ -317,7 +323,7 @@ impl Compiler {
         let pdf_path = root.join(format!("{MAIN}.pdf"));
 
         if output.status.success() && pdf_path.is_file() {
-            Ok(CompileOutput { pdf: std::fs::read(pdf_path)?, log })
+            Ok(CompileOutput { pdf: std::fs::read(pdf_path)?, log, synctex: SyncTex::read(root, MAIN) })
         } else {
             let mut errors = parse_stderr(&stderr);
             if errors.is_empty() {
@@ -446,9 +452,15 @@ mod tests {
     fn compiles_and_reports_errors() {
         let c = Compiler::locate(&[]).expect("tectonic");
         let ok = c
-            .compile("\\documentclass{article}\\begin{document}Hello\\end{document}", &[])
+            .compile("\\documentclass{article}\n\\begin{document}\nHello\n\n\\section{Second}\nWorld\n\\end{document}\n", &[])
             .expect("compile");
         assert!(ok.pdf.starts_with(b"%PDF"));
+        // SyncTeX: line 3 ("Hello") is above line 5 (the section) on page 1.
+        let sync = ok.synctex.expect("synctex");
+        let (hello, section) = (sync.spot_of(3, 4).expect("line 3"), sync.spot_of(5, 6).expect("line 5"));
+        assert_eq!((hello.page, section.page), (1, 1));
+        assert!(hello.y < section.y, "{hello:?} {section:?}");
+        assert_eq!(sync.line_at(1, section.x + 20.0, section.y + section.height / 2.0), Some(5));
 
         match c.compile("\\documentclass{article}\\begin{document}\n\\nosuchmacro\n\\end{document}", &[]) {
             Err(CompileError::Failed { errors, .. }) => {
