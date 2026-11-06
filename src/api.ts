@@ -72,6 +72,19 @@ export interface BuiltinTemplate {
 }
 export const listBuiltinTemplates = () => invoke<BuiltinTemplate[]>("list_builtin_templates");
 export const switchToBuiltinTemplate = (id?: string) => invoke<TemplateInfo>("use_builtin_template", { id: id ?? null });
+/** A journal template for a class of the installed TeX distribution. */
+export interface InstalledTemplate {
+  class: string;
+  name: string;
+  description: string;
+  /** TeX Live package the class comes from. */
+  package: string;
+  /** Fails under XeLaTeX and LuaLaTeX (and Tectonic). */
+  pdflatexOnly: boolean;
+}
+/** Journal templates from the installed TeX (empty without one). */
+export const listInstalledTemplates = () => invoke<InstalledTemplate[]>("list_installed_templates");
+export const switchToInstalledTemplate = (cls: string) => invoke<TemplateInfo>("use_installed_template", { class: cls });
 /** Copies a publisher kit file (.cls, .sty, .bst…) into the template's assets/. */
 export const importTemplateFile = (source: string) => invoke<string>("import_template_file", { source });
 /** Imports a publisher's kit .zip into the template's assets/; returns the files. */

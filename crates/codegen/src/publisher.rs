@@ -60,7 +60,12 @@ const SPOTCOLOR_XETEX: &str = r"\NeedsTeXFormat{LaTeX2e}
 /// The wrapper class: loads the publisher class and adds what Texloom documents use.
 /// Classes whose tables avoid the array package (see [`wrapper_cls`]).
 pub fn uses_plain_tables(base: &ClassBase) -> bool {
+    // jmlr refuses tabularx outright (it breaks its footnote links); the OUP class
+    // breaks its X columns.
+    // AASTeX is built on REVTeX.
     base.class.starts_with("revtex")
+        || base.class.starts_with("aastex")
+        || ["jmlr", "oup-authoring-template"].contains(&base.class.as_str())
 }
 
 pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
@@ -95,8 +100,9 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
     w!(o, "\\RequirePackage{{graphicx}}");
     w!(o, "\\RequirePackage{{amsmath}}");
     if !acm {
-        // acmart's math fonts already provide these symbols (and clash with amssymb).
-        w!(o, "\\RequirePackage{{amssymb}}");
+        // acmart's math fonts already provide these symbols (and clash with amssymb),
+        // as do classes loading newtx and the like: \Bbbk is defined then.
+        w!(o, "\\ifdefined\\Bbbk\\else\\RequirePackage{{amssymb}}\\fi");
     }
     // REVTeX 4.2 breaks with the array package of current TeX distributions
     // ("Extra \or"), so its tables use plain p columns instead of tabularx.
@@ -119,16 +125,36 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
     w!(o, "\\newcommand\\texloomfield[2]{{\\expandafter\\def\\csname tl@f@#1\\endcsname{{#2}}}}");
     w!(o, "\\newcommand\\tl@f[1]{{\\ifcsname tl@f@#1\\endcsname\\csname tl@f@#1\\endcsname\\fi}}");
     w!(o, "\\newcommand\\texloomsep{{, }}");
+    // Between authors: \and where the class sets authors in a tabular (standard
+    // \maketitle), a comma where it doesn't (\and breaks outside a tabular).
+    w!(o, "\\DeclareRobustCommand\\texloomand{{\\ifx\\\\\\@tabularcr\\and\\else\\unskip,\\ \\fi}}");
     w!(o);
     w!(o, "% Bibliography (refs.bib next to the document) and appendices");
-    w!(o, "\\newcommand\\texloombibliography{{\\bibliographystyle{{{}}}\\bibliography{{refs}}}}", base.bib_style.trim());
+    // Classes that load biblatex themselves get its commands instead of BibTeX's.
+    w!(o, "\\@ifpackageloaded{{biblatex}}{{\\addbibresource{{refs.bib}}\\newcommand\\texloombibliography{{\\printbibliography}}}}");
+    let style = match base.bib_style.trim() {
+        "" => String::new(),
+        s => format!("\\bibliographystyle{{{s}}}"),
+    };
+    w!(o, "  {{\\newcommand\\texloombibliography{{{style}\\bibliography{{refs}}}}}}");
     w!(o, "\\newcommand\\texloomappendix{{\\appendix}}");
     w!(o);
     if acm {
         // acmart loads hyperref itself, with its own settings.
         w!(o, "\\RequirePackage{{hyperref}}");
     } else {
-        w!(o, "\\RequirePackage[hidelinks]{{hyperref}}");
+        let raw = t.raw_preamble.as_deref().is_some_and(|r| !r.trim().is_empty());
+        // Some classes load hyperref themselves, with their own options, possibly as
+        // late as \begin{document} (lni); loading it first would be an option clash.
+        // So it is loaded at \\begin{document} (before classes' end-of-preamble code,
+        // which may load cleveref), unless the template's raw preamble may need it.
+        w!(o, "\\PassOptionsToPackage{{hidelinks}}{{hyperref}}");
+        let load = "\\@ifpackageloaded{hyperref}{\\hypersetup{hidelinks}}{\\RequirePackage{hyperref}}";
+        if raw {
+            w!(o, "{load}");
+        } else {
+            w!(o, "\\AddToHook{{env/document/begin}}{{{load}}}");
+        }
     }
     if let Some(raw) = t.raw_preamble.as_deref().filter(|r| !r.trim().is_empty()) {
         w!(o);
@@ -352,9 +378,10 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
                     w!(o, "\\email{{{}}}", e(&a.email));
                 }
                 // The whole affiliation goes in \institution; guessing which part is the
-                // country would be wrong too often ("Dept…, Example University").
+                // country would be wrong too often ("Dept…, Example University"). Current
+                // acmart insists on a non-empty \country; \relax passes and prints nothing.
                 for aff in &a.affiliations {
-                    w!(o, "\\affiliation{{\\institution{{{}}}\\country{{}}}}", e(aff.trim()));
+                    w!(o, "\\affiliation{{\\institution{{{}}}\\country{{\\relax}}}}", e(aff.trim()));
                 }
             }
             if !abstract_.is_empty() {

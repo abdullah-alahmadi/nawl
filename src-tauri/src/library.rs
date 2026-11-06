@@ -16,11 +16,11 @@ use crate::{files, templates, AppError};
 /// Title block for templates made from a publisher kit: standard LaTeX commands that
 /// almost every class understands. Adjustable under Design template → Publisher class.
 const KIT_TITLE_BLOCK: &str = r"\title{{title}}
-\author{{#authors| \and }{name}\textsuperscript{{affnums}}{?corresponding}\thanks{Corresponding author: {email}}{/corresponding}{/authors}}
+\author{{#authors|\texloomand }{name}\textsuperscript{{affnums}}{/authors}}
 \date{}
 \maketitle
 \begin{center}\small
-{#affiliations|\\}\textsuperscript{{n}}{name}{/affiliations}
+{#affiliations|\\}\textsuperscript{{n}}{name}{/affiliations}{?corresponding_email}\\Corresponding author: {corresponding_email}{/corresponding_email}
 \end{center}
 \begin{abstract}
 {abstract}
@@ -266,26 +266,52 @@ fn create_from_kit(zip_path: &Path, name: &str, folder: &Path) -> Result<(), App
         _ => "plain".to_string(),
     };
 
-    // Fields (title, authors, abstract, keywords) and body settings from the Elsevier
-    // template; the class, title block and files from the kit.
-    let (_, base_json) = templates::BUILTIN_TEMPLATES
-        .iter()
-        .find(|(id, _)| *id == "elsevier-article")
-        .expect("elsevier template exists");
-    let mut t: Template = serde_json::from_str(base_json).expect("built-in template parses");
     let mut id = slug(name);
     // The generated wrapper class must not have the kit class's own name.
     if classes.contains(&id) {
         id.push_str("-texloom");
     }
-    t.meta.id = id;
-    t.meta.name = name.to_string();
-    let known = known_class(&class);
     let kit_name = zip_path.file_name().and_then(|n| n.to_str()).unwrap_or("a publisher kit");
-    t.meta.description = match &known {
-        Some(k) => format!("Made from {kit_name} (class {class}, {} title block)", k.label),
+    let label = known_class(&class).map(|k| k.label);
+    let description = match label {
+        Some(l) => format!("Made from {kit_name} (class {class}, {l} title block)"),
         None => format!("Made from {kit_name} (class {class})"),
     };
+    let t = journal_template(JournalSpec { id, name: name.to_string(), description, class, options, bib_style, files: imported, title_block: None });
+    let mut f = std::fs::File::create(&template_file)?;
+    f.write_all(serde_json::to_string_pretty(&t).map_err(AppError::other)?.as_bytes())?;
+    Ok(())
+}
+
+/// What a journal template is made of: a publisher class and how to use it.
+pub struct JournalSpec {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub class: String,
+    pub options: Vec<String>,
+    pub bib_style: String,
+    /// Kit files copied next to the document (empty for classes TeX already has).
+    pub files: Vec<String>,
+    /// Title block for classes without a built-in style; `None` for the generic one.
+    pub title_block: Option<String>,
+}
+
+/// A journal template around a publisher class. Fields (title, authors, abstract,
+/// keywords) and body settings come from the Elsevier template; classes Texloom
+/// knows get their own title block style, others the given or the generic recipe.
+pub fn journal_template(spec: JournalSpec) -> Template {
+    let (_, base_json) = templates::BUILTIN_TEMPLATES
+        .iter()
+        .find(|(id, _)| *id == "elsevier-article")
+        .expect("elsevier template exists");
+    let mut t: Template = serde_json::from_str(base_json).expect("built-in template parses");
+    t.meta.id = spec.id;
+    t.meta.name = spec.name;
+    t.meta.description = spec.description;
+    t.meta.version = "0.1.0".into();
+    t.meta.author = None;
+    let known = known_class(&spec.class);
     if let Some(k) = &known {
         for (id, label, kind) in k.extra_fields {
             if !t.fields.iter().any(|f| f.id == *id) {
@@ -293,22 +319,18 @@ fn create_from_kit(zip_path: &Path, name: &str, folder: &Path) -> Result<(), App
             }
         }
     }
-    t.meta.version = "0.1.0".into();
-    t.meta.author = None;
     t.base = Some(ClassBase {
-        class,
-        options,
+        class: spec.class,
+        options: spec.options,
         front_matter: known.as_ref().map_or(FrontMatterStyle::Custom, |k| k.style),
-        bib_style,
-        files: imported,
+        bib_style: spec.bib_style,
+        files: spec.files,
         biographies: known.as_ref().is_some_and(|k| k.biographies),
-        title_block: known.is_none().then(|| KIT_TITLE_BLOCK.into()),
+        title_block: known.is_none().then(|| spec.title_block.unwrap_or_else(|| KIT_TITLE_BLOCK.into())),
         end_block: None,
         kit: None,
     });
-    let mut f = std::fs::File::create(&template_file)?;
-    f.write_all(serde_json::to_string_pretty(&t).map_err(AppError::other)?.as_bytes())?;
-    Ok(())
+    t
 }
 
 #[derive(Default)]
@@ -372,7 +394,7 @@ fn pretty_name(stem: &str) -> String {
 }
 
 /// Lowercase id from a name ("My Journal 2" → "my-journal-2").
-fn slug(name: &str) -> String {
+pub(crate) fn slug(name: &str) -> String {
     let s: String = name
         .to_lowercase()
         .chars()

@@ -180,6 +180,11 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       plus an optional end block, for publishers without a built-in style
 - [x] Typographic punctuation and Latin-1 symbols written as TeX commands, so they
       render in old 8-bit publisher fonts
+- [x] Journal templates from the installed TeX: classes TeX Live lists under the
+      Catalogue's "journalpub" topic appear in the gallery (with search); tuned title
+      blocks for MNRAS, ACS, AAS, OUP, Annals of Mathematics…; title blocks may start
+      in the preamble; empty BibTeX style = the class sets it; 39 of 65 classes on a
+      full TeX Live compile the sample article (the rest are skipped)
 - [ ] Two-column preview in the editor;
       more pdfLaTeX-only kits as they come up (each needs a small stand-in)
 

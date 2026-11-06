@@ -16,7 +16,7 @@ options: Array<string>,
  */
 frontMatter: FrontMatterStyle, 
 /**
- * BibTeX style, e.g. `IEEEtran`, `elsarticle-num`.
+ * BibTeX style, e.g. `IEEEtran`, `elsarticle-num`; empty when the class sets it.
  */
 bibStyle: string, 
 /**

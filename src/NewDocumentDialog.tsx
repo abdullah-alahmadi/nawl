@@ -1,9 +1,16 @@
 // "New from template": a gallery of the built-in templates, grouped into reports
-// and journals/conferences. Choosing one starts an empty document with it. At
+// and journals/conferences, the user's own templates, and the journal classes of
+// the installed TeX distribution. Choosing one starts an empty document with it. At
 // startup it is the start window, with Open, recent files and the example as well.
-import { useEffect } from "react";
-import { BookOpen, FileInput, FileText, FolderHeart, FolderOpen, GraduationCap, History, Sparkles, Trash2, X } from "lucide-react";
-import type { BuiltinTemplate, UserTemplate } from "./api";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, FileInput, FileText, FolderHeart, FolderOpen, GraduationCap, History, Library, Search, Sparkles, Trash2, X } from "lucide-react";
+import type { BuiltinTemplate, InstalledTemplate, UserTemplate } from "./api";
+
+/** Whether a template matches the search box (name, description or class). */
+function matches(query: string, ...texts: (string | null | undefined)[]) {
+  const q = query.trim().toLowerCase();
+  return !q || texts.some((t) => t?.toLowerCase().includes(q));
+}
 
 export function NewDocumentDialog({
   builtins,
@@ -14,6 +21,10 @@ export function NewDocumentDialog({
   onPickUser,
   onRemoveUser,
   onImport,
+  installed = [],
+  currentClass = null,
+  onPickInstalled,
+  engine = "tectonic",
   start = false,
   recentFiles = [],
   onOpen,
@@ -30,6 +41,13 @@ export function NewDocumentDialog({
   onPickUser: (t: UserTemplate) => void;
   onRemoveUser: (t: UserTemplate) => void;
   onImport: () => void;
+  /** Journal templates from the installed TeX distribution. */
+  installed?: InstalledTemplate[];
+  /** Class of the active installed template, if any. */
+  currentClass?: string | null;
+  onPickInstalled?: (cls: string) => void;
+  /** The TeX engine from the settings. */
+  engine?: string;
   /** Shown at startup: adds Open, recent files and the example report. */
   start?: boolean;
   recentFiles?: string[];
@@ -46,10 +64,17 @@ export function NewDocumentDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const [query, setQuery] = useState("");
+  const shown = builtins.filter((b) => matches(query, b.name, b.description, b.class));
   const groups = [
-    { title: "Reports", icon: <GraduationCap size={15} />, items: builtins.filter((b) => !b.class) },
-    { title: "Journals and conferences", icon: <BookOpen size={15} />, items: builtins.filter((b) => b.class) },
+    { title: "Reports", icon: <GraduationCap size={15} />, items: shown.filter((b) => !b.class) },
+    { title: "Journals and conferences", icon: <BookOpen size={15} />, items: shown.filter((b) => b.class) },
   ];
+  const users = userTemplates.filter((u) => matches(query, u.name, u.description, u.class));
+  // Built-in templates already cover some installed classes (IEEEtran, acmart…).
+  const builtinClasses = useMemo(() => new Set(builtins.map((b) => b.class).filter(Boolean)), [builtins]);
+  const fromTex = installed.filter((t) => !builtinClasses.has(t.class) && matches(query, t.name, t.description, t.class, t.package));
+  const nothing = query.trim() !== "" && shown.length === 0 && users.length === 0 && fromTex.length === 0;
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -85,6 +110,17 @@ export function NewDocumentDialog({
         <div className="gallery-main">
         <div className="gallery-head">
           <h2>{start ? "Start a new document" : "New from template"}</h2>
+          <label className="gallery-search">
+            <Search size={14} aria-hidden="true" />
+            <input
+              type="search"
+              placeholder="Search templates"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search templates"
+              spellCheck={false}
+            />
+          </label>
           <button className="icon-button" onClick={onClose} aria-label="Close" title={start ? "Start with an empty document (Esc)" : "Close (Esc)"}>
             <X size={17} />
           </button>
@@ -113,6 +149,8 @@ export function NewDocumentDialog({
                 </section>
               ),
           )}
+          {nothing && <p className="muted gallery-empty">No template matches “{query.trim()}”.</p>}
+          {(users.length > 0 || !query.trim()) && (
           <section>
             <h3>
               <FolderHeart size={15} />
@@ -131,7 +169,7 @@ export function NewDocumentDialog({
               </button>
             ) : (
               <div className="gallery-grid">
-                {userTemplates.map((u) => (
+                {users.map((u) => (
                   <div key={u.id} className={`gallery-card user${u.path === currentPath ? " current" : ""}`}>
                     <button className="gallery-card-main" onClick={() => onPickUser(u)}>
                       <span className="gallery-card-top">
@@ -149,6 +187,37 @@ export function NewDocumentDialog({
               </div>
             )}
           </section>
+          )}
+          {fromTex.length > 0 && (
+            <section>
+              <h3>
+                <Library size={15} />
+                From your TeX installation
+                <span className="gallery-count">{fromTex.length}</span>
+              </h3>
+              <p className="muted gallery-note">
+                Journal classes found in your TeX distribution, with a standard title block you can adjust under Design.
+                {engine === "tectonic" && " They compile with your installed TeX; picking one offers to switch the engine from Tectonic to pdfLaTeX."}
+              </p>
+              <div className="gallery-grid compact">
+                {fromTex.map((t) => (
+                  <button
+                    key={t.class}
+                    className={`gallery-card${t.class === currentClass ? " current" : ""}`}
+                    onClick={() => onPickInstalled?.(t.class)}
+                    title={`${t.description} (package ${t.package})`}
+                  >
+                    <span className="gallery-card-top">
+                      <FileText size={16} aria-hidden="true" />
+                      <code>{t.class}</code>
+                    </span>
+                    <strong>{t.name}</strong>
+                    {t.name !== t.description && <span className="muted">{t.description}</span>}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
         <div className="gallery-foot">
           <button className="tb-button" onClick={onImport}>

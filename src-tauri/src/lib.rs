@@ -8,6 +8,7 @@ macro_rules! log {
 
 mod bib;
 mod files;
+mod installed;
 mod library;
 mod recovery;
 mod templates;
@@ -40,6 +41,16 @@ pub struct AppState {
     templates: TemplateStore,
     /// Where the open document's figures live.
     doc_folder: files::DocumentFolder,
+    /// Journal classes of the installed TeX, looked up once.
+    installed: std::sync::Mutex<Option<Vec<texloom_compile::installed::InstalledClass>>>,
+}
+
+impl AppState {
+    /// The installed TeX's journal classes (looked up on first use). Blocking.
+    fn installed_classes(&self) -> Vec<texloom_compile::installed::InstalledClass> {
+        let mut cache = self.installed.lock().expect("installed lock");
+        cache.get_or_insert_with(installed::find).clone()
+    }
 }
 
 /// Errors sent to the frontend, tagged so the UI can render each kind differently.
@@ -241,6 +252,34 @@ fn use_builtin_template(app: AppHandle, state: State<'_, AppState>, id: Option<S
     };
     let info = t.info();
     state.templates.set(&app, t);
+    Ok(info)
+}
+
+/// Journal templates for the classes of the installed TeX distribution (empty
+/// without one).
+#[tauri::command]
+async fn list_installed_templates(app: AppHandle) -> Result<Vec<installed::InstalledTemplate>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || installed::list(&app.state::<AppState>().installed_classes()))
+        .await
+        .map_err(AppError::other)
+}
+
+/// Switches to the template for an installed journal class.
+#[tauri::command]
+async fn use_installed_template(app: AppHandle, class: String) -> Result<TemplateInfo, AppError> {
+    let found = {
+        let app = app.clone();
+        tauri::async_runtime::spawn_blocking(move || app.state::<AppState>().installed_classes())
+            .await
+            .map_err(AppError::other)?
+    };
+    let c = found
+        .iter()
+        .find(|c| c.class == class)
+        .ok_or_else(|| AppError::other(format!("The class {class} isn't installed")))?;
+    let t = ActiveTemplate { template: Arc::new(installed::template(c)), path: None, warnings: Vec::new() };
+    let info = t.info();
+    app.state::<AppState>().templates.set(&app, t);
     Ok(info)
 }
 
@@ -666,6 +705,7 @@ pub fn run() {
             engine: std::sync::Mutex::new(EngineChoice::Tectonic),
             templates: TemplateStore::new(),
             doc_folder: files::DocumentFolder::new(SAMPLE_FILES).expect("can create a temporary folder"),
+            installed: std::sync::Mutex::new(None),
         })
         .setup(|app| {
             let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom"));
@@ -690,6 +730,8 @@ pub fn run() {
             get_template,
             open_template,
             use_builtin_template,
+            list_installed_templates,
+            use_installed_template,
             list_builtin_templates,
             import_template_file,
             import_kit_zip,

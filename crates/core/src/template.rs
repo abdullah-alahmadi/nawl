@@ -71,7 +71,7 @@ pub struct ClassBase {
     pub options: Vec<String>,
     /// How the title block, authors, abstract and keywords are written for this class.
     pub front_matter: FrontMatterStyle,
-    /// BibTeX style, e.g. `IEEEtran`, `elsarticle-num`.
+    /// BibTeX style, e.g. `IEEEtran`, `elsarticle-num`; empty when the class sets it.
     pub bib_style: String,
     /// Extra files from the template's folder copied next to the document when it
     /// compiles (a publisher's .cls/.sty/.bst/logos), e.g. `assets/ieeeaccess.cls`.

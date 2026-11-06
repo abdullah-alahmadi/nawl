@@ -233,8 +233,9 @@ impl Template {
             if !name_ok {
                 c.error("base.class", "class names may only contain letters, digits, '-', '_', '.', '/'");
             }
-            if base.bib_style.trim().is_empty() || base.bib_style.contains(['{', '}', '\\']) {
-                c.error("base.bibStyle", "needs a BibTeX style name such as IEEEtran");
+            // Empty: the class sets the style itself (jmlr, elbioimp…).
+            if base.bib_style.contains(['{', '}', '\\', ' ']) {
+                c.error("base.bibStyle", "needs a BibTeX style name such as IEEEtran (or empty when the class sets it)");
             }
             for (i, o) in base.options.iter().enumerate() {
                 if o.contains(['{', '}', '\\', ',', ']']) || o.trim().is_empty() {

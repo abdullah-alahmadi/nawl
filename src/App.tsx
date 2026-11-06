@@ -93,6 +93,7 @@ export default function App() {
   // Set when the template file on disk has errors; the last valid version stays in use.
   const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
   const [builtins, setBuiltins] = useState<api.BuiltinTemplate[]>([]);
+  const [installedTemplates, setInstalledTemplates] = useState<api.InstalledTemplate[]>([]);
   const [userTemplates, setUserTemplates] = useState<api.UserTemplate[]>([]);
   const refreshUserTemplates = useCallback(() => api.listUserTemplates().then(setUserTemplates, () => setUserTemplates([])), []);
   const [mode, setMode] = useState<"document" | "template">("document");
@@ -316,6 +317,7 @@ export default function App() {
 
   useEffect(() => {
     api.listBuiltinTemplates().then(setBuiltins, () => setBuiltins([]));
+    api.listInstalledTemplates().then(setInstalledTemplates, () => setInstalledTemplates([]));
     refreshUserTemplates();
   }, []);
 
@@ -403,6 +405,36 @@ export default function App() {
   const switchToBuiltin = async (id: string): Promise<boolean> => {
     try {
       applyTemplate(await api.switchToBuiltinTemplate(id));
+      return true;
+    } catch (e) {
+      report(e);
+      return false;
+    }
+  };
+
+  /** Installed classes compile best with the installed TeX: Tectonic downloads its
+   *  own (older) copy of each class, some aren't in it, and a few classes need pdfLaTeX. */
+  const switchToInstalled = async (cls: string): Promise<boolean> => {
+    const entry = installedTemplates.find((t) => t.class === cls);
+    const engine = settingsRef.current.engine;
+    if (engine === "tectonic" || (entry?.pdflatexOnly && engine !== "pdflatex")) {
+      const engines = await api.listEngines().catch(() => []);
+      if (engines.some((e) => e.id === "pdflatex" && e.available)) {
+        const why =
+          engine === "tectonic"
+            ? "This template uses the class installed on your computer. Tectonic, the current engine, downloads its own copy of each class, which may be older or missing."
+            : "This class works with pdfLaTeX only.";
+        const sw = await ask(`${why}\n\nSwitch the TeX engine to pdfLaTeX from your TeX installation? (Settings → Preview)`, {
+          title: "TeX engine",
+          kind: "info",
+          okLabel: "Use pdfLaTeX",
+          cancelLabel: `Keep ${engine === "tectonic" ? "Tectonic" : engine === "xelatex" ? "XeLaTeX" : "LuaLaTeX"}`,
+        });
+        if (sw) updateSettings({ engine: "pdflatex" });
+      }
+    }
+    try {
+      applyTemplate(await api.switchToInstalledTemplate(cls));
       return true;
     } catch (e) {
       report(e);
@@ -1005,6 +1037,10 @@ export default function App() {
           onPickUser={(u) => newFromTemplate(() => openTemplateFile(u.path))}
           onRemoveUser={removeUserTemplate}
           onImport={() => newFromTemplate(importTemplateFile)}
+          installed={installedTemplates}
+          currentClass={!templateInfo?.path && template?.meta.id.startsWith("tl-") ? template.base?.class ?? null : null}
+          onPickInstalled={(c) => newFromTemplate(() => switchToInstalled(c))}
+          engine={settings.engine}
           start={startWindow}
           recentFiles={settings.recentFiles}
           onOpen={(p) => {

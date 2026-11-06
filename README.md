@@ -105,6 +105,24 @@ template menu) adds a template to **My templates**. It accepts:
 My templates live in Texloom's data folder; remove one from the gallery (trash icon).
 **Export template…** saves the current template and its files as a .zip to share.
 
+### Journals from your TeX installation
+
+With TeX Live installed, the gallery also lists **From your TeX installation**: every
+journal or conference class TeX Live's package database files under the TeX
+Catalogue's *journalpub* topic (MNRAS, Nature, ACS, AAS, Oxford University Press,
+Elsevier CAS, JMLR, Quantum, APA, ASCE, AIAA, LNI and more, about 40 on a full
+TeX Live). Nothing is copied: the template uses the class as installed. Well-known
+classes get a tuned title block; the rest the standard one. Classes that need
+special fonts or title commands Texloom can't write yet are left out. The gallery's
+search box filters all templates by name, description or class.
+
+To check the list against your installation (prints which classes compile with the
+sample article):
+
+```bash
+cargo test -p texloom installed_journal -- --ignored --nocapture
+```
+
 ## Making a template
 
 Switch to **Template** mode (top left). The designer has panels for template info,

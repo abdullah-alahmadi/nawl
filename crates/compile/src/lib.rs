@@ -12,6 +12,8 @@ use std::process::Command;
 
 use serde::Serialize;
 
+pub mod installed;
+
 /// Name of the main file inside the build directory.
 const MAIN: &str = "main";
 

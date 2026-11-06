@@ -477,7 +477,7 @@ export function PublisherSection({
         />
       </Row>
       <Row label="BibTeX style" issues={issuesAt(issues, "base.bibStyle")}>
-        <input className="mono" value={base.bibStyle} onChange={(e) => edit((d) => void (d.base && (d.base.bibStyle = e.target.value.trim())))} />
+        <input className="mono" placeholder="set by the class" value={base.bibStyle} onChange={(e) => edit((d) => void (d.base && (d.base.bibStyle = e.target.value.trim())))} />
       </Row>
       <Row label="Publisher files" hint="From the publisher's LaTeX kit" issues={issuesAt(issues, "base.files")}>
         <div className="d-control">

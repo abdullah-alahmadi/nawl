@@ -34,8 +34,19 @@ pub fn document_to_tex(t: &Template, doc: &Document) -> String {
     match &t.base {
         // Publisher classes: their own title block, written from the metadata.
         Some(base) => {
-            o.push_str("\n\\begin{document}\n");
-            o.push_str(&crate::publisher::front_matter(t, base, doc));
+            let fm = crate::publisher::front_matter(t, base, doc);
+            // A title block may start in the preamble (classes whose \title only works
+            // there): everything above its own \begin{document} line goes before it.
+            let split = fm.find("\n\\begin{document}\n").map(|i| (&fm[..i + 1], &fm[i + 17..]));
+            let (pre, rest) = match split {
+                Some((pre, rest)) => (pre, rest.strip_prefix('\n').unwrap_or(rest)),
+                None if fm.starts_with("\\begin{document}\n") => ("", &fm[17..]),
+                None => ("", fm.as_str()),
+            };
+            o.push('\n');
+            o.push_str(pre);
+            o.push_str("\\begin{document}\n");
+            o.push_str(rest);
             o.push('\n');
         }
         None => o.push_str("\n\\begin{document}\n\\texloomfrontmatter\n\\texloommainmatter\n\n"),
