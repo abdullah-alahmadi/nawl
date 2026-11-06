@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, useEditorState, EditorContent, type Editor, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TableKit } from "@tiptap/extension-table";
@@ -94,6 +94,8 @@ export default function App() {
   const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
   const [builtins, setBuiltins] = useState<api.BuiltinTemplate[]>([]);
   const [installedTemplates, setInstalledTemplates] = useState<api.InstalledTemplate[]>([]);
+  /** The template window with only the installed-TeX templates (from the template menu). */
+  const [showTexPicker, setShowTexPicker] = useState(false);
   const [userTemplates, setUserTemplates] = useState<api.UserTemplate[]>([]);
   const refreshUserTemplates = useCallback(() => api.listUserTemplates().then(setUserTemplates, () => setUserTemplates([])), []);
   const [mode, setMode] = useState<"document" | "template">("document");
@@ -320,6 +322,14 @@ export default function App() {
     api.listInstalledTemplates().then(setInstalledTemplates, () => setInstalledTemplates([]));
     refreshUserTemplates();
   }, []);
+
+  // Installed-TeX templates not already covered by a built-in one (IEEEtran…), and
+  // the class of the active one, if it is one.
+  const texTemplates = useMemo(() => {
+    const covered = new Set(builtins.map((b) => b.class).filter(Boolean));
+    return installedTemplates.filter((t) => !covered.has(t.class));
+  }, [builtins, installedTemplates]);
+  const currentTexClass = !templateInfo?.path && templateInfo?.template.meta.id.startsWith("tl-") ? templateInfo.template.base?.class ?? null : null;
 
   // Node views (references, citations) read the template from the editor.
   const activeTemplate = templateInfo?.template ?? null;
@@ -771,7 +781,7 @@ export default function App() {
           <Menu
             align="right"
             className="tb-button template-button"
-            title={`Template: ${template?.meta.name ?? ""}. ${templateInfo?.path ?? "Built into Texloom"}`}
+            title={`Template: ${template?.meta.name ?? ""}. ${templateInfo?.path ?? (currentTexClass ? `Class ${currentTexClass} from your TeX installation` : "Built into Texloom")}`}
             label={
               <>
                 <LayoutTemplate size={16} aria-hidden="true" />
@@ -785,7 +795,10 @@ export default function App() {
             <>
               <div className="menu-info">
                 <strong>{template?.meta.name}</strong>
-                <span className="muted">{templateInfo?.path ?? "Built into Texloom"}</span>
+                <span className="muted">
+                  {templateInfo?.path ??
+                    (currentTexClass ? `Class ${currentTexClass} from your TeX installation` : "Built into Texloom")}
+                </span>
                 {templateInfo?.path && <span className="muted">Reloads automatically when the file changes.</span>}
                 <span className="muted">Choosing another template restyles this document; its text stays.</span>
               </div>
@@ -867,6 +880,23 @@ export default function App() {
                       ))}
                     </div>
                   ),
+              )}
+              {texTemplates.length > 0 && (
+                <div>
+                  <MenuHeading>From your TeX installation</MenuHeading>
+                  {currentTexClass && (
+                    <MenuItem current icon={<CircleCheck />} label={template?.meta.name ?? currentTexClass} shortcut={currentTexClass} onClick={close} />
+                  )}
+                  <MenuItem
+                    icon={<Library />}
+                    label={`Choose from ${texTemplates.length} journal classes…`}
+                    title="Journal and conference classes found in your TeX distribution"
+                    onClick={() => {
+                      close();
+                      setShowTexPicker(true);
+                    }}
+                  />
+                </div>
               )}
             </>
           )}
@@ -1038,7 +1068,7 @@ export default function App() {
           onRemoveUser={removeUserTemplate}
           onImport={() => newFromTemplate(importTemplateFile)}
           installed={installedTemplates}
-          currentClass={!templateInfo?.path && template?.meta.id.startsWith("tl-") ? template.base?.class ?? null : null}
+          currentClass={currentTexClass}
           onPickInstalled={(c) => newFromTemplate(() => switchToInstalled(c))}
           engine={settings.engine}
           start={startWindow}
@@ -1052,6 +1082,27 @@ export default function App() {
             setShowGallery(false);
             setStartWindow(false);
           }}
+        />
+      )}
+      {showTexPicker && (
+        <NewDocumentDialog
+          only="installed"
+          builtins={builtins}
+          currentId={null}
+          onPick={() => {}}
+          userTemplates={[]}
+          currentPath={null}
+          onPickUser={() => {}}
+          onRemoveUser={() => {}}
+          onImport={() => {}}
+          installed={installedTemplates}
+          currentClass={currentTexClass}
+          onPickInstalled={(c) => {
+            setShowTexPicker(false);
+            switchToInstalled(c);
+          }}
+          engine={settings.engine}
+          onClose={() => setShowTexPicker(false)}
         />
       )}
       {showSettings && <SettingsDialog settings={settings} onChange={updateSettings} onClose={() => setShowSettings(false)} />}

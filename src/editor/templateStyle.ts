@@ -105,6 +105,10 @@ export function templateCss(t: Template, scope = ".page"): string {
       rules.push(
         `${scope} ${tag}::before{content:${labelContent(h.label, i)};${display ? `display:block;margin-bottom:${px(h.labelGapPt)}` : `margin-right:${px(h.labelGapPt)}`}}`,
       );
+      // In an empty heading (just ProseMirror's trailing <br>) WebKit draws the caret
+      // at the start of the line, left of the number. Floated, the number narrows the
+      // line box, so the caret starts after it.
+      if (!display) rules.push(`${scope} ${tag}:has(> br.ProseMirror-trailingBreak:only-child)::before{float:left}`);
     }
   });
   // A level-1 chapter starts a new page in the PDF; show a little more space on screen.

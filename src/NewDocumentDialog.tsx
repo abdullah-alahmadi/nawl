@@ -25,6 +25,7 @@ export function NewDocumentDialog({
   currentClass = null,
   onPickInstalled,
   engine = "tectonic",
+  only,
   start = false,
   recentFiles = [],
   onOpen,
@@ -48,6 +49,9 @@ export function NewDocumentDialog({
   onPickInstalled?: (cls: string) => void;
   /** The TeX engine from the settings. */
   engine?: string;
+  /** "installed": only the installed-TeX templates, to restyle the open document
+   *  (from the title bar's template menu). */
+  only?: "installed";
   /** Shown at startup: adds Open, recent files and the example report. */
   start?: boolean;
   recentFiles?: string[];
@@ -65,12 +69,13 @@ export function NewDocumentDialog({
   }, [onClose]);
 
   const [query, setQuery] = useState("");
-  const shown = builtins.filter((b) => matches(query, b.name, b.description, b.class));
+  const tex = only === "installed";
+  const shown = tex ? [] : builtins.filter((b) => matches(query, b.name, b.description, b.class));
   const groups = [
     { title: "Reports", icon: <GraduationCap size={15} />, items: shown.filter((b) => !b.class) },
     { title: "Journals and conferences", icon: <BookOpen size={15} />, items: shown.filter((b) => b.class) },
   ];
-  const users = userTemplates.filter((u) => matches(query, u.name, u.description, u.class));
+  const users = tex ? [] : userTemplates.filter((u) => matches(query, u.name, u.description, u.class));
   // Built-in templates already cover some installed classes (IEEEtran, acmart…).
   const builtinClasses = useMemo(() => new Set(builtins.map((b) => b.class).filter(Boolean)), [builtins]);
   const fromTex = installed.filter((t) => !builtinClasses.has(t.class) && matches(query, t.name, t.description, t.class, t.package));
@@ -78,7 +83,12 @@ export function NewDocumentDialog({
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal gallery${start ? " start" : ""}`} role="dialog" aria-modal="true" aria-label={start ? "Start" : "New from template"}>
+      <div
+        className={`modal gallery${start ? " start" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={start ? "Start" : tex ? "Templates from your TeX installation" : "New from template"}
+      >
         {start && (
           <aside className="start-side">
             <div className="start-brand">
@@ -109,12 +119,13 @@ export function NewDocumentDialog({
         )}
         <div className="gallery-main">
         <div className="gallery-head">
-          <h2>{start ? "Start a new document" : "New from template"}</h2>
+          <h2>{start ? "Start a new document" : tex ? "From your TeX installation" : "New from template"}</h2>
           <label className="gallery-search">
             <Search size={14} aria-hidden="true" />
             <input
               type="search"
-              placeholder="Search templates"
+              placeholder={tex ? `Search ${fromTex.length} journal classes` : "Search templates"}
+              autoFocus={tex}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Search templates"
@@ -150,7 +161,7 @@ export function NewDocumentDialog({
               ),
           )}
           {nothing && <p className="muted gallery-empty">No template matches “{query.trim()}”.</p>}
-          {(users.length > 0 || !query.trim()) && (
+          {!tex && (users.length > 0 || !query.trim()) && (
           <section>
             <h3>
               <FolderHeart size={15} />
@@ -190,13 +201,16 @@ export function NewDocumentDialog({
           )}
           {fromTex.length > 0 && (
             <section>
-              <h3>
-                <Library size={15} />
-                From your TeX installation
-                <span className="gallery-count">{fromTex.length}</span>
-              </h3>
+              {!tex && (
+                <h3>
+                  <Library size={15} />
+                  From your TeX installation
+                  <span className="gallery-count">{fromTex.length}</span>
+                </h3>
+              )}
               <p className="muted gallery-note">
                 Journal classes found in your TeX distribution, with a standard title block you can adjust under Design.
+                {tex && " Choosing one restyles this document; its text stays."}
                 {engine === "tectonic" && " They compile with your installed TeX; picking one offers to switch the engine from Tectonic to pdfLaTeX."}
               </p>
               <div className="gallery-grid compact">
@@ -219,12 +233,14 @@ export function NewDocumentDialog({
             </section>
           )}
         </div>
+        {!tex && (
         <div className="gallery-foot">
           <button className="tb-button" onClick={onImport}>
             <FileInput size={15} aria-hidden="true" /> Import template…
           </button>
           <span className="muted">A publisher’s LaTeX kit, a template package, or a template file. The template can be changed later from the title bar.</span>
         </div>
+        )}
         </div>
       </div>
     </div>
