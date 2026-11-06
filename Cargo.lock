@@ -4012,6 +4012,7 @@ dependencies = [
  "texloom-codegen",
  "texloom-compile",
  "texloom-core",
+ "webkit2gtk",
  "zip",
 ]
 

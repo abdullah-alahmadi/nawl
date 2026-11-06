@@ -207,6 +207,43 @@ struct SavedTemplate {
     template_path: Option<PathBuf>,
 }
 
+/// Linux: WebKitGTK checks spelling only when the app turns it on (Windows and macOS
+/// webviews do it by themselves). The editor's spellcheck attribute (Settings →
+/// Editor) then decides whether words are underlined.
+fn enable_spell_checking(app: &tauri::App) {
+    #[cfg(target_os = "linux")]
+    if let Some(window) = app.get_webview_window("main") {
+        let languages = spell_languages();
+        let _ = window.with_webview(move |webview| {
+            use webkit2gtk::{WebContextExt, WebViewExt};
+            if let Some(context) = webview.inner().context() {
+                context.set_spell_checking_enabled(true);
+                let langs: Vec<&str> = languages.iter().map(String::as_str).collect();
+                context.set_spell_checking_languages(&langs);
+            }
+        });
+    }
+    #[cfg(not(target_os = "linux"))]
+    let _ = app;
+}
+
+/// Dictionaries to use: the system language ("en_GB" from LANG=en_GB.UTF-8), then
+/// American English.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn spell_languages() -> Vec<String> {
+    let system = ["LC_ALL", "LC_MESSAGES", "LANG"]
+        .iter()
+        .filter_map(|v| std::env::var(v).ok())
+        .find(|v| !v.is_empty())
+        .map(|v| v.split(['.', '@']).next().unwrap_or("").to_string())
+        .filter(|v| v.len() >= 2 && v != "C" && v != "POSIX");
+    let mut out: Vec<String> = system.into_iter().collect();
+    if !out.iter().any(|l| l == "en_US") {
+        out.push("en_US".into());
+    }
+    out
+}
+
 /// Where Tectonic may live: next to the app binary (bundled sidecar, also where
 /// `tauri dev` copies it) and, in debug builds, the source tree's `binaries/` folder.
 fn tectonic_candidates() -> Vec<PathBuf> {
@@ -800,6 +837,7 @@ pub fn run() {
             beamer_themes: std::sync::Mutex::new(None),
         })
         .setup(|app| {
+            enable_spell_checking(app);
             let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom"));
             app.manage(Recovery::new(data.join("recovery")));
             let config = app.path().app_config_dir().unwrap_or_else(|_| data.clone());

@@ -787,3 +787,9 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
 .tb-button.danger:hover { color: var(--error); background: var(--error-soft); }
 button.refs-entry { text-align: left; cursor: pointer; font: inherit; color: inherit; }
 button.refs-entry:hover { border-color: var(--accent); }
+
+/* A space at the end of a line takes its width, so the cursor moves when Space is
+   pressed (WebKit otherwise lets trailing spaces hang, and one space then looks
+   like none: only one space is allowed between words). */
+.page .ProseMirror { white-space: break-spaces; }
+.page .ProseMirror pre, .page .ProseMirror code { white-space: pre-wrap; }

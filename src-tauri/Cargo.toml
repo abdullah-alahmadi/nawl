@@ -31,3 +31,7 @@ texloom-compile = { path = "../crates/compile" }
 texloom-codegen = { path = "../crates/codegen" }
 tauri-plugin-dialog = "2"
 
+
+# Linux: WebKitGTK's spell checker is off unless the app turns it on.
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = "2.0"
