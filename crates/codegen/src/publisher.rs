@@ -138,6 +138,8 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
     };
     w!(o, "  {{\\newcommand\\texloombibliography{{{style}\\bibliography{{refs}}}}}}");
     w!(o, "\\newcommand\\texloomappendix{{\\appendix}}");
+    w!(o, "% A caption outside a float (figures and tables inside columns)");
+    w!(o, "\\newcommand\\texloomcaptionof[2]{{\\def\\@captype{{#1}}\\caption{{#2}}}}");
     w!(o);
     if acm {
         // acmart loads hyperref itself, with its own settings.
@@ -167,7 +169,7 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
 
 // ---------------------------------------------------------------- document data
 
-fn field_text(doc: &Document, t: &Template, id: &str) -> String {
+pub(crate) fn field_text(doc: &Document, t: &Template, id: &str) -> String {
     match doc.metadata.get(id).filter(|v| !v.is_empty()) {
         Some(FieldValue::Text(s)) => escape(s.trim()),
         Some(FieldValue::List(l)) => escape(&l.join(", ")),

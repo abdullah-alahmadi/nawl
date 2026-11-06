@@ -12,6 +12,14 @@ use ts_rs::TS;
 #[ts(export)]
 pub struct Template {
     pub meta: TemplateMeta,
+    /// What kind of document the template makes: an article or report (the
+    /// default), or a presentation.
+    #[serde(default)]
+    pub kind: DocumentKind,
+    /// For presentations: the beamer theme and slide settings.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub presentation: Option<PresentationSettings>,
     /// Build on a publisher's official class (IEEEtran, elsarticle…) instead of
     /// Texloom's own layout. The class then decides page layout, fonts, headings and
     /// captions; the rest of the template only styles the on-screen editor.
@@ -41,6 +49,108 @@ pub struct Template {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub raw_preamble: Option<String>,
+}
+
+/// The kind of document a template makes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum DocumentKind {
+    /// Articles, reports and theses: flowing pages.
+    #[default]
+    Article,
+    /// Slides (LaTeX beamer).
+    Presentation,
+}
+
+impl DocumentKind {
+    pub fn is_article(&self) -> bool {
+        *self == DocumentKind::Article
+    }
+}
+
+/// How a presentation looks: a beamer theme and slide options.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PresentationSettings {
+    /// Beamer theme, e.g. `Madrid`, `metropolis`, `default`.
+    pub theme: String,
+    /// Colour theme (`beaver`, `dolphin`…); empty for the theme's own.
+    #[serde(default)]
+    pub color_theme: String,
+    /// Font theme (`serif`, `structurebold`…); empty for the theme's own.
+    #[serde(default)]
+    pub font_theme: String,
+    #[serde(default)]
+    pub aspect_ratio: AspectRatio,
+    /// Base font size in points (beamer offers 8–20; 11 is its default).
+    #[serde(default = "default_slide_font_pt")]
+    pub font_size_pt: u8,
+    /// An outline slide after the title slide.
+    #[serde(default)]
+    pub outline: bool,
+    /// An outline slide at the start of each section, highlighting it.
+    #[serde(default)]
+    pub section_slides: bool,
+    /// Beamer's navigation symbols in the slide corner.
+    #[serde(default)]
+    pub navigation_symbols: bool,
+}
+
+fn default_slide_font_pt() -> u8 {
+    11
+}
+
+impl Default for PresentationSettings {
+    fn default() -> Self {
+        Self {
+            theme: "Madrid".into(),
+            color_theme: String::new(),
+            font_theme: String::new(),
+            aspect_ratio: AspectRatio::default(),
+            font_size_pt: 11,
+            outline: false,
+            section_slides: false,
+            navigation_symbols: false,
+        }
+    }
+}
+
+/// Slide shape.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum AspectRatio {
+    /// 16:9 widescreen (160 × 90 mm).
+    #[default]
+    #[serde(rename = "16:9")]
+    Wide,
+    /// 16:10 (160 × 100 mm).
+    #[serde(rename = "16:10")]
+    Wide1610,
+    /// 4:3, beamer's classic shape (128 × 96 mm).
+    #[serde(rename = "4:3")]
+    Classic,
+}
+
+impl AspectRatio {
+    /// Beamer's `aspectratio` class option.
+    pub fn beamer_option(self) -> &'static str {
+        match self {
+            AspectRatio::Wide => "169",
+            AspectRatio::Wide1610 => "1610",
+            AspectRatio::Classic => "43",
+        }
+    }
+
+    /// Slide size in millimetres.
+    pub fn size_mm(self) -> (f32, f32) {
+        match self {
+            AspectRatio::Wide => (160.0, 90.0),
+            AspectRatio::Wide1610 => (160.0, 100.0),
+            AspectRatio::Classic => (128.0, 96.0),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]

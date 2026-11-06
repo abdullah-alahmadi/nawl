@@ -78,12 +78,34 @@ next start.
 | ACM Conference Paper | `acmart` (`sigconf`; use `acmsmall` for ACM journals) |
 | Springer LNCS | `llncs` |
 | APS Physical Review | `revtex4-2` (`pra`; use `prl` for Letters) |
+| Presentation (Beamer) | `beamer` (theme, colours and 16:9 / 4:3 under Design) |
 
 Journal templates use the publisher's official class, so layout, fonts and captions
 are exactly the publisher's; Texloom writes the title block, authors (edited in
 **Document info**: affiliations, e-mail, ORCID, membership, corresponding author,
 biography and photo), abstract, keywords and the bibliography in each publisher's
 format. Start one with **File → New from template…**.
+
+## Presentations
+
+Choose **Presentation (Beamer)** in the template gallery (or **File → Open the example
+presentation**). A presentation is a list of slides with section headings between them:
+
+- Slides run down the page like any document, each at its real shape (16:9 or 4:3),
+  with section headings between them. Content that runs past a slide's bottom edge sits
+  on a red tint, because it won't fit on the slide in the PDF.
+- The **Outline** panel lists the sections and numbered slides; click one to jump there.
+- The toolbar adds **Slide**, **two columns**, a **box** (beamer's block; switch it to
+  alert or example in its corner) and a **pause** (what follows appears on the next
+  click). Lists, equations, figures, tables, citations and raw LaTeX work on slides too.
+- The title slide comes from **Document info**: title, subtitle, presenters, institution
+  and date. References go on slides of their own at the end.
+- **Design template → Slides** picks the beamer theme, colour and font theme, slide
+  shape (16:9, 16:10, 4:3), text size, outline slides, and navigation symbols. The
+  editor approximates the theme's colours; the PDF preview is exact.
+
+A presentation opened with an article template still compiles: slide titles become
+bold lines, columns become side-by-side boxes, and pauses are dropped.
 
 ## Templates for any journal
 

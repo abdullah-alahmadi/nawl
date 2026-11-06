@@ -188,6 +188,21 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [ ] Two-column preview in the editor;
       more pdfLaTeX-only kits as they come up (each needs a small stand-in)
 
+### Other document kinds
+- [x] Template `kind` (article or presentation); presentations get `presentation`
+      settings (beamer theme, colour/font theme, aspect ratio, size, outline slides)
+- [x] Presentations: slide, slide title, columns, boxes (block/alert/example) and
+      pauses in the model, codegen and editor; slides shown down the page at their
+      real shape, listed in the Outline; sections between slides; title slide from fields;
+      references on their own slides; built-in "Presentation (Beamer)" + example deck;
+      a deck under an article template degrades to plain LaTeX
+- [ ] Posters (tikzposter / beamerposter): a big canvas of boxes in columns
+- [ ] Letters (letter / scrlttr2): sender, recipient, opening, closing
+- [ ] CVs (moderncv): sections of dated entries
+- [ ] Books and theses: parts, front/back matter on top of the report template
+- [ ] Presentations next: slide layouts, speaker notes, overlays beyond \pause,
+      reordering slides by dragging, installed beamer themes
+
 ### Phase 6: Polish and distribution (ongoing)
 - [x] Installed TeX as an alternative engine (pdfLaTeX, XeLaTeX, LuaLaTeX via latexmk,
       found on PATH or in TeX Live/MacTeX folders; 3-minute limit per run);

@@ -37,6 +37,9 @@ pub fn template_to_cls(t: &Template) -> String {
 
 /// The class for a particular engine (fonts differ between pdfLaTeX and the others).
 pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
+    if t.kind == texloom_core::DocumentKind::Presentation {
+        return crate::presentation::presentation_cls(t);
+    }
     if let Some(base) = &t.base {
         return crate::publisher::wrapper_cls(t, base, engine);
     }
@@ -171,6 +174,8 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     w!(o, "\\RequirePackage{{caption}}");
     w!(o, "\\captionsetup{{labelfont={label_font},labelsep={sep},font={size},{justification}}}");
     w!(o, "\\captionsetup[table]{{position=top}}");
+    w!(o, "% A caption outside a float (figures and tables inside columns)");
+    w!(o, "\\newcommand\\texloomcaptionof[2]{{\\def\\@captype{{#1}}\\caption{{#2}}}}");
     w!(o, "\\renewcommand\\figurename{{{}}}", escape(&c.figure_label));
     w!(o, "\\renewcommand\\tablename{{{}}}", escape(&c.table_label));
     w!(o);

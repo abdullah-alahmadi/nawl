@@ -216,7 +216,19 @@ impl DocumentFolder {
 
     /// Switches to a fresh temporary folder (for a new, unsaved document).
     pub fn reset(&self) -> std::io::Result<()> {
+        self.reset_with(&[])
+    }
+
+    /// A fresh temporary folder holding `seed` (an example document's images).
+    pub fn reset_with(&self, seed: &[(&str, &[u8])]) -> std::io::Result<()> {
         let scratch = tempfile::Builder::new().prefix("texloom-unsaved-").tempdir()?;
+        for (rel, bytes) in seed {
+            let dest = scratch.path().join(rel);
+            if let Some(parent) = dest.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(dest, bytes)?;
+        }
         self.set(scratch.path().to_path_buf());
         self.scratch.lock().expect("folder lock").push(scratch);
         Ok(())

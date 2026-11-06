@@ -29,6 +29,8 @@ use templates::{ActiveTemplate, TemplateInfo, TemplateStore};
 
 /// Opened on startup so there's something real to look at.
 const SAMPLE_DOCUMENT: &str = include_str!("../../examples/senior-design-report.loom");
+/// The example presentation (same image as the report).
+const SAMPLE_PRESENTATION: &str = include_str!("../../examples/presentation.loom");
 /// Images the sample document uses (written to its temporary folder at startup).
 const SAMPLE_FILES: &[(&str, &[u8])] =
     &[("figures/system-diagram.png", include_bytes!("../../examples/figures/system-diagram.png"))];
@@ -377,9 +379,17 @@ async fn list_system_fonts() -> Vec<String> {
     .unwrap_or_default()
 }
 
+/// An example document ("presentation", else the report), with its images in a
+/// fresh unsaved-document folder.
 #[tauri::command]
-fn sample_document() -> Result<OpenedDocument, AppError> {
-    serde_json::from_str(SAMPLE_DOCUMENT).map_err(AppError::other)
+fn sample_document(state: State<'_, AppState>, name: Option<String>) -> Result<OpenedDocument, AppError> {
+    state.doc_folder.reset_with(SAMPLE_FILES)?;
+    sample(name.as_deref())
+}
+
+fn sample(name: Option<&str>) -> Result<OpenedDocument, AppError> {
+    let text = if name == Some("presentation") { SAMPLE_PRESENTATION } else { SAMPLE_DOCUMENT };
+    serde_json::from_str(text).map_err(AppError::other)
 }
 
 /// Warnings about the document: required fields and chapters, broken
@@ -414,7 +424,12 @@ fn read_bib_file(path: String) -> Result<String, AppError> {
 /// A new, unsaved, empty document.
 #[tauri::command]
 fn new_document(state: State<'_, AppState>) -> Result<OpenedDocument, AppError> {
-    let content = vec![serde_json::json!({ "type": "paragraph" })];
+    // A presentation starts with one empty slide.
+    let content = if state.templates.current().template.kind == texloom_core::DocumentKind::Presentation {
+        vec![serde_json::json!({ "type": "slide", "content": [{ "type": "slideTitle" }, { "type": "paragraph" }] })]
+    } else {
+        vec![serde_json::json!({ "type": "paragraph" })]
+    };
     state.doc_folder.reset()?;
     Ok(OpenedDocument {
         doc: serde_json::json!({ "type": "doc", "content": content }),
@@ -789,7 +804,7 @@ mod tests {
     fn builtin_template_and_sample_load() {
         let template = ActiveTemplate::builtin().template;
         assert!(template.validate().is_empty());
-        let sample = sample_document().unwrap();
+        let sample = sample(None).unwrap();
         let doc = to_document(sample.doc, sample.metadata, Some(sample.bibliography)).unwrap();
         assert!(template.check_metadata(&doc.metadata).is_empty());
         assert!(texloom_codegen::generate(&template, &doc).tex.contains("\\chapter{Introduction}"));
@@ -798,7 +813,7 @@ mod tests {
     #[test]
     fn sample_document_figures_are_available() {
         let folder = files::DocumentFolder::new(SAMPLE_FILES).unwrap();
-        let sample = sample_document().unwrap();
+        let sample = sample(None).unwrap();
         let doc = to_document(sample.doc, sample.metadata, Some(sample.bibliography)).unwrap();
         let figures = doc.body.figure_sources();
         assert!(!figures.is_empty());

@@ -69,6 +69,7 @@ export interface BuiltinTemplate {
   description: string;
   /** Publisher class it's built on (e.g. "IEEEtran"); null for Texloom layouts. */
   class: string | null;
+  kind: "article" | "presentation";
 }
 export const listBuiltinTemplates = () => invoke<BuiltinTemplate[]>("list_builtin_templates");
 export const switchToBuiltinTemplate = (id?: string) => invoke<TemplateInfo>("use_builtin_template", { id: id ?? null });
@@ -102,7 +103,8 @@ export const importFigure = (source: string) => invoke<string>("import_figure", 
 export const readDocumentFile = (path: string) => invoke<ArrayBuffer>("read_document_file", { path });
 export const exportPdf = (path: string, d: DocState) => invoke<void>("export_pdf", { path, ...d });
 export const listSystemFonts = () => invoke<string[]>("list_system_fonts");
-export const sampleDocument = () => invoke<OpenedDocument>("sample_document");
+/** An example document: the senior design report, or "presentation". */
+export const sampleDocument = (name?: "presentation") => invoke<OpenedDocument>("sample_document", { name: name ?? null });
 /** Everything about the open document that the backend needs to generate it. */
 export interface DocState {
   doc: JSONContent;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, useEditorState, EditorContent, type Editor, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { EditorState, Selection } from "@tiptap/pm/state";
 import { TableKit } from "@tiptap/extension-table";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -14,6 +15,7 @@ import { Outline } from "./editor/Outline";
 import { AppendixStart, Citation, CrossRef, TexloomIds, setTexloomContext } from "./editor/Academic";
 import { CitePicker, ReferencesPanel, RefPicker } from "./editor/Pickers";
 import { PAGE_WIDTH_PX, templateCss } from "./editor/templateStyle";
+import { DeckDocument, SLIDE_EXTENSIONS } from "./editor/Slides";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
 import { withKitFiles } from "./designer/ContentSections";
 import { PdfPreview } from "./preview/PdfPreview";
@@ -26,7 +28,7 @@ import { Menu, MenuHeading, MenuItem, MenuSeparator } from "./ui/Menu";
 import {
   BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
-  LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Sigma, Superscript,
+  LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
   Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import "./App.css";
@@ -49,6 +51,9 @@ function loadDocument(editor: Editor, doc: JSONContent) {
     throw new Error(`This document can't be opened: ${e instanceof Error ? e.message : String(e)}`);
   }
   editor.commands.setContent(doc, { emitUpdate: false });
+  // A fresh undo history: Ctrl+Z must not step back into the previous document.
+  const { state } = editor;
+  editor.view.updateState(EditorState.create({ doc: state.doc, plugins: state.plugins, selection: Selection.atStart(state.doc) }));
 }
 
 const fileNameOf = (p: string) => p.split(/[\\/]/).pop() ?? p;
@@ -215,7 +220,9 @@ export default function App() {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ document: false }),
+      DeckDocument,
+      ...SLIDE_EXTENSIONS,
       TexloomIds,
       CrossRef,
       Citation,
@@ -330,6 +337,9 @@ export default function App() {
     return installedTemplates.filter((t) => !covered.has(t.class));
   }, [builtins, installedTemplates]);
   const currentTexClass = !templateInfo?.path && templateInfo?.template.meta.id.startsWith("tl-") ? templateInfo.template.base?.class ?? null : null;
+
+  // Presentations: slides stacked down the page like the rest of the app.
+  const isDeck = template?.kind === "presentation";
 
   // Node views (references, citations) read the template from the editor.
   const activeTemplate = templateInfo?.template ?? null;
@@ -636,12 +646,16 @@ export default function App() {
   };
 
   /** The example senior design report, with its template. */
-  const openExample = async () => {
+  const openExample = async (which: "report" | "presentation" = "report") => {
     if (!editor) return;
-    if (dirty && !(await ask("Discard unsaved changes and open the example?", { title: "Example report", kind: "warning" }))) return;
+    if (dirty && !(await ask("Discard unsaved changes and open the example?", { title: "Example", kind: "warning" }))) return;
     setShowGallery(false);
     try {
-      const [t, sample] = await Promise.all([api.switchToBuiltinTemplate("senior-design"), api.sampleDocument()]);
+      const deck = which === "presentation";
+      const [t, sample] = await Promise.all([
+        api.switchToBuiltinTemplate(deck ? "beamer-presentation" : "senior-design"),
+        api.sampleDocument(deck ? "presentation" : undefined),
+      ]);
       loadDocument(editor, sample.doc);
       setBibliography(sample.bibliography ?? "");
       metadataRef.current = sample.metadata;
@@ -668,6 +682,15 @@ export default function App() {
         e.preventDefault();
         f();
       };
+      // Undo/redo reach the document even when the editor lost focus (WebKit drops it
+      // when a delete removes the focused part of the page); fields keep their own.
+      if ((key === "z" || key === "y") && mode === "document" && editor && !editor.isFocused) {
+        const t = e.target as HTMLElement | null;
+        if (t?.closest("input, textarea, select, [contenteditable='true']")) return;
+        const redo = key === "y" || e.shiftKey;
+        run(() => (redo ? editor.chain().focus().redo().run() : editor.chain().focus().undo().run()));
+        return;
+      }
       if (key === "s") {
         if (mode === "template") run(e.shiftKey ? saveTemplateAs : saveTemplate);
         else run(e.shiftKey ? saveAs : saveDoc);
@@ -735,7 +758,8 @@ export default function App() {
                   <MenuItem icon={<FilePlus2 />} label="New" shortcut="Ctrl+N" onClick={act(() => newDoc())} title="New empty document with the current template" />
                   <MenuItem icon={<LayoutTemplate />} label="New from template…" shortcut="Ctrl+Shift+N" onClick={act(() => openGallery())} title="Reports, IEEE, Elsevier, ACM, Springer…" />
                   <MenuItem icon={<FolderOpen />} label="Open…" shortcut="Ctrl+O" onClick={act(() => openDoc())} />
-                  <MenuItem icon={<Sparkles />} label="Open the example report" onClick={act(openExample)} />
+                  <MenuItem icon={<Sparkles />} label="Open the example report" onClick={act(() => openExample())} />
+                  <MenuItem icon={<Sparkles />} label="Open the example presentation" onClick={act(() => openExample("presentation"))} />
                   {settings.recentFiles.length > 0 && (
                     <>
                       <MenuHeading>Recent</MenuHeading>
@@ -857,7 +881,8 @@ export default function App() {
                 </div>
               )}
               {[
-                { title: "Reports", items: builtins.filter((b) => !b.class) },
+                { title: "Reports", items: builtins.filter((b) => !b.class && b.kind !== "presentation") },
+                { title: "Presentations", items: builtins.filter((b) => b.kind === "presentation") },
                 { title: "Journals and conferences", items: builtins.filter((b) => b.class) },
               ].map(
                 (group) =>
@@ -910,7 +935,7 @@ export default function App() {
         </div>
       </header>
 
-      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} />}
+      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} deck={isDeck} />}
 
       <main className={`workspace${mode === "template" ? " template-mode" : ""}`}>
         {mode === "document" && (
@@ -980,7 +1005,7 @@ export default function App() {
             </div>
           )}
           <div className="editor-scroll" ref={editorScroll} style={{ ["--page-zoom" as string]: pageZoom }}>
-            <div className="page">
+            <div className={`page${isDeck ? " deck" : ""}`}>
               <EditorContent editor={editor} />
             </div>
           </div>
@@ -1077,7 +1102,8 @@ export default function App() {
             setShowGallery(false);
             openDoc(p);
           }}
-          onExample={openExample}
+          onExample={() => openExample()}
+          onExamplePresentation={() => openExample("presentation")}
           onClose={() => {
             setShowGallery(false);
             setStartWindow(false);
@@ -1159,11 +1185,14 @@ function FormatBar({
   headingNames,
   onError,
   onPicker,
+  deck,
 }: {
   editor: Editor;
   headingNames: string[];
   onError: (e: unknown) => void;
   onPicker: (p: "ref" | "cite") => void;
+  /** A presentation: slide tools instead of article-only ones. */
+  deck: boolean;
 }) {
   // Re-render only when the formatting state at the cursor changes.
   const s = useEditorState({
@@ -1184,6 +1213,8 @@ function FormatBar({
     }),
   });
   const c = () => editor.chain().focus();
+  // Blocks can't go in a slide's title: inserts start on the line below it.
+  const ins = () => (deck ? c().leaveSlideTitle() : c());
   const T = ({ icon, label, title, on, run, disabled }: { icon: React.ReactNode; label?: string; title: string; on?: boolean; run: () => void; disabled?: boolean }) => (
     <button
       className={`tool${on ? " on" : ""}${label ? " with-label" : ""}`}
@@ -1223,27 +1254,36 @@ function FormatBar({
       <T icon={<Italic size={sz} />} title="Italic (Ctrl+I)" on={s.italic} run={() => c().toggleItalic().run()} />
       <T icon={<Code size={sz} />} title="Code (Ctrl+E)" on={s.code} run={() => c().toggleCode().run()} />
       <span className="sep" />
-      <T icon={<List size={sz} />} title="Bullet list" on={s.bullet} run={() => c().toggleBulletList().run()} />
-      <T icon={<ListOrdered size={sz} />} title="Numbered list" on={s.ordered} run={() => c().toggleOrderedList().run()} />
+      <T icon={<List size={sz} />} title="Bullet list" on={s.bullet} run={() => ins().toggleBulletList().run()} />
+      <T icon={<ListOrdered size={sz} />} title="Numbered list" on={s.ordered} run={() => ins().toggleOrderedList().run()} />
       <T icon={<TextQuote size={sz} />} title="Quote" on={s.quote} run={() => c().toggleBlockquote().run()} />
       <span className="sep" />
       <T icon={<Superscript size={sz} />} title="Inline math (Ctrl+M, or type $x^2$)" run={() => c().insertInlineMath().run()} />
-      <T icon={<Sigma size={sz} />} title="Equation on its own line ($$ + space)" run={() => c().insertEquation().run()} />
+      <T icon={<Sigma size={sz} />} title="Equation on its own line ($$ + space)" run={() => ins().insertEquation().run()} />
       <T
         icon={<Image size={sz} />}
         title="Figure: an image with a caption"
         run={() =>
           pickFigureImage().then((src) => {
-            if (src) c().insertFigure(src).run();
+            if (src) ins().insertFigure(src).run();
           }, onError)
         }
       />
-      <T icon={<Table size={sz} />} title="Table with a caption" run={() => c().insertCaptionedTable(3, 3).run()} />
-      <T icon={<Braces size={sz} />} title="Raw LaTeX block, written into the PDF as typed (TikZ, special tables…)" run={() => c().insertRawLatex().run()} />
+      <T icon={<Table size={sz} />} title="Table with a caption" run={() => ins().insertCaptionedTable(3, 3).run()} />
+      <T icon={<Braces size={sz} />} title="Raw LaTeX block, written into the PDF as typed (TikZ, special tables…)" run={() => ins().insertRawLatex().run()} />
+      {deck && (
+        <>
+          <span className="sep" />
+          <T icon={<GalleryVerticalEnd size={sz} />} label="Slide" title="New slide after this one" run={() => c().insertSlide().run()} />
+          <T icon={<Columns2 size={sz} />} title="Two columns side by side" run={() => ins().insertColumns(2).run()} />
+          <T icon={<SquareStack size={sz} />} title="Box with a title (block; switch to alert or example in its corner)" run={() => ins().insertSlideBox("block").run()} />
+          <T icon={<Pause size={sz} />} title="Pause: what follows appears on the next click" run={() => ins().insertPause().run()} />
+        </>
+      )}
       <span className="sep" />
       <T icon={<Link2 size={sz} />} title="Cross-reference (“see Figure 3.1”)" run={() => onPicker("ref")} />
       <T icon={<Quote size={sz} />} title="Citation" run={() => onPicker("cite")} />
-      <T icon={<BookMarked size={sz} />} title="Start the appendices here (chapters after it are A, B…)" run={() => c().insertAppendices().run()} />
+      {!deck && <T icon={<BookMarked size={sz} />} title="Start the appendices here (chapters after it are A, B…)" run={() => c().insertAppendices().run()} />}
       <span className="spacer" />
       {s.level > 0 && (
         <span className="context-tools" role="group" aria-label="Heading">

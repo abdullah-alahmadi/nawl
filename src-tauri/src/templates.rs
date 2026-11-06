@@ -26,6 +26,7 @@ pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("acm-conference", include_str!("../../templates/acm-conference/template.json")),
     ("springer-lncs", include_str!("../../templates/springer-lncs/template.json")),
     ("aps-physical-review", include_str!("../../templates/aps-physical-review/template.json")),
+    ("beamer-presentation", include_str!("../../templates/beamer-presentation/template.json")),
 ];
 
 /// A built-in template, for the template gallery.
@@ -37,6 +38,7 @@ pub struct BuiltinInfo {
     pub description: String,
     /// The publisher class it's built on, if any (e.g. "IEEEtran").
     pub class: Option<String>,
+    pub kind: texloom_core::DocumentKind,
 }
 
 pub fn builtin_list() -> Vec<BuiltinInfo> {
@@ -49,6 +51,7 @@ pub fn builtin_list() -> Vec<BuiltinInfo> {
                 name: t.meta.name,
                 description: t.meta.description,
                 class: t.base.map(|b| b.class),
+                kind: t.kind,
             }
         })
         .collect()

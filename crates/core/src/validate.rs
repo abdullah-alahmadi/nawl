@@ -226,6 +226,25 @@ impl Template {
             }
         }
 
+        if t.kind == crate::DocumentKind::Presentation {
+            let p = t.presentation.clone().unwrap_or_default();
+            let name_ok = |s: &str| s.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-');
+            if p.theme.trim().is_empty() || !name_ok(&p.theme) {
+                c.error("presentation.theme", "needs a beamer theme name such as Madrid (letters, digits, '-')");
+            }
+            if !name_ok(&p.color_theme) {
+                c.error("presentation.colorTheme", "colour theme names may only contain letters, digits and '-'");
+            }
+            if !name_ok(&p.font_theme) {
+                c.error("presentation.fontTheme", "font theme names may only contain letters, digits and '-'");
+            }
+            if !(8..=20).contains(&p.font_size_pt) {
+                c.error("presentation.fontSizePt", "beamer font sizes are 8 to 20 pt");
+            }
+            if t.base.is_some() {
+                c.error("base", "a presentation can't also be built on a publisher class");
+            }
+        }
         if let Some(base) = &t.base {
             let name_ok = !base.class.is_empty()
                 && base.class.chars().all(|ch| ch.is_ascii_alphanumeric() || "-_./".contains(ch))

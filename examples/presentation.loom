@@ -1,0 +1,475 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "metadata": {
+    "title": "Sensor-Driven Irrigation for Small Farms",
+    "subtitle": "Senior design project review",
+    "authors": [
+      {
+        "name": "Sara Ahmed",
+        "affiliations": [
+          "Department of Electrical Engineering, Example University"
+        ],
+        "email": "sara.ahmed@example.edu",
+        "orcid": "",
+        "membership": "",
+        "corresponding": false,
+        "biography": "",
+        "photo": ""
+      },
+      {
+        "name": "Omar Khalid",
+        "affiliations": [
+          "Department of Electrical Engineering, Example University"
+        ],
+        "email": "",
+        "orcid": "",
+        "membership": "",
+        "corresponding": false,
+        "biography": "",
+        "photo": ""
+      }
+    ],
+    "date": "Spring 2026"
+  },
+  "bibliography": "@article{allen1998,\n  author  = {Allen, Richard G. and Pereira, Luis S. and Raes, Dirk and Smith, Martin},\n  title   = {Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements},\n  journal = {FAO Irrigation and Drainage Paper},\n  volume  = {56},\n  year    = {1998},\n  publisher = {FAO}\n}\n\n@inproceedings{smith2021,\n  author    = {Smith, Jane and Okafor, Chidi},\n  title     = {Low-Power Soil Sensing for Smallholder Farms},\n  booktitle = {Proceedings of the IEEE Global Humanitarian Technology Conference},\n  pages     = {112--118},\n  year      = {2021}\n}\n\n@misc{lora2019,\n  author       = {{LoRa Alliance}},\n  title        = {{LoRaWAN} Specification v1.0.3},\n  year         = {2019},\n  howpublished = {LoRa Alliance Technical Committee}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Motivation"
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "Why automate irrigation?"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Fixed timers water on schedule, not on need"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Small farms cannot afford commercial controllers"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Water is the "
+                      },
+                      {
+                        "type": "text",
+                        "text": "scarcest",
+                        "marks": [
+                          {
+                            "type": "bold"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "text": " input in dry seasons"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "slidePause"
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Goal: water only when the soil needs it, for under 60 USD per zone."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Our system"
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "System overview"
+              }
+            ]
+          },
+          {
+            "type": "columns",
+            "content": [
+              {
+                "type": "column",
+                "attrs": {
+                  "widthPercent": 55
+                },
+                "content": [
+                  {
+                    "type": "figure",
+                    "attrs": {
+                      "src": "figures/system-diagram.png",
+                      "widthPercent": 100,
+                      "id": "f-system"
+                    },
+                    "content": [
+                      {
+                        "type": "caption",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Sensor nodes report over LoRa"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "column",
+                "attrs": {
+                  "widthPercent": 45
+                },
+                "content": [
+                  {
+                    "type": "bulletList",
+                    "content": [
+                      {
+                        "type": "listItem",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "Capacitive soil-moisture probes"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "listItem",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "LoRa radio, 2 km range"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "listItem",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "Solar powered valve controller"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "slideBox",
+                    "attrs": {
+                      "kind": "alert",
+                      "title": "Key idea"
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Decide locally; report centrally."
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "Water demand model"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The daily deficit follows the FAO-56 crop model "
+              },
+              {
+                "type": "citation",
+                "attrs": {
+                  "keys": [
+                    "allen1998"
+                  ]
+                }
+              },
+              {
+                "type": "text",
+                "text": ":"
+              }
+            ]
+          },
+          {
+            "type": "equation",
+            "attrs": {
+              "latex": "D_t = D_{t-1} + K_c\\,ET_0 - P_t - I_t",
+              "numbered": true,
+              "id": "eq-deficit"
+            }
+          },
+          {
+            "type": "slideBox",
+            "attrs": {
+              "kind": "example",
+              "title": "Example"
+            },
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "With "
+                  },
+                  {
+                    "type": "inlineMath",
+                    "attrs": {
+                      "latex": "K_c = 1.05"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "text": " and 5 mm of evapotranspiration, the deficit grows by about 5 mm a day."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Results"
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "Four-week field trial"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "34% less water than a fixed timer"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "No loss in yield"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Batteries never fell below 60%"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "slidePause"
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Next: more crops, and a phone app for farmers."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": true
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "Thank you"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Questions?"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

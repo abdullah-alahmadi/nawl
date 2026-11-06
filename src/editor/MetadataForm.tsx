@@ -45,6 +45,8 @@ export function MetadataForm({
               <AuthorsEditor
                 value={metadata[f.id]}
                 showBiographies={!!template.base?.biographies}
+                simple={template.kind === "presentation"}
+                noun={template.kind === "presentation" ? "presenter" : "author"}
                 onChange={(list) => {
                   const next = { ...metadata };
                   if (list.length === 0) delete next[f.id];

@@ -215,10 +215,10 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }
 .outline-kind { flex: none; }
 .outline-appendix .outline-number { color: var(--accent-text); }
 
-.metadata-form { display: grid; gap: 12px; padding: 0 6px; }
+.metadata-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 0 6px; }
 .metadata-form p { margin: 0; }
 .metadata-help { font-size: 12px; }
-.metadata-form label, .field-group { display: grid; gap: 4px; font-weight: 500; font-size: 12.5px; }
+.metadata-form label, .field-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; font-weight: 500; font-size: 12.5px; min-width: 0; }
 .metadata-form input, .metadata-form textarea { font-weight: 400; resize: vertical; }
 .metadata-form .missing input, .metadata-form .missing textarea { border-color: var(--error); }
 .metadata-form .required { color: var(--error); }
@@ -539,19 +539,20 @@ select option, select optgroup { color: var(--text); background-color: var(--pan
 .field-group { display: grid; gap: 6px; }
 .field-label { font-weight: 500; }
 .field-group.missing .author-summary, .field-group.missing .d-add { border-color: var(--error); }
-.authors-editor { display: grid; gap: 6px; }
+.authors-editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-width: 0; }
 .author-card { border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
 .author-card.open { border-color: var(--accent); }
-.author-summary { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font-weight: normal; }
+.author-summary { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left; font-weight: normal; }
 .author-n { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.author-name { font-weight: 500; }
-.author-aff { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.author-name { font-weight: 500; flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.author-aff { font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .author-tag { font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 0 6px; }
-.author-fields { display: grid; gap: 8px; padding: 4px 10px 10px; }
-.author-fields label { display: grid; gap: 3px; font-weight: 500; font-size: 13px; }
-.author-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.author-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 4px 10px 10px; }
+.author-fields label { display: grid; gap: 3px; font-weight: 500; font-size: 13px; min-width: 0; }
+.author-fields input:not([type="checkbox"]), .author-fields textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+.author-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: end; }
 .author-check { display: flex !important; flex-direction: row; align-items: center; gap: 6px; padding-bottom: 6px; }
-.author-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.author-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .author-actions .danger:hover { color: var(--error); background: var(--error-soft); }
 
 /* Publisher kit card and recipe editor */
@@ -711,3 +712,26 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
 .gallery-foot .tb-button { white-space: nowrap; flex: none; }
 .settings-detail { margin: -6px 0 4px; padding: 0 0 12px; font-size: 11.5px; color: var(--muted); border-bottom: 1px solid var(--border); word-break: break-word; }
 
+
+/* Presentations: slides stacked down the page, each at its real shape */
+.page.deck { background: transparent; box-shadow: none; min-height: 0; }
+.page.deck .tiptap > .slide { box-shadow: var(--shadow-page); }
+
+/* Slide nodes */
+.page .slide-box-title input:not([type="checkbox"]):not([type="color"]) {
+  flex: 1; min-width: 0; background: transparent; border: none; color: inherit; font: inherit; font-weight: 600; padding: 0;
+}
+.slide-box-title input::placeholder { color: inherit; opacity: 0.7; }
+.slide-box-title input:focus { outline: none; }
+.slide-box-title select { font-size: 11px; padding: 0 2px; background: rgba(255, 255, 255, 0.2); color: inherit; border: none; border-radius: 3px; }
+.slide-box-title select option { color: #1d2228; }
+.slide-pause {
+  margin: 6px 0; border-top: 1px dashed currentColor; opacity: 0.55; font: 600 10px system-ui, sans-serif;
+  text-align: center; user-select: none;
+}
+.slide-pause span { position: relative; top: -7px; padding: 0 6px; background: var(--page-bg, #f4efe6); }
+.slide-pause.ProseMirror-selectednode { opacity: 1; color: var(--accent); }
+.slide-column { outline: 1px dashed transparent; border-radius: 3px; }
+.slide-columns:hover > .slide-column,
+.slide-column:has(> p:only-child > br.ProseMirror-trailingBreak:only-child) { outline-color: var(--page-line, #ccc); }
+.d-stack { display: grid; gap: 4px; }

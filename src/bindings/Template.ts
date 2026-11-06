@@ -2,18 +2,29 @@
 import type { BibliographySettings } from "./BibliographySettings";
 import type { CaptionStyle } from "./CaptionStyle";
 import type { ClassBase } from "./ClassBase";
+import type { DocumentKind } from "./DocumentKind";
 import type { Fonts } from "./Fonts";
 import type { FrontMatterItem } from "./FrontMatterItem";
 import type { HeaderFooter } from "./HeaderFooter";
 import type { Headings } from "./Headings";
 import type { MetadataField } from "./MetadataField";
 import type { PageSetup } from "./PageSetup";
+import type { PresentationSettings } from "./PresentationSettings";
 import type { SkeletonSection } from "./SkeletonSection";
 import type { Structure } from "./Structure";
 import type { TemplateMeta } from "./TemplateMeta";
 import type { TitlePage } from "./TitlePage";
 
 export type Template = { meta: TemplateMeta, 
+/**
+ * What kind of document the template makes: an article or report (the
+ * default), or a presentation.
+ */
+kind: DocumentKind, 
+/**
+ * For presentations: the beamer theme and slide settings.
+ */
+presentation?: PresentationSettings, 
 /**
  * Build on a publisher's official class (IEEEtran, elsarticle…) instead of
  * Texloom's own layout. The class then decides page layout, fonts, headings and

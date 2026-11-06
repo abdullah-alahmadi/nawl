@@ -56,6 +56,8 @@ expression: "texloom_codegen::template_to_cls(&template())"
 \RequirePackage{caption}
 \captionsetup{labelfont=bf,labelsep=colon,font=small,justification=centering}
 \captionsetup[table]{position=top}
+% A caption outside a float (figures and tables inside columns)
+\newcommand\texloomcaptionof[2]{\def\@captype{#1}\caption{#2}}
 \renewcommand\figurename{Figure}
 \renewcommand\tablename{Table}
 

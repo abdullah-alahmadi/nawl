@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 
 use texloom_core::{
-    BibStyle, Block, Caption, Document, FieldKind, FieldValue, Inline, ListItem, Mark, TableFigurePart, TableRow,
-    TargetKind, Template, TopLevel,
+    walk_blocks, BibStyle, Block, Caption, DocumentKind, Document, FieldKind, FieldValue, Inline, ListItem, Mark,
+    SlideBoxKind, TableFigurePart, TableRow, TargetKind, Template, TopLevel,
 };
 
 use crate::cls::heading_commands;
@@ -31,7 +31,13 @@ pub fn document_to_tex(t: &Template, doc: &Document) -> String {
         o.push_str(&format!("\\texloomfield{{{}}}{{{rendered}}}\n", f.id));
     }
 
+    let presentation = t.kind == DocumentKind::Presentation;
     match &t.base {
+        // Presentations: title slide from the metadata, then the slides.
+        _ if presentation => {
+            o.push('\n');
+            o.push_str(&crate::presentation::title_slides(t, doc));
+        }
         // Publisher classes: their own title block, written from the metadata.
         Some(base) => {
             let fm = crate::publisher::front_matter(t, base, doc);
@@ -56,7 +62,15 @@ pub fn document_to_tex(t: &Template, doc: &Document) -> String {
         targets: doc.body.targets(),
         t,
     };
-    let mut w = BodyWriter { out: &mut o, ctx: &ctx, bibliography_pending: has_bibliography(doc) };
+    let mut w = BodyWriter { out: &mut o, ctx: &ctx, bibliography_pending: has_bibliography(doc), in_slide: false, in_minipage: false };
+    if presentation {
+        w.slides(&doc.body.content);
+        if std::mem::take(&mut w.bibliography_pending) {
+            w.out.push_str("\\begin{frame}[allowframebreaks]{References}\n\\texloombibliography\n\\end{frame}\n\n");
+        }
+        o.push_str("\\end{document}\n");
+        return o;
+    }
     w.blocks(&doc.body.content);
     w.emit_bibliography();
     if let Some(base) = &t.base {
@@ -143,6 +157,10 @@ struct BodyWriter<'a> {
     ctx: &'a Ctx<'a>,
     /// The reference list still has to be written (before appendices, or at the end).
     bibliography_pending: bool,
+    /// Inside a slide (a beamer frame): headings can't be sections there.
+    in_slide: bool,
+    /// Inside a minipage (columns in an article): figures and tables can't float.
+    in_minipage: bool,
 }
 
 impl<'a> BodyWriter<'a> {
@@ -151,7 +169,37 @@ impl<'a> BodyWriter<'a> {
     where
         'a: 'b,
     {
-        BodyWriter { out, ctx: self.ctx, bibliography_pending: false }
+        BodyWriter { out, ctx: self.ctx, bibliography_pending: false, in_slide: self.in_slide, in_minipage: self.in_minipage }
+    }
+
+    /// A presentation's body: sections between slides; anything outside a slide is
+    /// put on a slide of its own so it still shows.
+    fn slides(&mut self, blocks: &[Block]) {
+        let mut loose: Vec<&Block> = Vec::new();
+        for b in blocks {
+            match b {
+                Block::Slide { .. } | Block::Heading { .. } => {
+                    self.loose_slide(&mut loose);
+                    self.block(b);
+                }
+                _ => loose.push(b),
+            }
+        }
+        self.loose_slide(&mut loose);
+    }
+
+    fn loose_slide(&mut self, loose: &mut Vec<&Block>) {
+        let blocks: Vec<Block> = loose.drain(..).cloned().collect();
+        let mut body = String::new();
+        {
+            let mut w = self.nested(&mut body);
+            w.in_slide = true;
+            w.blocks(&blocks);
+        }
+        if !body.trim().is_empty() {
+            let fragile = if needs_fragile(&blocks) { "[fragile]" } else { "" };
+            self.out.push_str(&format!("\\begin{{frame}}{fragile}\n{}\\end{{frame}}\n\n", body));
+        }
     }
 
     fn emit_bibliography(&mut self) {
@@ -217,6 +265,22 @@ impl<'a> BodyWriter<'a> {
                     self.out.push_str("\n\n");
                 }
             }
+            Block::Heading { content, .. } if self.in_slide => {
+                // A heading on a slide: a bold line in the theme's structure colour.
+                let text = self.inlines(content);
+                if !text.trim().is_empty() {
+                    self.out.push_str(&format!("{{\\usebeamercolor[fg]{{structure}}\\bfseries {}\\par}}\\smallskip\n\n", text.trim()));
+                }
+            }
+            Block::Heading { attrs, content } if self.ctx.t.kind == DocumentKind::Presentation => {
+                // Between slides: sections and subsections (the outline, the navigation).
+                let text = self.inlines(content);
+                if !text.trim().is_empty() {
+                    let cmd = ["section", "subsection", "subsubsection", "subsubsection"][usize::from(attrs.level.clamp(1, 4)) - 1];
+                    let star = if attrs.numbered { "" } else { "*" };
+                    self.out.push_str(&format!("\\{cmd}{star}{{{}}}\n\n", text.trim()));
+                }
+            }
             Block::Heading { attrs, content } => {
                 let text = self.inlines(content);
                 if !text.trim().is_empty() {
@@ -263,7 +327,8 @@ impl<'a> BodyWriter<'a> {
                 }
             }
             Block::Figure { attrs, content } => {
-                self.out.push_str("\\begin{figure}[htbp]\n\\centering\n");
+                let (open, close) = if self.in_minipage { ("\\begin{center}\n", "\\end{center}") } else { ("\\begin{figure}[htbp]\n\\centering\n", "\\end{figure}") };
+                self.out.push_str(open);
                 let width = num_fraction(attrs.width_percent);
                 if is_safe_relative(&attrs.src) {
                     self.out.push_str(&format!("\\includegraphics[width={width}\\linewidth]{{{}}}\n", attrs.src));
@@ -273,11 +338,8 @@ impl<'a> BodyWriter<'a> {
                         "\\fbox{{\\parbox[c][4cm][c]{{{width}\\linewidth}}{{\\centering\\textit{{No image}}}}}}\n"
                     ));
                 }
-                self.out.push_str(&format!(
-                    "\\caption{{{}}}{}\n\\end{{figure}}\n\n",
-                    self.caption_text(content),
-                    label(&attrs.id)
-                ));
+                let caption = if self.in_minipage { "\\texloomcaptionof{figure}" } else { "\\caption" };
+                self.out.push_str(&format!("{caption}{{{}}}{}\n{close}\n\n", self.caption_text(content), label(&attrs.id)));
             }
             Block::TableFigure { attrs, content } => {
                 let caption = content.iter().find_map(|p| match p {
@@ -288,10 +350,12 @@ impl<'a> BodyWriter<'a> {
                     TableFigurePart::Table { content } => Some(content.as_slice()),
                     _ => None,
                 });
-                self.out.push_str("\\begin{table}[htbp]\n\\centering\n");
-                self.out.push_str(&format!("\\caption{{{}}}{}\n", caption.unwrap_or_default().trim(), label(&attrs.id)));
+                let float = !self.in_minipage;
+                self.out.push_str(if float { "\\begin{table}[htbp]\n\\centering\n" } else { "\\begin{center}\n" });
+                let cmd = if float { "\\caption" } else { "\\texloomcaptionof{table}" };
+                self.out.push_str(&format!("{cmd}{{{}}}{}\n", caption.unwrap_or_default().trim(), label(&attrs.id)));
                 self.table(rows.unwrap_or(&[]));
-                self.out.push_str("\\end{table}\n\n");
+                self.out.push_str(if float { "\\end{table}\n\n" } else { "\\end{center}\n\n" });
             }
             Block::Table { content } => {
                 self.out.push_str("\\begin{center}\n");
@@ -310,6 +374,94 @@ impl<'a> BodyWriter<'a> {
                     self.out.push_str("\n\n");
                 }
             }
+            // Slides in an article (a deck opened with an article template): the title
+            // as a bold line, columns as minipages, boxes as quotes, no pauses.
+            Block::Slide { content, .. } if self.ctx.t.kind != DocumentKind::Presentation => {
+                for b in content {
+                    match b {
+                        Block::SlideTitle { content } => {
+                            let t = self.inlines(content);
+                            if !t.trim().is_empty() {
+                                self.out.push_str(&format!("\\noindent\\textbf{{{}}}\\par\\smallskip\n\n", t.trim()));
+                            }
+                        }
+                        other => self.block(other),
+                    }
+                }
+            }
+            Block::Columns { content } if self.ctx.t.kind != DocumentKind::Presentation => {
+                self.out.push_str("\\noindent\n");
+                for c in content {
+                    if let Block::Column { attrs, content } = c {
+                        let w = num_fraction((attrs.width_percent - 2.0).max(5.0));
+                        self.out.push_str(&format!("\\begin{{minipage}}[t]{{{w}\\linewidth}}\n"));
+                        let was = std::mem::replace(&mut self.in_minipage, true);
+                        self.blocks(content);
+                        self.in_minipage = was;
+                        self.out.push_str("\\end{minipage}\\hfill\n");
+                    }
+                }
+                self.out.push_str("\n");
+            }
+            Block::SlideBox { attrs, content } if self.ctx.t.kind != DocumentKind::Presentation => {
+                self.out.push_str("\\begin{quote}\n");
+                if !attrs.title.trim().is_empty() {
+                    self.out.push_str(&format!("\\textbf{{{}}}\\par\n", escape(attrs.title.trim())));
+                }
+                self.blocks(content);
+                self.out.push_str("\\end{quote}\n\n");
+            }
+            Block::SlidePause if self.ctx.t.kind != DocumentKind::Presentation => {}
+            Block::Slide { attrs, content } => {
+                let title = content.iter().find_map(|b| match b {
+                    Block::SlideTitle { content } => Some(self.inlines(content).trim().to_string()),
+                    _ => None,
+                });
+                let body_blocks: Vec<Block> = content.iter().filter(|b| !matches!(b, Block::SlideTitle { .. })).cloned().collect();
+                let mut body = String::new();
+                {
+                    let mut w = self.nested(&mut body);
+                    w.in_slide = true;
+                    w.blocks(&body_blocks);
+                }
+                let mut opts = Vec::new();
+                if needs_fragile(&body_blocks) {
+                    opts.push("fragile");
+                }
+                if attrs.plain {
+                    opts.push("plain");
+                }
+                let opts = if opts.is_empty() { String::new() } else { format!("[{}]", opts.join(",")) };
+                let title = match title {
+                    Some(t) if !t.is_empty() => format!("{{{t}}}"),
+                    _ => String::new(),
+                };
+                self.out.push_str(&format!("\\begin{{frame}}{opts}{title}{}\n{body}\\end{{frame}}\n\n", label(&attrs.id)));
+            }
+            Block::SlideTitle { .. } => {}
+            Block::Columns { content } => {
+                self.out.push_str("\\begin{columns}[T]\n");
+                for c in content {
+                    if let Block::Column { attrs, content } = c {
+                        self.out.push_str(&format!("\\begin{{column}}{{{}\\textwidth}}\n", num_fraction(attrs.width_percent)));
+                        self.blocks(content);
+                        self.out.push_str("\\end{column}\n");
+                    }
+                }
+                self.out.push_str("\\end{columns}\n\n");
+            }
+            Block::Column { content, .. } => self.blocks(content),
+            Block::SlideBox { attrs, content } => {
+                let env = match attrs.kind {
+                    SlideBoxKind::Block => "block",
+                    SlideBoxKind::Alert => "alertblock",
+                    SlideBoxKind::Example => "exampleblock",
+                };
+                self.out.push_str(&format!("\\begin{{{env}}}{{{}}}\n", escape(attrs.title.trim())));
+                self.blocks(content);
+                self.out.push_str(&format!("\\end{{{env}}}\n\n"));
+            }
+            Block::SlidePause => self.out.push_str("\\pause\n\n"),
             Block::Unknown => {}
         }
     }
@@ -383,6 +535,13 @@ impl<'a> BodyWriter<'a> {
 }
 
 /// `0.8` for 80 %, clamped to a sensible range.
+/// Verbatim code on a slide needs beamer's `fragile` frame option.
+fn needs_fragile(blocks: &[Block]) -> bool {
+    let mut found = false;
+    walk_blocks(blocks, &mut |b| found |= matches!(b, Block::CodeBlock { .. }));
+    found
+}
+
 fn num_fraction(percent: f32) -> String {
     let f = (percent.clamp(5.0, 100.0) / 100.0 * 100.0).round() / 100.0;
     crate::latex::num(f)

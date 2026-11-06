@@ -182,8 +182,88 @@ pub enum Block {
         #[serde(default)]
         content: Vec<TableRow>,
     },
+    /// A presentation slide: its title line, then its content.
+    Slide {
+        #[serde(default)]
+        attrs: SlideAttrs,
+        #[serde(default)]
+        content: Vec<Block>,
+    },
+    /// The title line of a slide (first child of `Slide`).
+    SlideTitle {
+        #[serde(default)]
+        content: Vec<Inline>,
+    },
+    /// Columns side by side on a slide: content is `Column`s.
+    Columns {
+        #[serde(default)]
+        content: Vec<Block>,
+    },
+    Column {
+        #[serde(default)]
+        attrs: ColumnAttrs,
+        #[serde(default)]
+        content: Vec<Block>,
+    },
+    /// A titled box on a slide (beamer's block, alertblock, exampleblock).
+    SlideBox {
+        #[serde(default)]
+        attrs: SlideBoxAttrs,
+        #[serde(default)]
+        content: Vec<Block>,
+    },
+    /// What follows appears on the next click (beamer's `\pause`).
+    SlidePause,
     #[serde(other)]
     Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SlideAttrs {
+    #[serde(default)]
+    pub id: Option<String>,
+    /// No title bar, header or footer (a full-bleed picture, a closing slide).
+    #[serde(default)]
+    pub plain: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnAttrs {
+    /// Share of the slide's text width.
+    #[serde(default = "default_column_width")]
+    pub width_percent: f32,
+}
+
+impl Default for ColumnAttrs {
+    fn default() -> Self {
+        Self { width_percent: default_column_width() }
+    }
+}
+
+fn default_column_width() -> f32 {
+    50.0
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SlideBoxAttrs {
+    #[serde(default)]
+    pub kind: SlideBoxKind,
+    #[serde(default)]
+    pub title: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SlideBoxKind {
+    #[default]
+    Block,
+    /// Highlighted (beamer's alertblock).
+    Alert,
+    /// beamer's exampleblock.
+    Example,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -324,6 +404,10 @@ pub fn walk_blocks<'a>(blocks: &'a [Block], f: &mut impl FnMut(&'a Block)) {
                 }
             }
             Block::Table { content } => content.iter().flat_map(|r| &r.content).for_each(|c| walk_blocks(&c.content, f)),
+            Block::Slide { content, .. }
+            | Block::Columns { content }
+            | Block::Column { content, .. }
+            | Block::SlideBox { content, .. } => walk_blocks(content, f),
             _ => {}
         }
     }
@@ -333,7 +417,10 @@ pub fn walk_blocks<'a>(blocks: &'a [Block], f: &mut impl FnMut(&'a Block)) {
 pub fn walk_inlines<'a>(blocks: &'a [Block], f: &mut impl FnMut(&'a Inline)) {
     walk_blocks(blocks, &mut |b| {
         let inl: Vec<&'a [Inline]> = match b {
-            Block::Paragraph { content } | Block::Heading { content, .. } | Block::CodeBlock { content } => vec![content],
+            Block::Paragraph { content }
+            | Block::Heading { content, .. }
+            | Block::CodeBlock { content }
+            | Block::SlideTitle { content } => vec![content],
             Block::Figure { content, .. } => content.iter().map(|c| c.content.as_slice()).collect(),
             Block::TableFigure { content, .. } => content
                 .iter()
@@ -426,22 +513,14 @@ impl Body {
 
     /// Image paths used by figures anywhere in the document, without duplicates.
     pub fn figure_sources(&self) -> Vec<String> {
-        fn walk(blocks: &[Block], out: &mut Vec<String>) {
-            for b in blocks {
-                match b {
-                    Block::Figure { attrs, .. } if !attrs.src.is_empty() && !out.contains(&attrs.src) => {
-                        out.push(attrs.src.clone())
-                    }
-                    Block::Blockquote { content } => walk(content, out),
-                    Block::BulletList { content } | Block::OrderedList { content, .. } => {
-                        content.iter().for_each(|li| walk(&li.content, out))
-                    }
-                    _ => {}
+        let mut out: Vec<String> = Vec::new();
+        walk_blocks(&self.content, &mut |b| {
+            if let Block::Figure { attrs, .. } = b {
+                if !attrs.src.is_empty() && !out.contains(&attrs.src) {
+                    out.push(attrs.src.clone());
                 }
             }
-        }
-        let mut out = Vec::new();
-        walk(&self.content, &mut out);
+        });
         out
     }
 }

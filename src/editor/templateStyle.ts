@@ -57,8 +57,109 @@ function textRules(s: TextStyle, px: (pt: number) => string): string {
   ].join(";");
 }
 
+// ---------------------------------------------------------------- presentations
+
+/** Beamer themes Texloom offers, roughly by look. */
+export const BEAMER_THEMES = [
+  "default", "Madrid", "metropolis", "CambridgeUS", "Boadilla", "AnnArbor", "Antibes", "Bergen", "Berkeley", "Berlin",
+  "Copenhagen", "Darmstadt", "Dresden", "Frankfurt", "Goettingen", "Hannover", "Ilmenau", "JuanLesPins", "Luebeck",
+  "Malmoe", "Marburg", "Montpellier", "PaloAlto", "Pittsburgh", "Rochester", "Singapore", "Szeged", "Warsaw",
+];
+export const BEAMER_COLOR_THEMES = [
+  "albatross", "beaver", "beetle", "crane", "default", "dolphin", "dove", "fly", "lily", "orchid", "rose", "seagull",
+  "seahorse", "spruce", "whale", "wolverine",
+];
+export const BEAMER_FONT_THEMES = ["default", "professionalfonts", "serif", "structurebold", "structureitalicserif", "structuresmallcapsserif"];
+
+/** Colours that approximate a beamer theme on screen (the PDF is exact). */
+export function slideColors(theme: string, colorTheme: string): { bar: string; barFg: string; structure: string; alert: string; example: string } {
+  const blue = "#3333b3";
+  const base: Record<string, { bar: string; barFg: string; structure: string }> = {
+    default: { bar: "transparent", barFg: blue, structure: blue },
+    metropolis: { bar: "#23373b", barFg: "#ffffff", structure: "#23373b" },
+    CambridgeUS: { bar: "transparent", barFg: "#a31f34", structure: "#a31f34" },
+    Boadilla: { bar: "transparent", barFg: blue, structure: blue },
+    Pittsburgh: { bar: "transparent", barFg: blue, structure: blue },
+    Bergen: { bar: "transparent", barFg: blue, structure: blue },
+    Montpellier: { bar: "transparent", barFg: blue, structure: blue },
+    Rochester: { bar: blue, barFg: "#ffffff", structure: blue },
+    AnnArbor: { bar: "#002d72", barFg: "#ffcb05", structure: "#002d72" },
+  };
+  const c = { ...(base[theme] ?? { bar: blue, barFg: "#ffffff", structure: blue }), alert: "#cc0000", example: "#007a00" };
+  const tint: Record<string, string> = {
+    beaver: "#a60000", crane: "#c77a00", dolphin: "#2d4a8a", seahorse: "#5e5ea8", whale: "#262680", albatross: "#2e3a7a",
+    fly: "#4a4a4a", seagull: "#5a5a5a", spruce: "#21544b", wolverine: "#c08a00", beetle: "#333366", dove: "#555555",
+  };
+  const t = tint[colorTheme];
+  if (t) {
+    c.structure = t;
+    if (c.bar !== "transparent") c.bar = t;
+    else c.barFg = t;
+  }
+  return c;
+}
+
+/** Slide size on screen: the page width, and the height for the aspect ratio. */
+export function slideSizePx(t: Template): { width: number; height: number } {
+  const ratio = { "16:9": 9 / 16, "16:10": 10 / 16, "4:3": 3 / 4 }[t.presentation?.aspectRatio ?? "16:9"];
+  return { width: PAGE_WIDTH_PX, height: Math.round(PAGE_WIDTH_PX * ratio) };
+}
+
+/** CSS for the slide you type on: the slide's size, the theme's colours and fonts. */
+function presentationCss(t: Template, scope: string): string {
+  const p = t.presentation;
+  const { width, height } = slideSizePx(t);
+  const slideWidthMm = p?.aspectRatio === "4:3" ? 128 : 160;
+  const k = width / slideWidthMm; // px per mm
+  const px = (pt: number) => `${(pt * MM_PER_PT * k).toFixed(2)}px`;
+  const mm = (v: number) => `${(v * k).toFixed(1)}px`;
+  const size = p?.fontSizePt ?? 11;
+  const c = slideColors(p?.theme ?? "Madrid", p?.colorTheme ?? "");
+  const serif = p?.fontTheme?.includes("serif") && !p.fontTheme.startsWith("structure");
+  const font = serif ? '"Latin Modern Roman", "CMU Serif", serif' : '"Latin Modern Sans", "CMU Sans Serif", "Helvetica Neue", Arial, sans-serif';
+  return [
+    `${scope}{width:${width}px;max-width:none;padding:0;font-family:${font};font-size:${px(size)};line-height:1.3}`,
+    // Each slide is a page-coloured card at the slide's size; cards stack down the page.
+    `${scope} .slide{display:flow-root;position:relative;box-sizing:border-box;min-height:${height}px;margin:0 0 ${mm(5)};background-color:var(--page-bg, #f4efe6);color:var(--page-fg, #1d2228);padding-bottom:${mm(6)};border-radius:2px}`,
+    // Content past the slide's bottom edge sits on a red tint: it won't fit in the PDF.
+    // An overlay from the bottom edge down (a gradient stop would ignore the page zoom).
+    `${scope} .slide::after{content:"";position:absolute;left:0;right:0;top:${height}px;bottom:0;background:rgba(220, 38, 38, 0.12);pointer-events:none}`,
+    `${scope} .slide-title{background:${c.bar};color:${c.barFg};font-size:${px(size * 1.2)};line-height:1.25;padding:${mm(2.5)} ${mm(4)};margin-bottom:${mm(4)};min-height:1.25em;border-radius:2px 2px 0 0}`,
+    `${scope} .slide-title:has(> br.ProseMirror-trailingBreak:only-child)::before{content:"Slide title";float:left;height:0;opacity:0.55;pointer-events:none}`,
+    `${scope} .slide > :not(.slide-title){margin-left:${mm(5)};margin-right:${mm(5)}}`,
+    `${scope} .slide p{margin:0 0 ${mm(1.5)};text-indent:0}`,
+    `${scope} .slide ul, ${scope} .slide ol{margin:${mm(1)} 0 ${mm(2)};padding-left:${mm(6)}}`,
+    `${scope} .slide li::marker{color:${c.structure}}`,
+    `${scope} .slide :is(h1,h2,h3,h4){font-size:1em;font-weight:700;color:${c.structure};margin:${mm(2)} 0 ${mm(1)}}`,
+    `${scope} :is(h1,h2,h3,h4)::before{content:none}`,
+    // Section headings between slides: a label in the app's own style, like a divider.
+    `${scope} .tiptap > :is(h1,h2,h3,h4){font:600 21px/1.3 system-ui, sans-serif;color:var(--text, #1d2228);margin:${mm(7)} 0 ${mm(3)};padding:0 0 4px;border-bottom:1px solid var(--border, #ccc);text-align:left}`,
+    `${scope} .tiptap > :first-child:is(h1,h2,h3,h4){margin-top:0}`,
+    `${scope} .tiptap > :is(h1,h2,h3,h4):has(> br.ProseMirror-trailingBreak:only-child)::before{content:"Section title";float:left;height:0;opacity:0.5}`,
+    // Anything outside a slide (it gets a slide of its own in the PDF).
+    `${scope} .tiptap > :not(.slide):not(h1,h2,h3,h4){background:var(--page-bg, #f4efe6);color:var(--page-fg, #1d2228);margin:0 0 ${mm(5)};padding:${mm(2)} ${mm(5)};border-radius:2px;opacity:0.9}`,
+    // The empty line the editor keeps at the end: just room for the cursor.
+    `${scope} .tiptap > p:last-child:has(> br.ProseMirror-trailingBreak:only-child){background:transparent;padding:0;min-height:1em}`,
+    `${scope} .slide-columns{display:flex;gap:${mm(4)};align-items:flex-start}`,
+    `${scope} .slide-column{min-width:0}`,
+    `${scope} .slide-box{margin:${mm(2)} 0;border-radius:4px;overflow:hidden;background:color-mix(in srgb, ${c.structure} 8%, var(--page-bg, #fff))}`,
+    `${scope} .slide-box-title{display:flex;gap:6px;align-items:center;background:${c.structure};color:#fff;padding:${mm(1)} ${mm(2)}}`,
+    `${scope} .slide-box-alert{background:color-mix(in srgb, ${c.alert} 8%, var(--page-bg, #fff))}`,
+    `${scope} .slide-box-alert .slide-box-title{background:${c.alert}}`,
+    `${scope} .slide-box-example{background:color-mix(in srgb, ${c.example} 8%, var(--page-bg, #fff))}`,
+    `${scope} .slide-box-example .slide-box-title{background:${c.example}}`,
+    `${scope} .slide-box-body{padding:${mm(1.5)} ${mm(2)}}`,
+    `${scope} figure.figure{margin:${mm(1)} 0}`,
+    `${scope} figcaption{font-size:0.8em;text-align:center}`,
+    // No numbers on screen: hidden slides don't count in CSS counters (the PDF numbers them).
+    `${scope} figure.figure figcaption::before{content:"Figure: ";color:${c.structure}}`,
+    `${scope} .table-figure figcaption::before{content:"Table: ";color:${c.structure}}`,
+  ].join("\n");
+}
+
 /** CSS rules scoped to `scope` (the editor page element). */
 export function templateCss(t: Template, scope = ".page"): string {
+  if (t.kind === "presentation") return presentationCss(t, scope);
   const k = PAGE_WIDTH_PX / paperWidthMm(t); // px per mm
   const px = (pt: number) => `${(pt * MM_PER_PT * k).toFixed(2)}px`;
   const mm = (v: number) => `${(v * k).toFixed(1)}px`;

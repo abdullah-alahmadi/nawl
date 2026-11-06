@@ -6,6 +6,7 @@
 
 mod cls;
 mod latex;
+mod presentation;
 mod publisher;
 mod tex;
 
@@ -14,7 +15,7 @@ pub use latex::escape;
 pub use publisher::{check_recipe, kit_override, xetex_override, Authors};
 pub use tex::{document_to_tex, has_bibliography};
 
-use texloom_core::{Document, Template, TitleContent};
+use texloom_core::{Document, DocumentKind, Template, TitleContent};
 
 /// The TeX engine the generated files are for. Tectonic is XeTeX-based.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -84,7 +85,9 @@ pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Gene
         .items
         .iter()
         .filter_map(|i| match &i.content {
-            TitleContent::Image { asset, .. } if template.base.is_none() => Some(asset.clone()),
+            TitleContent::Image { asset, .. } if template.base.is_none() && template.kind == DocumentKind::Article => {
+                Some(asset.clone())
+            }
             _ => None,
         })
         .collect();

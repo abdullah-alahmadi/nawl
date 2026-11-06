@@ -3,7 +3,7 @@
 // the installed TeX distribution. Choosing one starts an empty document with it. At
 // startup it is the start window, with Open, recent files and the example as well.
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, FileInput, FileText, FolderHeart, FolderOpen, GraduationCap, History, Library, Search, Sparkles, Trash2, X } from "lucide-react";
+import { BookOpen, FileInput, FileText, FolderHeart, FolderOpen, GraduationCap, History, Library, Presentation, Search, Sparkles, Trash2, X } from "lucide-react";
 import type { BuiltinTemplate, InstalledTemplate, UserTemplate } from "./api";
 
 /** Whether a template matches the search box (name, description or class). */
@@ -30,6 +30,7 @@ export function NewDocumentDialog({
   recentFiles = [],
   onOpen,
   onExample,
+  onExamplePresentation,
   onClose,
 }: {
   builtins: BuiltinTemplate[];
@@ -58,6 +59,7 @@ export function NewDocumentDialog({
   /** Opens a document: the dialog without a path, else that recent file. */
   onOpen?: (path?: string) => void;
   onExample?: () => void;
+  onExamplePresentation?: () => void;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -72,7 +74,8 @@ export function NewDocumentDialog({
   const tex = only === "installed";
   const shown = tex ? [] : builtins.filter((b) => matches(query, b.name, b.description, b.class));
   const groups = [
-    { title: "Reports", icon: <GraduationCap size={15} />, items: shown.filter((b) => !b.class) },
+    { title: "Reports", icon: <GraduationCap size={15} />, items: shown.filter((b) => !b.class && b.kind !== "presentation") },
+    { title: "Presentations", icon: <Presentation size={15} />, items: shown.filter((b) => b.kind === "presentation") },
     { title: "Journals and conferences", icon: <BookOpen size={15} />, items: shown.filter((b) => b.class) },
   ];
   const users = tex ? [] : userTemplates.filter((u) => matches(query, u.name, u.description, u.class));
@@ -100,6 +103,9 @@ export function NewDocumentDialog({
             </button>
             <button className="start-action" onClick={onExample}>
               <Sparkles size={16} aria-hidden="true" /> Open the example report
+            </button>
+            <button className="start-action" onClick={onExamplePresentation}>
+              <Presentation size={16} aria-hidden="true" /> Open the example presentation
             </button>
             {recentFiles.length > 0 && (
               <>

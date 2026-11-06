@@ -34,10 +34,16 @@ export function AuthorsEditor({
   value,
   onChange,
   showBiographies,
+  simple = false,
+  noun = "author",
 }: {
   value: FieldValue | undefined;
   onChange: (authors: AuthorInfo[]) => void;
   showBiographies: boolean;
+  /** Presenters: name, affiliation and e-mail only (no ORCID, membership…). */
+  simple?: boolean;
+  /** "author" or "presenter", for the add button. */
+  noun?: string;
 }) {
   const authors = toAuthors(value);
   const [open, setOpen] = useState<number | null>(authors.length === 0 ? null : 0);
@@ -86,7 +92,7 @@ export function AuthorsEditor({
           <button type="button" className="author-summary" onClick={() => setOpen(open === i ? null : i)} aria-expanded={open === i}>
             <span className="author-n">{i + 1}</span>
             <span className="author-name">{a.name || "(no name)"}</span>
-            {a.corresponding && <span className="author-tag">corresponding</span>}
+            {a.corresponding && !simple && <span className="author-tag">corresponding</span>}
             <span className="muted author-aff">{a.affiliations[0] ?? ""}</span>
           </button>
           {open === i && (
@@ -104,26 +110,33 @@ export function AuthorsEditor({
                   onBlur={(e) => update(i, { affiliations: e.target.value.split("\n").map((x) => x.trim()).filter(Boolean) })}
                 />
               </label>
-              <div className="author-row">
+              {simple ? (
                 <label>
-                  E-mail
+                  E-mail <span className="muted">(optional)</span>
                   <input type="email" value={a.email} onChange={(e) => update(i, { email: e.target.value })} />
                 </label>
-                <label>
-                  ORCID
-                  <input value={a.orcid} placeholder="0000-0000-0000-0000" onChange={(e) => update(i, { orcid: e.target.value })} />
-                </label>
-              </div>
-              <div className="author-row">
-                <label>
-                  Membership <span className="muted">(e.g. Member, IEEE)</span>
-                  <input value={a.membership} onChange={(e) => update(i, { membership: e.target.value })} />
-                </label>
-                <label className="author-check">
-                  <input type="checkbox" checked={a.corresponding} onChange={(e) => update(i, { corresponding: e.target.checked })} />
-                  Corresponding author
-                </label>
-              </div>
+              ) : (
+                <>
+                  <div className="author-row">
+                    <label>
+                      E-mail
+                      <input type="email" value={a.email} onChange={(e) => update(i, { email: e.target.value })} />
+                    </label>
+                    <label>
+                      ORCID
+                      <input value={a.orcid} placeholder="0000-0000-0000-0000" onChange={(e) => update(i, { orcid: e.target.value })} />
+                    </label>
+                  </div>
+                  <label>
+                    Membership <span className="muted">(e.g. Member, IEEE)</span>
+                    <input value={a.membership} onChange={(e) => update(i, { membership: e.target.value })} />
+                  </label>
+                  <label className="author-check">
+                    <input type="checkbox" checked={a.corresponding} onChange={(e) => update(i, { corresponding: e.target.checked })} />
+                    Corresponding author
+                  </label>
+                </>
+              )}
               {showBiographies && (
                 <>
                   <label>
@@ -147,13 +160,13 @@ export function AuthorsEditor({
               )}
               <div className="author-actions">
                 <button type="button" disabled={i === 0} onClick={() => move(i, i - 1)}>
-                  ↑ Move up
+                  ↑ Up
                 </button>
                 <button type="button" disabled={i === authors.length - 1} onClick={() => move(i, i + 1)}>
-                  ↓ Move down
+                  ↓ Down
                 </button>
                 <button type="button" className="danger" onClick={() => remove(i)}>
-                  Remove author
+                  Remove
                 </button>
               </div>
             </div>
@@ -162,7 +175,7 @@ export function AuthorsEditor({
       ))}
       {problem && <div className="d-error">{problem}</div>}
       <button type="button" className="d-add" onClick={add}>
-        + Add author
+        + Add {noun}
       </button>
     </div>
   );

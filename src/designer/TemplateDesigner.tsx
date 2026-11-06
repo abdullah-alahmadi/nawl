@@ -9,10 +9,12 @@ import { FontsSection, InfoSection, PageSection, StructureSection } from "./Page
 import { CaptionsSection, HeaderFooterSection, HeadingsSection } from "./StyleSections";
 import { BibliographySection, FieldsSection, FrontMatterSection, PublisherSection, SkeletonSection } from "./ContentSections";
 import { TitlePageCanvas } from "./TitlePageCanvas";
+import { SlidesSection } from "./SlidesSection";
 
 const SECTIONS = [
   { key: "info", label: "Template info", prefix: "meta" },
   { key: "publisher", label: "Publisher class", prefix: "base" },
+  { key: "slides", label: "Slides", prefix: "presentation" },
   { key: "page", label: "Page", prefix: "page" },
   { key: "fonts", label: "Fonts", prefix: "fonts" },
   { key: "structure", label: "Structure", prefix: "structure" },
@@ -60,7 +62,11 @@ export function TemplateDesigner({
   onImportKit: (zip: string) => Promise<void>;
 }) {
   const usesClass = !!draft.base;
-  const visible = SECTIONS.filter((s) => (usesClass ? !CLASS_DEFINED.includes(s.key) : s.key !== "publisher"));
+  const deck = draft.kind === "presentation";
+  // Presentations: the theme decides the layout; only info, slides and fields apply.
+  const visible = deck
+    ? SECTIONS.filter((s) => ["info", "slides", "fields"].includes(s.key))
+    : SECTIONS.filter((s) => s.key !== "slides" && (usesClass ? !CLASS_DEFINED.includes(s.key) : s.key !== "publisher"));
   const [chosen, setSection] = useState<SectionKey>("page");
   // Fall back to the first visible panel when the chosen one is hidden for this template.
   const section: SectionKey = visible.some((s) => s.key === chosen) ? chosen : visible[1]?.key ?? visible[0].key;
@@ -127,6 +133,7 @@ export function TemplateDesigner({
           </h3>
           {section === "publisher" && <PublisherSection {...props} canImport={!!info.path && !needsSaveAs} onImportKit={onImportKit} />}
           {section === "info" && <InfoSection {...props} />}
+          {section === "slides" && <SlidesSection {...props} />}
           {section === "page" && <PageSection {...props} />}
           {section === "fonts" && <FontsSection {...props} systemFonts={systemFonts} />}
           {section === "structure" && <StructureSection {...props} />}
