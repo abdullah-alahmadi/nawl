@@ -52,8 +52,10 @@ from the first author, year and title. Click a reference to edit or delete it. Y
 can also import or paste BibTeX (e.g. exported from Zotero). **Appendices** starts
 the appendices; chapters after it are lettered. With the cursor in a heading,
 **Numbered** on the right turns its number off (Acknowledgment, Preface); it stays
-in the table of contents. As in LyX, you can't stack empty lines: LaTeX ignores
-them, so Enter on an empty line does nothing.
+in the table of contents. As in LyX, you can't stack empty lines or spaces: LaTeX ignores
+them, so Enter on an empty line does nothing, a space next to a space (or at the start
+of a line) is ignored, and pasted text has its runs of spaces shrunk to one. Code keeps
+every space.
 
 The rail on the left opens the **Outline**, **Document info** (title, authors,
 abstract… as the template defines them), **References**, and **Things to check**

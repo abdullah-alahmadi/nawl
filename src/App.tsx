@@ -18,6 +18,7 @@ import { PAGE_WIDTH_PX, templateCss, type DeckInfo } from "./editor/templateStyl
 import { useDocumentImage } from "./editor/Figures";
 import { toAuthors } from "./editor/AuthorsEditor";
 import { DeckDocument, SLIDE_EXTENSIONS } from "./editor/Slides";
+import { Spaces } from "./editor/Spaces";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
 import { withKitFiles } from "./designer/ContentSections";
 import { PdfPreview } from "./preview/PdfPreview";
@@ -239,6 +240,7 @@ export default function App() {
       InlineMath,
       RawLatex,
       EmptyLines,
+      Spaces,
       Caption,
       Figure,
       CaptionedTable,
