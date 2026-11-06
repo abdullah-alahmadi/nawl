@@ -290,6 +290,7 @@ export default function App() {
       if (await offerRecovery(editor)) return;
       const blank = await api.newDocument();
       loadDocument(editor, blank.doc);
+      setPanel("info"); // like any new document: start with its title, authors…
       compile();
       setStartWindow(true);
       setShowGallery(true);
