@@ -63,6 +63,17 @@ function loadDocument(editor: Editor, doc: JSONContent) {
 
 const fileNameOf = (p: string) => p.split(/[\\/]/).pop() ?? p;
 
+/** Puts the cursor on the document's first line, once dialogs have closed. */
+function focusStart(editor: Editor, scroller: HTMLElement | null) {
+  window.setTimeout(() => {
+    if (editor.isDestroyed) return;
+    const { state, view } = editor;
+    view.dispatch(state.tr.setSelection(Selection.atStart(state.doc)));
+    view.focus();
+    scroller?.scrollTo({ top: 0 });
+  }, 0);
+}
+
 /** "today at 14:05" / "on 3 Nov at 14:05" for the restore prompt. */
 function whenText(secs: number) {
   const d = new Date(secs * 1000);
@@ -300,6 +311,7 @@ export default function App() {
     }
     const r = await api.restoreRecovery();
     loadDocument(editor, r.doc);
+    focusStart(editor, editorScroll.current);
     setBibliography(r.bibliography ?? "");
     metadataRef.current = r.metadata;
     setPath(r.originalPath);
@@ -624,6 +636,7 @@ export default function App() {
       const opened = await api.openDocument(target);
       addRecent(target);
       loadDocument(editor, opened.doc);
+      focusStart(editor, editorScroll.current);
       setBibliography(opened.bibliography ?? "");
       metadataRef.current = opened.metadata;
       setPath(target);
@@ -659,6 +672,7 @@ export default function App() {
     try {
       const fresh = await api.newDocument();
       loadDocument(editor, fresh.doc);
+      focusStart(editor, editorScroll.current);
       setMetadata({});
       setBibliography("");
       setPath(null);
@@ -687,6 +701,7 @@ export default function App() {
         api.sampleDocument(deck ? "presentation" : undefined),
       ]);
       loadDocument(editor, sample.doc);
+      focusStart(editor, editorScroll.current);
       setBibliography(sample.bibliography ?? "");
       metadataRef.current = sample.metadata;
       setPath(null);
@@ -1166,6 +1181,8 @@ export default function App() {
           onExamplePresentation={() => openExample("presentation")}
           onClose={() => {
             setShowGallery(false);
+            // Closing the start window starts writing in the empty document.
+            if (startWindow && editor) focusStart(editor, editorScroll.current);
             setStartWindow(false);
           }}
         />
