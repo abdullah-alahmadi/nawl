@@ -760,8 +760,11 @@ export default function App() {
       else if (key === "enter") run(compile);
       else if (key === ",") run(() => setShowSettings(true));
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // Capture phase: these shortcuts must win over the editor's own keymap, which runs
+    // first otherwise (Ctrl+Enter used to compile *and* insert a line break). The editor
+    // skips events that are already handled (defaultPrevented).
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   });
 
   // The TeX engine follows the setting (and recompiles when it changes).

@@ -3,9 +3,9 @@
 import { useEffect, useRef } from "react";
 import { MathfieldElement } from "mathlive";
 import {
+  InputRule,
   Node,
   mergeAttributes,
-  nodeInputRule,
   NodeViewWrapper,
   ReactNodeViewRenderer,
   type ReactNodeViewProps,
@@ -114,11 +114,16 @@ export const InlineMath = Node.create({
 
   addInputRules() {
     // Typing $x^2$ turns it into inline math (a lone "$" or "$$" does not).
+    // Not nodeInputRule: TipTap now puts the typed character in the document before
+    // running the rule, but nodeInputRule still inserts it again, which left a stray
+    // "$" after the formula. Here the range covers the matched text, typed "$" included.
     return [
-      nodeInputRule({
+      new InputRule({
         find: /(?:^|\s)(\$([^$\s](?:[^$]*[^$\s])?)\$)$/,
-        type: this.type,
-        getAttributes: (match) => ({ latex: match[2] }),
+        handler: ({ state, range, match }) => {
+          const start = range.from + match[0].lastIndexOf(match[1]);
+          state.tr.replaceWith(start, range.to, this.type.create({ latex: match[2] }));
+        },
       }),
     ];
   },

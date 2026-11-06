@@ -296,6 +296,13 @@ impl Compiler {
         let dir = prepare_build_dir(tex, assets)?;
         let root = dir.path();
 
+        // Tectonic runs share one per-user cache (downloaded packages, format files).
+        // Two runs filling it at once fail on Windows: one can't replace a file the
+        // other holds open ("cannot write format file … Access is denied"), which
+        // happened on the first start, when the empty page and the opened document
+        // compiled together. One run at a time avoids it.
+        static TECTONIC: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _running = TECTONIC.lock().unwrap_or_else(|e| e.into_inner());
         let output = tool(&self.tectonic)
             .current_dir(root)
             // Never allow \write18 shell escape: documents and templates may be shared.
