@@ -2,7 +2,7 @@
 // and the automatic outline slides.
 import type { PresentationSettings } from "../bindings/PresentationSettings";
 import { BEAMER_COLOR_THEMES, BEAMER_FONT_THEMES, BEAMER_THEMES } from "../editor/templateStyle";
-import { Row, Segmented, Select, Toggle, issuesAt } from "./controls";
+import { ColorInput, Row, Segmented, Select, Toggle, issuesAt } from "./controls";
 import type { SectionProps } from "./common";
 
 const DEFAULTS: PresentationSettings = {
@@ -16,20 +16,29 @@ const DEFAULTS: PresentationSettings = {
   navigationSymbols: false,
 };
 
-export function SlidesSection({ t, edit, issues }: SectionProps) {
+export function SlidesSection({ t, edit, issues, onBrowseThemes }: SectionProps & { onBrowseThemes: () => void }) {
   const p = t.presentation ?? DEFAULTS;
   const set = (patch: Partial<PresentationSettings>) => edit((d) => void (d.presentation = { ...(d.presentation ?? DEFAULTS), ...patch }));
-  // Keep a theme typed in the template file selectable even if it's not in the list.
+  // Keep a theme typed in the template file (or chosen from the installed TeX) selectable.
   const themes = BEAMER_THEMES.includes(p.theme) ? BEAMER_THEMES : [p.theme, ...BEAMER_THEMES];
+  const colorThemes = BEAMER_COLOR_THEMES.includes(p.colorTheme) || !p.colorTheme ? BEAMER_COLOR_THEMES : [p.colorTheme, ...BEAMER_COLOR_THEMES];
   return (
     <>
       <Row label="Theme" hint="Beamer's layout: title bars, header and footer, navigation" issues={issuesAt(issues, "presentation.theme")}>
-        <Select value={p.theme} options={themes.map((v) => ({ value: v, label: v }))} onChange={(v) => set({ theme: v })} />
+        <span className="d-inline">
+          <Select value={p.theme} options={themes.map((v) => ({ value: v, label: v }))} onChange={(v) => set({ theme: v })} />
+          <button type="button" onClick={onBrowseThemes} title="All themes and colours with previews, including your TeX installation's">
+            Browse themes…
+          </button>
+        </span>
+      </Row>
+      <Row label="Main colour" hint="Instead of the theme's colours" issues={issuesAt(issues, "presentation.accentColor")}>
+        <ColorInput value={p.accentColor} onChange={(v) => set({ accentColor: v })} />
       </Row>
       <Row label="Colour theme" issues={issuesAt(issues, "presentation.colorTheme")}>
         <Select
           value={p.colorTheme}
-          options={[{ value: "", label: "The theme's own" }, ...BEAMER_COLOR_THEMES.map((v) => ({ value: v, label: v }))]}
+          options={[{ value: "", label: "The theme's own" }, ...colorThemes.map((v) => ({ value: v, label: v }))]}
           onChange={(v) => set({ colorTheme: v })}
         />
       </Row>

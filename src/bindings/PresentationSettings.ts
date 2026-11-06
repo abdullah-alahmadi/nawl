@@ -16,7 +16,11 @@ colorTheme: string,
 /**
  * Font theme (`serif`, `structurebold`…); empty for the theme's own.
  */
-fontTheme: string, aspectRatio: AspectRatio, 
+fontTheme: string, 
+/**
+ * Main colour (`#rrggbb`) instead of the theme's: title bars, bullets, blocks.
+ */
+accentColor?: string, aspectRatio: AspectRatio, 
 /**
  * Base font size in points (beamer offers 8–20; 11 is its default).
  */

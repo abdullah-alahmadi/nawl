@@ -87,3 +87,14 @@ fn slides_in_an_article_become_plain_latex() {
     assert!(tex.contains("\\noindent\\textbf{Why automate irrigation?}"));
     assert!(tex.contains("\\begin{minipage}[t]{0.53\\linewidth}"));
 }
+
+#[test]
+fn accent_colour_sets_the_structure_colour() {
+    let mut t = template();
+    t.presentation.as_mut().unwrap().accent_color = Some("#1f4e79".into());
+    assert!(t.validate().is_empty());
+    let cls = texloom_codegen::template_to_cls(&t);
+    assert!(cls.contains("\\usecolortheme[RGB={31,78,121}]{structure}"), "{cls}");
+    t.presentation.as_mut().unwrap().accent_color = Some("blue".into());
+    assert!(!t.validate().is_empty());
+}

@@ -196,12 +196,14 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       real shape, listed in the Outline; sections between slides; title slide from fields;
       references on their own slides; built-in "Presentation (Beamer)" + example deck;
       a deck under an article template degrades to plain LaTeX
+- [x] Theme picker with previews rendered by the real themes (cached per engine),
+      installed TeX Live beamer themes and colour themes, a custom main colour
 - [ ] Posters (tikzposter / beamerposter): a big canvas of boxes in columns
 - [ ] Letters (letter / scrlttr2): sender, recipient, opening, closing
 - [ ] CVs (moderncv): sections of dated entries
 - [ ] Books and theses: parts, front/back matter on top of the report template
 - [ ] Presentations next: slide layouts, speaker notes, overlays beyond \pause,
-      reordering slides by dragging, installed beamer themes
+      reordering slides by dragging, logo and footer settings
 
 ### Phase 6: Polish and distribution (ongoing)
 - [x] Installed TeX as an alternative engine (pdfLaTeX, XeLaTeX, LuaLaTeX via latexmk,

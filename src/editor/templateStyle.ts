@@ -72,7 +72,11 @@ export const BEAMER_COLOR_THEMES = [
 export const BEAMER_FONT_THEMES = ["default", "professionalfonts", "serif", "structurebold", "structureitalicserif", "structuresmallcapsserif"];
 
 /** Colours that approximate a beamer theme on screen (the PDF is exact). */
-export function slideColors(theme: string, colorTheme: string): { bar: string; barFg: string; structure: string; alert: string; example: string } {
+export function slideColors(
+  theme: string,
+  colorTheme: string,
+  accent?: string,
+): { bar: string; barFg: string; structure: string; alert: string; example: string } {
   const blue = "#3333b3";
   const base: Record<string, { bar: string; barFg: string; structure: string }> = {
     default: { bar: "transparent", barFg: blue, structure: blue },
@@ -90,7 +94,7 @@ export function slideColors(theme: string, colorTheme: string): { bar: string; b
     beaver: "#a60000", crane: "#c77a00", dolphin: "#2d4a8a", seahorse: "#5e5ea8", whale: "#262680", albatross: "#2e3a7a",
     fly: "#4a4a4a", seagull: "#5a5a5a", spruce: "#21544b", wolverine: "#c08a00", beetle: "#333366", dove: "#555555",
   };
-  const t = tint[colorTheme];
+  const t = accent ?? tint[colorTheme];
   if (t) {
     c.structure = t;
     if (c.bar !== "transparent") c.bar = t;
@@ -114,7 +118,7 @@ function presentationCss(t: Template, scope: string): string {
   const px = (pt: number) => `${(pt * MM_PER_PT * k).toFixed(2)}px`;
   const mm = (v: number) => `${(v * k).toFixed(1)}px`;
   const size = p?.fontSizePt ?? 11;
-  const c = slideColors(p?.theme ?? "Madrid", p?.colorTheme ?? "");
+  const c = slideColors(p?.theme ?? "Madrid", p?.colorTheme ?? "", p?.accentColor);
   const serif = p?.fontTheme?.includes("serif") && !p.fontTheme.startsWith("structure");
   const font = serif ? '"Latin Modern Roman", "CMU Serif", serif' : '"Latin Modern Sans", "CMU Sans Serif", "Helvetica Neue", Arial, sans-serif';
   return [

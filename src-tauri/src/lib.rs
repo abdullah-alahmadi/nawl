@@ -12,6 +12,7 @@ mod installed;
 mod library;
 mod recovery;
 mod templates;
+mod themes;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -45,6 +46,8 @@ pub struct AppState {
     doc_folder: files::DocumentFolder,
     /// Journal classes of the installed TeX, looked up once.
     installed: std::sync::Mutex<Option<Vec<texloom_compile::installed::InstalledClass>>>,
+    /// Beamer themes of the installed TeX, looked up once.
+    beamer_themes: std::sync::Mutex<Option<texloom_compile::installed::BeamerThemes>>,
 }
 
 impl AppState {
@@ -264,6 +267,79 @@ async fn list_installed_templates(app: AppHandle) -> Result<Vec<installed::Insta
     tauri::async_runtime::spawn_blocking(move || installed::list(&app.state::<AppState>().installed_classes()))
         .await
         .map_err(AppError::other)
+}
+
+/// Beamer themes found in the installed TeX (empty without one).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BeamerThemeList {
+    themes: Vec<String>,
+    color_themes: Vec<String>,
+    font_themes: Vec<String>,
+}
+
+#[tauri::command]
+async fn list_beamer_themes(app: AppHandle) -> Result<BeamerThemeList, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let mut cache = state.beamer_themes.lock().expect("themes lock");
+        let t = cache.get_or_insert_with(texloom_compile::installed::beamer_themes).clone();
+        let themes = t.themes.into_iter().filter(|n| !themes::BROKEN_THEMES.contains(&n.as_str())).collect();
+        BeamerThemeList { themes, color_themes: t.color_themes, font_themes: t.font_themes }
+    })
+    .await
+    .map_err(AppError::other)
+}
+
+/// A two-slide PDF showing a theme and colour theme, for the theme picker. Rendered
+/// with the current engine and cached; a theme only the installed TeX has
+/// (`installed`) is rendered with pdfLaTeX when the engine is Tectonic.
+#[tauri::command]
+async fn theme_preview(
+    app: AppHandle,
+    theme: String,
+    color_theme: String,
+    font_theme: String,
+    installed: bool,
+) -> Result<Response, AppError> {
+    if ![&theme, &color_theme, &font_theme].iter().all(|n| themes::safe(n)) || theme.is_empty() {
+        return Err(AppError::other("Not a theme name"));
+    }
+    let state = app.state::<AppState>();
+    let mut choice = state.engine();
+    if installed && choice == EngineChoice::Tectonic && SystemLatex::find(LatexProgram::PdfLatex).is_some() {
+        choice = EngineChoice::System(LatexProgram::PdfLatex);
+    }
+    let engine_id = match choice {
+        EngineChoice::Tectonic => "tectonic",
+        EngineChoice::System(p) => p.command(),
+    };
+    let cache = app.path().app_cache_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom-cache"));
+    let file = themes::cache_path(&cache, engine_id, &theme, &color_theme, &font_theme);
+    if let Ok(bytes) = std::fs::read(&file) {
+        return Ok(Response::new(bytes));
+    }
+    let runner = match choice {
+        EngineChoice::Tectonic => state.compiler.clone().map(Runner::Tectonic).map_err(|message| AppError::TectonicMissing { message })?,
+        EngineChoice::System(p) => Runner::System(SystemLatex::find(p).ok_or_else(|| AppError::other(format!("{} isn't installed", p.command())))?),
+    };
+    let t = themes::preview_template(&theme, &color_theme, &font_theme);
+    let (tex, files) = themes::preview_files(&t, choice.target());
+    let pdf = tauri::async_runtime::spawn_blocking(move || {
+        let assets: Vec<Asset> = files.iter().map(|(p, b)| Asset { path: p, bytes: b }).collect();
+        runner.compile(&tex, &assets)
+    })
+    .await
+    .map_err(AppError::other)??
+    .pdf;
+    if let Some(dir) = file.parent() {
+        let _ = std::fs::create_dir_all(dir);
+        let tmp = file.with_extension("tmp");
+        if std::fs::write(&tmp, &pdf).is_ok() {
+            let _ = std::fs::rename(&tmp, &file);
+        }
+    }
+    Ok(Response::new(pdf))
 }
 
 /// Switches to the template for an installed journal class.
@@ -721,6 +797,7 @@ pub fn run() {
             templates: TemplateStore::new(),
             doc_folder: files::DocumentFolder::new(SAMPLE_FILES).expect("can create a temporary folder"),
             installed: std::sync::Mutex::new(None),
+            beamer_themes: std::sync::Mutex::new(None),
         })
         .setup(|app| {
             let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom"));
@@ -747,6 +824,8 @@ pub fn run() {
             use_builtin_template,
             list_installed_templates,
             use_installed_template,
+            list_beamer_themes,
+            theme_preview,
             list_builtin_templates,
             import_template_file,
             import_kit_zip,

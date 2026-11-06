@@ -86,6 +86,17 @@ export interface InstalledTemplate {
 /** Journal templates from the installed TeX (empty without one). */
 export const listInstalledTemplates = () => invoke<InstalledTemplate[]>("list_installed_templates");
 export const switchToInstalledTemplate = (cls: string) => invoke<TemplateInfo>("use_installed_template", { class: cls });
+/** Beamer themes of the installed TeX distribution (empty without one). */
+export interface BeamerThemeList {
+  themes: string[];
+  colorThemes: string[];
+  fontThemes: string[];
+}
+export const listBeamerThemes = () => invoke<BeamerThemeList>("list_beamer_themes");
+/** A two-slide PDF showing a theme (cached by the backend). `installed`: only the
+ *  installed TeX has it, so it's rendered with pdfLaTeX when the engine is Tectonic. */
+export const themePreview = (theme: string, colorTheme: string, fontTheme: string, installed: boolean) =>
+  invoke<ArrayBuffer>("theme_preview", { theme, colorTheme, fontTheme, installed });
 /** Copies a publisher kit file (.cls, .sty, .bst…) into the template's assets/. */
 export const importTemplateFile = (source: string) => invoke<string>("import_template_file", { source });
 /** Imports a publisher's kit .zip into the template's assets/; returns the files. */

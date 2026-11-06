@@ -238,6 +238,12 @@ impl Template {
             if !name_ok(&p.font_theme) {
                 c.error("presentation.fontTheme", "font theme names may only contain letters, digits and '-'");
             }
+            if let Some(color) = &p.accent_color {
+                let hex = color.len() == 7 && color.starts_with('#') && color[1..].chars().all(|ch| ch.is_ascii_hexdigit());
+                if !hex {
+                    c.error("presentation.accentColor", "needs a colour like #1f4e79");
+                }
+            }
             if !(8..=20).contains(&p.font_size_pt) {
                 c.error("presentation.fontSizePt", "beamer font sizes are 8 to 20 pt");
             }

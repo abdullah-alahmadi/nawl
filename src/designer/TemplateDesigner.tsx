@@ -45,6 +45,7 @@ export function TemplateDesigner({
   onSaveAs,
   onNewCopy,
   onImportKit,
+  onBrowseThemes,
 }: {
   info: TemplateInfo;
   draft: Template;
@@ -60,6 +61,8 @@ export function TemplateDesigner({
   onNewCopy: () => void;
   /** Imports a publisher kit (.zip), saving the template first when it has no file. */
   onImportKit: (zip: string) => Promise<void>;
+  /** Opens the presentation theme picker. */
+  onBrowseThemes: () => void;
 }) {
   const usesClass = !!draft.base;
   const deck = draft.kind === "presentation";
@@ -133,7 +136,7 @@ export function TemplateDesigner({
           </h3>
           {section === "publisher" && <PublisherSection {...props} canImport={!!info.path && !needsSaveAs} onImportKit={onImportKit} />}
           {section === "info" && <InfoSection {...props} />}
-          {section === "slides" && <SlidesSection {...props} />}
+          {section === "slides" && <SlidesSection {...props} onBrowseThemes={onBrowseThemes} />}
           {section === "page" && <PageSection {...props} />}
           {section === "fonts" && <FontsSection {...props} systemFonts={systemFonts} />}
           {section === "structure" && <StructureSection {...props} />}

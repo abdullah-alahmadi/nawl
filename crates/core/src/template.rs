@@ -82,6 +82,10 @@ pub struct PresentationSettings {
     /// Font theme (`serif`, `structurebold`…); empty for the theme's own.
     #[serde(default)]
     pub font_theme: String,
+    /// Main colour (`#rrggbb`) instead of the theme's: title bars, bullets, blocks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub accent_color: Option<String>,
     #[serde(default)]
     pub aspect_ratio: AspectRatio,
     /// Base font size in points (beamer offers 8–20; 11 is its default).
@@ -108,6 +112,7 @@ impl Default for PresentationSettings {
             theme: "Madrid".into(),
             color_theme: String::new(),
             font_theme: String::new(),
+            accent_color: None,
             aspect_ratio: AspectRatio::default(),
             font_size_pt: 11,
             outline: false,

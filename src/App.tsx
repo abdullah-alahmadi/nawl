@@ -24,11 +24,13 @@ import type { AppError } from "./api";
 import { useSettings } from "./settings";
 import { SettingsDialog } from "./SettingsDialog";
 import { NewDocumentDialog } from "./NewDocumentDialog";
+import { ThemePicker } from "./ThemePicker";
+import type { PresentationSettings } from "./bindings/PresentationSettings";
 import { Menu, MenuHeading, MenuItem, MenuSeparator } from "./ui/Menu";
 import {
   BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
-  LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
+  LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Palette, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
   Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut,
 } from "lucide-react";
 import "./App.css";
@@ -101,6 +103,10 @@ export default function App() {
   const [installedTemplates, setInstalledTemplates] = useState<api.InstalledTemplate[]>([]);
   /** The template window with only the installed-TeX templates (from the template menu). */
   const [showTexPicker, setShowTexPicker] = useState(false);
+  /** The presentation theme picker. */
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  /** Asked once per session whether to leave Tectonic for an installed-only theme. */
+  const askedThemeEngine = useRef(false);
   const [userTemplates, setUserTemplates] = useState<api.UserTemplate[]>([]);
   const refreshUserTemplates = useCallback(() => api.listUserTemplates().then(setUserTemplates, () => setUserTemplates([])), []);
   const [mode, setMode] = useState<"document" | "template">("document");
@@ -429,6 +435,26 @@ export default function App() {
     } catch (e) {
       report(e);
       return false;
+    }
+  };
+
+  /** Restyles the presentation (theme picker): the template becomes an edited draft,
+   *  as in the designer, so it compiles at once and can be saved as a template. */
+  const changePresentation = async (patch: Partial<PresentationSettings>, installedOnly: boolean) => {
+    const base = draft ?? template;
+    if (!base?.presentation) return;
+    const next = structuredClone(base);
+    next.presentation = { ...base.presentation, ...patch };
+    if (next.presentation.accentColor === undefined) delete next.presentation.accentColor;
+    onDraftChange(next);
+    // Themes only the installed TeX has don't exist in Tectonic's package bundle.
+    if (installedOnly && settingsRef.current.engine === "tectonic" && !askedThemeEngine.current) {
+      askedThemeEngine.current = true;
+      const engines = await api.listEngines().catch(() => []);
+      // pdfLaTeX: what the picker's previews of these themes are rendered with.
+      const pdf = engines.find((e) => e.id === "pdflatex" && e.available);
+      if (pdf && (await ask("This theme comes from your TeX installation; Tectonic, the current engine, doesn't have it.\n\nSwitch the TeX engine to pdfLaTeX from your TeX installation? (Settings → Preview)", { title: "TeX engine", kind: "info", okLabel: "Use pdfLaTeX", cancelLabel: "Keep Tectonic" })))
+        updateSettings({ engine: "pdflatex" });
     }
   };
 
@@ -935,7 +961,7 @@ export default function App() {
         </div>
       </header>
 
-      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} deck={isDeck} />}
+      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} deck={isDeck} onThemes={() => setShowThemePicker(true)} />}
 
       <main className={`workspace${mode === "template" ? " template-mode" : ""}`}>
         {mode === "document" && (
@@ -989,6 +1015,7 @@ export default function App() {
               onSaveAs={saveTemplateAs}
               onNewCopy={newTemplateCopy}
               onImportKit={importKit}
+              onBrowseThemes={() => setShowThemePicker(true)}
             />
           </section>
         )}
@@ -1110,6 +1137,14 @@ export default function App() {
           }}
         />
       )}
+      {showThemePicker && (draft ?? template)?.presentation && (
+        <ThemePicker
+          settings={(draft ?? template)!.presentation!}
+          engine={settings.engine}
+          onChange={changePresentation}
+          onClose={() => setShowThemePicker(false)}
+        />
+      )}
       {showTexPicker && (
         <NewDocumentDialog
           only="installed"
@@ -1186,6 +1221,7 @@ function FormatBar({
   onError,
   onPicker,
   deck,
+  onThemes,
 }: {
   editor: Editor;
   headingNames: string[];
@@ -1193,6 +1229,8 @@ function FormatBar({
   onPicker: (p: "ref" | "cite") => void;
   /** A presentation: slide tools instead of article-only ones. */
   deck: boolean;
+  /** Opens the presentation theme picker. */
+  onThemes: () => void;
 }) {
   // Re-render only when the formatting state at the cursor changes.
   const s = useEditorState({
@@ -1278,6 +1316,7 @@ function FormatBar({
           <T icon={<Columns2 size={sz} />} title="Two columns side by side" run={() => ins().insertColumns(2).run()} />
           <T icon={<SquareStack size={sz} />} title="Box with a title (block; switch to alert or example in its corner)" run={() => ins().insertSlideBox("block").run()} />
           <T icon={<Pause size={sz} />} title="Pause: what follows appears on the next click" run={() => ins().insertPause().run()} />
+          <T icon={<Palette size={sz} />} label="Theme" title="Presentation theme and colours" run={onThemes} />
         </>
       )}
       <span className="sep" />

@@ -34,6 +34,11 @@ pub fn presentation_cls(t: &Template) -> String {
     if safe_name(&p.font_theme) {
         o.push_str(&format!("\\usefonttheme{{{}}}\n", p.font_theme));
     }
+    // A main colour of the user's own: beamer derives title bars, bullets and
+    // blocks from the structure colour.
+    if let Some((r, g, b)) = p.accent_color.as_deref().and_then(hex_rgb) {
+        o.push_str(&format!("\\usecolortheme[RGB={{{r},{g},{b}}}]{{structure}}\n"));
+    }
     if !p.navigation_symbols {
         o.push_str("\\setbeamertemplate{navigation symbols}{}\n");
     }
@@ -64,6 +69,13 @@ pub fn presentation_cls(t: &Template) -> String {
     }
     o.push_str("\\endinput\n");
     o
+}
+
+/// `#rrggbb` → (r, g, b).
+fn hex_rgb(s: &str) -> Option<(u8, u8, u8)> {
+    let h = s.strip_prefix('#').filter(|h| h.len() == 6)?;
+    let n = |i: usize| u8::from_str_radix(&h[i..i + 2], 16).ok();
+    Some((n(0)?, n(2)?, n(4)?))
 }
 
 /// Beamer's font size options (8–20 pt); anything else goes to the nearest one.

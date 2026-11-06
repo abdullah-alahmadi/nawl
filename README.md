@@ -100,9 +100,14 @@ presentation**). A presentation is a list of slides with section headings betwee
   click). Lists, equations, figures, tables, citations and raw LaTeX work on slides too.
 - The title slide comes from **Document info**: title, subtitle, presenters, institution
   and date. References go on slides of their own at the end.
-- **Design template → Slides** picks the beamer theme, colour and font theme, slide
-  shape (16:9, 16:10, 4:3), text size, outline slides, and navigation symbols. The
-  editor approximates the theme's colours; the PDF preview is exact.
+- **Theme** in the toolbar opens the theme picker: every beamer theme and colour
+  theme as a preview rendered by the real theme, including the themes your TeX
+  installation has (about 70 more on a full TeX Live; ones that need an institution's
+  logo files are left out), and a **main colour** of your own for title bars, bullets
+  and blocks. Previews are cached, so they're instant the second time.
+- **Design template → Slides** has the same settings plus font theme, slide shape
+  (16:9, 16:10, 4:3), text size, outline slides and navigation symbols. The editor
+  approximates the theme's colours; the PDF preview is exact.
 
 A presentation opened with an article template still compiles: slide titles become
 bold lines, columns become side-by-side boxes, and pauses are dropped.

@@ -61,6 +61,64 @@ pub fn journal_classes() -> Vec<InstalledClass> {
     }
 }
 
+/// Beamer themes of the installed TeX distribution, by kind.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct BeamerThemes {
+    /// `\usetheme{…}` names.
+    pub themes: Vec<String>,
+    /// `\usecolortheme{…}` names.
+    pub color_themes: Vec<String>,
+    /// `\usefonttheme{…}` names.
+    pub font_themes: Vec<String>,
+}
+
+/// Beamer themes found in the installed TeX's `tex/latex` trees (TEXMFDIST and
+/// TEXMFLOCAL), from their file names: `beamerthemeX.sty`, `beamercolorthemeX.sty`,
+/// `beamerfontthemeX.sty`. Empty without an installed TeX.
+pub fn beamer_themes() -> BeamerThemes {
+    let mut out = BeamerThemes::default();
+    for var in ["TEXMFDIST", "TEXMFLOCAL"] {
+        if let Some(root) = kpsewhich(&["-var-value", var]).into_iter().next() {
+            collect_themes(&PathBuf::from(root).join("tex/latex"), &mut out, 6);
+        }
+    }
+    for list in [&mut out.themes, &mut out.color_themes, &mut out.font_themes] {
+        list.sort_by_key(|n| n.to_lowercase());
+        list.dedup();
+    }
+    out
+}
+
+fn collect_themes(dir: &Path, out: &mut BeamerThemes, depth: u8) {
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    for e in entries.flatten() {
+        let path = e.path();
+        if path.is_dir() {
+            if depth > 0 {
+                collect_themes(&path, out, depth - 1);
+            }
+            continue;
+        }
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else { continue };
+        let Some(stem) = name.strip_suffix(".sty") else { continue };
+        // Names go into \usetheme{…}: keep the plain ones.
+        let plain = |n: &str| !n.is_empty() && n.chars().next().is_some_and(|c| c.is_ascii_alphanumeric()) && n.chars().all(|c| c.is_ascii_alphanumeric() || c == '-');
+        if let Some(n) = stem.strip_prefix("beamercolortheme") {
+            if plain(n) {
+                out.color_themes.push(n.to_string());
+            }
+        } else if let Some(n) = stem.strip_prefix("beamerfonttheme") {
+            if plain(n) {
+                out.font_themes.push(n.to_string());
+            }
+        } else if let Some(n) = stem.strip_prefix("beamertheme") {
+            if plain(n) {
+                out.themes.push(n.to_string());
+            }
+        }
+    }
+}
+
 /// One package record of the database.
 #[derive(Default)]
 struct Record<'a> {
@@ -194,6 +252,21 @@ name absent\nshortdesc Not installed\ncatalogue-topics class journalpub\n";
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].class, "nature");
         assert!(found[0].bib_styles.is_empty());
+    }
+
+    #[test]
+    fn finds_beamer_themes_by_file_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let t = dir.path().join("beamer/themes");
+        std::fs::create_dir_all(&t).unwrap();
+        for f in ["beamerthemeMadrid.sty", "beamercolorthemebeaver.sty", "beamerfontthemeserif.sty", "beamerinnerthemecircles.sty", "beamertheme-odd.sty", "notes.sty"] {
+            std::fs::write(t.join(f), "").unwrap();
+        }
+        let mut out = BeamerThemes::default();
+        collect_themes(dir.path(), &mut out, 3);
+        assert_eq!(out.themes, vec!["Madrid"]);
+        assert_eq!(out.color_themes, vec!["beaver"]);
+        assert_eq!(out.font_themes, vec!["serif"]);
     }
 
     /// Lists what this computer's TeX Live offers. Run with --ignored --nocapture.
