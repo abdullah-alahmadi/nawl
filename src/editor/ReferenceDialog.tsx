@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import type { BibEntry } from "../api";
 import { makeKey, toBibtex, unescapeField, validKey, type Person } from "./bibtex";
+import { useDraggable } from "../ui/useDraggable";
 
 interface FieldDef {
   name: string;
@@ -112,6 +113,7 @@ export function ReferenceDialog({
   // A new entry's key follows the authors, year and title until it's typed in.
   const [keyTouched, setKeyTouched] = useState(!!entry);
   const type = TYPES.find((t) => t.kind === kind) ?? { kind, label: kind, fields: [] };
+  const drag = useDraggable<HTMLDivElement>();
 
   const autoKey = useMemo(() => makeKey({ kind, key: "", people, fields }, taken), [kind, people, fields, taken]);
   const effectiveKey = keyTouched ? key.trim() : autoKey;
@@ -143,8 +145,8 @@ export function ReferenceDialog({
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal ref-dialog" role="dialog" aria-modal="true" aria-label={entry ? "Edit reference" : "New reference"}>
-        <div className="gallery-head">
+      <div ref={drag.ref} style={drag.style} className="modal ref-dialog" role="dialog" aria-modal="true" aria-label={entry ? "Edit reference" : "New reference"}>
+        <div className="gallery-head" {...drag.handle} title="Drag to move">
           <h2>{entry ? "Edit reference" : "New reference"}</h2>
           <button className="icon-button" onClick={onClose} aria-label="Close" title="Close (Esc)">
             <X size={17} />

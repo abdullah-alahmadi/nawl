@@ -793,3 +793,4 @@ button.refs-entry:hover { border-color: var(--accent); }
    like none: only one space is allowed between words). */
 .page .ProseMirror { white-space: break-spaces; }
 .page .ProseMirror pre, .page .ProseMirror code { white-space: pre-wrap; }
+body.dragging-dialog, body.dragging-dialog * { cursor: move !important; user-select: none !important; }
