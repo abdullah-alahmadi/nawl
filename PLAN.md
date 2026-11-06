@@ -147,7 +147,8 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] Cross-references with stable ids (headings, figures, tables, equations): picker,
       on-screen numbers matching the PDF, broken references shown as "??" and flagged
 - [x] Citations from BibTeX: References manager (import/paste .bib), citation picker,
-      IEEE / numeric / author–year styles, reference list before the appendices
+      IEEE / numeric / author–year styles, reference list before the appendices;
+      a form to add and edit references (per-type fields, authors, automatic keys)
 - [x] Appendices marker: chapters lettered A, B… with their own label ("Appendix {n}")
 - [x] Document checks shown in the app: required fields and chapters, broken
       references, citations missing from the references

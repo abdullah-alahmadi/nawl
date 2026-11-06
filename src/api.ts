@@ -23,6 +23,10 @@ export interface BibEntry {
   authors: string[];
   year: string | null;
   title: string;
+  /** The authors in full (given and family names), for editing. */
+  people: { given: string; family: string }[];
+  /** Every field as written in the BibTeX, for editing. */
+  fields: Record<string, string>;
 }
 
 export interface BibInfo {

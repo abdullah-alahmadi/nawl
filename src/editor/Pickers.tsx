@@ -6,6 +6,8 @@ import { open } from "@tauri-apps/plugin-dialog";
 import * as api from "../api";
 import type { BibEntry, BibInfo } from "../api";
 import { useNumbering } from "./Academic";
+import { ReferenceDialog } from "./ReferenceDialog";
+import { appendEntry, replaceEntry } from "./bibtex";
 
 /** A popover with a search box and a keyboard-navigable list. */
 function Popover<T>({
@@ -151,7 +153,11 @@ export function ReferencesPanel({
   onChange: (source: string) => void;
 }) {
   const [problem, setProblem] = useState<string | null>(null);
-  const [editing, setEditing] = useState(source.trim() === "");
+  const [editing, setEditing] = useState(false);
+  /** The reference window: a new entry, or the key of one being edited. */
+  const [dialog, setDialog] = useState<{ key: string | null } | null>(null);
+  const editingEntry = dialog?.key ? info.entries.find((e) => e.key === dialog.key) : undefined;
+  const taken = new Set(info.entries.map((e) => e.key).filter((k) => k !== dialog?.key));
   const importFile = async () => {
     setProblem(null);
     const file = await open({ multiple: false, directory: false, filters: [{ name: "BibTeX", extensions: ["bib"] }] });
@@ -166,9 +172,12 @@ export function ReferencesPanel({
   return (
     <div className="refs">
       <p className="muted refs-help">
-        BibTeX entries for this document. Export them from Zotero, Mendeley or Google Scholar, then import or paste them.
+        The document's references. Add one with the form, or import BibTeX exported from Zotero, Mendeley or Google Scholar.
       </p>
       <div className="refs-actions">
+        <button className="tb-button primary" onClick={() => setDialog({ key: null })} disabled={!!info.error} title={info.error ? "Fix the BibTeX error first" : undefined}>
+          New reference…
+        </button>
         <button className="tb-button" onClick={importFile}>
           Import .bib…
         </button>
@@ -196,15 +205,36 @@ export function ReferencesPanel({
       )}
       <div className="refs-entries">
         {info.entries.map((e) => (
-          <div key={e.key} className={`refs-entry${cited.includes(e.key) ? " cited" : ""}`} title={cited.includes(e.key) ? "Cited in the text" : "Not cited yet"}>
+          <button
+            key={e.key}
+            className={`refs-entry${cited.includes(e.key) ? " cited" : ""}`}
+            title={`${cited.includes(e.key) ? "Cited in the text" : "Not cited yet"}. Click to edit.`}
+            onClick={() => setDialog({ key: e.key })}
+          >
             <code>{e.key}</code>
             <span>
               {e.authors.join(", ")} {e.year && `(${e.year})`}
             </span>
             <span className="muted">{e.title}</span>
-          </div>
+          </button>
         ))}
       </div>
+      {dialog && (
+        <ReferenceDialog
+          entry={editingEntry}
+          taken={taken}
+          cited={!!editingEntry && cited.includes(editingEntry.key)}
+          onSave={(text) => {
+            onChange(editingEntry ? replaceEntry(source, editingEntry.key, text) : appendEntry(source, text));
+            setDialog(null);
+          }}
+          onDelete={editingEntry ? () => {
+            onChange(replaceEntry(source, editingEntry.key, null));
+            setDialog(null);
+          } : undefined}
+          onClose={() => setDialog(null)}
+        />
+      )}
     </div>
   );
 }

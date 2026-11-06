@@ -225,7 +225,8 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }
 
 .refs { display: grid; gap: 10px; padding: 0 6px; }
 .refs-help { margin: 0; font-size: 12px; line-height: 1.5; }
-.refs-actions { display: flex; gap: 6px; }
+.refs-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.refs-actions .tb-button { white-space: nowrap; }
 .refs-source { font: 12px/1.5 ui-monospace, monospace; resize: vertical; width: 100%; }
 .refs-count { font-size: 12px; }
 .refs-entries { display: grid; gap: 6px; font-size: 12.5px; }
@@ -767,3 +768,22 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
 .image-field-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .image-field-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .image-field .d-error { grid-column: 1 / -1; }
+
+/* Reference window */
+.ref-dialog { width: min(620px, 100%); max-height: min(760px, 100%); display: flex; flex-direction: column; overflow: hidden; }
+.ref-form { overflow: auto; padding: 4px 18px 0; display: grid; gap: 10px; }
+.ref-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 13px; }
+.ref-row > span:first-child { padding-top: 6px; font-weight: 500; }
+.ref-row input, .ref-row textarea, .ref-row select { width: 100%; box-sizing: border-box; }
+.ref-people { display: grid; gap: 6px; }
+.ref-person { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: 6px; align-items: center; }
+.ref-hint { font-size: 11.5px; }
+.ref-key { display: grid; gap: 3px; }
+.ref-foot {
+  position: sticky; bottom: 0; display: flex; align-items: center; gap: 8px; padding: 10px 0 14px; margin-top: 4px;
+  background: var(--panel); border-top: 1px solid var(--border);
+}
+.ref-problems { flex: 1; font-size: 12px; text-align: right; }
+.tb-button.danger:hover { color: var(--error); background: var(--error-soft); }
+button.refs-entry { text-align: left; cursor: pointer; font: inherit; color: inherit; }
+button.refs-entry:hover { border-color: var(--accent); }

@@ -45,8 +45,11 @@ appear on the right while the cursor is in the table) and **raw LaTeX blocks**
 images are stored in a `figures/` folder next to the `.loom` file.
 
 **Cross-reference** inserts "Figure 3.1", "Chapter 2" or "(3.2)" and stays correct
-as things move; **Citation** inserts a reference from the **References** panel,
-where you import or paste BibTeX (e.g. exported from Zotero). **Appendices** starts
+as things move; **Citation** inserts a reference from the **References** panel.
+There, **New reference…** opens a form (journal article, conference paper, book,
+chapter, thesis, report or website) with a row per author; the citation key is made
+from the first author, year and title. Click a reference to edit or delete it. You
+can also import or paste BibTeX (e.g. exported from Zotero). **Appendices** starts
 the appendices; chapters after it are lettered. With the cursor in a heading,
 **Numbered** on the right turns its number off (Acknowledgment, Preface); it stays
 in the table of contents. As in LyX, you can't stack empty lines: LaTeX ignores

@@ -1,7 +1,7 @@
 //! Reading BibTeX for the editor: entry list for the citation picker and the
 //! on-screen citation labels. (The PDF uses real BibTeX, run by the TeX engine.)
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use biblatex::{Bibliography, ChunksExt};
 use serde::Serialize;
@@ -16,6 +16,18 @@ pub struct BibEntry {
     pub authors: Vec<String>,
     pub year: Option<String>,
     pub title: String,
+    /// The authors in full, for editing the entry.
+    pub people: Vec<PersonName>,
+    /// Every field as written (verbatim), for editing the entry.
+    pub fields: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersonName {
+    pub given: String,
+    /// Family name with its prefix ("van Gogh").
+    pub family: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -45,12 +57,21 @@ fn entry(e: &biblatex::Entry) -> BibEntry {
     let people = e.author().or_else(|_| e.editors().map(|eds| eds.into_iter().flat_map(|(p, _)| p).collect()));
     let field = |name: &str| e.get(name).map(|c| c.format_verbatim()).filter(|s| !s.trim().is_empty());
     let year = field("year").or_else(|| field("date").map(|d| d.chars().take(4).collect()));
+    let authors = e.author().unwrap_or_default();
     BibEntry {
         key: e.key.clone(),
         kind: e.entry_type.to_string(),
         authors: people.unwrap_or_default().into_iter().map(|p| p.name).filter(|n| !n.is_empty()).collect(),
         year,
         title: field("title").unwrap_or_default(),
+        people: authors
+            .into_iter()
+            .map(|p| PersonName {
+                given: p.given_name,
+                family: if p.prefix.is_empty() { p.name } else { format!("{} {}", p.prefix, p.name) },
+            })
+            .collect(),
+        fields: e.fields.iter().map(|(k, v)| (k.clone(), v.format_verbatim())).collect(),
     }
 }
 
@@ -73,5 +94,12 @@ mod tests {
         let bad = parse("@book{ok, title = {x}}\n\n@book{broken, title = {x}");
         assert!(bad.error.unwrap().starts_with("Line"));
         assert!(keys("@book{a, title={x}}").unwrap().contains("a"));
+
+        let full = parse("@article{x, author = {van Gogh, Vincent and {LoRa Alliance}}, journal = {Art \\& Science}, volume = 3}");
+        let e = &full.entries[0];
+        assert_eq!(e.people[0].family, "van Gogh");
+        assert_eq!(e.people[0].given, "Vincent");
+        assert_eq!(e.people[1].family, "LoRa Alliance");
+        assert_eq!(e.fields["volume"], "3");
     }
 }
