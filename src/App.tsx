@@ -24,6 +24,7 @@ import { Flash, flashBlock } from "./editor/Flash";
 import { SearchBar } from "./editor/SearchBar";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
 import { SaveTemplateDialog, type SaveAsChoice } from "./designer/SaveTemplateDialog";
+import { NewTemplateDialog } from "./designer/NewTemplateDialog";
 import { withKitFiles } from "./designer/ContentSections";
 import { PdfPreview } from "./preview/PdfPreview";
 import { PagePreview } from "./preview/PagePreview";
@@ -138,6 +139,8 @@ export default function App() {
   const askedThemeEngine = useRef(false);
   const [userTemplates, setUserTemplates] = useState<api.UserTemplate[]>([]);
   const refreshUserTemplates = useCallback(() => api.listUserTemplates().then(setUserTemplates, () => setUserTemplates([])), []);
+  /** The "New blank template" dialog is open. */
+  const [showNewTemplate, setShowNewTemplate] = useState(false);
   /** The open "Save template as" dialog, answered through `resolve`. */
   const [saveAsRequest, setSaveAsRequest] = useState<{ defaultName: string; title?: string; resolve: (c: SaveAsChoice | null) => void } | null>(null);
   const [mode, setMode] = useState<"document" | "template">("document");
@@ -622,6 +625,20 @@ export default function App() {
     }
   };
 
+  /** Creates a blank template in My templates and opens it in the designer. */
+  const createBlankTemplate = async (name: string, spec: api.BlankSpec): Promise<boolean> => {
+    if (draftDirty && !(await ask("Discard the unsaved changes to this template?", { title: "New template", kind: "warning" }))) return false;
+    try {
+      applyTemplate(await api.createBlankTemplate(name, spec));
+      refreshUserTemplates();
+      setMode("template");
+      return true;
+    } catch (e) {
+      report(e);
+      return false;
+    }
+  };
+
   const newTemplateCopy = () => {
     if (!draft) return;
     const copy = structuredClone(draft);
@@ -1057,6 +1074,15 @@ export default function App() {
                 }}
               />
               <MenuItem
+                icon={<FilePlus2 />}
+                label="New blank template…"
+                title="Design a template from scratch"
+                onClick={() => {
+                  close();
+                  setShowNewTemplate(true);
+                }}
+              />
+              <MenuItem
                 icon={<FolderOpen />}
                 label="Open template file…"
                 title="Open a template.json in place; edits to the file reload live"
@@ -1192,6 +1218,7 @@ export default function App() {
               onSave={saveTemplate}
               onSaveAs={saveTemplateAs}
               onNewCopy={newTemplateCopy}
+              onNewBlank={() => setShowNewTemplate(true)}
               onImportKit={importKit}
               onBrowseThemes={() => setShowThemePicker(true)}
             />
@@ -1315,6 +1342,7 @@ export default function App() {
         )}
       </footer>
 
+      {showNewTemplate && <NewTemplateDialog onCreate={createBlankTemplate} onClose={() => setShowNewTemplate(false)} />}
       {saveAsRequest && (
         <SaveTemplateDialog
           defaultName={saveAsRequest.defaultName}

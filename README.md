@@ -193,7 +193,11 @@ cargo test -p texloom installed_journal -- --ignored --nocapture
 Switch to **Template** mode (top left). The designer has panels for template info,
 page, fonts, structure, headings, headers & footers, fields and front matter; every
 change updates the PDF preview, and problems appear next to the control that caused
-them. Use **New copy** to start from the current template, then **Save as…**.
+them. Use **New copy** to start from the current template, then **Save as…**. To
+design one from scratch, use **New blank…** (or **New blank template…** in the title
+bar's template menu): name it, pick report or thesis, article or presentation, and the
+paper size. You get a plain template (title, authors and date; simple headings; a
+basic title page) saved in **My templates** and opened in the designer.
 The **Title page** panel is a drag-and-drop canvas: add text, images and lines, drag
 them into place, and edit text, style, size and position on the right. Items snap to
 the page's centre and margins and to each other's edges (hold Alt for none). Select

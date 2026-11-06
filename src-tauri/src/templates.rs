@@ -8,9 +8,9 @@ use std::time::Duration;
 
 use notify_debouncer_mini::notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
-use texloom_core::{has_errors, Issue, Severity, Template, TitleContent};
+use texloom_core::{has_errors, Issue, Paper, Severity, Template, TitleContent};
 
 use crate::AppError;
 
@@ -28,6 +28,63 @@ pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("aps-physical-review", include_str!("../../templates/aps-physical-review/template.json")),
     ("beamer-presentation", include_str!("../../templates/beamer-presentation/template.json")),
 ];
+
+/// What a blank template starts as ("New blank template").
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlankSpec {
+    /// Slides instead of a report or article.
+    pub presentation: bool,
+    pub paper: Paper,
+    /// Chapters at the top (reports, theses) instead of sections (articles).
+    pub chapters: bool,
+}
+
+/// A template to design from scratch: plain styles, a title, authors and date, a
+/// simple title page and nothing else (no required chapters, no extra fields).
+/// Presentations start from the beamer template, which is plain already.
+pub fn blank_template(spec: BlankSpec) -> Template {
+    let id = if spec.presentation { "beamer-presentation" } else { "senior-design" };
+    let (_, json) = BUILTIN_TEMPLATES.iter().find(|(i, _)| *i == id).expect("built-in template exists");
+    let mut v: serde_json::Value = serde_json::from_str(json).expect("built-in template parses");
+    v["meta"] = serde_json::json!({ "id": "blank", "name": "Blank template", "description": "", "version": "0.1.0" });
+    if !spec.presentation {
+        let (width, _) = spec.paper.size_mm();
+        let x = width / 2.0;
+        v["page"]["paper"] = serde_json::to_value(spec.paper).expect("paper serializes");
+        v["page"]["margins"] = serde_json::json!({ "topMm": 25, "bottomMm": 25, "innerMm": 25, "outerMm": 25 });
+        v["page"]["lineSpacing"] = serde_json::json!({ "kind": "single" });
+        v["structure"]["topLevel"] = serde_json::json!(if spec.chapters { "chapter" } else { "section" });
+        v["structure"]["perChapterNumbering"] = serde_json::json!(spec.chapters);
+        if !spec.chapters {
+            // Sections at the top: no "Chapter 1" display heading.
+            let heading = |size: u32, bold: bool, italic: bool, before: u32, after: u32| {
+                serde_json::json!({ "text": { "sizePt": size, "bold": bold, "italic": italic, "align": "left" }, "layout": "inline",
+                    "label": "{n}", "labelGapPt": 10, "spaceBeforePt": before, "spaceAfterPt": after })
+            };
+            v["headings"]["levels"] = serde_json::json!([heading(14, true, false, 18, 8), heading(12, true, false, 14, 6), heading(12, true, true, 12, 4), heading(12, false, true, 10, 4)]);
+        }
+        let footer = serde_json::json!({ "footer": { "center": "{page}" } });
+        v["headerFooter"] = serde_json::json!({ "frontMatter": footer, "main": footer, "chapterOpening": footer });
+        v["skeleton"] = serde_json::json!([]);
+        v["fields"] = serde_json::json!([
+            { "id": "title", "label": "Title", "kind": "text", "required": true },
+            { "id": "authors", "label": "Authors", "kind": "list", "required": false },
+            { "id": "date", "label": "Date", "kind": "text", "required": false },
+        ]);
+        let text = |text: &str, y: u32, size: u32, bold: bool| {
+            serde_json::json!({ "xMm": x, "yMm": y, "anchor": "top", "content": { "type": "text", "text": text, "widthMm": 160,
+                "style": { "sizePt": size, "bold": bold, "align": "center" } } })
+        };
+        v["titlePage"]["items"] = serde_json::json!([text("{title}", 90, 24, true), text("{authors}", 130, 14, false), text("{date}", 160, 12, false)]);
+        v["frontMatter"] = if spec.chapters {
+            serde_json::json!([{ "type": "titlePage" }, { "type": "tableOfContents", "title": "Contents" }])
+        } else {
+            serde_json::json!([{ "type": "titlePage" }])
+        };
+    }
+    serde_json::from_value(v).expect("blank template is a template")
+}
 
 /// A built-in template, for the template gallery.
 #[derive(Debug, Clone, Serialize)]

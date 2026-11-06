@@ -44,6 +44,7 @@ export function TemplateDesigner({
   onSave,
   onSaveAs,
   onNewCopy,
+  onNewBlank,
   onImportKit,
   onBrowseThemes,
 }: {
@@ -59,6 +60,8 @@ export function TemplateDesigner({
   onSave: () => void;
   onSaveAs: () => void;
   onNewCopy: () => void;
+  /** Opens "New blank template". */
+  onNewBlank: () => void;
   /** Imports a publisher kit (.zip), saving the template first when it has no file. */
   onImportKit: (zip: string) => Promise<void>;
   /** Opens the presentation theme picker. */
@@ -102,6 +105,9 @@ export function TemplateDesigner({
           <span className="muted">{info.path ?? "Built-in template (use Save as… to keep changes)"}</span>
         </div>
         <div className="group">
+          <button onClick={onNewBlank} title="Design a template from scratch">
+            New blank…
+          </button>
           <button onClick={onNewCopy} title="Start a new template from a copy of this one">
             New copy
           </button>

@@ -133,6 +133,7 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       the template is in New from template… right away; "Save to file…" keeps a loose .json
 - [x] Instant page preview in the designer (Page / PDF switch): the document styled with
       the draft template on every change
+- [x] New blank template (report, article or presentation; A4 or Letter) saved in My templates
 - [ ] Undo/redo inside the designer; caption and TOC styling once figures exist
 
 ### Phase 4: Title-page designer (~2–3 weeks)

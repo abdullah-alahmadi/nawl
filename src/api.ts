@@ -123,6 +123,15 @@ export const onTemplateReloaded = (cb: (e: TemplateReloadEvent) => void) =>
 export const setTemplate = (template: Template) => invoke<Issue[]>("set_template", { template });
 export const saveTemplate = (path: string, template: Template) =>
   invoke<TemplateInfo>("save_template", { path, template });
+/** What a blank template starts as. */
+export interface BlankSpec {
+  presentation: boolean;
+  paper: { kind: "a4" | "letter" };
+  /** Chapters (reports) instead of sections (articles). */
+  chapters: boolean;
+}
+/** Creates a template from scratch in My templates and makes it active. */
+export const createBlankTemplate = (name: string, spec: BlankSpec) => invoke<TemplateInfo>("create_blank_template", { name, spec });
 /** Saves the template into My templates as a new template called `name` and makes it active. */
 export const saveTemplateToLibrary = (name: string, template: Template) =>
   invoke<TemplateInfo>("save_template_to_library", { name, template });

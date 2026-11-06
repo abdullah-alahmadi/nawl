@@ -195,12 +195,15 @@ button.link { padding: 0; color: var(--accent-text); text-decoration: underline;
 .menu-info strong { font-size: 13px; }
 
 /* ---------------------------------------------------------------- inputs */
-input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea {
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]), textarea {
   font: inherit; color: var(--text); background: var(--panel);
   border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 5px 8px; min-width: 0;
 }
 input:focus, textarea:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 0; border-color: var(--accent); }
-input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }
+input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--accent); }
+/* The card around a radio shows the focus; no second ring on the radio itself. */
+.new-template-kind input:focus { outline: none; }
+.new-template-kind:focus-within { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); }
 .page input, .page textarea { border: none; background: transparent; padding: 0; }
 
 /* ---------------------------------------------------------------- side panels */
@@ -847,6 +850,11 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
 .save-template-dialog { width: min(480px, 100%); display: flex; flex-direction: column; overflow: hidden; }
 .save-template-dialog .ref-row { grid-template-columns: 60px minmax(0, 1fr); }
 .save-template-why { margin: 4px 0 0; font-size: 13px; }
+.new-template-kinds { display: grid; gap: 6px; }
+.new-template-kind { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+.new-template-kind input { grid-row: span 2; margin-top: 3px; }
+.new-template-kind .muted { font-size: 12px; }
+.new-template-kind.active { border-color: var(--accent); background: var(--accent-soft); }
 .tb-button.danger:hover { color: var(--error); background: var(--error-soft); }
 button.refs-entry { text-align: left; cursor: pointer; font: inherit; color: inherit; }
 button.refs-entry:hover { border-color: var(--accent); }

@@ -518,6 +518,22 @@ fn save_template_to_library(
     Ok(info)
 }
 
+/// Starts a template from scratch ("New blank template"): saved into My templates
+/// as `name`, so images can be added right away, and made active.
+#[tauri::command]
+fn create_blank_template(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    library: State<'_, Library>,
+    name: String,
+    spec: templates::BlankSpec,
+) -> Result<TemplateInfo, AppError> {
+    let t = library.save_new(&name, templates::blank_template(spec), None)?;
+    let info = t.info();
+    state.templates.set(&app, t);
+    Ok(info)
+}
+
 /// Copies an image into the active template's `assets/` folder for the title page.
 #[tauri::command]
 fn import_template_asset(state: State<'_, AppState>, source: String) -> Result<String, AppError> {
@@ -1007,6 +1023,7 @@ pub fn run() {
             set_template,
             save_template,
             save_template_to_library,
+            create_blank_template,
             pdf_to_block,
             block_to_pdf,
             list_system_fonts,
@@ -1065,6 +1082,62 @@ mod tests {
         assert_eq!(state.block_at(1, 0.01, 0.0), Some(1));
         assert_eq!(state.spot_of(0).map(|s| s.page), Some(1));
         assert_eq!(state.spot_of(2), None);
+    }
+
+    #[test]
+    fn blank_templates_are_valid_and_plain() {
+        use texloom_core::{FrontMatterItem, Paper, TopLevel};
+        for presentation in [false, true] {
+            for chapters in [false, true] {
+                for paper in [Paper::A4, Paper::Letter] {
+                    let t = templates::blank_template(templates::BlankSpec { presentation, paper, chapters });
+                    let issues = t.validate();
+                    assert!(!texloom_core::has_errors(&issues), "{presentation} {chapters} {paper:?}: {issues:?}");
+                    assert!(t.skeleton.is_empty(), "no required chapters");
+                    if presentation {
+                        assert_eq!(t.kind, texloom_core::DocumentKind::Presentation);
+                        continue;
+                    }
+                    assert_eq!(t.page.paper, paper);
+                    assert_eq!(t.structure.top_level, if chapters { TopLevel::Chapter } else { TopLevel::Section });
+                    assert_eq!(t.fields.iter().map(|f| f.id.as_str()).collect::<Vec<_>>(), ["title", "authors", "date"]);
+                    assert_eq!(t.front_matter.iter().any(|f| matches!(f, FrontMatterItem::TableOfContents { .. })), chapters);
+                    // The title page is centred on the paper.
+                    assert_eq!(t.title_page.items[0].x_mm, paper.size_mm().0 / 2.0);
+                    // The class generates and the sample document still works with it.
+                    assert!(texloom_codegen::template_to_cls(&t).contains("\\ProvidesClass"));
+                }
+            }
+        }
+    }
+
+    /// Blank templates compile with the example report's text (Tectonic, and pdfLaTeX
+    /// when installed). Run with TEXLOOM_TECTONIC=… cargo test -p texloom blank -- --ignored
+    #[test]
+    #[ignore]
+    fn blank_templates_compile() {
+        use texloom_core::{DocumentFile, Paper};
+        let file: DocumentFile = serde_json::from_str(include_str!("../../examples/senior-design-report.loom")).unwrap();
+        let mut doc = file.document;
+        doc.metadata.retain(|k, _| k == "title");
+        let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../examples");
+        for chapters in [false, true] {
+            let t = templates::blank_template(templates::BlankSpec { presentation: false, paper: Paper::Letter, chapters });
+            for engine in [texloom_codegen::Engine::Xe, texloom_codegen::Engine::Pdf] {
+                let g = texloom_codegen::generate_for(&t, &doc, engine);
+                let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
+                let support = g.support_files();
+                let files: Vec<Asset> = support.iter().chain(figures.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
+                let out = match engine {
+                    texloom_codegen::Engine::Pdf => match SystemLatex::find(LatexProgram::PdfLatex) {
+                        Some(latex) => latex.compile(&g.tex, &files),
+                        None => continue,
+                    },
+                    _ => Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files),
+                };
+                assert!(out.unwrap_or_else(|e| panic!("chapters {chapters}, {engine:?}: {e:?}")).pdf.starts_with(b"%PDF"));
+            }
+        }
     }
 
     #[test]
