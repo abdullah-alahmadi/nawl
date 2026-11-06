@@ -14,7 +14,14 @@
     "fontSizePt": 11,
     "outline": false,
     "sectionSlides": false,
-    "navigationSymbols": false
+    "navigationSymbols": false,
+    "logo": "everySlide",
+    "footer": {
+      "style": "theme",
+      "left": "{author}",
+      "center": "{title}",
+      "right": "{page} / {pages}"
+    }
   },
   "page": {
     "paper": {
@@ -199,6 +206,12 @@
       "required": false
     },
     {
+      "id": "short_title",
+      "label": "Short title (footer and headers)",
+      "kind": "text",
+      "required": false
+    },
+    {
       "id": "authors",
       "label": "Presenters",
       "kind": "authors",
@@ -214,6 +227,12 @@
       "id": "date",
       "label": "Date or event (empty for today)",
       "kind": "text",
+      "required": false
+    },
+    {
+      "id": "logo",
+      "label": "Logo",
+      "kind": "image",
       "required": false
     }
   ],

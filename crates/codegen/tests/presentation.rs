@@ -98,3 +98,53 @@ fn accent_colour_sets_the_structure_colour() {
     t.presentation.as_mut().unwrap().accent_color = Some("blue".into());
     assert!(!t.validate().is_empty());
 }
+
+#[test]
+fn logo_short_title_and_custom_footer() {
+    let mut t = template();
+    let p = t.presentation.as_mut().unwrap();
+    p.footer.style = texloom_core::FooterStyle::Custom;
+    p.footer.left = "{author} & co".into();
+    p.footer.right = "Slide {page} of {pages}".into();
+    assert!(t.validate().is_empty(), "{:?}", t.validate());
+    let mut file = deck();
+    file.document.metadata.insert("logo".into(), texloom_core::FieldValue::Text("figures/system-diagram.png".into()));
+    file.document.metadata.insert("short_title".into(), texloom_core::FieldValue::Text("Irrigation".into()));
+    let g = texloom_codegen::generate(&t, &file.document);
+    assert!(g.tex.contains("\\title[Irrigation]{Sensor-Driven Irrigation for Small Farms}"), "{}", g.tex);
+    assert!(g.tex.contains("\\titlegraphic{\\includegraphics[height=1.4cm,keepaspectratio]{figures/system-diagram.png}}"));
+    assert!(g.tex.contains("\\logo{\\includegraphics[height=0.7cm,keepaspectratio]{figures/system-diagram.png}}"));
+    assert!(!g.tex.contains("\\texloomfield{logo}"));
+    assert!(g.cls.contains("\\insertshortauthor{} \\& co"), "{}", g.cls);
+    assert!(g.cls.contains("Slide \\insertframenumber{} of \\inserttotalframenumber{}"));
+    assert!(g.figures.contains(&"figures/system-diagram.png".to_string()));
+
+    // Title slide only; no footer.
+    let p = t.presentation.as_mut().unwrap();
+    p.logo = texloom_core::LogoPlacement::TitleSlide;
+    p.footer.style = texloom_core::FooterStyle::None;
+    let g = texloom_codegen::generate(&t, &file.document);
+    assert!(g.tex.contains("\\titlegraphic{") && !g.tex.contains("\\logo{"));
+    assert!(g.cls.contains("\\setbeamertemplate{footline}{}"));
+}
+
+/// The logo and a custom footer compile. Run with --ignored (needs TEXLOOM_TECTONIC).
+#[test]
+#[ignore]
+fn logo_and_footer_compile() {
+    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let mut t = template();
+    t.presentation.as_mut().unwrap().footer.style = texloom_core::FooterStyle::Custom;
+    let mut file = deck();
+    file.document.metadata.insert("logo".into(), texloom_core::FieldValue::Text("figures/system-diagram.png".into()));
+    let g = texloom_codegen::generate(&t, &file.document);
+    let figures: Vec<(String, Vec<u8>)> =
+        g.figures.iter().map(|f| (f.clone(), std::fs::read(root().join("examples").join(f)).unwrap())).collect();
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> =
+        support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = compiler.compile(&g.tex, &files).unwrap_or_else(|e| panic!("{e:?}"));
+    if let Some(dir) = std::env::var_os("TEXLOOM_DUMP") {
+        std::fs::write(std::path::Path::new(&dir).join("logo-footer.pdf"), &out.pdf).unwrap();
+    }
+}

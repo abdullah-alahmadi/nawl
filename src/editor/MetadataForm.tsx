@@ -2,7 +2,41 @@
 // Generated from the template, so every template gets its own form for free.
 import type { FieldValue, Metadata, Template } from "../api";
 import type { MetadataField } from "../bindings/MetadataField";
+import { useState } from "react";
 import { AuthorsEditor, toAuthors } from "./AuthorsEditor";
+import { pickFigureImage, useDocumentImage } from "./Figures";
+
+/** An image field (a logo): a thumbnail, Choose and Remove. The image is copied
+ *  into the document's figures/ folder like any figure. */
+function ImageField({ value, onChange }: { value: string; onChange: (path: string) => void }) {
+  const { url } = useDocumentImage(value);
+  const [problem, setProblem] = useState<string | null>(null);
+  const choose = async () => {
+    setProblem(null);
+    try {
+      const path = await pickFigureImage();
+      if (path) onChange(path);
+    } catch (e) {
+      setProblem(String((e as { message?: string }).message ?? e));
+    }
+  };
+  return (
+    <span className="image-field">
+      <span className="image-field-thumb">{url ? <img src={url} alt="" /> : <span className="muted">{value ? value : "No image"}</span>}</span>
+      <span className="image-field-actions">
+        <button type="button" onClick={choose}>
+          {value ? "Change…" : "Choose image…"}
+        </button>
+        {value && (
+          <button type="button" onClick={() => onChange("")}>
+            Remove
+          </button>
+        )}
+      </span>
+      {problem && <span className="d-error">{problem}</span>}
+    </span>
+  );
+}
 
 function asText(v: FieldValue | undefined): string {
   if (v === undefined) return "";
@@ -59,6 +93,16 @@ export function MetadataForm({
         }
         const value = asText(metadata[f.id]);
         const missing = f.required && value.trim() === "";
+        if (f.kind === "image")
+          return (
+            <div key={f.id} className={`field-group${missing ? " missing" : ""}`}>
+              <span className="field-label">
+                {f.label}
+                {f.required && <span className="required" title="Required"> *</span>}
+              </span>
+              <ImageField value={value} onChange={(path) => set(f, path)} />
+            </div>
+          );
         return (
           <label key={f.id} htmlFor={id} className={missing ? "missing" : ""}>
             <span>

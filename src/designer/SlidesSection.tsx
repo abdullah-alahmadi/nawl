@@ -2,7 +2,7 @@
 // and the automatic outline slides.
 import type { PresentationSettings } from "../bindings/PresentationSettings";
 import { BEAMER_COLOR_THEMES, BEAMER_FONT_THEMES, BEAMER_THEMES } from "../editor/templateStyle";
-import { ColorInput, Row, Segmented, Select, Toggle, issuesAt } from "./controls";
+import { ColorInput, PlaceholderInput, Row, Segmented, Select, Toggle, issuesAt, type PlaceholderOption } from "./controls";
 import type { SectionProps } from "./common";
 
 const DEFAULTS: PresentationSettings = {
@@ -14,7 +14,19 @@ const DEFAULTS: PresentationSettings = {
   outline: false,
   sectionSlides: false,
   navigationSymbols: false,
+  logo: "everySlide",
+  footer: { style: "theme", left: "{author}", center: "{title}", right: "{page} / {pages}" },
 };
+
+const FOOTER_PLACEHOLDERS: PlaceholderOption[] = [
+  { name: "author", description: "Presenters (short form)" },
+  { name: "title", description: "Short title, else the title" },
+  { name: "date", description: "Date or event" },
+  { name: "institute", description: "Institution" },
+  { name: "section", description: "Current section" },
+  { name: "page", description: "Slide number" },
+  { name: "pages", description: "Number of slides" },
+];
 
 export function SlidesSection({ t, edit, issues, onBrowseThemes }: SectionProps & { onBrowseThemes: () => void }) {
   const p = t.presentation ?? DEFAULTS;
@@ -69,6 +81,34 @@ export function SlidesSection({ t, edit, issues, onBrowseThemes }: SectionProps 
           <Toggle checked={p.sectionSlides} onChange={(v) => set({ sectionSlides: v })} label="Outline slide at each section, highlighting it" />
         </span>
       </Row>
+      <Row label="Logo" hint="The image itself is chosen in Document info (Logo)">
+        <Segmented
+          value={p.logo}
+          options={[
+            { value: "everySlide", label: "Every slide", title: "On the title slide and in the corner of every slide" },
+            { value: "titleSlide", label: "Title slide" },
+            { value: "off", label: "Off" },
+          ]}
+          onChange={(v) => set({ logo: v })}
+        />
+      </Row>
+      <Row label="Footer" hint="The line at the bottom of each slide">
+        <Segmented
+          value={p.footer.style}
+          options={[
+            { value: "theme", label: "Theme's own", title: "What the theme shows (Madrid: presenter, title, date, slide number)" },
+            { value: "custom", label: "Custom" },
+            { value: "none", label: "None" },
+          ]}
+          onChange={(v) => set({ footer: { ...p.footer, style: v } })}
+        />
+      </Row>
+      {p.footer.style === "custom" &&
+        (["left", "center", "right"] as const).map((side) => (
+          <Row key={side} label={{ left: "Left", center: "Centre", right: "Right" }[side]}>
+            <PlaceholderInput value={p.footer[side]} placeholders={FOOTER_PLACEHOLDERS} onChange={(v) => set({ footer: { ...p.footer, [side]: v } })} />
+          </Row>
+        ))}
       <Row label="Navigation">
         <Toggle checked={p.navigationSymbols} onChange={(v) => set({ navigationSymbols: v })} label="Beamer's navigation symbols in the corner" />
       </Row>

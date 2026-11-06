@@ -543,7 +543,7 @@ pub fn photo_sources(doc: &Document) -> Vec<String> {
         .collect()
 }
 
-fn is_safe_path(path: &str) -> bool {
+pub(crate) fn is_safe_path(path: &str) -> bool {
     !path.is_empty()
         && !path.starts_with('/')
         && !path.contains('\\')

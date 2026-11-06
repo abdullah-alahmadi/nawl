@@ -100,6 +100,61 @@ pub struct PresentationSettings {
     /// Beamer's navigation symbols in the slide corner.
     #[serde(default)]
     pub navigation_symbols: bool,
+    /// Where the logo (the document's `logo` image field) appears.
+    #[serde(default)]
+    pub logo: LogoPlacement,
+    /// What the line at the bottom of each slide shows.
+    #[serde(default)]
+    pub footer: SlideFooter,
+}
+
+/// Where a presentation's logo appears.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum LogoPlacement {
+    /// On the title slide and in the corner of every slide.
+    #[default]
+    EverySlide,
+    /// On the title slide only.
+    TitleSlide,
+    /// Nowhere.
+    Off,
+}
+
+/// The footer line of a presentation's slides.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SlideFooter {
+    pub style: FooterStyle,
+    /// Left, centre and right parts for the custom style: text with `{author}`,
+    /// `{title}`, `{date}`, `{institute}`, `{section}`, `{page}`, `{pages}`.
+    #[serde(default)]
+    pub left: String,
+    #[serde(default)]
+    pub center: String,
+    #[serde(default)]
+    pub right: String,
+}
+
+impl Default for SlideFooter {
+    fn default() -> Self {
+        Self { style: FooterStyle::Theme, left: "{author}".into(), center: "{title}".into(), right: "{page} / {pages}".into() }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum FooterStyle {
+    /// Whatever the theme shows (Madrid: presenter, title, date and slide number).
+    #[default]
+    Theme,
+    /// Three parts of the author's choosing.
+    Custom,
+    /// No footer line.
+    None,
 }
 
 fn default_slide_font_pt() -> u8 {
@@ -118,6 +173,8 @@ impl Default for PresentationSettings {
             outline: false,
             section_slides: false,
             navigation_symbols: false,
+            logo: LogoPlacement::default(),
+            footer: SlideFooter::default(),
         }
     }
 }
@@ -700,6 +757,9 @@ pub enum FieldKind {
     /// A list of entries (e.g. team members). Shown one per line on the title page,
     /// comma-separated in headers and footers.
     List,
+    /// An image chosen by the author (a presentation's logo): a path relative to the
+    /// document's folder, like figures.
+    Image,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]

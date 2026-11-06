@@ -21,6 +21,10 @@ pub fn document_to_tex(t: &Template, doc: &Document) -> String {
     o.push_str(&format!("\\documentclass{{{}}}\n\n", t.meta.id));
 
     for f in &t.fields {
+        // Images (a logo) are used by path, not written as text.
+        if f.kind == FieldKind::Image {
+            continue;
+        }
         let value = doc.metadata.get(&f.id).filter(|v| !v.is_empty());
         let rendered = match value {
             Some(v) => field_value(f.kind, v),
@@ -87,7 +91,7 @@ fn field_value(kind: FieldKind, v: &FieldValue) -> String {
         FieldValue::Authors(a) => a.iter().map(|a| a.name.as_str()).collect(),
     };
     match kind {
-        FieldKind::Text => items.iter().map(|s| escape(s.trim())).collect::<Vec<_>>().join(", "),
+        FieldKind::Text | FieldKind::Image => items.iter().map(|s| escape(s.trim())).collect::<Vec<_>>().join(", "),
         FieldKind::Paragraphs => items
             .iter()
             .flat_map(|s| s.split("\n\n"))

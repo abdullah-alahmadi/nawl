@@ -98,8 +98,13 @@ presentation**). A presentation is a list of slides with section headings betwee
 - The toolbar adds **Slide**, **two columns**, a **box** (beamer's block; switch it to
   alert or example in its corner) and a **pause** (what follows appears on the next
   click). Lists, equations, figures, tables, citations and raw LaTeX work on slides too.
-- The title slide comes from **Document info**: title, subtitle, presenters, institution
-  and date. References go on slides of their own at the end.
+- The title slide comes from **Document info**: title, subtitle, short title (for the
+  footer), presenters, institution, date and a **logo** (copied next to the document
+  like figures). References go on slides of their own at the end.
+- **Design template → Slides** decides where the logo goes (every slide, title slide
+  only, off) and what the **footer** shows: the theme's own, none, or a custom left /
+  centre / right line with `{author}`, `{title}`, `{date}`, `{institute}`, `{section}`,
+  `{page}` and `{pages}`. The editor shows the footer and logo on each slide.
 - **Theme** in the toolbar opens the theme picker: every beamer theme and colour
   theme as a preview rendered by the real theme, including the themes your TeX
   installation has (about 70 more on a full TeX Live; ones that need an institution's

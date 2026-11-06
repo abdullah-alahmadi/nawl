@@ -198,12 +198,15 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       a deck under an article template degrades to plain LaTeX
 - [x] Theme picker with previews rendered by the real themes (cached per engine),
       installed TeX Live beamer themes and colour themes, a custom main colour
+- [x] Logo (image field in Document info; every slide / title slide / off), short
+      title, footer (theme's own / custom left-centre-right with placeholders / none),
+      shown on the slides in the editor too
 - [ ] Posters (tikzposter / beamerposter): a big canvas of boxes in columns
 - [ ] Letters (letter / scrlttr2): sender, recipient, opening, closing
 - [ ] CVs (moderncv): sections of dated entries
 - [ ] Books and theses: parts, front/back matter on top of the report template
 - [ ] Presentations next: slide layouts, speaker notes, overlays beyond \pause,
-      reordering slides by dragging, logo and footer settings
+      reordering slides by dragging
 
 ### Phase 6: Polish and distribution (ongoing)
 - [x] Installed TeX as an alternative engine (pdfLaTeX, XeLaTeX, LuaLaTeX via latexmk,

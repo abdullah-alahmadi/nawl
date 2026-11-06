@@ -99,7 +99,7 @@ pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Gene
         figures: {
             // Figure images plus biography photos, all relative to the document folder.
             let mut f = doc.body.figure_sources();
-            for p in publisher::photo_sources(doc) {
+            for p in publisher::photo_sources(doc).into_iter().chain(presentation::image_sources(template, doc)) {
                 if !f.contains(&p) {
                     f.push(p);
                 }

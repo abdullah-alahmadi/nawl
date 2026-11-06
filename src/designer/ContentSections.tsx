@@ -12,6 +12,7 @@ const KINDS: { value: FieldKind; label: string }[] = [
   { value: "text", label: "One line" },
   { value: "paragraphs", label: "Paragraphs" },
   { value: "list", label: "List (one per line)" },
+  { value: "image", label: "Image (e.g. a logo)" },
   { value: "authors", label: "Authors (affiliations, e-mail…)" },
 ];
 

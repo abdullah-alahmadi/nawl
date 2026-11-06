@@ -110,7 +110,39 @@ export function slideSizePx(t: Template): { width: number; height: number } {
 }
 
 /** CSS for the slide you type on: the slide's size, the theme's colours and fonts. */
-function presentationCss(t: Template, scope: string): string {
+/** What a presentation's footer shows on screen, from the document. */
+export interface DeckInfo {
+  title: string;
+  author: string;
+  date: string;
+  institute: string;
+  /** Total number of frames in the PDF (roughly: title, outline, slides, references). */
+  pages: number;
+  /** Frames before the first slide (title, outline): where slide numbers start. */
+  firstNumber: number;
+  /** The logo is set and shown on every slide. */
+  logo: boolean;
+}
+
+/** Themes whose footer is beamer's "infolines": presenter | title | date and number. */
+const INFOLINES = ["Madrid", "AnnArbor", "CambridgeUS", "Boadilla", "Pittsburgh", "Szeged", "Malmoe", "Dresden"];
+
+/** A footer part as a CSS `content` value: text plus the slide-number counter. */
+function footerContent(text: string, info: DeckInfo): string {
+  const parts = text.split(/(\{[a-z]+\})/).filter((x) => x !== "");
+  const values: Record<string, string> = {
+    "{author}": q(info.author),
+    "{title}": q(info.title),
+    "{date}": q(info.date),
+    "{institute}": q(info.institute),
+    "{section}": '""',
+    "{page}": "counter(tl-slide)",
+    "{pages}": q(String(info.pages)),
+  };
+  return parts.map((part) => values[part] ?? q(part)).join(" ") || '""';
+}
+
+function presentationCss(t: Template, scope: string, info?: DeckInfo): string {
   const p = t.presentation;
   const { width, height } = slideSizePx(t);
   const slideWidthMm = p?.aspectRatio === "4:3" ? 128 : 160;
@@ -120,6 +152,37 @@ function presentationCss(t: Template, scope: string): string {
   const size = p?.fontSizePt ?? 11;
   const c = slideColors(p?.theme ?? "Madrid", p?.colorTheme ?? "", p?.accentColor);
   const serif = p?.fontTheme?.includes("serif") && !p.fontTheme.startsWith("structure");
+  // Footer line and logo, at the slide's real bottom edge.
+  const footH = Math.round(height * 0.045);
+  const slideChrome = (): string[] => {
+    const rules = [
+      `${scope} .tiptap{counter-reset:tl-slide ${info?.firstNumber ?? 0}}`,
+      `${scope} .slide{counter-increment:tl-slide}`,
+      `${scope} .slide-body{padding-bottom:${footH}px}`,
+      `${scope} .slide-footer{position:absolute;left:0;right:0;top:${height - footH}px;height:${footH}px;display:none;grid-template-columns:1fr 1fr 1fr;align-items:center;font-size:${px(size * 0.55)};pointer-events:none;user-select:none}`,
+      `${scope} .slide-footer > span{padding:0 ${mm(3)};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:${footH}px}`,
+      `${scope} .slide-foot-center{text-align:center}`,
+      `${scope} .slide-foot-right{text-align:right}`,
+      `${scope} .slide-logo{position:absolute;right:${mm(3)};top:${Math.round(height - footH - 9.5 * k)}px;width:${mm(24)};height:${mm(8)};background:var(--slide-logo, none) right bottom / contain no-repeat;pointer-events:none;display:${info?.logo ? "block" : "none"}}`,
+      `${scope} .slide[data-plain] .slide-footer, ${scope} .slide[data-plain] .slide-logo{display:none}`,
+    ];
+    if (!info) return rules;
+    const style = p?.footer.style ?? "theme";
+    let parts: [string, string, string] | null = null;
+    if (style === "custom") parts = [p!.footer.left, p!.footer.center, p!.footer.right];
+    else if (style === "theme" && INFOLINES.includes(p?.theme ?? "")) parts = ["{author}", "{title}", "{date}    {page} / {pages}"];
+    if (parts) {
+      const solid = c.bar !== "transparent";
+      rules.push(
+        `${scope} .slide-footer{display:grid;${solid ? `background:${c.structure};color:#fff` : `color:${c.structure};border-top:1px solid color-mix(in srgb, ${c.structure} 30%, transparent)`}}`,
+        `${scope} .slide-foot-left::before{content:${footerContent(parts[0], info)}}`,
+        `${scope} .slide-foot-center::before{content:${footerContent(parts[1], info)}}`,
+        `${scope} .slide-foot-right::before{content:${footerContent(parts[2], info)}}`,
+      );
+      if (solid) rules.push(`${scope} .slide-foot-center{background:color-mix(in srgb, ${c.structure} 75%, #fff)}`, `${scope} .slide-foot-right{background:color-mix(in srgb, ${c.structure} 55%, #fff);color:${c.structure}}`);
+    }
+    return rules;
+  };
   const font = serif ? '"Latin Modern Roman", "CMU Serif", serif' : '"Latin Modern Sans", "CMU Sans Serif", "Helvetica Neue", Arial, sans-serif';
   return [
     `${scope}{width:${width}px;max-width:none;padding:0;font-family:${font};font-size:${px(size)};line-height:1.3}`,
@@ -130,7 +193,8 @@ function presentationCss(t: Template, scope: string): string {
     `${scope} .slide::after{content:"";position:absolute;left:0;right:0;top:${height}px;bottom:0;background:rgba(220, 38, 38, 0.12);pointer-events:none}`,
     `${scope} .slide-title{background:${c.bar};color:${c.barFg};font-size:${px(size * 1.2)};line-height:1.25;padding:${mm(2.5)} ${mm(4)};margin-bottom:${mm(4)};min-height:1.25em;border-radius:2px 2px 0 0}`,
     `${scope} .slide-title:has(> br.ProseMirror-trailingBreak:only-child)::before{content:"Slide title";float:left;height:0;opacity:0.55;pointer-events:none}`,
-    `${scope} .slide > :not(.slide-title){margin-left:${mm(5)};margin-right:${mm(5)}}`,
+    `${scope} .slide-body > :not(.slide-title){margin-left:${mm(5)};margin-right:${mm(5)}}`,
+    ...slideChrome(),
     `${scope} .slide p{margin:0 0 ${mm(1.5)};text-indent:0}`,
     `${scope} .slide ul, ${scope} .slide ol{margin:${mm(1)} 0 ${mm(2)};padding-left:${mm(6)}}`,
     `${scope} .slide li::marker{color:${c.structure}}`,
@@ -162,8 +226,8 @@ function presentationCss(t: Template, scope: string): string {
 }
 
 /** CSS rules scoped to `scope` (the editor page element). */
-export function templateCss(t: Template, scope = ".page"): string {
-  if (t.kind === "presentation") return presentationCss(t, scope);
+export function templateCss(t: Template, scope = ".page", deck?: DeckInfo): string {
+  if (t.kind === "presentation") return presentationCss(t, scope, deck);
   const k = PAGE_WIDTH_PX / paperWidthMm(t); // px per mm
   const px = (pt: number) => `${(pt * MM_PER_PT * k).toFixed(2)}px`;
   const mm = (v: number) => `${(v * k).toFixed(1)}px`;

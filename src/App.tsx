@@ -14,7 +14,9 @@ import { Caption, CaptionedTable, Figure, pickFigureImage } from "./editor/Figur
 import { Outline } from "./editor/Outline";
 import { AppendixStart, Citation, CrossRef, TexloomIds, setTexloomContext } from "./editor/Academic";
 import { CitePicker, ReferencesPanel, RefPicker } from "./editor/Pickers";
-import { PAGE_WIDTH_PX, templateCss } from "./editor/templateStyle";
+import { PAGE_WIDTH_PX, templateCss, type DeckInfo } from "./editor/templateStyle";
+import { useDocumentImage } from "./editor/Figures";
+import { toAuthors } from "./editor/AuthorsEditor";
 import { DeckDocument, SLIDE_EXTENSIONS } from "./editor/Slides";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
 import { withKitFiles } from "./designer/ContentSections";
@@ -755,6 +757,35 @@ export default function App() {
     selector: ({ editor }) => (editor ? countWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, " ", " ")) : 0),
   });
 
+  // Presentations: what the slides' footer and logo show on screen.
+  const slideCount = useEditorState({
+    editor,
+    selector: ({ editor }) => {
+      let n = 0;
+      editor?.state.doc.forEach((node) => node.type.name === "slide" && n++);
+      return n;
+    },
+  });
+  const logoPath = typeof metadata.logo === "string" ? metadata.logo : "";
+  const { url: logoUrl } = useDocumentImage(isDeck ? logoPath : "");
+  const deckInfo: DeckInfo | undefined = (() => {
+    const p = template?.presentation;
+    if (!isDeck || !p) return undefined;
+    const text = (id: string) => (typeof metadata[id] === "string" ? (metadata[id] as string).trim() : "");
+    const authors = toAuthors(metadata.authors).map((a) => a.name.trim()).filter(Boolean);
+    const leading = (text("title") ? 1 : 0) + (p.outline ? 1 : 0);
+    const references = bibliography.trim() && citedKeys(editor).length > 0 ? 1 : 0;
+    return {
+      title: text("short_title") || text("title"),
+      author: authors.join(", "),
+      date: text("date") || new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+      institute: text("institute"),
+      pages: leading + (slideCount ?? 0) + references,
+      firstNumber: leading,
+      logo: !!logoPath && p.logo === "everySlide",
+    };
+  })();
+
   const fileName = path ? fileNameOf(path) : "Untitled";
   const missing = issues.filter((i) => i.path.startsWith("metadata.") && i.message.includes("required")).length;
   const headingNames =
@@ -1021,7 +1052,7 @@ export default function App() {
         )}
         {/* Kept mounted (just hidden) in template mode so the editor keeps its state. */}
         <section className="editor-pane" hidden={mode !== "document"}>
-          {template && <style>{templateCss(template, ".page")}</style>}
+          {template && <style>{templateCss(template, ".page", deckInfo)}</style>}
           {picker && editor && (
             <div className="picker-anchor">
               {picker === "ref" ? (
@@ -1032,7 +1063,7 @@ export default function App() {
             </div>
           )}
           <div className="editor-scroll" ref={editorScroll} style={{ ["--page-zoom" as string]: pageZoom }}>
-            <div className={`page${isDeck ? " deck" : ""}`}>
+            <div className={`page${isDeck ? " deck" : ""}`} style={logoUrl ? { ["--slide-logo" as string]: `url("${logoUrl}")` } : undefined}>
               <EditorContent editor={editor} />
             </div>
           </div>

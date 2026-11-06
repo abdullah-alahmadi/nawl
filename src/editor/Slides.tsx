@@ -67,6 +67,43 @@ export const Slide = Node.create({
   parseHTML: () => [{ tag: "section[data-slide]" }],
   renderHTML: ({ HTMLAttributes }) => ["section", mergeAttributes(HTMLAttributes, { "data-slide": "", class: "slide" }), 0],
 
+  // On screen: the content, plus the footer line and logo corner the theme draws
+  // (filled in by CSS from the template and the document's fields).
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement("section");
+      dom.className = "slide";
+      dom.setAttribute("data-slide", "");
+      const body = document.createElement("div");
+      body.className = "slide-body";
+      const logo = document.createElement("div");
+      logo.className = "slide-logo";
+      logo.contentEditable = "false";
+      const footer = document.createElement("div");
+      footer.className = "slide-footer";
+      footer.contentEditable = "false";
+      for (const side of ["left", "center", "right"]) {
+        const part = document.createElement("span");
+        part.className = `slide-foot-${side}`;
+        footer.appendChild(part);
+      }
+      dom.append(body, logo, footer);
+      const sync = (n: typeof node) => (n.attrs.plain ? dom.setAttribute("data-plain", "") : dom.removeAttribute("data-plain"));
+      sync(node);
+      return {
+        dom,
+        contentDOM: body,
+        update: (n) => {
+          if (n.type.name !== "slide") return false;
+          sync(n);
+          return true;
+        },
+        // The footer and logo aren't document content.
+        ignoreMutation: (m) => m.type !== "selection" && !body.contains(m.target as globalThis.Node),
+      };
+    };
+  },
+
   addCommands() {
     return {
       leaveSlideTitle:

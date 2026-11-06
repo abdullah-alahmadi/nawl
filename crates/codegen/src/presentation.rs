@@ -1,10 +1,67 @@
 //! Presentations: a beamer class with the template's theme, and the title slide.
 //! The slides themselves are written by the body writer (`tex.rs`).
 
-use texloom_core::{Document, PresentationSettings, Template};
+use texloom_core::{Document, FieldKind, FieldValue, FooterStyle, LogoPlacement, PresentationSettings, Template};
 
 use crate::latex::escape;
-use crate::publisher::{field_text, Authors};
+use crate::publisher::{field_text, is_safe_path, Authors};
+
+/// Images the document's image fields point at (a logo), relative to its folder.
+pub fn image_sources(t: &Template, doc: &Document) -> Vec<String> {
+    t.fields
+        .iter()
+        .filter(|f| f.kind == FieldKind::Image)
+        .filter_map(|f| match doc.metadata.get(&f.id) {
+            Some(FieldValue::Text(p)) if is_safe_path(p.trim()) => Some(p.trim().to_string()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The presentation's logo: the `logo` image field, when it's a usable path.
+fn logo(doc: &Document) -> Option<String> {
+    match doc.metadata.get("logo") {
+        Some(FieldValue::Text(p)) if is_safe_path(p.trim()) => Some(p.trim().to_string()),
+        _ => None,
+    }
+}
+
+/// A footer part: text (escaped) with `{author}`, `{page}`… as beamer's insert commands.
+pub fn footer_part(text: &str) -> String {
+    let mut out = String::new();
+    let mut rest = text;
+    while let Some(start) = rest.find('{') {
+        out.push_str(&escape(&rest[..start]));
+        let after = &rest[start + 1..];
+        let cmd = after.find('}').and_then(|end| {
+            let name = &after[..end];
+            let cmd = match name {
+                "author" => "\\insertshortauthor",
+                "title" => "\\insertshorttitle",
+                "date" => "\\insertshortdate",
+                "institute" => "\\insertshortinstitute",
+                "section" => "\\insertsection",
+                "page" => "\\insertframenumber",
+                "pages" => "\\inserttotalframenumber",
+                _ => return None,
+            };
+            Some((cmd, end))
+        });
+        match cmd {
+            Some((cmd, end)) => {
+                out.push_str(cmd);
+                out.push_str("{}");
+                rest = &after[end + 1..];
+            }
+            None => {
+                out.push_str(&escape("{"));
+                rest = after;
+            }
+        }
+    }
+    out.push_str(&escape(rest));
+    out
+}
 
 /// Theme, colour and font theme names go into `\usetheme{…}`: letters, digits, '-'.
 pub fn safe_name(s: &str) -> bool {
@@ -38,6 +95,25 @@ pub fn presentation_cls(t: &Template) -> String {
     // blocks from the structure colour.
     if let Some((r, g, b)) = p.accent_color.as_deref().and_then(hex_rgb) {
         o.push_str(&format!("\\usecolortheme[RGB={{{r},{g},{b}}}]{{structure}}\n"));
+    }
+    match p.footer.style {
+        FooterStyle::Theme => {}
+        FooterStyle::None => o.push_str("\\setbeamertemplate{footline}{}\n"),
+        FooterStyle::Custom => {
+            // Three boxes in the theme's head/foot colours, like beamer's infolines.
+            let part = |align: &str, skip: &str, colour: &str, text: &str| {
+                format!(
+                    "\\begin{{beamercolorbox}}[wd=.333333\\paperwidth,ht=2.25ex,dp=1ex,{align}{skip}]{{{colour}}}\\usebeamerfont{{{colour}}}{}\\end{{beamercolorbox}}%\n",
+                    footer_part(text)
+                )
+            };
+            o.push_str("% Footer: left, centre and right parts\n");
+            o.push_str("\\setbeamertemplate{footline}{%\n\\leavevmode\\hbox{%\n");
+            o.push_str(&part("left", ",leftskip=1em", "author in head/foot", &p.footer.left));
+            o.push_str(&part("center", "", "title in head/foot", &p.footer.center));
+            o.push_str(&part("right", ",rightskip=1em", "date in head/foot", &p.footer.right));
+            o.push_str("}\\vskip0pt}\n");
+        }
     }
     if !p.navigation_symbols {
         o.push_str("\\setbeamertemplate{navigation symbols}{}\n");
@@ -98,7 +174,13 @@ pub fn title_slides(t: &Template, doc: &Document) -> String {
         _ => au.affiliations.iter().map(|a| escape(a)).collect::<Vec<_>>().join(" \\and "),
     };
     let date = field_text(doc, t, "date");
-    o.push_str(&format!("\\title{{{title}}}\n"));
+    let short = field_text(doc, t, "short_title");
+    if short.is_empty() {
+        o.push_str(&format!("\\title{{{title}}}\n"));
+    } else {
+        // The footer and headers use the short title.
+        o.push_str(&format!("\\title[{short}]{{{title}}}\n"));
+    }
     if !subtitle.is_empty() {
         o.push_str(&format!("\\subtitle{{{subtitle}}}\n"));
     }
@@ -107,6 +189,12 @@ pub fn title_slides(t: &Template, doc: &Document) -> String {
         o.push_str(&format!("\\institute{{{institute}}}\n"));
     }
     o.push_str(&format!("\\date{{{}}}\n", if date.is_empty() { "\\today".to_string() } else { date }));
+    if let Some(logo) = logo(doc).filter(|_| p.logo != LogoPlacement::Off) {
+        o.push_str(&format!("\\titlegraphic{{\\includegraphics[height=1.4cm,keepaspectratio]{{{logo}}}}}\n"));
+        if p.logo == LogoPlacement::EverySlide {
+            o.push_str(&format!("\\logo{{\\includegraphics[height=0.7cm,keepaspectratio]{{{logo}}}}}\n"));
+        }
+    }
     o.push_str("\n\\begin{document}\n\n");
     if !title.is_empty() {
         o.push_str("\\begin{frame}\n\\titlepage\n\\end{frame}\n\n");

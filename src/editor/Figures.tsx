@@ -61,7 +61,7 @@ function exitCaption(editor: Editor): boolean {
 }
 
 /** Object URL for an image in the document's folder. */
-function useDocumentImage(src: string) {
+export function useDocumentImage(src: string) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
