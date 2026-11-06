@@ -27,6 +27,12 @@ export interface Settings {
   recentLimit: number;
   /** Most recent first. */
   recentFiles: string[];
+  /** The template window: cards or a compact list. */
+  galleryView: "grid" | "list";
+  /** The template window's category ("all", "recent", "journal"…). */
+  galleryCategory: string;
+  /** Templates documents were last started with ("builtin:id", "tex:class", "mine:path"). */
+  recentTemplates: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -42,6 +48,9 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultFolder: "",
   recentLimit: 8,
   recentFiles: [],
+  galleryView: "grid",
+  galleryCategory: "all",
+  recentTemplates: [],
 };
 
 /** Keeps only values of the right type, so a hand-edited file can't break the app. */
@@ -64,6 +73,8 @@ function sanitize(raw: unknown): Settings {
   if (!["tectonic", "pdflatex", "xelatex", "lualatex"].includes(out.engine)) out.engine = "tectonic";
   if (!/^#[0-9a-f]{6}$/i.test(out.pageColor)) out.pageColor = DEFAULT_SETTINGS.pageColor;
   out.recentLimit = Math.min(20, Math.max(0, Math.round(out.recentLimit)));
+  if (!["grid", "list"].includes(out.galleryView)) out.galleryView = "grid";
+  out.recentTemplates = out.recentTemplates.slice(0, 5);
   return out;
 }
 

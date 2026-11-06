@@ -799,3 +799,48 @@ body.dragging-dialog, body.dragging-dialog * { cursor: move !important; user-sel
 .tex-group { margin-bottom: 14px; }
 .tex-group h4 { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; font-size: 12.5px; font-weight: 600; color: var(--text); }
 .tex-waiting { margin-top: 4px; }
+
+/* Template window: category chips, cards or list rows */
+.gallery-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 18px 10px; border-bottom: 1px solid var(--border); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 12.5px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
+.chip:hover { border-color: var(--accent); }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip-count { font-size: 11px; opacity: 0.7; }
+.gallery-view { flex: none; }
+.gallery-view button { padding: 3px 7px; }
+.gallery-body { padding-top: 10px; }
+
+.tpl { position: relative; }
+.gallery-card.tpl-card { padding: 0; display: block; }
+.tpl-card .tpl-pick {
+  display: grid; align-content: start; gap: 4px; width: 100%; height: 100%; min-height: 104px; padding: 12px;
+  text-align: left; border-radius: 8px; background: transparent;
+}
+.tpl-card .tpl-pick:hover { background: transparent; }
+.tpl-card .tpl-desc { font-size: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tpl-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tpl-source { justify-self: start; font-size: 10.5px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+.tpl-source-tex { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.tpl-source-mine { border-color: color-mix(in srgb, #2e7d32 45%, var(--border)); }
+.tpl-remove { position: absolute; top: 6px; right: 6px; opacity: 0; }
+.tpl:hover .tpl-remove, .tpl-remove:focus-visible { opacity: 1; }
+
+.tpl-list { display: grid; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.tpl-row + .tpl-row { border-top: 1px solid var(--border); }
+.tpl-row .tpl-pick {
+  display: grid; grid-template-columns: 18px minmax(120px, 1.1fr) auto minmax(0, 2fr) auto 16px; gap: 10px; align-items: center;
+  width: 100%; padding: 7px 10px; text-align: left; font-size: 13px; border-radius: 0; background: var(--panel);
+}
+.tpl-row .tpl-pick:hover { background: var(--hover); }
+.tpl-row.current .tpl-pick { background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+.tpl-row-icon { display: inline-flex; color: var(--accent-text); }
+.tpl-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpl-class { font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; white-space: nowrap; }
+.tpl-row .tpl-desc { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpl-current { color: var(--accent-text); }
+.tpl-row .tpl-remove { top: 50%; transform: translateY(-50%); right: 30px; }
+.tpl-row:not(.current) .tpl-pick { grid-template-columns: 18px minmax(120px, 1.1fr) auto minmax(0, 2fr) auto 0; }
+@media (max-width: 720px) { .tpl-row .tpl-desc { display: none; } .tpl-row .tpl-pick { grid-template-columns: 18px minmax(0, 1fr) auto auto 16px; } }

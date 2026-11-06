@@ -72,7 +72,13 @@ next start.
 
 ## Built-in templates
 
-**File → New from template…** (Ctrl+Shift+N) shows the templates that ship with Texloom; the template button in the title bar switches the open document to another one:
+**File → New from template…** (Ctrl+Shift+N) shows every template: Texloom's own, your
+**My templates**, and the classes of your TeX installation. Category chips (Reports,
+Presentations, Journals, Theses, Books, Articles, My templates) narrow the list, the
+search box looks through all of them, and the view switches between cards and a compact
+list. The templates you started documents with last appear first under **Recently
+used**; the window remembers the category and view. The template button in the title
+bar switches the open document to another template. Texloom's own templates:
 
 | Template | Built on |
 |---|---|

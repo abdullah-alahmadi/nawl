@@ -256,8 +256,10 @@ export function SettingsDialog({
               <button
                 className="link"
                 onClick={() => {
-                  const { recentFiles, ...defaults } = DEFAULT_SETTINGS;
+                  // Lists of what was used recently stay.
+                  const { recentFiles, recentTemplates, ...defaults } = DEFAULT_SETTINGS;
                   void recentFiles;
+                  void recentTemplates;
                   onChange(defaults);
                 }}
               >

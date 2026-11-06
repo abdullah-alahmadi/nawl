@@ -724,10 +724,13 @@ export default function App() {
   };
 
   /** New document with another template: from the gallery, or a template file. */
-  const newFromTemplate = async (choose: () => Promise<boolean>) => {
+  const newFromTemplate = async (choose: () => Promise<boolean>, recentKey?: string) => {
     if (dirty && !(await ask("Discard unsaved changes and start a new document?", { title: "New document", kind: "warning" }))) return;
     setShowGallery(false);
-    if (await choose()) await newDoc(true);
+    if (!(await choose())) return;
+    // "Recently used" in the template window: the last five, newest first.
+    if (recentKey) updateSettings((s) => ({ recentTemplates: [recentKey, ...s.recentTemplates.filter((k) => k !== recentKey)].slice(0, 5) }));
+    await newDoc(true);
   };
 
   useEffect(() => {
@@ -1172,19 +1175,23 @@ export default function App() {
         <NewDocumentDialog
           builtins={builtins}
           currentId={templateInfo?.path ? null : template?.meta.id ?? null}
-          onPick={(id) => newFromTemplate(() => switchToBuiltin(id))}
+          onPick={(id) => newFromTemplate(() => switchToBuiltin(id), `builtin:${id}`)}
           userTemplates={userTemplates}
           currentPath={templateInfo?.path ?? null}
-          onPickUser={(u) => newFromTemplate(() => openTemplateFile(u.path))}
+          onPickUser={(u) => newFromTemplate(() => openTemplateFile(u.path), `mine:${u.path}`)}
           onRemoveUser={removeUserTemplate}
           onImport={() => newFromTemplate(importTemplateFile)}
           installed={installedTemplates}
           waiting={installedWaiting}
           installedThemes={installedThemeCount}
           currentClass={currentTexClass}
-          onPickInstalled={(c) => newFromTemplate(() => switchToInstalled(c))}
+          onPickInstalled={(c) => newFromTemplate(() => switchToInstalled(c), `tex:${c}`)}
           engine={settings.engine}
           start={startWindow}
+          view={settings.galleryView}
+          category={settings.galleryCategory}
+          recentTemplates={settings.recentTemplates}
+          onPrefs={(p) => updateSettings(p)}
           recentFiles={settings.recentFiles}
           onOpen={(p) => {
             setShowGallery(false);
