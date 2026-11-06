@@ -249,11 +249,11 @@ fn spell_languages() -> Vec<String> {
 fn tectonic_candidates() -> Vec<PathBuf> {
     let mut v = Vec::new();
     if let Some(dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(PathBuf::from)) {
-        v.push(dir.join("tectonic"));
+        v.push(dir.join(format!("tectonic{}", std::env::consts::EXE_SUFFIX)));
     }
     if cfg!(debug_assertions) {
         let triple = env!("TARGET_TRIPLE");
-        v.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("binaries/tectonic-{triple}")));
+        v.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("binaries/tectonic-{triple}{}", std::env::consts::EXE_SUFFIX)));
     }
     v
 }
@@ -474,7 +474,7 @@ fn import_kit_zip(state: State<'_, AppState>, source: String) -> Result<Vec<Stri
 #[tauri::command]
 async fn list_system_fonts() -> Vec<String> {
     tauri::async_runtime::spawn_blocking(|| {
-        let Ok(out) = std::process::Command::new("fc-list").args([":", "family"]).output() else {
+        let Ok(out) = texloom_compile::tool("fc-list").args([":", "family"]).output() else {
             return Vec::new();
         };
         let mut families: Vec<String> = String::from_utf8_lossy(&out.stdout)

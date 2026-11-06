@@ -3,7 +3,6 @@
 //! "dissertation", "book-pub", "letter"…), and a lookup of any file by name.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use crate::find_tex_binary;
 
@@ -45,7 +44,7 @@ impl InstalledClass {
 /// Runs `kpsewhich` with `args`; its output lines (empty when TeX isn't installed).
 fn kpsewhich(args: &[&str]) -> Vec<String> {
     let Some(exe) = find_tex_binary("kpsewhich") else { return Vec::new() };
-    let Ok(out) = Command::new(exe).args(args).stdin(std::process::Stdio::null()).output() else { return Vec::new() };
+    let Ok(out) = crate::tool(exe).args(args).stdin(std::process::Stdio::null()).output() else { return Vec::new() };
     String::from_utf8_lossy(&out.stdout).lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect()
 }
 

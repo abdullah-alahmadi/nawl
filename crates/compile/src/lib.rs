@@ -14,6 +14,20 @@ use serde::Serialize;
 
 pub mod installed;
 
+/// A command for an external program. On Windows it runs without opening a console
+/// window (a GUI app's child processes get one otherwise, flashing on every compile).
+pub fn tool(program: impl AsRef<std::ffi::OsStr>) -> Command {
+    #[allow(unused_mut)]
+    let mut cmd = Command::new(program);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 /// Name of the main file inside the build directory.
 const MAIN: &str = "main";
 
@@ -108,7 +122,7 @@ impl SystemLatex {
 
     /// The program's first `--version` line, e.g. "pdfTeX 3.14… (TeX Live 2026)".
     pub fn version(&self) -> Option<String> {
-        let out = Command::new(&self.path).arg("--version").output().ok()?;
+        let out = tool(&self.path).arg("--version").output().ok()?;
         String::from_utf8_lossy(&out.stdout).lines().next().map(|l| l.trim().to_string())
     }
 
@@ -122,24 +136,24 @@ impl SystemLatex {
         let mut transcript = String::new();
         let mut run = |cmd: &mut Command| run_limited(cmd, root, &mut transcript);
         let ok = match &self.latexmk {
-            Some(latexmk) => run(Command::new(latexmk)
+            Some(latexmk) => run(tool(latexmk)
                 .arg(self.program.latexmk_flag())
                 .args(tex_args.iter().map(|a| format!("-latexoption={a}")))
                 // -norc: ignore the user's latexmkrc, so every machine builds the same way.
                 .args(["-norc", "-bibtex", "-f-", "-quiet"])
                 .arg(format!("{MAIN}.tex")))?,
             None => {
-                let mut ok = run(Command::new(&self.path).args(tex_args).arg(format!("{MAIN}.tex")))?;
+                let mut ok = run(tool(&self.path).args(tex_args).arg(format!("{MAIN}.tex")))?;
                 let aux = std::fs::read_to_string(root.join(format!("{MAIN}.aux"))).unwrap_or_default();
                 if ok && aux.contains("\\bibdata")
                     && let Some(bibtex) = &self.bibtex
                 {
-                    run(Command::new(bibtex).arg(MAIN))?;
+                    run(tool(bibtex).arg(MAIN))?;
                 }
                 // Twice more: references and the table of contents settle.
                 for _ in 0..2 {
                     if ok {
-                        ok = run(Command::new(&self.path).args(tex_args).arg(format!("{MAIN}.tex")))?;
+                        ok = run(tool(&self.path).args(tex_args).arg(format!("{MAIN}.tex")))?;
                     }
                 }
                 ok
@@ -261,7 +275,7 @@ impl Compiler {
             all.push(PathBuf::from(env));
         }
         if let Some(path) = std::env::var_os("PATH") {
-            all.extend(std::env::split_paths(&path).map(|dir| dir.join("tectonic")));
+            all.extend(std::env::split_paths(&path).map(|dir| dir.join(format!("tectonic{}", std::env::consts::EXE_SUFFIX))));
         }
         for c in all {
             if c.is_file() {
@@ -282,7 +296,7 @@ impl Compiler {
         let dir = prepare_build_dir(tex, assets)?;
         let root = dir.path();
 
-        let output = Command::new(&self.tectonic)
+        let output = tool(&self.tectonic)
             .current_dir(root)
             // Never allow \write18 shell escape: documents and templates may be shared.
             .arg("--untrusted")

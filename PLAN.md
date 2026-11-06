@@ -217,7 +217,9 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       found on PATH or in TeX Live/MacTeX folders; 3-minute limit per run);
       generated classes adapt (classic fonts under pdfLaTeX, kit stand-ins only for
       XeTeX/LuaTeX, plain tables for REVTeX)
-- [ ] Bundled TeX package cache so it works offline; installers; auto-update
+- [x] Installers: Ubuntu .deb (CI on 22.04), snap (from the .deb), Windows .exe/.msi
+      (GitHub Actions); app icon; no console windows for TeX runs on Windows
+- [ ] Bundled TeX package cache so it works offline; auto-update; macOS build
 - [x] Crash recovery: unsaved changes copied to the app data folder (with figures)
       3 s after each edit; offered back on the next start; closing asks first
 - [x] Importing a kit into a built-in template asks where to save it, then saves it

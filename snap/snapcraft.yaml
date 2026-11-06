@@ -1,0 +1,48 @@
+# Texloom as a snap, made from the .deb that `tauri build` produces (CI copies it to
+# snap/local/texloom.deb first; see .github/workflows/packages.yml).
+#
+# Strict confinement: Texloom compiles with its bundled Tectonic, which downloads TeX
+# packages (network). A TeX Live installed on the system isn't visible inside the
+# snap, so Settings → Preview offers Tectonic only there.
+name: texloom
+base: core22
+version: '0.1.0'
+title: Texloom
+summary: Visual LaTeX editor with a no-code template designer
+description: |
+  Texloom is a visual (WYSIWYG) LaTeX editor in the spirit of LyX. Write reports,
+  journal articles, theses and beamer presentations on a page that looks like the
+  PDF, design templates without code, and compile with the bundled Tectonic.
+license: Proprietary
+grade: stable
+confinement: strict
+architectures:
+  - build-on: amd64
+
+# WebKitGTK looks for its helper processes at a fixed path.
+layout:
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1
+
+apps:
+  texloom:
+    command: usr/bin/texloom
+    desktop: usr/share/applications/Texloom.desktop
+    extensions: [gnome]
+    plugs:
+      - home
+      - removable-media
+      - network
+      - opengl
+
+parts:
+  texloom:
+    plugin: dump
+    source: snap/local/texloom.deb
+    source-type: deb
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+    override-prime: |
+      craftctl default
+      # The menu entry's icon, as a path inside the snap.
+      sed -i 's|^Icon=texloom$|Icon=${SNAP}/usr/share/icons/hicolor/128x128/apps/texloom.png|' usr/share/applications/Texloom.desktop

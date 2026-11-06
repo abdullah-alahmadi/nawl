@@ -201,6 +201,31 @@ cargo run -p texloom-cli -- export examples/senior-design-report.loom -t templat
 cargo run -p texloom-cli -- check templates/senior-design/template.json --print-cls
 ```
 
+## Packages
+
+Installers are built by GitHub Actions (`.github/workflows/packages.yml`): the Ubuntu
+`.deb` (built on Ubuntu 22.04, so it installs on 22.04 and newer), a snap made from that
+`.deb` (`snap/snapcraft.yaml`), and the Windows installers (`.exe` and `.msi`). Run the
+**Packages** workflow from the Actions tab, or push a version tag to also get a draft
+release with the packages attached:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Locally, on Linux:
+
+```bash
+scripts/fetch-tectonic.sh
+npm run tauri build -- --bundles deb
+sudo apt install ./target/release/bundle/deb/Texloom_0.1.0_amd64.deb
+```
+
+The snap is strictly confined: it compiles with the bundled Tectonic, and can't see a
+TeX Live installed on the system (use the `.deb` for that). The app icon's source is
+`assets/texloom-icon.svg` (`npx tauri icon assets/texloom-icon.png` regenerates the sizes).
+
 ## Tests
 
 ```bash
