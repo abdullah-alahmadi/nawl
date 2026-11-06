@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/texloom-icon.png" width="128" height="128" alt="Texloom icon"></p>
+
 # Texloom
 
 Texloom is a LyX-like visual LaTeX editor built with Tauri, whose templates are designed visually
