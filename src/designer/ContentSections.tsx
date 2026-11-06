@@ -6,7 +6,7 @@ import { importTemplateFile, type Template } from "../api";
 import type { FieldKind } from "../bindings/FieldKind";
 import type { FrontMatterItem } from "../bindings/FrontMatterItem";
 import { Row, Select, Toggle, issuesAt } from "./controls";
-import { slugId, type SectionProps } from "./common";
+import { fieldUses, slugId, type SectionProps } from "./common";
 
 const KINDS: { value: FieldKind; label: string }[] = [
   { value: "text", label: "One line" },
@@ -39,6 +39,7 @@ function RowButtons({ index, count, onMove, onRemove }: { index: number; count: 
 }
 
 export function FieldsSection({ t, edit, issues }: SectionProps) {
+  const uses = fieldUses(t);
   return (
     <>
       <p className="d-note">
@@ -72,6 +73,14 @@ export function FieldsSection({ t, edit, issues }: SectionProps) {
                 onRemove={() => edit((d) => void d.fields.splice(i, 1))}
               />
             </div>
+            {uses.has(f.id) ? (
+              <div className="d-hint">Shown in {uses.get(f.id)!.join(" and ")}.</div>
+            ) : (
+              <div className="d-hint">
+                Not shown anywhere in the template, but Document info still asks for it. Remove it, or show it with{" "}
+                <code>{`{${f.id}}`}</code> on the title page or in a header.
+              </div>
+            )}
             {issuesAt(issues, `fields[${i}]`).map((iss, n) => (
               <div key={n} className="d-error">
                 {iss.message}

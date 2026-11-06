@@ -4,13 +4,13 @@
 // point measured from the paper's top-left corner, text boxes are `widthMm` wide with
 // no padding, and line height is 1.2 × the font size × the template's line spacing.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { ask, open } from "@tauri-apps/plugin-dialog";
 import * as api from "../api";
 import type { Anchor } from "../bindings/Anchor";
 import type { FontChoice } from "../bindings/FontChoice";
 import type { TitleItem } from "../bindings/TitleItem";
 import { NumberInput, PlaceholderInput, Row, Toggle, issuesAt } from "./controls";
-import { fieldPlaceholders, type SectionProps } from "./common";
+import { fieldPlaceholders, fieldUses, placeholderNames, type SectionProps } from "./common";
 import { TextStyleControls } from "./StyleSections";
 
 const MM_PER_PT = 25.4 / 72.27; // TeX points
@@ -271,9 +271,36 @@ export function TitlePageCanvas({
     const asset = await pickImage();
     if (asset) add({ xMm: pageW / 2, yMm: 20, anchor: "top", content: { type: "image", asset, widthMm: 35 } });
   };
-  const remove = (index: number) => {
-    edit((d) => void d.titlePage.items.splice(index, 1));
+  // Removing the only text that shows a field ({course}) offers to remove the field
+  // too; otherwise Document info keeps asking for a value that appears nowhere.
+  const remove = async (index: number) => {
+    const content = items[index].content;
+    const shown = content.type === "text" ? placeholderNames(content.text) : [];
+    const after = structuredClone(t);
+    after.titlePage.items.splice(index, 1);
+    const uses = fieldUses(after);
+    const orphans = t.fields.filter((f) => shown.includes(f.id) && !uses.has(f.id));
     setSelected(null);
+    // Fields still shown elsewhere stay in Document info; say where, or it looks like a bug.
+    const kept = t.fields.filter((f) => shown.includes(f.id) && uses.has(f.id));
+    setNotice(
+      kept.length > 0
+        ? kept.map((f) => `“${f.label}” is still used in ${uses.get(f.id)!.join(" and ")}, so Document info keeps asking for it.`).join(" ")
+        : null,
+    );
+    let dropFields = false;
+    if (orphans.length > 0) {
+      const names = orphans.map((f) => `“${f.label}”`).join(", ");
+      const one = orphans.length === 1;
+      dropFields = await ask(
+        `The template doesn't show ${names} anywhere else. Remove ${one ? "this field" : "these fields"} too, so Document info stops asking for ${one ? "it" : "them"}?`,
+        { title: "Remove field", kind: "info", okLabel: one ? "Remove field" : "Remove fields", cancelLabel: "Keep" },
+      );
+    }
+    edit((d) => {
+      d.titlePage.items.splice(index, 1);
+      if (dropFields) d.fields = d.fields.filter((f) => !orphans.some((o) => o.id === f.id));
+    });
   };
   const duplicate = (index: number) => {
     const copy = structuredClone(items[index]);
