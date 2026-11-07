@@ -142,6 +142,29 @@ fn library_fonts_go_with_the_document() {
     assert!(t.validate().iter().any(|i| i.path == "fonts.arabic.id"));
 }
 
+/// Heading levels and title-page items can have a font of their own: a family command
+/// in the class (shaped as Arabic here), used by their format; its files are sent.
+#[test]
+fn headings_and_titles_have_their_own_fonts() {
+    let (_, mut t, doc) = arabic_samples().into_iter().find(|(n, ..)| *n == "arabic-thesis").unwrap();
+    t.headings.levels[0].text.font = Some(texloom_core::FontChoice::Library { id: "reem-kufi".into() });
+    if let texloom_core::TitleContent::Text { style, .. } = &mut t.title_page.items[0].content {
+        style.font = Some(texloom_core::FontChoice::Library { id: "aref-ruqaa".into() });
+    }
+    assert!(!texloom_core::has_errors(&t.validate()), "{:?}", t.validate());
+    let g = texloom_codegen::generate(&t, &doc);
+    assert!(g.cls.contains("\\newfontfamily\\tlfontreemkufi[Script=Arabic,Ligatures=TeX,Path=fonts/,BoldFont=reem-kufi-Bold.ttf]{reem-kufi-Regular.ttf}"), "{}", g.cls);
+    assert!(g.cls.contains("\\tlfontreemkufi\\fontsize"), "the chapter format uses it");
+    assert!(g.cls.contains("\\tlfontarefruqaa\\fontsize"), "the title item uses it");
+    assert!(g.fonts.contains(&"fonts/reem-kufi-Bold.ttf".to_string()) && g.fonts.contains(&"fonts/aref-ruqaa-Regular.ttf".to_string()));
+    // pdfLaTeX can't load font files: the commands do nothing.
+    let pdf = texloom_codegen::template_to_cls_for(&t, texloom_codegen::Engine::Pdf);
+    assert!(pdf.contains("\\providecommand\\tlfontreemkufi{}"), "{pdf}");
+    // A heading level's unknown library font is a template error at its own path.
+    t.headings.levels[1].text.font = Some(texloom_core::FontChoice::Library { id: "nope".into() });
+    assert!(t.validate().iter().any(|i| i.path == "headings.levels[1].text.font"));
+}
+
 /// Title-page text is drawn in TikZ nodes, which run left to right unless told
 /// otherwise: in right-to-left templates each node's text is wrapped in `\RL`.
 #[test]
@@ -243,11 +266,16 @@ fn arabic_templates_generate() {
         let g = texloom_codegen::generate(&t, &doc);
         assert!(g.tex.contains("\\setdefaultlanguage[numerals=mashriq]{arabic}"), "{name}");
     }
-    // The journal article's English section names the authors in English.
+    // The journal article (Texloom's own layout, so every part has its own style and
+    // font): a title block with the authors' affiliations, contact e-mail and English
+    // names (one English run, in order), then the abstracts under it.
     let (_, t, doc) = arabic_samples().into_iter().find(|(n, ..)| *n == "arabic-article").unwrap();
-    let tex = texloom_codegen::generate(&t, &doc).tex;
-    let english = &tex[tex.find("\\begin{english}").expect("English section")..];
-    assert!(english.contains("\\begin{center}\\textenglish{Abdullah Al-Ahmadi and Sarah Al-Qahtani}\\end{center}"), "{english}");
+    assert!(t.base.is_none() && t.title_page.block_height_mm.is_some());
+    let g = texloom_codegen::generate(&t, &doc);
+    assert!(g.tex.contains("\\texloomfield{authors_en}{\\textenglish{Abdullah Al-Ahmadi\\texloomsepen Sarah Al-Qahtani}}"), "{}", g.tex);
+    assert!(g.tex.contains("\\texloomfield{authors_affiliations}{"), "affiliations without repeats");
+    assert!(g.tex.contains("\\texloomfield{authors_email}{\\textenglish{author@example.edu.sa}}"));
+    assert!(g.cls.contains("\\begin{english}\\section*{\\textenglish{Abstract}}\\tl@f{abstract_en}\\par\\end{english}"), "{}", g.cls);
     // The thesis's English abstract page is set in English, listed in the contents.
     let cls = texloom_codegen::template_to_cls(&builtin("arabic-thesis"));
     assert!(cls.contains("\\addcontentsline{toc}{chapter}{\\textenglish{Abstract}}\\begin{english}\\chapter*{\\textenglish{Abstract}}"), "{cls}");

@@ -2,6 +2,7 @@
 // same files the PDF uses) into the page as "tl-<id>", regular and bold.
 import * as api from "../api";
 import type { FontChoice } from "../bindings/FontChoice";
+import type { Template } from "../bindings/Template";
 
 const loading = new Map<string, Promise<void>>();
 
@@ -31,4 +32,25 @@ export function ensureLibraryFont(id: string): Promise<void> {
 /** The library fonts a template uses (to load before showing its page). */
 export function libraryFontIds(fonts: (FontChoice | null | undefined)[]): string[] {
   return [...new Set(fonts.flatMap((f) => (f?.kind === "library" ? [f.id] : [])))];
+}
+
+/** Every font a template uses: the text fonts, heading levels' and title items'. */
+export function templateFonts(t: Template): (FontChoice | undefined)[] {
+  const items = [t.titlePage.items, ...t.frontMatter.flatMap((f) => (f.type === "fixedPage" ? [f.items] : []))].flat();
+  return [
+    t.fonts.main,
+    t.fonts.sans,
+    t.fonts.mono,
+    t.fonts.arabic,
+    ...t.headings.levels.map((h) => h.text.font),
+    ...items.map((i) => (i.content.type === "text" ? i.content.style.font : undefined)),
+  ];
+}
+
+let libraryList: Promise<api.LibraryFont[]> | null = null;
+
+/** The font library's families (asked for once). */
+export function libraryFonts(): Promise<api.LibraryFont[]> {
+  libraryList ??= api.listLibraryFonts().catch(() => []);
+  return libraryList;
 }

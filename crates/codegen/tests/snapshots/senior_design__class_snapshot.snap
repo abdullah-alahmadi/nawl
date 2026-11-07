@@ -85,6 +85,7 @@ expression: "texloom_codegen::template_to_cls(&template())"
 \newcommand\tl@f[1]{\ifcsname tl@f@#1\endcsname\csname tl@f@#1\endcsname\fi}
 \newcommand\tl@ifnonempty[2]{\ifcsname tl@f@#1\endcsname#2\fi}
 \newcommand\texloomsep{, }
+\newcommand\texloomsepen{, }
 
 % Headers and footers
 \RequirePackage{fancyhdr}
@@ -98,7 +99,7 @@ expression: "texloom_codegen::template_to_cls(&template())"
 % Title page
 \newcommand\tl@titlepage{%
   \begin{titlepage}%
-  \renewcommand\texloomsep{\\}%
+  \renewcommand\texloomsep{\\}\renewcommand\texloomsepen{\\}%
   \hyphenpenalty=10000\exhyphenpenalty=10000%
   \begin{tikzpicture}[remember picture,overlay]%
   \node[anchor=north,inner sep=0pt,align=center,text width=170mm,font={\fontsize{18}{21.6}\selectfont\bfseries}] at ([xshift=105mm,yshift=-35mm]current page.north west) {\MakeUppercase{\tl@f{university}}};%

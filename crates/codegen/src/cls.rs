@@ -144,6 +144,7 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
         }
         w!(o, "\\RequirePackage{{textcomp}}");
     }
+    o.push_str(&style_fonts(t, engine));
     w!(o);
 
     // ---- packages used by document content
@@ -217,6 +218,9 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     w!(o, "\\newcommand\\tl@f[1]{{\\ifcsname tl@f@#1\\endcsname\\csname tl@f@#1\\endcsname\\fi}}");
     w!(o, "\\newcommand\\tl@ifnonempty[2]{{\\ifcsname tl@f@#1\\endcsname#2\\fi}}");
     w!(o, "\\newcommand\\texloomsep{{, }}");
+    // Between entries of an English list (an Arabic document's English author names):
+    // an English comma, inside the list's one English run.
+    w!(o, "\\newcommand\\texloomsepen{{, }}");
     w!(o);
 
     // ---- headers and footers
@@ -266,7 +270,7 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
         }
         None => {
             w!(o, "  \\begin{{titlepage}}%");
-            w!(o, "  \\renewcommand\\texloomsep{{\\\\}}%");
+            w!(o, "  \\renewcommand\\texloomsep{{\\\\}}\\renewcommand\\texloomsepen{{\\\\}}%");
             // Never hyphenate words on the title page.
             w!(o, "  \\hyphenpenalty=10000\\exhyphenpenalty=10000%");
             w!(o, "  \\begin{{tikzpicture}}[remember picture,overlay]%");
@@ -328,7 +332,7 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
                 } else {
                     String::new()
                 };
-                w!(o, "  \\clearpage{{\\renewcommand\\texloomsep{{\\\\}}\\hyphenpenalty=10000\\exhyphenpenalty=10000\\null{toc}%");
+                w!(o, "  \\clearpage{{\\renewcommand\\texloomsep{{\\\\}}\\renewcommand\\texloomsepen{{\\\\}}\\hyphenpenalty=10000\\exhyphenpenalty=10000\\null{toc}%");
                 w!(o, "  \\begin{{tikzpicture}}[remember picture,overlay]%");
                 for item in items {
                     w!(o, "  {}%", title_item(item, &langs, &at));
@@ -502,6 +506,45 @@ fn font_line(cmd: &str, choice: &FontChoice) -> Option<String> {
             Some(format!("\\{cmd}{{{}}}[{}]", f.regular_file(), library_options(f)))
         }
     }
+}
+
+/// The fonts of headings and title-page items that have one of their own, each as a
+/// family command (`\tlfontcairo`). Arabic templates shape them as Arabic. pdfLaTeX
+/// can't load font files: the commands do nothing there.
+pub(crate) fn style_fonts(t: &Template, engine: Engine) -> String {
+    let mut o = String::new();
+    let mut done: Vec<String> = Vec::new();
+    let arabic = t.lang().main == texloom_core::Language::Arabic;
+    for f in t.all_fonts().into_iter().skip(3 + usize::from(t.fonts.arabic.is_some())) {
+        let cmd = crate::latex::style_font_command(f);
+        if done.contains(&cmd) {
+            continue;
+        }
+        done.push(cmd.clone());
+        if !engine.unicode_fonts() {
+            w!(o, "\\providecommand\\{cmd}{{}}% font files need XeLaTeX or LuaLaTeX");
+            continue;
+        }
+        let script = if arabic || matches!(f, FontChoice::Library { .. }) { "Script=Arabic," } else { "" };
+        let spec = match f {
+            FontChoice::Builtin { font: BuiltinFont::LatinModern } => "{lmroman10}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]".to_string(),
+            FontChoice::Builtin { font: BuiltinFont::Amiri } => format!("[{script}Ligatures=TeX]{{Amiri}}"),
+            FontChoice::Builtin { font } => match gyre_file(*font) {
+                Some(file) => format!("{{{file}}}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]"),
+                None => continue,
+            },
+            FontChoice::System { family } => format!("[{script}Ligatures=TeX]{{{}}}", escape(family)),
+            FontChoice::Library { id } => match texloom_core::fonts::find(id) {
+                Some(lib) => format!("[{script}Ligatures=TeX,{}]{{{}}}", library_options(lib), lib.regular_file()),
+                None => continue,
+            },
+        };
+        w!(o, "\\newfontfamily\\{cmd}{spec}");
+    }
+    if !o.is_empty() {
+        o.insert_str(0, "% Fonts of headings and title-page items\n");
+    }
+    o
 }
 
 /// fontspec options that load a library font from the build folder's `fonts/`.

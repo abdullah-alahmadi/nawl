@@ -63,9 +63,8 @@ pub struct Generated {
 
 /// The files of a template's library fonts (see [`texloom_core::fonts`]).
 pub fn library_font_files(template: &Template) -> Vec<String> {
-    let f = &template.fonts;
     let mut files: Vec<String> = Vec::new();
-    for choice in [Some(&f.main), Some(&f.sans), Some(&f.mono), f.arabic.as_ref()].into_iter().flatten() {
+    for choice in template.all_fonts() {
         if let texloom_core::FontChoice::Library { id } = choice
             && let Some(font) = texloom_core::fonts::find(id)
         {

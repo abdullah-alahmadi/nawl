@@ -644,6 +644,28 @@ pub struct TextStyle {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub color: Option<String>,
+    /// A font of its own (a title or a heading level in another face); the text's
+    /// font when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub font: Option<FontChoice>,
+}
+
+impl Template {
+    /// Every font the template uses: the text fonts, then those of heading levels and
+    /// of items on the title page and fixed pages (to load, send or embed them).
+    pub fn all_fonts(&self) -> Vec<&FontChoice> {
+        let f = &self.fonts;
+        let mut out: Vec<&FontChoice> = vec![&f.main, &f.sans, &f.mono];
+        out.extend(f.arabic.as_ref());
+        out.extend(self.headings.levels.iter().filter_map(|h| h.text.font.as_ref()));
+        for (_, item) in self.placed_items() {
+            if let TitleContent::Text { style, .. } = &item.content {
+                out.extend(style.font.as_ref());
+            }
+        }
+        out
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]

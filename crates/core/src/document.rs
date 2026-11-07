@@ -96,6 +96,43 @@ pub struct AuthorInfo {
     pub affiliations_en: Vec<String>,
 }
 
+/// What an authors field gives a title page besides the names, by placeholder
+/// suffix: `{authors_affiliations}`, `{authors_en}`, `{authors_affiliations_en}`,
+/// `{authors_email}`.
+pub const AUTHOR_SUFFIXES: [&str; 4] = ["_affiliations_en", "_affiliations", "_en", "_email"];
+
+/// The value of an authors field's derived placeholder (`suffix` from
+/// [`AUTHOR_SUFFIXES`]), one entry per line: the affiliations (without repeats), the
+/// English names or affiliations, or the corresponding author's e-mail.
+pub fn author_values(authors: &[AuthorInfo], suffix: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut add = |s: &str| {
+        let s = s.trim();
+        if !s.is_empty() && !out.iter().any(|x| x == s) {
+            out.push(s.to_string());
+        }
+    };
+    match suffix {
+        "_affiliations" => authors.iter().flat_map(|a| &a.affiliations).for_each(|f| add(f)),
+        "_affiliations_en" => authors.iter().flat_map(|a| &a.affiliations_en).for_each(|f| add(f)),
+        "_en" => authors.iter().for_each(|a| add(&a.name_en)),
+        "_email" => {
+            let who = authors.iter().find(|a| a.corresponding && !a.email.trim().is_empty()).or_else(|| authors.iter().find(|a| !a.email.trim().is_empty()));
+            if let Some(a) = who {
+                add(&a.email);
+            }
+        }
+        _ => {}
+    }
+    out
+}
+
+/// An authors field and the derived value a placeholder names (`authors_en` →
+/// ("authors", "_en")).
+pub fn split_author_placeholder(name: &str) -> Option<(&str, &'static str)> {
+    AUTHOR_SUFFIXES.iter().find_map(|s| name.strip_suffix(s).map(|base| (base, *s)))
+}
+
 impl AuthorInfo {
     /// The English name, or the name when none is given.
     pub fn english_name(&self) -> &str {

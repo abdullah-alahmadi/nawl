@@ -80,6 +80,10 @@ impl Checker<'_> {
                         .strip_suffix(crate::date::HIJRI_SUFFIX)
                         .and_then(|id| self.t.field(id))
                         .is_some_and(|f| f.kind == crate::FieldKind::Date)
+                    // An authors field's affiliations, English names, e-mail.
+                    || crate::split_author_placeholder(name)
+                        .and_then(|(id, _)| self.t.field(id))
+                        .is_some_and(|f| f.kind == crate::FieldKind::Authors)
             };
             if !ok {
                 self.error(path, crate::tr!("unknown placeholder {{{name}}}", "عنصر نائب غير معروف {{{name}}}"));
@@ -159,11 +163,25 @@ impl Template {
                 c.error(format!("fonts.{name}.family"), crate::tr!("font family is empty", "اسم عائلة الخط فارغ"));
             }
         }
-        for (name, f) in [("main", Some(&t.fonts.main)), ("sans", Some(&t.fonts.sans)), ("mono", Some(&t.fonts.mono)), ("arabic", t.fonts.arabic.as_ref())] {
+        let mut styled: Vec<(String, Option<&crate::FontChoice>)> = vec![
+            ("fonts.main".into(), Some(&t.fonts.main)),
+            ("fonts.sans".into(), Some(&t.fonts.sans)),
+            ("fonts.mono".into(), Some(&t.fonts.mono)),
+            ("fonts.arabic".into(), t.fonts.arabic.as_ref()),
+        ];
+        for (i, h) in t.headings.levels.iter().enumerate() {
+            styled.push((format!("headings.levels[{i}].text.font"), h.text.font.as_ref()));
+        }
+        for (path, item) in t.placed_items() {
+            if let crate::TitleContent::Text { style, .. } = &item.content {
+                styled.push((format!("{path}.content.style.font"), style.font.as_ref()));
+            }
+        }
+        for (name, f) in styled {
             if let Some(crate::FontChoice::Library { id }) = f
                 && crate::fonts::find(id).is_none()
             {
-                c.error(format!("fonts.{name}.id"), crate::tr!("{id:?} isn't in Texloom's font library", "{id:?} ليس من مكتبة خطوط Texloom"));
+                c.error(if name.starts_with("fonts.") { format!("{name}.id") } else { name.clone() }, crate::tr!("{id:?} isn't in Texloom's font library", "{id:?} ليس من مكتبة خطوط Texloom"));
             }
         }
 

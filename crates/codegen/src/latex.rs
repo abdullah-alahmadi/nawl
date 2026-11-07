@@ -151,11 +151,13 @@ fn render_one(piece: Piece, ctx: PlaceholderContext<'_>) -> String {
     }
 }
 
-/// Font switches for a text style: size, weight, shape and colour (not alignment).
+/// Font switches for a text style: its own font (defined in the class, see
+/// `cls::style_fonts`), size, weight, shape and colour (not alignment).
 pub fn font_commands(s: &TextStyle) -> String {
     let size = num(s.size_pt);
     let leading = num(s.size_pt * 1.2);
-    let mut out = format!("\\fontsize{{{size}}}{{{leading}}}\\selectfont");
+    let family = s.font.as_ref().map(|f| format!("\\{}", style_font_command(f))).unwrap_or_default();
+    let mut out = format!("{family}\\fontsize{{{size}}}{{{leading}}}\\selectfont");
     if s.bold {
         out.push_str("\\bfseries");
     }
@@ -169,6 +171,18 @@ pub fn font_commands(s: &TextStyle) -> String {
         out.push_str(&format!("\\color[HTML]{{{}}}", c.trim_start_matches('#').to_uppercase()));
     }
     out
+}
+
+/// The command a style's own font is selected with: `tlfont` and the font's name in
+/// letters (`\tlfontcairo`, `\tlfonttermes`, `\tlfontTraditionalArabic`).
+pub fn style_font_command(f: &texloom_core::FontChoice) -> String {
+    let name = match f {
+        texloom_core::FontChoice::Builtin { font } => format!("{font:?}"),
+        texloom_core::FontChoice::System { family } => family.clone(),
+        texloom_core::FontChoice::Library { id } => id.clone(),
+    };
+    let letters: String = name.chars().filter(char::is_ascii_alphabetic).collect();
+    format!("tlfont{letters}")
 }
 
 pub fn align_name(a: Align) -> &'static str {

@@ -23,17 +23,41 @@ export function dynamicPlaceholders(tr: Translate): PlaceholderOption[] {
   ];
 }
 
+/** What an authors field gives besides the names (`{authors_affiliations}`…), as in
+ *  `texloom_core::AUTHOR_SUFFIXES`, with each one's description key. */
+export const AUTHOR_SUFFIXES: [string, MessageKey][] = [
+  ["_affiliations", "designer.authorsAffiliations"],
+  ["_en", "designer.authorsEnglish"],
+  ["_affiliations_en", "designer.authorsAffiliationsEnglish"],
+  ["_email", "designer.authorsEmail"],
+];
+
+/** The field a derived placeholder belongs to (`date_hijri` → `date`, `authors_en` →
+ *  `authors`), or the name itself. */
+export function placeholderField(t: Template, name: string): string {
+  if (name.endsWith("_hijri") && t.fields.some((f) => f.id === name.slice(0, -6) && f.kind === "date")) return name.slice(0, -6);
+  for (const [suffix] of [...AUTHOR_SUFFIXES].sort((a, b) => b[0].length - a[0].length)) {
+    const base = name.slice(0, -suffix.length);
+    if (name.endsWith(suffix) && t.fields.some((f) => f.id === base && f.kind === "authors")) return base;
+  }
+  return name;
+}
+
 export function fieldPlaceholders(t: Template, kinds: string[] = ["text", "list"]): PlaceholderOption[] {
-  // Date fields go wherever text does, with their Hijri form beside them.
+  // Date fields go wherever text does, with their Hijri form beside them; authors
+  // fields on title pages, with their affiliations, English names and e-mail.
+  const authors = kinds.includes("list");
   return t.fields
-    .filter((f) => kinds.includes(f.kind) || (f.kind === "date" && kinds.includes("text")))
+    .filter((f) => kinds.includes(f.kind) || (f.kind === "date" && kinds.includes("text")) || (f.kind === "authors" && authors))
     .flatMap((f) =>
       f.kind === "date"
         ? [
             { name: f.id, description: f.label },
             { name: f.id + "_hijri", description: tr("designer.hijriOf", { label: f.label }) },
           ]
-        : [{ name: f.id, description: f.label }],
+        : f.kind === "authors"
+          ? [{ name: f.id, description: f.label }, ...AUTHOR_SUFFIXES.map(([s, key]) => ({ name: f.id + s, description: tr(key, { label: f.label }) }))]
+          : [{ name: f.id, description: f.label }],
     );
 }
 
@@ -57,9 +81,8 @@ export function fieldUses(t: Template): Map<string, string[]> {
     for (const f of t.fields) note(f.id, tr(t.kind === "presentation" ? "designer.usedTitleSlide" : "designer.usedClassTitleBlock"));
     return uses;
   }
-  // {date_hijri} uses the date field.
-  const scan = (text: string | undefined, place: string) =>
-    placeholderNames(text ?? "").forEach((n) => note(n.endsWith("_hijri") && t.fields.some((f) => f.id === n.slice(0, -6) && f.kind === "date") ? n.slice(0, -6) : n, place));
+  // {date_hijri} uses the date field, {authors_en} the authors field.
+  const scan = (text: string | undefined, place: string) => placeholderNames(text ?? "").forEach((n) => note(placeholderField(t, n), place));
   for (const item of t.titlePage.items) if (item.content.type === "text") scan(item.content.text, tr("designer.usedTitlePage"));
   // Parts left out of a template file are empty (the backend fills them in, a raw file may not).
   const hf = t.headerFooter ?? {};

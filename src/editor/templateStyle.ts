@@ -70,6 +70,8 @@ function textRules(s: TextStyle, px: (pt: number) => string): string {
     `text-transform:${s.uppercase ? "uppercase" : "none"}`,
     `text-align:${s.align}`,
     `color:${s.color ?? "inherit"}`,
+    // A heading's own font; otherwise the page's.
+    ...(s.font ? [`font-family:${cssFontStack(s.font)}`] : []),
   ].join(";");
 }
 

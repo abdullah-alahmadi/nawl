@@ -65,6 +65,25 @@ pub fn document_to_tex_mapped(t: &Template, doc: &Document) -> (String, Vec<u32>
         {
             o.push_str(&format!("\\texloomfield{{{}{}}}{{{}}}\n", f.id, texloom_core::date::HIJRI_SUFFIX, language::text(&hijri, langs.main, &langs)));
         }
+        // An authors field's affiliations, English names and e-mail, for title pages.
+        if f.kind == FieldKind::Authors {
+            let authors = texloom_core::AuthorInfo::from_field(value);
+            for suffix in texloom_core::AUTHOR_SUFFIXES {
+                let values = texloom_core::author_values(&authors, suffix);
+                if values.is_empty() {
+                    continue;
+                }
+                let text = if suffix == "_affiliations" {
+                    values.iter().map(|v| language::text(v, langs.main, &langs)).collect::<Vec<_>>().join("\\texloomsep ")
+                } else {
+                    // English names, affiliations, an e-mail: one English run, so a
+                    // right-to-left document keeps their order.
+                    let joined = values.iter().map(|v| escape(v)).collect::<Vec<_>>().join("\\texloomsepen ");
+                    if langs.main.rtl() { format!("\\textenglish{{{joined}}}") } else { joined }
+                };
+                o.push_str(&format!("\\texloomfield{{{}{suffix}}}{{{text}}}\n", f.id));
+            }
+        }
     }
 
     let presentation = t.kind == DocumentKind::Presentation;

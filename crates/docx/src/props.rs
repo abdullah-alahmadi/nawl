@@ -98,6 +98,8 @@ pub struct Rp {
     pub style: Option<&'static str>,
     /// A font for Latin letters (code).
     pub font: Option<String>,
+    /// A font for every script, Arabic included (a heading's or a title's own font).
+    pub face: Option<String>,
     pub bold: bool,
     pub italic: bool,
     pub caps: bool,
@@ -124,7 +126,9 @@ impl Rp {
         if let Some(s) = self.style {
             o.push_str(&format!("<w:rStyle w:val=\"{s}\"/>"));
         }
-        if let Some(f) = &self.font {
+        if let Some(f) = &self.face {
+            o.push_str(&format!("<w:rFonts w:ascii=\"{0}\" w:hAnsi=\"{0}\" w:cs=\"{0}\"/>", esc(f)));
+        } else if let Some(f) = &self.font {
             o.push_str(&format!("<w:rFonts w:ascii=\"{0}\" w:hAnsi=\"{0}\"/>", esc(f)));
         }
         if self.bold {

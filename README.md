@@ -154,7 +154,9 @@ Texloom typesets Arabic and mixed Arabic/English documents: journal articles, th
 books and presentations, right to left, with Arabic fonts, headings and labels.
 
 - **Templates:** the gallery's **العربية** (Arabic) category has an Arabic journal
-  article (Arabic title, abstract and keywords, then the English ones), a thesis (title
+  article (a title block with the authors, affiliations, e-mail and the English title and
+  names, then the Arabic and English abstracts and keywords; every part designable, own
+  font included), a thesis (title
   page, approval page, Arabic and English abstracts, chapters), a book (two-sided,
   170×240 mm) and a presentation. **New blank template…** in the template menu (title
   bar) can start a blank Arabic template, and the
@@ -172,7 +174,9 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   Urdu and more; all under the SIL Open Font License). Their files go with the document,
   so it looks the same on any computer and in exported LaTeX, and Export Word embeds
   them. Any installed font works too (Windows' Traditional Arabic, Sakkal Majalla…).
-  English text uses the template's Latin fonts.
+  English text uses the template's Latin fonts. Headings and title-page items can each
+  have a font of their own (**Font** in their style: a Kufi for chapter titles, a Ruqaa
+  for the title…); otherwise they use the text's.
 - **References:** Arabic entries are formatted in Arabic (وآخرون، د.ت.) and English
   ones in English, for IEEE, numeric and author-year styles. **A list for each
   language** (designer → Bibliography; on in the Arabic thesis and book) prints the

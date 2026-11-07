@@ -11,7 +11,7 @@ import { NumberInput, Row, Segmented, Select, Toggle, issuesAt } from "./control
 import { headingLevels, type SectionProps, type Translate } from "./common";
 import { useT, type MessageKey } from "../i18n";
 import * as api from "../api";
-import { ensureLibraryFont, libraryFamily } from "../editor/libraryFonts";
+import { ensureLibraryFont, libraryFamily, libraryFonts } from "../editor/libraryFonts";
 
 export function InfoSection({ t, edit, issues }: SectionProps) {
   const tr = useT();
@@ -188,21 +188,40 @@ const BUILTIN_FONTS: { value: BuiltinFont; label: MessageKey }[] = [
   { value: "amiri", label: "designer.fontAmiri" },
 ];
 
-function FontPicker({ value, onChange, systemFonts }: { value: FontChoice; onChange: (f: FontChoice) => void; systemFonts: string[] }) {
+/** A font: TeX's own, one from Texloom's library, or an installed one. With
+ *  `inheritLabel`, also "none of its own" (`undefined`: a heading takes the text's). */
+export function FontPicker({
+  value,
+  onChange,
+  systemFonts,
+  inheritLabel,
+}: {
+  value: FontChoice | undefined;
+  onChange: (f: FontChoice | undefined) => void;
+  systemFonts: string[];
+  inheritLabel?: string;
+}) {
   const tr = useT();
-  const selectValue = value.kind === "builtin" ? value.font : "__system";
+  const [library, setLibrary] = useState<api.LibraryFont[]>([]);
+  useEffect(() => {
+    void libraryFonts().then((list) => setLibrary(list.filter((f) => f.available)));
+  }, []);
+  const selectValue = !value ? "__inherit" : value.kind === "builtin" ? value.font : value.kind === "library" ? `lib:${value.id}` : "__system";
   return (
     <span className="d-inline">
       <select
         value={selectValue}
-        onChange={(e) =>
-          onChange(
-            e.target.value === "__system"
-              ? { kind: "system", family: systemFonts[0] ?? "" }
-              : { kind: "builtin", font: e.target.value as BuiltinFont },
-          )
-        }
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "__inherit") onChange(undefined);
+          else if (v === "__system") onChange({ kind: "system", family: systemFonts[0] ?? "" });
+          else if (v.startsWith("lib:")) {
+            void ensureLibraryFont(v.slice(4));
+            onChange({ kind: "library", id: v.slice(4) });
+          } else onChange({ kind: "builtin", font: v as BuiltinFont });
+        }}
       >
+        {inheritLabel && <option value="__inherit">{inheritLabel}</option>}
         <optgroup label={tr("designer.fontsAlwaysAvailable")}>
           {BUILTIN_FONTS.map((f) => (
             <option key={f.value} value={f.value}>
@@ -210,9 +229,21 @@ function FontPicker({ value, onChange, systemFonts }: { value: FontChoice; onCha
             </option>
           ))}
         </optgroup>
+        {FONT_CATEGORIES.map(({ key, label }) => {
+          const list = library.filter((f) => f.category === key);
+          return list.length === 0 ? null : (
+            <optgroup key={key} label={`${tr("designer.fontLibrary")}: ${tr(label)}`}>
+              {list.map((f) => (
+                <option key={f.id} value={`lib:${f.id}`}>
+                  {f.name}
+                </option>
+              ))}
+            </optgroup>
+          );
+        })}
         <option value="__system">{tr("designer.fontInstalled")}</option>
       </select>
-      {value.kind === "system" && (
+      {value?.kind === "system" && (
         <>
           <input list="system-fonts" value={value.family} placeholder={tr("designer.fontFamily")} onChange={(e) => onChange({ kind: "system", family: e.target.value })} />
           <datalist id="system-fonts">
@@ -250,13 +281,13 @@ export function FontsSection({ t, edit, issues, systemFonts }: SectionProps & { 
       {latinFonts && (
         <>
           <Row label={tr(ownLayout ? "designer.mainFont" : "designer.englishMainFont")} hint={tr("designer.mainFontHint")} issues={issuesAt(issues, "fonts.main")}>
-            <FontPicker value={t.fonts.main} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.main = f))} />
+            <FontPicker value={t.fonts.main} systemFonts={systemFonts} onChange={(f) => f && edit((d) => void (d.fonts.main = f))} />
           </Row>
           <Row label={tr("designer.sansFont")} issues={issuesAt(issues, "fonts.sans")}>
-            <FontPicker value={t.fonts.sans} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.sans = f))} />
+            <FontPicker value={t.fonts.sans} systemFonts={systemFonts} onChange={(f) => f && edit((d) => void (d.fonts.sans = f))} />
           </Row>
           <Row label={tr("designer.monoFont")} hint={tr("designer.monoFontHint")} issues={issuesAt(issues, "fonts.mono")}>
-            <FontPicker value={t.fonts.mono} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.mono = f))} />
+            <FontPicker value={t.fonts.mono} systemFonts={systemFonts} onChange={(f) => f && edit((d) => void (d.fonts.mono = f))} />
           </Row>
         </>
       )}

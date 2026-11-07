@@ -3,18 +3,7 @@
     "id": "arabic-article",
     "name": "بحث لمجلة عربية",
     "description": "بحث علمي بالعربية: عنوان ومستخلص وكلمات مفتاحية بالعربية والإنجليزية، ومراجع بنظام APA. Arabic journal article with Arabic and English titles, abstracts and keywords.",
-    "version": "1.0.0"
-  },
-  "base": {
-    "class": "article",
-    "options": [
-      "a4paper",
-      "12pt"
-    ],
-    "frontMatter": "custom",
-    "bibStyle": "",
-    "files": [],
-    "titleBlock": "\\title{{title}}\n\\author{{#authors|\\texloomand }{name}\\textsuperscript{{affnums}}{/authors}}\n\\date{}\n\\maketitle\n\\begin{center}\\small\n{#affiliations|\\\\}\\textsuperscript{{n}}{name}{/affiliations}{?corresponding_email}\\\\البريد الإلكتروني للمؤلف المراسل: {corresponding_email}{/corresponding_email}\n\\end{center}\n\\begin{abstract}\n{abstract}\n\\end{abstract}\n{?keywords}\\noindent\\textbf{الكلمات المفتاحية:} {keywords}{/keywords}\n{?title_en}\\begin{english}\n\\begin{center}\\large\\bfseries {title_en}\\end{center}\n{?authors_en}\\begin{center}{authors_en}\\end{center}{/authors_en}\n{?abstract_en}\\begin{abstract}\n{abstract_en}\n\\end{abstract}{/abstract_en}\n{?keywords_en}\\noindent\\textbf{Keywords:} {keywords_en}{/keywords_en}\n\\end{english}{/title_en}"
+    "version": "2.0.0"
   },
   "page": {
     "paper": {
@@ -29,7 +18,8 @@
     "twoSided": false,
     "bindingOffsetMm": 0,
     "lineSpacing": {
-      "kind": "single"
+      "kind": "custom",
+      "stretch": 1.15
     },
     "paragraph": {
       "indentMm": 4,
@@ -67,9 +57,7 @@
           "sizePt": 14,
           "bold": true,
           "italic": false,
-          "smallCaps": false,
-          "uppercase": false,
-          "align": "left"
+          "align": "right"
         },
         "layout": "inline",
         "label": "{n}",
@@ -82,9 +70,7 @@
           "sizePt": 12,
           "bold": true,
           "italic": false,
-          "smallCaps": false,
-          "uppercase": false,
-          "align": "left"
+          "align": "right"
         },
         "layout": "inline",
         "label": "{n}",
@@ -97,9 +83,7 @@
           "sizePt": 12,
           "bold": true,
           "italic": true,
-          "smallCaps": false,
-          "uppercase": false,
-          "align": "left"
+          "align": "right"
         },
         "layout": "inline",
         "label": "{n}",
@@ -112,9 +96,7 @@
           "sizePt": 12,
           "bold": false,
           "italic": true,
-          "smallCaps": false,
-          "uppercase": false,
-          "align": "left"
+          "align": "right"
         },
         "layout": "inline",
         "label": "{n}",
@@ -126,46 +108,19 @@
   },
   "headerFooter": {
     "frontMatter": {
-      "header": {
-        "left": "",
-        "center": "",
-        "right": ""
-      },
       "footer": {
-        "left": "",
-        "center": "",
-        "right": ""
-      },
-      "headerRulePt": 0,
-      "footerRulePt": 0
+        "center": "{page}"
+      }
     },
     "main": {
-      "header": {
-        "left": "",
-        "center": "",
-        "right": ""
-      },
       "footer": {
-        "left": "",
-        "center": "",
-        "right": ""
-      },
-      "headerRulePt": 0,
-      "footerRulePt": 0
+        "center": "{page}"
+      }
     },
     "chapterOpening": {
-      "header": {
-        "left": "",
-        "center": "",
-        "right": ""
-      },
       "footer": {
-        "left": "",
-        "center": "",
-        "right": ""
-      },
-      "headerRulePt": 0,
-      "footerRulePt": 0
+        "center": "{page}"
+      }
     }
   },
   "captions": {
@@ -208,7 +163,105 @@
     }
   ],
   "titlePage": {
-    "items": []
+    "items": [
+      {
+        "xMm": 105,
+        "yMm": 25,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{title}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 18,
+            "bold": true,
+            "italic": false,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 37,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{authors}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 12,
+            "bold": false,
+            "italic": false,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 43.5,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{authors_affiliations}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 10,
+            "bold": false,
+            "italic": true,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 48.5,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{authors_email}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 9.5,
+            "bold": false,
+            "italic": false,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 56,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{title_en}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 14,
+            "bold": true,
+            "italic": false,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 64,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{authors_en}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 11,
+            "bold": false,
+            "italic": false,
+            "align": "center"
+          }
+        }
+      }
+    ],
+    "blockHeightMm": 74
   },
   "fields": [
     {
@@ -232,7 +285,7 @@
     {
       "id": "keywords",
       "label": "الكلمات المفتاحية",
-      "kind": "text"
+      "kind": "paragraphs"
     },
     {
       "id": "title_en",
@@ -247,14 +300,47 @@
     {
       "id": "keywords_en",
       "label": "الكلمات المفتاحية بالإنجليزية (Keywords)",
-      "kind": "text"
+      "kind": "paragraphs"
     }
   ],
-  "frontMatter": [],
+  "frontMatter": [
+    {
+      "type": "titlePage"
+    },
+    {
+      "type": "fieldPage",
+      "title": "المستخلص",
+      "field": "abstract",
+      "inToc": false,
+      "inline": true
+    },
+    {
+      "type": "fieldPage",
+      "title": "الكلمات المفتاحية",
+      "field": "keywords",
+      "inToc": false,
+      "inline": true
+    },
+    {
+      "type": "fieldPage",
+      "title": "Abstract",
+      "field": "abstract_en",
+      "inToc": false,
+      "inline": true,
+      "language": "english"
+    },
+    {
+      "type": "fieldPage",
+      "title": "Keywords",
+      "field": "keywords_en",
+      "inToc": false,
+      "inline": true,
+      "language": "english"
+    }
+  ],
   "language": {
     "main": "arabic",
     "other": "english",
     "digits": "arabicIndic"
-  },
-  "rawPreamble": "\\RequirePackage[a4paper,margin=25mm]{geometry}\n\\linespread{1.15}"
+  }
 }

@@ -758,6 +758,14 @@ impl<'a> Writer<'a> {
             }
         };
         // A date's Hijri form ({defense_date_hijri}), and dates in the document's language.
+        // An authors field's affiliations, English names, e-mail.
+        if let Some((base, suffix)) = texloom_core::split_author_placeholder(id)
+            && self.t.field(base).is_some_and(|f| f.kind == FieldKind::Authors)
+        {
+            let authors = texloom_core::AuthorInfo::from_field(self.input.doc.metadata.get(base));
+            let values = texloom_core::author_values(&authors, suffix);
+            return (!values.is_empty()).then_some(values);
+        }
         if let Some(base) = id.strip_suffix(texloom_core::date::HIJRI_SUFFIX)
             && let Some(v) = date(base)
         {
@@ -782,7 +790,13 @@ impl<'a> Writer<'a> {
         for piece in texloom_core::placeholder::parse(text) {
             match piece {
                 texloom_core::placeholder::Piece::Literal(l) => out.push_str(&l),
-                texloom_core::placeholder::Piece::Name(n) => out.push_str(&self.field(n).map(|v| v.join(sep)).unwrap_or_default()),
+                texloom_core::placeholder::Piece::Name(n) => {
+                    // English lists (an Arabic document's English author names) take an
+                    // English comma where entries share a line.
+                    let english = texloom_core::split_author_placeholder(n).is_some_and(|(_, s)| s != "_affiliations");
+                    let sep = if english && sep != "\n" { ", " } else { sep };
+                    out.push_str(&self.field(n).map(|v| v.join(sep)).unwrap_or_default())
+                }
             }
         }
         out
@@ -872,6 +886,7 @@ impl<'a> Writer<'a> {
                     let rtl = self.text_is_rtl(&filled);
                     let rp = Rp {
                         size: Some(half_points(style.size_pt)),
+                        face: style.font.as_ref().map(|f| word_font(f, Role::Main)),
                         bold: style.bold,
                         italic: style.italic,
                         small_caps: style.small_caps,
@@ -1160,9 +1175,8 @@ impl<'a> Writer<'a> {
     /// The template's library fonts to embed, by family: (name, [(embedRegular |
     /// embedBold, file)]), for those whose files are there.
     fn embedded_fonts(&self) -> Vec<(String, Vec<(&'static str, Vec<u8>)>)> {
-        let f = &self.t.fonts;
         let mut out: Vec<(String, Vec<(&'static str, Vec<u8>)>)> = Vec::new();
-        for choice in [Some(&f.main), Some(&f.sans), Some(&f.mono), f.arabic.as_ref()].into_iter().flatten() {
+        for choice in self.t.all_fonts() {
             let FontChoice::Library { id } = choice else { continue };
             let Some(font) = texloom_core::fonts::find(id) else { continue };
             if out.iter().any(|(n, _)| *n == font.name) {
@@ -1268,6 +1282,7 @@ impl<'a> Writer<'a> {
                 caps: s.uppercase,
                 color: s.color.as_ref().map(|c| c.trim_start_matches('#').to_string()),
                 size: Some(half_points(s.size_pt)),
+                face: s.font.as_ref().map(|f| word_font(f, Role::Main)),
                 ..Default::default()
             };
             style(&mut o, &format!("Heading{}", i + 1), &format!("heading {}", i + 1), true, pp, rp);

@@ -13,12 +13,14 @@ import type { Anchor } from "../bindings/Anchor";
 import type { Template } from "../bindings/Template";
 import type { FontChoice } from "../bindings/FontChoice";
 import type { TitleItem } from "../bindings/TitleItem";
+import type { AuthorInfo } from "../bindings/AuthorInfo";
 import { NumberInput, PlaceholderInput, Row, Toggle, issuesAt } from "./controls";
-import { fieldPlaceholders, fieldUses, placeholderNames, type SectionProps } from "./common";
+import { AUTHOR_SUFFIXES, fieldPlaceholders, fieldUses, placeholderNames, type SectionProps } from "./common";
 import { TextStyleControls } from "./StyleSections";
-import { useT, type MessageKey } from "../i18n";
+import { translate, useT, type MessageKey } from "../i18n";
 import { withDates } from "../editor/dates";
 import { libraryFamily } from "../editor/libraryFonts";
+import { pageFontStack } from "../editor/templateStyle";
 
 const MM_PER_PT = 25.4 / 72.27; // TeX points
 const SNAP_MM = 2; // distance at which items snap to the page's centre, margins and other items
@@ -233,7 +235,37 @@ export function TitlePageCanvas({
   const scale = Math.min(width, 560) / pageW; // px per mm
   const fixedPage = page >= 0 && t.frontMatter[page]?.type === "fixedPage" ? t.frontMatter[page] : null;
   /** The document's values as they print (dates written out, Hijri forms added). */
-  const shownMetadata = useMemo(() => withDates(t, metadata), [t, metadata]);
+  const shownMetadata = useMemo(() => {
+    const shown = withDates(t, metadata);
+    // An empty field shows as "[Label]", as the PDF shows a missing one: text in the
+    // template's language, so its font can be judged ("{title}" says little).
+    for (const f of t.fields) {
+      // An authors field's affiliations, English names and e-mail (as the PDF writes them).
+      if (f.kind === "authors") {
+        const list = Array.isArray(metadata[f.id]) ? (metadata[f.id] as unknown[]) : [];
+        const authors = list.filter((a): a is AuthorInfo => typeof a === "object" && a !== null);
+        const unique = (xs: string[]) => [...new Set(xs.map((x) => x.trim()).filter(Boolean))];
+        const email = authors.find((a) => a.corresponding && a.email?.trim()) ?? authors.find((a) => a.email?.trim());
+        const derived: Record<string, string[]> = {
+          _affiliations: unique(authors.flatMap((a) => a.affiliations ?? [])),
+          _en: unique(authors.map((a) => a.nameEn ?? "")),
+          _affiliations_en: unique(authors.flatMap((a) => a.affiliationsEn ?? [])),
+          _email: email ? [email.email] : [],
+        };
+        for (const [suffix, key] of AUTHOR_SUFFIXES) {
+          const v = derived[suffix];
+          shown[f.id + suffix] = v.length ? v : `[${translate(t.language?.main === "arabic" ? "ar" : "en", key, { label: f.label })}]`;
+        }
+      }
+      const v = shown[f.id];
+      const empty = v === undefined || (typeof v === "string" ? !v.trim() : v.length === 0);
+      if (empty && f.kind !== "image") {
+        shown[f.id] = `[${f.label}]`;
+        if (f.kind === "date") shown[`${f.id}_hijri`] = `[${f.label}]`;
+      }
+    }
+    return shown;
+  }, [t, metadata]);
   /** An article's title block: where the text starts below it (mm); undefined for a title page. */
   const textStart = t.titlePage.blockHeightMm;
   const items = pageItems(t, fixedPage ? page : -1);
@@ -568,7 +600,9 @@ export function TitlePageCanvas({
   };
   const fixedPages = t.frontMatter.flatMap((f, i) => (f.type === "fixedPage" ? [{ index: i, title: f.title }] : []));
 
-  const font = cssFont(t.fonts.main);
+  // The page's font: the main font for Latin letters, the Arabic font for Arabic, as
+  // the editor page and the PDF.
+  const font = pageFontStack(t);
 
   return (
     <div className="tp">
@@ -843,6 +877,8 @@ function CanvasItem({
       textTransform: s.uppercase ? "uppercase" : "none",
       textAlign: s.align,
       color: s.color ?? "#000",
+      // An item's own font (a title in another face), else the page's.
+      ...(s.font ? { fontFamily: cssFont(s.font) } : {}),
     };
     const resolved = resolveText(c.text, metadata);
     body = resolved.trim() === "" ? <span className="tp-empty">{tr("designerContent.empty")}</span> : resolved;

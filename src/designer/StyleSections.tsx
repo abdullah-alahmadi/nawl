@@ -1,11 +1,15 @@
 // Designer panels: headings and headers/footers.
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import * as api from "../api";
+import { FontPicker } from "./PageSections";
 import type { HeadingStyle } from "../bindings/HeadingStyle";
 import type { PageStyle } from "../bindings/PageStyle";
 import type { TextStyle } from "../bindings/TextStyle";
 import { ColorInput, NumberInput, PlaceholderInput, Row, Segmented, Toggle, issuesAt } from "./controls";
 import { dynamicPlaceholders, fieldPlaceholders, headingNames, type SectionProps } from "./common";
 import { translate, useT, type MessageKey, type UiLanguage } from "../i18n";
+import { cssFontStack, pageFontStack } from "../editor/templateStyle";
+import { docLanguage, localDigits } from "../editor/language";
 
 /** The samples show text in the template's language (the document's, not the interface's). */
 function sampleLanguage(t: SectionProps["t"]): UiLanguage {
@@ -27,15 +31,16 @@ function textCss(s: TextStyle): React.CSSProperties {
   };
 }
 
-/** Instant on-screen approximation of a heading; the PDF preview is exact. */
-function HeadingSample({ style, level, numbered, lang }: { style: HeadingStyle; level: number; numbered: boolean; lang: UiLanguage }) {
+/** Instant on-screen approximation of a heading; the PDF preview is exact. It uses
+ *  the level's own font, else the template's page font, and the template's digits. */
+function HeadingSample({ t, style, level, numbered, lang }: { t: SectionProps["t"]; style: HeadingStyle; level: number; numbered: boolean; lang: UiLanguage }) {
   const tr = useT();
   const sample = (key: MessageKey) => translate(lang, key);
-  const number = ["2", "2.1", "2.1.3", "2.1.3.1"][level];
+  const number = localDigits(["2", "2.1", "2.1.3", "2.1.3.1"][level], docLanguage(t).digits);
   const label = numbered ? style.label.replace(/\{n\}/g, number) : "";
-  const css = textCss(style.text);
+  const css = { ...textCss(style.text), fontFamily: style.text.font ? cssFontStack(style.text.font) : pageFontStack(t) };
   return (
-    <div className="d-sample" aria-label={tr("designer.headingPreview")} dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="d-sample" aria-label={tr("designer.headingPreview")} dir={lang === "ar" ? "rtl" : "ltr"} style={{ fontFamily: pageFontStack(t) }}>
       <div className="d-sample-text">{sample("designer.sampleBefore")}</div>
       <div style={{ ...css, marginTop: style.spaceBeforePt * PX_PER_PT, marginBottom: style.spaceAfterPt * PX_PER_PT }}>
         {style.layout === "display" ? (
@@ -55,6 +60,18 @@ function HeadingSample({ style, level, numbered, lang }: { style: HeadingStyle; 
   );
 }
 
+let systemFontList: Promise<string[]> | null = null;
+
+/** The computer's fonts, for "installed font" (asked for once). */
+function useSystemFonts(): string[] {
+  const [fonts, setFonts] = useState<string[]>([]);
+  useEffect(() => {
+    systemFontList ??= api.listSystemFonts().catch(() => []);
+    void systemFontList.then(setFonts);
+  }, []);
+  return fonts;
+}
+
 export function TextStyleControls({
   style,
   onChange,
@@ -67,8 +84,22 @@ export function TextStyleControls({
   issues: SectionProps["issues"];
 }) {
   const tr = useT();
+  const systemFonts = useSystemFonts();
   return (
     <>
+      <Row label={tr("designer.styleFont")} hint={tr("designer.styleFontHint")} issues={issuesAt(issues, `${path}.font`)}>
+        <FontPicker
+          value={style.font}
+          systemFonts={systemFonts}
+          inheritLabel={tr("designer.sameAsText")}
+          onChange={(f) =>
+            onChange((s) => {
+              if (f) s.font = f;
+              else delete s.font;
+            })
+          }
+        />
+      </Row>
       <Row label={tr("common.size")} issues={issuesAt(issues, `${path}.sizePt`)}>
         <NumberInput value={style.sizePt} unit="pt" min={4} step={0.5} onChange={(v) => onChange((s) => void (s.sizePt = v))} />
       </Row>
@@ -126,7 +157,7 @@ export function HeadingsSection({ t, edit, issues }: SectionProps) {
         }))}
         onChange={(v) => setLevel(Number(v))}
       />
-      <HeadingSample style={style} level={level} numbered={numbered} lang={sampleLanguage(t)} />
+      <HeadingSample t={t} style={style} level={level} numbered={numbered} lang={sampleLanguage(t)} />
       <TextStyleControls style={style.text} path={`${path}.text`} issues={issues} onChange={(fn) => set((h) => fn(h.text))} />
       <Row label={tr("designer.layout")}>
         <Segmented
@@ -224,10 +255,11 @@ export function CaptionsSection({ t, edit, issues }: SectionProps) {
   const c = t.captions;
   const set = (fn: (c: SectionProps["t"]["captions"]) => void) => edit((d) => fn(d.captions));
   const sep = { colon: ": ", period: ". ", dash: " — ", newline: "" }[c.separator];
-  const number = t.structure.topLevel === "chapter" && t.structure.perChapterNumbering ? "3.1" : "4";
+  const number = localDigits(t.structure.topLevel === "chapter" && t.structure.perChapterNumbering ? "3.1" : "4", docLanguage(t).digits);
   const sample = (label: string, text: string) => (
     <div
       style={{
+        fontFamily: pageFontStack(t),
         fontSize: { footnote: 12, small: 13.5, normal: 15 }[c.size],
         textAlign: c.align === "left" ? "left" : c.align === "justified" ? "justify" : "center",
       }}

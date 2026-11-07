@@ -189,6 +189,21 @@ fn library_fonts_are_embedded() {
     assert!(!plain.contains_key("word/fontTable.xml") && !plain["word/settings.xml"].contains("embedTrueType"));
 }
 
+/// A heading level's own font is its Word style's font (every script), and a library
+/// font used only there is embedded too.
+#[test]
+fn heading_fonts_reach_word() {
+    let mut t = template("arabic-thesis");
+    t.headings.levels[0].text.font = Some(texloom_core::FontChoice::Library { id: "reem-kufi".into() });
+    let font = |rel: &str| (rel == "fonts/reem-kufi-Regular.ttf").then(|| b"font bytes, at least thirty-two of them".to_vec());
+    let parts = unzip(&write(&Input { template: &t, doc: &example("arabic-article.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
+    let styles = &parts["word/styles.xml"];
+    let heading = &styles[styles.find("w:styleId=\"Heading1\"").unwrap()..];
+    let heading = &heading[..heading.find("</w:style>").unwrap()];
+    assert!(heading.contains("<w:rFonts w:ascii=\"Reem Kufi\" w:hAnsi=\"Reem Kufi\" w:cs=\"Reem Kufi\"/>"), "{heading}");
+    assert!(parts["word/fontTable.xml"].contains("<w:font w:name=\"Reem Kufi\">"));
+}
+
 #[test]
 fn number_ranges_hold_together() {
     assert_eq!(hold_ranges("ص 45–70."), "ص 45\u{200E}–\u{200E}70.");
