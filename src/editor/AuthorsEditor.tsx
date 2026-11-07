@@ -37,6 +37,7 @@ export function AuthorsEditor({
   showBiographies,
   simple = false,
   noun = "author",
+  bilingual = false,
 }: {
   value: FieldValue | undefined;
   onChange: (authors: AuthorInfo[]) => void;
@@ -45,6 +46,9 @@ export function AuthorsEditor({
   simple?: boolean;
   /** "author" or "presenter", for the add button. */
   noun?: "author" | "presenter";
+  /** An Arabic document: the name and affiliations in English too, for its English
+   *  title and abstract. */
+  bilingual?: boolean;
 }) {
   const t = useT();
   const authors = toAuthors(value);
@@ -112,6 +116,25 @@ export function AuthorsEditor({
                   onBlur={(e) => update(i, { affiliations: e.target.value.split("\n").map((x) => x.trim()).filter(Boolean) })}
                 />
               </label>
+              {bilingual && (
+                <>
+                  <label>
+                    {t("editor.authorNameEn")}
+                    <input dir="ltr" lang="en" value={a.nameEn ?? ""} onChange={(e) => update(i, { nameEn: e.target.value })} />
+                  </label>
+                  <label>
+                    {t("editor.authorAffiliationsEn")} <span className="muted">{t("editor.onePerLine")}</span>
+                    <textarea
+                      dir="ltr"
+                      lang="en"
+                      rows={2}
+                      value={(a.affiliationsEn ?? []).join("\n")}
+                      onChange={(e) => update(i, { affiliationsEn: e.target.value.split("\n") })}
+                      onBlur={(e) => update(i, { affiliationsEn: e.target.value.split("\n").map((x) => x.trim()).filter(Boolean) })}
+                    />
+                  </label>
+                </>
+              )}
               {simple ? (
                 <label>
                   {t("editor.authorEmail")} <span className="muted">{t("editor.optional")}</span>

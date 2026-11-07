@@ -5,6 +5,8 @@ use std::io::{Cursor, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use texloom_core::tr;
+
 use crate::AppError;
 
 /// Image formats XeTeX's graphicx can include.
@@ -23,7 +25,7 @@ pub fn is_safe_relative(path: &str) -> bool {
 /// the copy gets a numbered name instead. 16-bit PNGs are converted to 8-bit, which
 /// the TeX engine's PDF writer handles reliably.
 pub fn import_image(root: &Path, subdir: &str, source: &Path) -> Result<String, AppError> {
-    import_file(root, subdir, source, IMAGE_EXTENSIONS, "Images must be PNG, JPEG or PDF")
+    import_file(root, subdir, source, IMAGE_EXTENSIONS, &tr!("Images must be PNG, JPEG or PDF", "يجب أن تكون الصور بصيغة PNG أو JPEG أو PDF"))
 }
 
 /// Files a publisher's LaTeX kit may contain: class, packages, styles, logos, fonts.
@@ -40,7 +42,7 @@ const MAX_KIT_FILE: u64 = 50 * 1024 * 1024;
 /// is skipped. Returns the imported paths (`assets/ieeeaccess.cls`…).
 pub fn import_kit_zip(template_file: &Path, zip_path: &Path) -> Result<Vec<String>, AppError> {
     let file = std::fs::File::open(zip_path)?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| AppError::other(format!("Not a zip file: {e}")))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| AppError::other(tr!("Not a zip file: {e}", "ليس ملف zip: {e}")))?;
     let names: Vec<String> = (0..archive.len())
         .filter_map(|i| archive.by_index(i).ok().and_then(|f| f.name().ok().map(|n| n.to_string())))
         .collect();
@@ -81,7 +83,7 @@ pub fn import_kit_zip(template_file: &Path, zip_path: &Path) -> Result<Vec<Strin
         imported.push(format!("assets/{safe}"));
     }
     if imported.is_empty() {
-        return Err(AppError::other("No LaTeX class or style files found in that zip"));
+        return Err(AppError::other(tr!("No LaTeX class or style files found in that zip", "لا توجد ملفات أصناف أو أنماط LaTeX في ملف zip هذا")));
     }
     imported.sort();
     Ok(imported)
@@ -92,7 +94,7 @@ pub fn import_kit_zip(template_file: &Path, zip_path: &Path) -> Result<Vec<Strin
 pub fn import_file(root: &Path, subdir: &str, source: &Path, allowed: &[&str], what: &str) -> Result<String, AppError> {
     let ext = source.extension().and_then(|e| e.to_str()).map(str::to_lowercase).unwrap_or_default();
     if !allowed.contains(&ext.as_str()) {
-        return Err(AppError::other(format!("{what} (got .{ext})")));
+        return Err(AppError::other(tr!("{what} (got .{ext})", "{what} (الملف المختار: .{ext})")));
     }
     let mut bytes = std::fs::read(source)?;
     if ext == "png" {
@@ -160,8 +162,9 @@ pub fn copy_relative(files: &[String], from: &Path, to: &Path) -> Result<(), App
         match std::fs::read(&dest) {
             Ok(existing) if existing == bytes => {}
             Ok(_) => {
-                return Err(AppError::other(format!(
+                return Err(AppError::other(tr!(
                     "{} already exists with different content; choose another folder",
+                    "{} موجود بمحتوى مختلف؛ اختر مجلدًا آخر",
                     dest.display()
                 )));
             }
@@ -249,10 +252,10 @@ impl DocumentFolder {
             .iter()
             .map(|rel| {
                 if !is_safe_relative(rel) {
-                    return Err(AppError::other(format!("Invalid image path: {rel}")));
+                    return Err(AppError::other(tr!("Invalid image path: {rel}", "مسار صورة غير صالح: {rel}")));
                 }
                 let bytes = std::fs::read(dir.join(rel))
-                    .map_err(|_| AppError::other(format!("Image not found: {rel} (in {})", dir.display())))?;
+                    .map_err(|_| AppError::other(tr!("Image not found: {rel} (in {})", "الصورة غير موجودة: {rel} (في {})", dir.display())))?;
                 Ok((rel.clone(), bytes))
             })
             .collect()

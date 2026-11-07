@@ -243,7 +243,9 @@ Word is an export target only; Texloom never imports Word files.
 - [x] Find and replace ignoring Arabic diacritics and letter variants
 - [x] Abjad letters for appendices and sub-lists (editor, PDF, Word); Arabic punctuation
       as you type; equation numbers on the left in RTL
-- [ ] Kashida justification; bilingual author names; backend messages in Arabic
+- [x] Authors' English names and affiliations; backend messages (errors, validation) in
+      Arabic (`texloom_core::tr!`)
+- [ ] Kashida justification (LuaLaTeX only)
 - [ ] Exact house styles of particular Arabic journals and universities
 - [ ] Arabic-Indic page numbers in Word (Word
       shows them only with its own "Hindi digits" option)

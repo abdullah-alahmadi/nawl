@@ -190,8 +190,12 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   navigation pane and table of contents understand, editable equations, figures (with
   their crop), tables with merged cells, captions, the reference list and page numbers.
   Texloom doesn't open Word files; the `.loom` stays the source.
+- **Authors in two languages:** in Arabic templates each author also has an English name
+  and affiliations (Document info); the journal article's English section and the Word
+  export use them. Title-block recipes can use `{name_en}`, `{affiliation_en}` and
+  `{authors_en}`.
 - **Interface:** **Settings → Appearance → Language** switches the interface to Arabic
-  (right to left). It follows the system language by default. The editor page keeps the
+  (right to left), including the app's error messages and template problems. It follows the system language by default. The editor page keeps the
   document's own direction.
 
 ## Templates for any journal

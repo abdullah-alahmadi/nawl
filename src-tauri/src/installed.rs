@@ -5,7 +5,7 @@
 
 use serde::Serialize;
 use texloom_compile::installed::{self, InstalledClass};
-use texloom_core::Template;
+use texloom_core::{tr, Template};
 
 use crate::library::{journal_template, JournalSpec};
 
@@ -320,7 +320,7 @@ pub fn list(found: &[InstalledClass]) -> InstalledList {
         .map(|(c, category)| InstalledTemplate {
             class: c.class.clone(),
             name: display_name(c),
-            description: if c.description.is_empty() { format!("Class {} from your TeX installation", c.class) } else { c.description.clone() },
+            description: if c.description.is_empty() { tr!("Class {} from your TeX installation", "الصنف {} من تثبيت TeX لديك", c.class) } else { c.description.clone() },
             package: c.package.clone(),
             category,
             pdflatex_only: PDFLATEX_ONLY.contains(&c.class.as_str()),

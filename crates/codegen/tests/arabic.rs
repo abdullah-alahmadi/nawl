@@ -224,6 +224,11 @@ fn arabic_templates_generate() {
         let g = texloom_codegen::generate(&t, &doc);
         assert!(g.tex.contains("\\setdefaultlanguage[numerals=mashriq]{arabic}"), "{name}");
     }
+    // The journal article's English section names the authors in English.
+    let (_, t, doc) = arabic_samples().into_iter().find(|(n, ..)| *n == "arabic-article").unwrap();
+    let tex = texloom_codegen::generate(&t, &doc).tex;
+    let english = &tex[tex.find("\\begin{english}").expect("English section")..];
+    assert!(english.contains("\\begin{center}\\textenglish{Abdullah Al-Ahmadi and Sarah Al-Qahtani}\\end{center}"), "{english}");
     // The thesis's English abstract page is set in English, listed in the contents.
     let cls = texloom_codegen::template_to_cls(&builtin("arabic-thesis"));
     assert!(cls.contains("\\addcontentsline{toc}{chapter}{\\textenglish{Abstract}}\\begin{english}\\chapter*{\\textenglish{Abstract}}"), "{cls}");

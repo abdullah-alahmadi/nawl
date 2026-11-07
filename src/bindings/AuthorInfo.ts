@@ -19,4 +19,13 @@ biography: string,
 /**
  * Photo for the biography, relative to the document folder (`figures/…`).
  */
-photo: string, };
+photo: string, 
+/**
+ * The name in English, for an Arabic document's English title and abstract
+ * (and Word export); empty when it's the same.
+ */
+nameEn?: string, 
+/**
+ * The affiliations in English, in the same order.
+ */
+affiliationsEn?: Array<string>, };

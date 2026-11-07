@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
-use texloom_core::{ClassBase, FieldKind, FrontMatterStyle, MetadataField, Template};
+use texloom_core::{tr, ClassBase, FieldKind, FrontMatterStyle, MetadataField, Template};
 
 use crate::{files, templates, AppError};
 
@@ -126,7 +126,10 @@ impl Library {
                     (folder, r)
                 }
             },
-            _ => return Err(AppError::other("Choose a Texloom template (.json), a template package or a publisher's LaTeX kit (.zip)")),
+            _ => return Err(AppError::other(tr!(
+                "Choose a Texloom template (.json), a template package or a publisher's LaTeX kit (.zip)",
+                "اختر قالب Texloom ‏(.json) أو حزمة قالب أو حزمة LaTeX من ناشر (.zip)"
+            ))),
         };
         match result {
             Ok(()) => Ok(folder.join("template.json")),
@@ -144,7 +147,7 @@ impl Library {
     pub fn save_new(&self, name: &str, mut template: Template, previous: Option<&Path>) -> Result<templates::ActiveTemplate, AppError> {
         let name = name.trim();
         if name.is_empty() {
-            return Err(AppError::other("Give the template a name"));
+            return Err(AppError::other(tr!("Give the template a name", "أدخل اسمًا للقالب")));
         }
         let folder = self.new_folder(name)?;
         let id = folder.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| slug(name));
@@ -167,7 +170,7 @@ impl Library {
     /// Removes a template from the library (only folders inside the library).
     pub fn remove(&self, id: &str) -> Result<(), AppError> {
         if !files::is_safe_relative(id) || id.contains('/') {
-            return Err(AppError::other("Not a library template"));
+            return Err(AppError::other(tr!("Not a library template", "ليس قالبًا من قوالبي")));
         }
         let folder = self.dir.join(id);
         if folder.join("template.json").is_file() {
@@ -194,7 +197,7 @@ impl Library {
 }
 
 fn read_template(bytes: &[u8]) -> Result<Template, AppError> {
-    serde_json::from_slice(bytes).map_err(|e| AppError::other(format!("Not a Texloom template: {e}")))
+    serde_json::from_slice(bytes).map_err(|e| AppError::other(tr!("Not a Texloom template: {e}", "ليس قالب Texloom: {e}")))
 }
 
 /// A Texloom template file, with the `assets/` folder next to it if there is one.
@@ -234,7 +237,7 @@ fn package_root(zip_path: &Path) -> Result<Option<String>, AppError> {
 }
 
 fn open_zip(path: &Path) -> Result<zip::ZipArchive<std::fs::File>, AppError> {
-    zip::ZipArchive::new(std::fs::File::open(path)?).map_err(|e| AppError::other(format!("Not a zip file: {e}")))
+    zip::ZipArchive::new(std::fs::File::open(path)?).map_err(|e| AppError::other(tr!("Not a zip file: {e}", "ليس ملف zip: {e}")))
 }
 
 /// A shared template package: `template.json` and its `assets/`, nothing else.
@@ -279,10 +282,11 @@ fn create_from_kit(zip_path: &Path, name: &str, folder: &Path) -> Result<(), App
     let (class, options) = match &hints.class {
         Some((opts, c)) if classes.contains(c) => (c.clone(), opts.clone()),
         _ if classes.len() == 1 => (classes[0].clone(), Vec::new()),
-        _ if classes.is_empty() => return Err(AppError::other("That kit has no LaTeX class (.cls) file")),
+        _ if classes.is_empty() => return Err(AppError::other(tr!("That kit has no LaTeX class (.cls) file", "لا تحتوي هذه الحزمة على ملف صنف LaTeX ‏(.cls)"))),
         _ => {
-            return Err(AppError::other(format!(
+            return Err(AppError::other(tr!(
                 "That kit has several classes ({}); import the template from a .zip with just one",
+                "في هذه الحزمة عدة أصناف ({})؛ استورد القالب من ملف .zip فيه صنف واحد فقط",
                 classes.join(", ")
             )))
         }

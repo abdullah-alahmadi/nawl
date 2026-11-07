@@ -85,6 +85,28 @@ pub struct AuthorInfo {
     /// Photo for the biography, relative to the document folder (`figures/…`).
     #[serde(default)]
     pub photo: String,
+    /// The name in English, for an Arabic document's English title and abstract
+    /// (and Word export); empty when it's the same.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[ts(as = "Option<String>", optional)]
+    pub name_en: String,
+    /// The affiliations in English, in the same order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[ts(as = "Option<Vec<String>>", optional)]
+    pub affiliations_en: Vec<String>,
+}
+
+impl AuthorInfo {
+    /// The English name, or the name when none is given.
+    pub fn english_name(&self) -> &str {
+        if self.name_en.trim().is_empty() { &self.name } else { &self.name_en }
+    }
+
+    /// The English form of affiliation `i`, or the affiliation itself.
+    pub fn english_affiliation(&self, i: usize) -> Option<&str> {
+        let own = self.affiliations.get(i)?;
+        Some(self.affiliations_en.get(i).map(String::as_str).filter(|s| !s.trim().is_empty()).unwrap_or(own))
+    }
 }
 
 impl AuthorInfo {

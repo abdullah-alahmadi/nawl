@@ -597,8 +597,11 @@ impl Scope {
 /// `affiliations` and `keywords`. In `{#authors}`: `{name}`, `{email}`, `{orcid}`,
 /// `{membership}`, `{affiliation}` (first), `{affiliations}` (all, "; "),
 /// `{affnums}` ("1,2"), `{n}`, `{corresponding}` ("yes" or empty), `{biography}`,
-/// `{photo}`. In `{#affiliations}`: `{n}`, `{name}`, `{emails}`. In `{#keywords}`:
-/// `{keyword}`.
+/// `{photo}`, and the English forms `{name_en}`, `{affiliation_en}`,
+/// `{affiliations_en}`. In `{#affiliations}`: `{n}`, `{name}`, `{name_en}`,
+/// `{emails}`. In `{#keywords}`: `{keyword}`. English forms are empty when not given
+/// (an English section can't show Arabic text); `{authors_en}` joins the English
+/// names ("A, B and C") for `{?authors_en}…{/authors_en}`.
 fn recipe_scope(t: &Template, doc: &Document, au: &Authors) -> Scope {
     let escape = text_escaper(t, doc);
     let mut s = Scope::default();
@@ -630,9 +633,30 @@ fn recipe_scope(t: &Template, doc: &Document, au: &Authors) -> Scope {
             x.set("corresponding", if a.corresponding { "yes".into() } else { String::new() });
             x.set("biography", bio_text(&a.biography));
             x.set("photo", if is_safe_path(&a.photo) { a.photo.clone() } else { String::new() });
+            // For an Arabic document's English title block.
+            x.set("name_en", escape(a.name_en.trim()));
+            let english: Vec<String> = a.affiliations_en.iter().map(|f| f.trim()).filter(|f| !f.is_empty()).map(&escape).collect();
+            x.set("affiliation_en", english.first().cloned().unwrap_or_default());
+            x.set("affiliations_en", english.join("; "));
             x
         })
         .collect();
+    // An affiliation's English form: from the first author who gives one for it.
+    let english_of = |aff: &str| {
+        au.list
+            .iter()
+            .find_map(|a| a.affiliations.iter().position(|x| x == aff).and_then(|j| a.affiliations_en.get(j)))
+            .map(|f| f.trim().to_string())
+            .unwrap_or_default()
+    };
+    // Joined first, so the whole line is one English run.
+    let english_names: Vec<&str> = au.list.iter().map(|a| a.name_en.trim()).filter(|n| !n.is_empty()).collect();
+    let joined = match english_names.split_last() {
+        None => String::new(),
+        Some((last, [])) => last.to_string(),
+        Some((last, rest)) => format!("{} and {last}", rest.join(", ")),
+    };
+    s.set("authors_en", escape(&joined));
     let affiliations = au
         .affiliations
         .iter()
@@ -641,6 +665,7 @@ fn recipe_scope(t: &Template, doc: &Document, au: &Authors) -> Scope {
             let mut x = Scope::default();
             x.set("n", (i + 1).to_string());
             x.set("name", escape(aff));
+            x.set("name_en", escape(&english_of(aff)));
             x.set(
                 "emails",
                 au.first_at(i + 1).filter(|a| !a.email.is_empty()).map(|a| escape(&a.email)).collect::<Vec<_>>().join(", "),

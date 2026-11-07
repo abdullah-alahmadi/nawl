@@ -23,7 +23,7 @@ use serde_json::Value;
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State};
 use texloom_compile::{Asset, CompileError, CompileOutput, Compiler, LatexProgram, PdfSpot, SyncTex, SystemLatex, TexError};
-use texloom_core::bib;
+use texloom_core::{bib, tr};
 use texloom_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
 
 use library::{Library, LibraryEntry};
@@ -206,7 +206,11 @@ impl AppState {
         match self.engine() {
             EngineChoice::Tectonic => self.compiler.clone().map(Runner::Tectonic).map_err(|message| AppError::TectonicMissing { message }),
             EngineChoice::System(p) => SystemLatex::find(p).map(Runner::System).ok_or_else(|| AppError::TectonicMissing {
-                message: format!("{} isn't installed (or not on PATH). Install TeX Live, or choose Tectonic in Settings → Preview.", p.command()),
+                message: tr!(
+                    "{} isn't installed (or not on PATH). Install TeX Live, or choose Tectonic in Settings → Preview.",
+                    "{} غير مثبّت (أو غير موجود في PATH). ثبّت TeX Live، أو اختر Tectonic من الإعدادات ← معاينة.",
+                    p.command()
+                ),
             }),
         }
     }
@@ -246,7 +250,7 @@ async fn list_engines(state: State<'_, AppState>) -> Result<Vec<EngineInfo>, App
 
 #[tauri::command]
 fn set_engine(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
-    let choice = EngineChoice::parse(&id).ok_or_else(|| AppError::other(format!("Unknown engine: {id}")))?;
+    let choice = EngineChoice::parse(&id).ok_or_else(|| AppError::other(tr!("Unknown engine: {id}", "محرك غير معروف: {id}")))?;
     *state.engine.lock().expect("engine lock") = choice;
     Ok(())
 }
@@ -330,7 +334,7 @@ fn tectonic_candidates() -> Vec<PathBuf> {
 }
 
 fn to_document(doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<Document, AppError> {
-    let body: Body = serde_json::from_value(doc).map_err(|e| AppError::other(format!("Unreadable document: {e}")))?;
+    let body: Body = serde_json::from_value(doc).map_err(|e| AppError::other(tr!("Unreadable document: {e}", "تتعذّر قراءة المستند: {e}")))?;
     Ok(Document { metadata, body, bibliography: bibliography.unwrap_or_default() })
 }
 
@@ -360,7 +364,7 @@ fn list_builtin_templates() -> Vec<templates::BuiltinInfo> {
 #[tauri::command]
 fn use_builtin_template(app: AppHandle, state: State<'_, AppState>, id: Option<String>) -> Result<TemplateInfo, AppError> {
     let t = match id.as_deref() {
-        Some(id) => ActiveTemplate::builtin_by_id(id).ok_or_else(|| AppError::other(format!("No built-in template {id:?}")))?,
+        Some(id) => ActiveTemplate::builtin_by_id(id).ok_or_else(|| AppError::other(tr!("No built-in template {id:?}", "لا يوجد قالب مدمج {id:?}")))?,
         None => ActiveTemplate::builtin(),
     };
     let info = t.info();
@@ -411,7 +415,7 @@ async fn theme_preview(
     installed: bool,
 ) -> Result<Response, AppError> {
     if ![&theme, &color_theme, &font_theme].iter().all(|n| themes::safe(n)) || theme.is_empty() {
-        return Err(AppError::other("Not a theme name"));
+        return Err(AppError::other(tr!("Not a theme name", "ليس اسم سمة")));
     }
     let state = app.state::<AppState>();
     let mut choice = state.engine();
@@ -429,7 +433,7 @@ async fn theme_preview(
     }
     let runner = match choice {
         EngineChoice::Tectonic => state.compiler.clone().map(Runner::Tectonic).map_err(|message| AppError::TectonicMissing { message })?,
-        EngineChoice::System(p) => Runner::System(SystemLatex::find(p).ok_or_else(|| AppError::other(format!("{} isn't installed", p.command())))?),
+        EngineChoice::System(p) => Runner::System(SystemLatex::find(p).ok_or_else(|| AppError::other(tr!("{} isn't installed", "{} غير مثبّت", p.command())))?),
     };
     let t = themes::preview_template(&theme, &color_theme, &font_theme);
     let (tex, files) = themes::preview_files(&t, choice.target());
@@ -462,7 +466,7 @@ async fn use_installed_template(app: AppHandle, class: String) -> Result<Templat
     let c = found
         .iter()
         .find(|c| c.class == class)
-        .ok_or_else(|| AppError::other(format!("The class {class} isn't installed")))?;
+        .ok_or_else(|| AppError::other(tr!("The class {class} isn't installed", "الصنف {class} غير مثبّت")))?;
     let t = ActiveTemplate { template: Arc::new(installed::template(c)), path: None, warnings: Vec::new() };
     let info = t.info();
     app.state::<AppState>().templates.set(&app, t);
@@ -477,13 +481,19 @@ fn import_template_file(state: State<'_, AppState>, source: String) -> Result<St
         .templates
         .current()
         .path
-        .ok_or_else(|| AppError::other("Save the template first (Save as…) so its files have a folder to live in."))?;
+        .ok_or_else(|| AppError::other(tr!(
+            "Save the template first (Save as…) so its files have a folder to live in.",
+            "احفظ القالب أولًا (حفظ باسم…) ليكون لملفاته مجلد تُحفظ فيه."
+        )))?;
     files::import_file(
         file.parent().unwrap_or(Path::new(".")),
         "assets",
         Path::new(&source),
         files::CLASS_KIT_EXTENSIONS,
-        "Choose a file from the publisher's LaTeX kit (.cls, .sty, .bst, images or fonts)",
+        &tr!(
+            "Choose a file from the publisher's LaTeX kit (.cls, .sty, .bst, images or fonts)",
+            "اختر ملفًا من حزمة LaTeX الخاصة بالناشر (.cls أو .sty أو .bst أو صور أو خطوط)"
+        ),
     )
 }
 
@@ -551,7 +561,10 @@ fn import_template_asset(state: State<'_, AppState>, source: String) -> Result<S
     let current = state.templates.current();
     let file = current
         .path
-        .ok_or_else(|| AppError::other("Save the template first (Save as…) so its images have a folder to live in."))?;
+        .ok_or_else(|| AppError::other(tr!(
+            "Save the template first (Save as…) so its images have a folder to live in.",
+            "احفظ القالب أولًا (حفظ باسم…) ليكون لصوره مجلد تُحفظ فيه."
+        )))?;
     templates::import_asset(&file, Path::new(&source))
 }
 
@@ -570,7 +583,10 @@ fn import_kit_zip(state: State<'_, AppState>, source: String) -> Result<Vec<Stri
         .templates
         .current()
         .path
-        .ok_or_else(|| AppError::other("Save the template first (Save as…) so the kit has a folder to live in."))?;
+        .ok_or_else(|| AppError::other(tr!(
+            "Save the template first (Save as…) so the kit has a folder to live in.",
+            "احفظ القالب أولًا (حفظ باسم…) ليكون للحزمة مجلد تُحفظ فيه."
+        )))?;
     files::import_kit_zip(&file, Path::new(&source))
 }
 
@@ -661,7 +677,7 @@ fn parse_bibliography(source: String) -> bib::BibInfo {
 #[tauri::command]
 fn read_bib_file(path: String) -> Result<String, AppError> {
     if !path.to_lowercase().ends_with(".bib") {
-        return Err(AppError::other("Choose a .bib file"));
+        return Err(AppError::other(tr!("Choose a .bib file", "اختر ملف .bib")));
     }
     Ok(std::fs::read_to_string(path)?)
 }
@@ -710,9 +726,10 @@ async fn compile_document(
         // Right-to-left slides only work with LuaLaTeX (beamer-rl): the installed one,
         // whatever engine is chosen for everything else.
         let lua = SystemLatex::find(LatexProgram::LuaLatex).ok_or_else(|| {
-            AppError::other(
+            AppError::other(tr!(
                 "Arabic slides need LuaLaTeX, which comes with TeX Live and MiKTeX: install one of them (the built-in Tectonic can typeset Arabic documents, but not right-to-left slides).",
-            )
+                "تحتاج الشرائح العربية إلى LuaLaTeX، وهو يأتي مع TeX Live وMiKTeX: ثبّت أحدهما (يستطيع Tectonic المدمج تنضيد المستندات العربية، لكن لا يستطيع تنضيد الشرائح من اليمين إلى اليسار)."
+            ))
         })?;
         runner = Runner::System(lua);
         target = texloom_codegen::Engine::Lua;
@@ -721,7 +738,10 @@ async fn compile_document(
         // pdfLaTeX can't typeset Arabic: such documents use the built-in Tectonic
         // (or an installed XeLaTeX/LuaLaTeX) whatever engine is chosen for the rest.
         (runner, target) = unicode_runner(state).ok_or_else(|| {
-            AppError::other("Arabic text needs XeLaTeX or LuaLaTeX, and pdfLaTeX can't typeset it. Install TeX Live or MiKTeX, or use the built-in Tectonic.")
+            AppError::other(tr!(
+                "Arabic text needs XeLaTeX or LuaLaTeX, and pdfLaTeX can't typeset it. Install TeX Live or MiKTeX, or use the built-in Tectonic.",
+                "يحتاج النص العربي إلى XeLaTeX أو LuaLaTeX، ولا يستطيع pdfLaTeX تنضيده. ثبّت TeX Live أو MiKTeX، أو استخدم Tectonic المدمج."
+            ))
         })?;
     }
     let generated = texloom_codegen::generate_for(&active.template, &document, target);
@@ -842,7 +862,7 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
         opened.bundled = true;
         return Ok(opened);
     }
-    let text = String::from_utf8(bytes).map_err(|_| AppError::other("Not a Texloom document"))?;
+    let text = String::from_utf8(bytes).map_err(|_| AppError::other(tr!("Not a Texloom document", "ليس مستند Texloom")))?;
     let opened = read_document(&app, &state, &text)?;
     state.doc_folder.set(Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default());
     Ok(opened)
@@ -850,13 +870,13 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
 
 /// Parses `.loom` text and makes its template the active one.
 fn read_document(app: &AppHandle, state: &AppState, text: &str) -> Result<OpenedDocument, AppError> {
-    let file: Value = serde_json::from_str(text).map_err(|e| AppError::other(format!("Not a valid document: {e}")))?;
+    let file: Value = serde_json::from_str(text).map_err(|e| AppError::other(tr!("Not a valid document: {e}", "ليس مستندًا صالحًا: {e}")))?;
     if file.get("format").and_then(Value::as_str) != Some(DOC_FORMAT) {
-        return Err(AppError::other("Not a Texloom document"));
+        return Err(AppError::other(tr!("Not a Texloom document", "ليس مستند Texloom")));
     }
     let saved: SavedTemplate = serde_json::from_value(file.clone()).unwrap_or(SavedTemplate { template: None, template_path: None });
     let mut opened: OpenedDocument =
-        serde_json::from_value(file).map_err(|e| AppError::other(format!("Not a valid document: {e}")))?;
+        serde_json::from_value(file).map_err(|e| AppError::other(tr!("Not a valid document: {e}", "ليس مستندًا صالحًا: {e}")))?;
 
     let from_disk = saved.template_path.as_deref().filter(|p| p.is_file()).and_then(|p| templates::load_file(p).ok());
     let restored = from_disk.or_else(|| {
@@ -906,7 +926,7 @@ struct RestoredDocument {
 /// the recovery copy (for documents that were never saved).
 #[tauri::command]
 fn restore_recovery(app: AppHandle, state: State<'_, AppState>, recovery: State<'_, Recovery>) -> Result<RestoredDocument, AppError> {
-    let info = recovery.info().ok_or_else(|| AppError::other("There are no unsaved changes to restore"))?;
+    let info = recovery.info().ok_or_else(|| AppError::other(tr!("There are no unsaved changes to restore", "لا توجد تغييرات غير محفوظة لاستعادتها")))?;
     let document = read_document(&app, &state, &recovery.read_document()?)?;
     let original = info.original_path.filter(|p| Path::new(p).parent().is_some_and(Path::is_dir));
     match original.as_deref().and_then(|p| Path::new(p).parent()) {
@@ -948,7 +968,7 @@ fn import_template(app: AppHandle, state: State<'_, AppState>, library: State<'_
 fn remove_user_template(state: State<'_, AppState>, library: State<'_, Library>, id: String) -> Result<(), AppError> {
     let in_use = state.templates.current().path.as_deref().and_then(Path::parent).and_then(Path::file_name).is_some_and(|n| n == id.as_str());
     if in_use {
-        return Err(AppError::other("This template is in use; switch to another one first"));
+        return Err(AppError::other(tr!("This template is in use; switch to another one first", "هذا القالب مستخدم حاليًا؛ انتقل إلى قالب آخر أولًا")));
     }
     library.remove(&id)
 }
@@ -1033,6 +1053,13 @@ fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Me
         std::fs::write(dest, bytes)?;
     }
     Ok(())
+}
+
+/// The language of the backend's messages (errors, validation problems): the
+/// interface's.
+#[tauri::command]
+fn set_message_language(arabic: bool) {
+    texloom_core::msg::set_arabic(arabic);
 }
 
 /// Writes the document as a Word file. `mathml` maps each formula's LaTeX to
@@ -1149,7 +1176,8 @@ pub fn run() {
             export_template,
             save_settings,
             export_tex,
-            export_docx
+            export_docx,
+            set_message_language
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

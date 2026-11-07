@@ -10,12 +10,20 @@
           "قسم تقنيات التعليم، جامعة الملك عبدالعزيز، جدة"
         ],
         "email": "author@example.edu.sa",
-        "corresponding": true
+        "corresponding": true,
+        "nameEn": "Abdullah Al-Ahmadi",
+        "affiliationsEn": [
+          "Department of Educational Technology, King Abdulaziz University, Jeddah"
+        ]
       },
       {
         "name": "سارة القحطاني",
         "affiliations": [
           "قسم تقنيات التعليم، جامعة الملك عبدالعزيز، جدة"
+        ],
+        "nameEn": "Sarah Al-Qahtani",
+        "affiliationsEn": [
+          "Department of Educational Technology, King Abdulaziz University, Jeddah"
         ]
       }
     ],

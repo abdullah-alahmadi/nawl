@@ -59,6 +59,7 @@ fn arabic_article_exports() {
     let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml }).unwrap();
     let parts = unzip(&bytes);
     assert_well_formed(&parts);
+    assert!(parts["word/document.xml"].contains("Abdullah Al-Ahmadi, Sarah Al-Qahtani"), "English names under the English title");
     for p in ["[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/styles.xml", "word/numbering.xml", "word/settings.xml", "word/footer1.xml", "word/media/image1.png"] {
         assert!(parts.contains_key(p), "{p} missing");
     }

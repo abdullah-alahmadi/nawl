@@ -57,13 +57,13 @@ impl Checker<'_> {
 
     fn positive(&mut self, path: &str, v: f32) {
         if !(v.is_finite() && v > 0.0) {
-            self.error(path, format!("must be greater than 0 (got {v})"));
+            self.error(path, crate::tr!("must be greater than 0 (got {v})", "يجب أن تكون أكبر من 0 (القيمة {v})"));
         }
     }
 
     fn non_negative(&mut self, path: &str, v: f32) {
         if !(v.is_finite() && v >= 0.0) {
-            self.error(path, format!("must not be negative (got {v})"));
+            self.error(path, crate::tr!("must not be negative (got {v})", "يجب ألا تكون سالبة (القيمة {v})"));
         }
     }
 
@@ -82,7 +82,7 @@ impl Checker<'_> {
                         .is_some_and(|f| f.kind == crate::FieldKind::Date)
             };
             if !ok {
-                self.error(path, format!("unknown placeholder {{{name}}}"));
+                self.error(path, crate::tr!("unknown placeholder {{{name}}}", "عنصر نائب غير معروف {{{name}}}"));
             }
         }
     }
@@ -92,7 +92,7 @@ impl Checker<'_> {
         if let Some(c) = &s.color {
             let hex = c.strip_prefix('#').unwrap_or("");
             if hex.len() != 6 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
-                self.error(format!("{path}.color"), format!("expected #RRGGBB, got {c:?}"));
+                self.error(format!("{path}.color"), crate::tr!("expected #RRGGBB, got {c:?}", "المتوقع لون بالصيغة #RRGGBB، والموجود {c:?}"));
             }
         }
     }
@@ -107,12 +107,12 @@ impl Template {
         let id_ok = id.chars().next().is_some_and(|ch| ch.is_ascii_lowercase())
             && id.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-');
         if !id_ok {
-            c.error("meta.id", "must start with a-z and contain only a-z, 0-9 and '-'");
+            c.error("meta.id", crate::tr!("must start with a-z and contain only a-z, 0-9 and '-'", "يجب أن يبدأ بحرف من a-z وألا يحوي إلا a-z و0-9 و'-'"));
         }
         // The id names the generated class (<id>.cls), which loads LaTeX's own
         // classes: one of their names would load itself.
         if ["article", "report", "book", "letter", "slides", "beamer", "memoir", "minimal", "proc"].contains(&id.as_str()) {
-            c.error("meta.id", format!("\"{id}\" is the name of a LaTeX class; choose another id"));
+            c.error("meta.id", crate::tr!("\"{id}\" is the name of a LaTeX class; choose another id", "\"{id}\" اسم صنف في LaTeX؛ اختر معرّفًا آخر"));
         }
 
         let (w, h) = t.page.paper.size_mm();
@@ -127,15 +127,21 @@ impl Template {
         if m.inner_mm + m.outer_mm + t.page.binding_offset_mm >= w * 0.8
             || m.top_mm + m.bottom_mm >= h * 0.8
         {
-            c.error("page.margins", "margins leave too little room for text");
+            c.error("page.margins", crate::tr!("margins leave too little room for text", "الهوامش لا تترك مساحة كافية للنص"));
         }
         if !(1..=2).contains(&t.page.columns) {
-            c.error("page.columns", "must be 1 or 2");
+            c.error("page.columns", crate::tr!("must be 1 or 2", "يجب أن يكون 1 أو 2"));
         }
         if let Some(height) = t.title_page.block_height_mm
             && !(height > m.top_mm && height < h - m.bottom_mm - 30.0)
         {
-            c.error("titlePage.blockHeightMm", "the text must start below the top margin and leave room on the first page");
+            c.error(
+                "titlePage.blockHeightMm",
+                crate::tr!(
+                    "the text must start below the top margin and leave room on the first page",
+                    "يجب أن يبدأ النص أسفل الهامش العلوي وأن يترك مساحة في الصفحة الأولى"
+                ),
+            );
         }
         if let crate::LineSpacing::Custom { stretch } = t.page.line_spacing {
             c.positive("page.lineSpacing.stretch", stretch);
@@ -144,21 +150,21 @@ impl Template {
         c.non_negative("page.paragraph.spacingPt", t.page.paragraph.spacing_pt);
 
         if ![10, 11, 12].contains(&t.fonts.base_size_pt) {
-            c.error("fonts.baseSizePt", "must be 10, 11 or 12");
+            c.error("fonts.baseSizePt", crate::tr!("must be 10, 11 or 12", "يجب أن يكون 10 أو 11 أو 12"));
         }
         for (name, f) in [("main", &t.fonts.main), ("sans", &t.fonts.sans), ("mono", &t.fonts.mono)] {
             if let crate::FontChoice::System { family } = f
                 && family.trim().is_empty()
             {
-                c.error(format!("fonts.{name}.family"), "font family is empty");
+                c.error(format!("fonts.{name}.family"), crate::tr!("font family is empty", "اسم عائلة الخط فارغ"));
             }
         }
 
         if t.structure.numbered_depth > 4 {
-            c.error("structure.numberedDepth", "must be 0–4");
+            c.error("structure.numberedDepth", crate::tr!("must be 0–4", "يجب أن يكون من 0 إلى 4"));
         }
         if t.structure.toc_depth > 4 {
-            c.error("structure.tocDepth", "must be 0–4");
+            c.error("structure.tocDepth", crate::tr!("must be 0–4", "يجب أن يكون من 0 إلى 4"));
         }
 
         // Fields first: other checks look placeholders up by field id.
@@ -166,17 +172,17 @@ impl Template {
         for (i, f) in t.fields.iter().enumerate() {
             let p = format!("fields[{i}].id");
             if !placeholder::is_valid_name(&f.id) {
-                c.error(&p, format!("{:?} must match [a-z][a-z0-9_]*", f.id));
+                c.error(&p, crate::tr!("{:?} must match [a-z][a-z0-9_]*", "{:?} يجب أن يطابق [a-z][a-z0-9_]*", f.id));
             } else if placeholder::is_dynamic(&f.id) {
-                c.error(&p, format!("{:?} is reserved", f.id));
+                c.error(&p, crate::tr!("{:?} is reserved", "{:?} محجوز", f.id));
             }
             if !seen.insert(f.id.as_str()) {
-                c.error(&p, format!("duplicate field id {:?}", f.id));
+                c.error(&p, crate::tr!("duplicate field id {:?}", "معرّف حقل مكرر {:?}", f.id));
             }
         }
 
         if t.headings.levels.len() != 4 {
-            c.error("headings.levels", format!("must have exactly 4 levels (has {})", t.headings.levels.len()));
+            c.error("headings.levels", crate::tr!("must have exactly 4 levels (has {})", "يجب أن تكون 4 مستويات بالضبط (الموجود {})", t.headings.levels.len()));
         }
         for (i, h) in t.headings.levels.iter().enumerate() {
             let p = format!("headings.levels[{i}]");
@@ -199,7 +205,10 @@ impl Template {
                 c.placeholders(&path, text, false);
                 for n in placeholder::names(text) {
                     if t.field(n).is_some_and(|f| matches!(f.kind, FieldKind::Paragraphs | FieldKind::Authors)) {
-                        c.error(&path, format!("{{{n}}} has several paragraphs and can't go in a header or footer"));
+                        c.error(&path, crate::tr!(
+                            "{{{n}}} has several paragraphs and can't go in a header or footer",
+                            "{{{n}}} يتكون من عدة فقرات ولا يمكن وضعه في رأس الصفحة أو تذييلها"
+                        ));
                     }
                 }
             }
@@ -213,7 +222,7 @@ impl Template {
                     c.placeholders(&format!("{p}.content.text"), text, false);
                     for n in placeholder::names(text) {
                         if matches!(n, "chapter" | "section") {
-                            c.error(format!("{p}.content.text"), format!("{{{n}}} has no value outside chapters"));
+                            c.error(format!("{p}.content.text"), crate::tr!("{{{n}}} has no value outside chapters", "{{{n}}} ليس له قيمة خارج الفصول"));
                         }
                     }
                     c.text_style(&format!("{p}.content.style"), style);
@@ -228,7 +237,11 @@ impl Template {
                         && !asset.contains('\\')
                         && asset.split('/').all(|s| !s.is_empty() && s != "..");
                     if !safe {
-                        c.error(format!("{p}.content.asset"), "must be a relative path inside the template, like assets/logo.png");
+                        c.error(format!("{p}.content.asset"), crate::tr!(
+                            "must be a relative path inside the template, like assets/logo.png",
+                            "يجب أن يكون مسارًا نسبيًا داخل القالب، مثل assets/logo.png"
+                        ),
+                    );
                     }
                 }
                 TitleContent::Rule { length_mm, thickness_pt } => {
@@ -240,7 +253,7 @@ impl Template {
 
         for (name, label) in [("figureLabel", &t.captions.figure_label), ("tableLabel", &t.captions.table_label)] {
             if label.trim().is_empty() {
-                c.error(format!("captions.{name}"), "must not be empty");
+                c.error(format!("captions.{name}"), crate::tr!("must not be empty", "يجب ألا يكون فارغًا"));
             }
         }
 
@@ -248,25 +261,45 @@ impl Template {
             let p = t.presentation.clone().unwrap_or_default();
             let name_ok = |s: &str| s.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-');
             if p.theme.trim().is_empty() || !name_ok(&p.theme) {
-                c.error("presentation.theme", "needs a beamer theme name such as Madrid (letters, digits, '-')");
+                c.error(
+                    "presentation.theme",
+                    crate::tr!(
+                        "needs a beamer theme name such as Madrid (letters, digits, '-')",
+                        "يلزم اسم سمة beamer مثل Madrid (حروف وأرقام و'-')"
+                    ),
+                );
             }
             if !name_ok(&p.color_theme) {
-                c.error("presentation.colorTheme", "colour theme names may only contain letters, digits and '-'");
+                c.error("presentation.colorTheme", crate::tr!(
+                        "colour theme names may only contain letters, digits and '-'",
+                        "لا يحوي اسم سمة الألوان إلا الحروف والأرقام و'-'"
+                    ),
+                );
             }
             if !name_ok(&p.font_theme) {
-                c.error("presentation.fontTheme", "font theme names may only contain letters, digits and '-'");
+                c.error("presentation.fontTheme", crate::tr!(
+                        "font theme names may only contain letters, digits and '-'",
+                        "لا يحوي اسم سمة الخطوط إلا الحروف والأرقام و'-'"
+                    ),
+                );
             }
             if let Some(color) = &p.accent_color {
                 let hex = color.len() == 7 && color.starts_with('#') && color[1..].chars().all(|ch| ch.is_ascii_hexdigit());
                 if !hex {
-                    c.error("presentation.accentColor", "needs a colour like #1f4e79");
+                    c.error("presentation.accentColor", crate::tr!("needs a colour like #1f4e79", "يلزم لون مثل #1f4e79"));
                 }
             }
             if !(8..=20).contains(&p.font_size_pt) {
-                c.error("presentation.fontSizePt", "beamer font sizes are 8 to 20 pt");
+                c.error("presentation.fontSizePt", crate::tr!("beamer font sizes are 8 to 20 pt", "أحجام خط beamer من 8 إلى 20 نقطة"));
             }
             if t.base.is_some() {
-                c.error("base", "a presentation can't also be built on a publisher class");
+                c.error(
+                    "base",
+                    crate::tr!(
+                        "a presentation can't also be built on a publisher class",
+                        "لا يمكن بناء عرض تقديمي على صنف ناشر أيضًا"
+                    ),
+                );
             }
         }
         if let Some(base) = &t.base {
@@ -274,32 +307,53 @@ impl Template {
                 && base.class.chars().all(|ch| ch.is_ascii_alphanumeric() || "-_./".contains(ch))
                 && !base.class.contains("..");
             if !name_ok {
-                c.error("base.class", "class names may only contain letters, digits, '-', '_', '.', '/'");
+                c.error(
+                    "base.class",
+                    crate::tr!(
+                        "class names may only contain letters, digits, '-', '_', '.', '/'",
+                        "لا يحوي اسم الصنف إلا الحروف والأرقام و'-' و'_' و'.' و'/'"
+                    ),
+                );
             }
             // Empty: the class sets the style itself (jmlr, elbioimp…).
             if base.bib_style.contains(['{', '}', '\\', ' ']) {
-                c.error("base.bibStyle", "needs a BibTeX style name such as IEEEtran (or empty when the class sets it)");
+                c.error(
+                    "base.bibStyle",
+                    crate::tr!(
+                        "needs a BibTeX style name such as IEEEtran (or empty when the class sets it)",
+                        "يلزم اسم نمط BibTeX مثل IEEEtran (أو يُترك فارغًا إذا حدده الصنف)"
+                    ),
+                );
             }
             for (i, o) in base.options.iter().enumerate() {
                 if o.contains(['{', '}', '\\', ',', ']']) || o.trim().is_empty() {
-                    c.error(format!("base.options[{i}]"), format!("invalid class option {o:?}"));
+                    c.error(format!("base.options[{i}]"), crate::tr!("invalid class option {o:?}", "خيار صنف غير صالح {o:?}"));
                 }
             }
             for (i, f) in base.files.iter().enumerate() {
                 let safe = !f.starts_with('/') && !f.contains('\\') && f.split('/').all(|s| !s.is_empty() && s != "..");
                 if !safe {
-                    c.error(format!("base.files[{i}]"), "must be a relative path inside the template");
+                    c.error(
+                        format!("base.files[{i}]"),
+                        crate::tr!("must be a relative path inside the template", "يجب أن يكون مسارًا نسبيًا داخل القالب"),
+                    );
                 }
             }
             for id in ["title", "authors"] {
                 if t.field(id).is_none() {
-                    c.error("fields", format!("templates built on a publisher class need a {id:?} field"));
+                    c.error("fields", crate::tr!(
+                        "templates built on a publisher class need a {id:?} field",
+                        "القوالب المبنية على صنف ناشر تحتاج إلى حقل {id:?}"
+                    ));
                 }
             }
             if base.front_matter == crate::FrontMatterStyle::Custom
                 && base.title_block.as_deref().is_none_or(|r| r.trim().is_empty())
             {
-                c.error("base.titleBlock", "the custom style needs a title block recipe");
+                c.error(
+                    "base.titleBlock",
+                    crate::tr!("the custom style needs a title block recipe", "النمط المخصص يحتاج إلى وصفة لكتلة العنوان"),
+                );
             }
             if let Some(kit) = &base.kit {
                 let have: Vec<&str> = base.files.iter().map(|f| f.rsplit('/').next().unwrap_or(f)).collect();
@@ -308,18 +362,23 @@ impl Template {
                 if !missing.is_empty() {
                     c.warn(
                         "base.kit",
-                        format!("needs the {} ({}); import it under Publisher class", kit.name, missing.join(", ")),
+                        crate::tr!(
+                            "needs the {} ({}); import it under Publisher class",
+                            "يحتاج إلى {} ({})؛ استورده من قسم صنف الناشر",
+                            kit.name,
+                            missing.join(", ")
+                        ),
                     );
                 }
             }
         }
         if t.bibliography.title.trim().is_empty() {
-            c.error("bibliography.title", "must not be empty");
+            c.error("bibliography.title", crate::tr!("must not be empty", "يجب ألا يكون فارغًا"));
         }
         c.placeholders("structure.appendixLabel", &t.structure.appendix_label, true);
         for (i, sec) in t.skeleton.iter().enumerate() {
             if sec.title.trim().is_empty() {
-                c.error(format!("skeleton[{i}].title"), "must not be empty");
+                c.error(format!("skeleton[{i}].title"), crate::tr!("must not be empty", "يجب ألا يكون فارغًا"));
             }
         }
 
@@ -328,25 +387,29 @@ impl Template {
             match item {
                 FrontMatterItem::TitlePage => has_title_page = true,
                 FrontMatterItem::FieldPage { field, .. } => match t.field(field) {
-                    None => c.error(format!("frontMatter[{i}].field"), format!("no field with id {field:?}")),
+                    None => c.error(format!("frontMatter[{i}].field"), crate::tr!("no field with id {field:?}", "لا يوجد حقل بالمعرّف {field:?}")),
                     Some(f) if f.kind != FieldKind::Paragraphs => {
-                        c.error(format!("frontMatter[{i}].field"), format!("field {field:?} must be of kind paragraphs"))
+                        c.error(format!("frontMatter[{i}].field"), crate::tr!("field {field:?} must be of kind paragraphs", "الحقل {field:?} يجب أن يكون من نوع فقرات"))
                     }
                     Some(_) => {}
                 },
                 FrontMatterItem::FixedPage { title, items, in_toc } => {
                     if *in_toc && title.trim().is_empty() {
-                        c.error(format!("frontMatter[{i}].title"), "needs a title to be listed in the table of contents");
+                        c.error(format!("frontMatter[{i}].title"), crate::tr!(
+                                "needs a title to be listed in the table of contents",
+                                "يحتاج إلى عنوان ليظهر في جدول المحتويات"
+                            ),
+                        );
                     }
                     if items.is_empty() {
-                        c.warn(format!("frontMatter[{i}].items"), "the page is empty");
+                        c.warn(format!("frontMatter[{i}].items"), crate::tr!("the page is empty", "الصفحة فارغة"));
                     }
                 }
                 _ => {}
             }
         }
         if has_title_page && t.title_page.items.is_empty() {
-            c.warn("titlePage.items", "the title page is empty");
+            c.warn("titlePage.items", crate::tr!("the title page is empty", "صفحة العنوان فارغة"));
         }
 
         c.issues
@@ -367,7 +430,11 @@ impl Template {
             if !titles.contains(&sec.title.trim().to_lowercase()) {
                 issues.push(warn(
                     "document.skeleton".into(),
-                    format!("Required {level} \"{}\" is missing", sec.title.trim()),
+                    if level == "chapter" {
+                        crate::tr!("Required chapter \"{}\" is missing", "الفصل المطلوب \"{}\" غير موجود", sec.title.trim())
+                    } else {
+                        crate::tr!("Required section \"{}\" is missing", "القسم المطلوب \"{}\" غير موجود", sec.title.trim())
+                    },
                 ));
             }
         }
@@ -375,13 +442,26 @@ impl Template {
         if broken > 0 {
             issues.push(warn(
                 "document.refs".into(),
-                format!("{broken} cross-reference{} point{} to something that was deleted", if broken > 1 { "s" } else { "" }, if broken > 1 { "" } else { "s" }),
+                if broken > 1 {
+                    crate::tr!(
+                        "{broken} cross-references point to something that was deleted",
+                        "عدد الإحالات التي تشير إلى محتوى محذوف: {broken}"
+                    )
+                } else {
+                    crate::tr!(
+                        "{broken} cross-reference points to something that was deleted",
+                        "إحالة واحدة تشير إلى محتوى محذوف"
+                    )
+                },
             ));
         }
         if let Some(known) = known_keys {
             for key in doc.body.cited_keys() {
                 if !known.contains(&key) {
-                    issues.push(warn("document.citations".into(), format!("Citation \"{key}\" isn't in the references")));
+                    issues.push(warn("document.citations".into(), crate::tr!(
+                            "Citation \"{key}\" isn't in the references",
+                            "الاستشهاد \"{key}\" غير موجود في المراجع"
+                        )));
                 }
             }
         }
@@ -397,7 +477,7 @@ impl Template {
                 issues.push(Issue {
                     severity: Severity::Warning,
                     path: format!("metadata.{}", f.id),
-                    message: format!("\"{}\" is required but empty", f.label),
+                    message: crate::tr!("\"{}\" is required but empty", "\"{}\" مطلوب لكنه فارغ", f.label),
                 });
             }
         }
@@ -406,7 +486,7 @@ impl Template {
                 issues.push(Issue {
                     severity: Severity::Warning,
                     path: format!("metadata.{key}"),
-                    message: "not a field of this template; ignored".into(),
+                    message: crate::tr!("not a field of this template; ignored", "ليس حقلًا في هذا القالب؛ تم تجاهله"),
                 });
             }
         }

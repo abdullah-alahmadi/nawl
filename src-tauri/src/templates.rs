@@ -10,7 +10,7 @@ use notify_debouncer_mini::notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
-use texloom_core::{has_errors, Issue, Paper, Severity, Template, TitleContent};
+use texloom_core::{has_errors, tr, Issue, Paper, Severity, Template, TitleContent};
 
 use crate::AppError;
 
@@ -208,8 +208,9 @@ impl ActiveTemplate {
     pub fn load_assets(&self, assets: &[String]) -> Result<Vec<(String, Vec<u8>)>, AppError> {
         let Some(dir) = self.path.as_deref().and_then(Path::parent) else {
             return match assets.first() {
-                Some(a) => Err(AppError::other(format!(
-                    "The template uses \"{a}\", but its folder is unknown. Open the template file again."
+                Some(a) => Err(AppError::other(tr!(
+                    "The template uses \"{a}\", but its folder is unknown. Open the template file again.",
+                    "يستخدم القالب \"{a}\"، لكن مجلده غير معروف. افتح ملف القالب مرة أخرى."
                 ))),
                 None => Ok(Vec::new()),
             };
@@ -218,7 +219,7 @@ impl ActiveTemplate {
             .iter()
             .map(|rel| {
                 let bytes = std::fs::read(dir.join(rel))
-                    .map_err(|e| AppError::other(format!("Template asset {rel}: {e}")))?;
+                    .map_err(|e| AppError::other(tr!("Template asset {rel}: {e}", "ملف القالب {rel}: {e}")))?;
                 Ok((rel.clone(), bytes))
             })
             .collect()
@@ -231,8 +232,9 @@ impl ActiveTemplate {
         let have: Vec<&str> = base.files.iter().map(|f| f.rsplit('/').next().unwrap_or(f)).collect();
         let missing: Vec<&str> = kit.required.iter().map(String::as_str).filter(|r| !have.contains(r)).collect();
         (!missing.is_empty()).then(|| {
-            AppError::other(format!(
+            AppError::other(tr!(
                 "This template needs the {} ({}). Download it from {} and import the .zip under Template → Publisher class.",
+                "يحتاج هذا القالب إلى {} ({}). نزّلها من {} واستورد ملف .zip من القالب ← صنف الناشر.",
                 kit.name,
                 missing.join(", "),
                 kit.url
@@ -296,7 +298,7 @@ pub fn check(template: &Template, dir: Option<&Path>) -> Vec<Issue> {
         if let Some(dir) = dir {
             for (i, f) in base.files.iter().enumerate() {
                 if !dir.join(f).is_file() {
-                    issues.push(issue(&format!("base.files[{i}]"), format!("file not found: {}", dir.join(f).display())));
+                    issues.push(issue(&format!("base.files[{i}]"), tr!("file not found: {}", "الملف غير موجود: {}", dir.join(f).display())));
                 }
             }
         }
@@ -308,7 +310,7 @@ pub fn check(template: &Template, dir: Option<&Path>) -> Vec<Issue> {
             {
                 issues.push(issue(
                     &format!("{path}.content.asset"),
-                    format!("file not found: {}", dir.join(asset).display()),
+                    tr!("file not found: {}", "الملف غير موجود: {}", dir.join(asset).display()),
                 ));
             }
         }
@@ -318,9 +320,9 @@ pub fn check(template: &Template, dir: Option<&Path>) -> Vec<Issue> {
 
 /// Reads, parses and validates a `template.json`.
 pub fn load_file(path: &Path) -> Result<ActiveTemplate, Vec<Issue>> {
-    let text = std::fs::read_to_string(path).map_err(|e| vec![issue("", format!("can't read file: {e}"))])?;
+    let text = std::fs::read_to_string(path).map_err(|e| vec![issue("", tr!("can't read file: {e}", "تعذّرت قراءة الملف: {e}"))])?;
     let template: Template = serde_json::from_str(&text)
-        .map_err(|e| vec![issue("", format!("not a valid template (line {}, column {}): {e}", e.line(), e.column()))])?;
+        .map_err(|e| vec![issue("", tr!("not a valid template (line {}, column {}): {e}", "ليس قالبًا صالحًا (السطر {}، العمود {}): {e}", e.line(), e.column()))])?;
     from_parsed(template, Some(path.to_path_buf()))
 }
 

@@ -7,6 +7,7 @@
 
 pub mod bib;
 pub mod date;
+pub mod msg;
 mod document;
 pub mod placeholder;
 mod template;

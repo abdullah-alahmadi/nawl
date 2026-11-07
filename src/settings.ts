@@ -113,6 +113,7 @@ function applyToDocument(s: Settings) {
   // The interface direction; the editor page keeps the document's own.
   const lang = resolveUiLanguage(s.uiLanguage);
   setUiLanguage(lang);
+  api.setMessageLanguage(lang === "ar").catch(() => {});
   root.lang = lang;
   root.dir = lang === "ar" ? "rtl" : "ltr";
   // Dark pages get light text (and a few adjusted colours, see .page-dark in App.css).

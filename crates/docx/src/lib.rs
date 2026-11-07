@@ -916,6 +916,23 @@ impl<'a> Writer<'a> {
             let rtl = self.text_is_rtl(&joined);
             if f.id.starts_with("title") {
                 o.push_str(&self.para_dir(Some("Title"), rtl, &self.text_runs(&joined, &Rp::default())));
+                // Under the English title of an Arabic document: the authors' English names.
+                if f.id.ends_with("_en") {
+                    let names: Vec<String> = self
+                        .t
+                        .fields
+                        .iter()
+                        .filter(|f| f.kind == FieldKind::Authors)
+                        .filter_map(|f| match self.input.doc.metadata.get(&f.id) {
+                            Some(FieldValue::Authors(a)) => Some(a.iter().map(|x| x.name_en.trim().to_string()).filter(|n| !n.is_empty()).collect::<Vec<_>>()),
+                            _ => None,
+                        })
+                        .flatten()
+                        .collect();
+                    if !names.is_empty() {
+                        o.push_str(&self.para_dir(Some("Subtitle"), false, &self.text_runs(&names.join(", "), &Rp::default())));
+                    }
+                }
                 continue;
             }
             match f.kind {

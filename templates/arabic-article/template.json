@@ -14,7 +14,7 @@
     "frontMatter": "custom",
     "bibStyle": "",
     "files": [],
-    "titleBlock": "\\title{{title}}\n\\author{{#authors|\\texloomand }{name}\\textsuperscript{{affnums}}{/authors}}\n\\date{}\n\\maketitle\n\\begin{center}\\small\n{#affiliations|\\\\}\\textsuperscript{{n}}{name}{/affiliations}{?corresponding_email}\\\\البريد الإلكتروني للمؤلف المراسل: {corresponding_email}{/corresponding_email}\n\\end{center}\n\\begin{abstract}\n{abstract}\n\\end{abstract}\n{?keywords}\\noindent\\textbf{الكلمات المفتاحية:} {keywords}{/keywords}\n{?title_en}\\begin{english}\n\\begin{center}\\large\\bfseries {title_en}\\end{center}\n{?abstract_en}\\begin{abstract}\n{abstract_en}\n\\end{abstract}{/abstract_en}\n{?keywords_en}\\noindent\\textbf{Keywords:} {keywords_en}{/keywords_en}\n\\end{english}{/title_en}"
+    "titleBlock": "\\title{{title}}\n\\author{{#authors|\\texloomand }{name}\\textsuperscript{{affnums}}{/authors}}\n\\date{}\n\\maketitle\n\\begin{center}\\small\n{#affiliations|\\\\}\\textsuperscript{{n}}{name}{/affiliations}{?corresponding_email}\\\\البريد الإلكتروني للمؤلف المراسل: {corresponding_email}{/corresponding_email}\n\\end{center}\n\\begin{abstract}\n{abstract}\n\\end{abstract}\n{?keywords}\\noindent\\textbf{الكلمات المفتاحية:} {keywords}{/keywords}\n{?title_en}\\begin{english}\n\\begin{center}\\large\\bfseries {title_en}\\end{center}\n{?authors_en}\\begin{center}{authors_en}\\end{center}{/authors_en}\n{?abstract_en}\\begin{abstract}\n{abstract_en}\n\\end{abstract}{/abstract_en}\n{?keywords_en}\\noindent\\textbf{Keywords:} {keywords_en}{/keywords_en}\n\\end{english}{/title_en}"
   },
   "page": {
     "paper": {

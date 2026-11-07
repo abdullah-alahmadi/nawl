@@ -198,6 +198,8 @@ export const restoreRecovery = () =>
 export const discardRecovery = () => invoke<void>("discard_recovery");
 
 export const getSettings = () => invoke<unknown>("get_settings");
+/** The language of the backend's messages (errors, problems): the interface's. */
+export const setMessageLanguage = (arabic: boolean) => invoke<void>("set_message_language", { arabic });
 export const saveSettings = (settings: unknown) => invoke<void>("save_settings", { settings });
 
 /** A template in the user's library ("My templates"). */
