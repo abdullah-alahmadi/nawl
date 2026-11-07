@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AuthorsEditor, toAuthors } from "./AuthorsEditor";
 import { pickFigureImage, useDocumentImage } from "./Figures";
 import { useT } from "../i18n";
+import { formatDate, formatHijri, parseIso } from "./dates";
 
 /** An image field (a logo): a thumbnail, Choose and Remove. The image is copied
  *  into the document's figures/ folder like any figure. */
@@ -113,7 +114,20 @@ export function MetadataForm({
               {f.required && <span className="required" title={t("editor.required")}> *</span>}
               {f.kind === "list" && <span className="muted"> {t("editor.onePerLine")}</span>}
             </span>
-            {f.kind === "text" ? (
+            {f.kind === "date" && (value === "" || parseIso(value)) ? (
+              <>
+                <input id={id} type="date" value={value} onChange={(e) => set(f, e.target.value)} />
+                {value && (
+                  // How the document writes it, and the Hijri date for {field_hijri}.
+                  <span className="muted metadata-date">
+                    {formatDate(value, template.language?.main ?? "english", template.language?.digits ?? "western")}
+                    {" · "}
+                    {formatHijri(value, template.language?.main ?? "english", template.language?.digits ?? "western")}
+                  </span>
+                )}
+              </>
+            ) : f.kind === "text" || f.kind === "date" ? (
+              // A date typed as text before the field became a date stays editable as text.
               <input id={id} value={value} onChange={(e) => set(f, e.target.value)} />
             ) : (
               <textarea

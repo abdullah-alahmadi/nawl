@@ -73,7 +73,13 @@ impl Checker<'_> {
             let ok = if name == "n" {
                 allow_n
             } else {
-                placeholder::is_dynamic(name) || self.t.field(name).is_some()
+                placeholder::is_dynamic(name)
+                    || self.t.field(name).is_some()
+                    // A date field's Hijri form: {defense_date_hijri}.
+                    || name
+                        .strip_suffix(crate::date::HIJRI_SUFFIX)
+                        .and_then(|id| self.t.field(id))
+                        .is_some_and(|f| f.kind == crate::FieldKind::Date)
             };
             if !ok {
                 self.error(path, format!("unknown placeholder {{{name}}}"));

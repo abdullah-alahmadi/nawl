@@ -51,6 +51,10 @@ export const en = {
   // Title page canvas: fixed page, nothing selected
   "designerContent.contents": "Contents",
   "designerContent.listInToc": "List in the table of contents",
+  "designerContent.fieldKindDate": "Date (with Hijri)",
+  "designerContent.byLanguage": "Languages",
+  "designerContent.splitByLanguage": "A list for each language",
+  "designerContent.byLanguageHint": "Entries in the document's language under their own heading, then the others (Arabic and foreign references, as Arabic theses do).",
   "designerContent.placement": "Placement",
   "designerContent.underTitle": "Under the title on the first page (an article's abstract)",
   "designerContent.titleLayout": "Layout",
@@ -248,6 +252,10 @@ export const ar: Record<keyof typeof en, string> = {
   // Title page canvas: fixed page, nothing selected
   "designerContent.contents": "المحتويات",
   "designerContent.listInToc": "إدراجها في جدول المحتويات",
+  "designerContent.fieldKindDate": "تاريخ (مع الهجري)",
+  "designerContent.byLanguage": "اللغات",
+  "designerContent.splitByLanguage": "قائمة لكل لغة",
+  "designerContent.byLanguageHint": "مراجع لغة المستند تحت عنوانها، ثم المراجع الأخرى (المراجع العربية ثم الأجنبية، كما في الرسائل العربية).",
   "designerContent.placement": "الموضع",
   "designerContent.underTitle": "تحت العنوان في الصفحة الأولى (مستخلص المقالة)",
   "designerContent.titleLayout": "التخطيط",

@@ -65,16 +65,44 @@ pub fn style_of(t: &Template) -> BibStyle {
     }
 }
 
-/// The cited entries, formatted and in list order.
-pub fn references(doc: &Document, style: BibStyle) -> Vec<Reference> {
+/// The cited entries, formatted and in list order. Sorted styles put the entries in
+/// the document's language first, then the others, each by first author; `split`
+/// (two lists) groups citation-ordered (IEEE) lists the same way.
+pub fn references(doc: &Document, style: BibStyle, main: Language, split: bool) -> Vec<Reference> {
     let info = bib::parse(&doc.bibliography);
     let cited = cited_keys(doc);
     let mut entries: Vec<&BibEntry> = cited.iter().filter_map(|k| info.entries.iter().find(|e| &e.key == k)).collect();
     if style != BibStyle::Ieee {
-        // By first author, then year (Arabic entries and English ones each together).
-        entries.sort_by_key(|e| (entry_language(e) != Language::Arabic, first_family(e).to_lowercase(), e.year.clone().unwrap_or_default()));
+        entries.sort_by_key(|e| (entry_language(e) != main, sort_key(&first_family(e)), e.year.clone().unwrap_or_default()));
+    } else if split {
+        // Stable: citation order within each list.
+        entries.sort_by_key(|e| entry_language(e) != main);
     }
     entries.into_iter().map(|e| format(e, style)).collect()
+}
+
+/// A name as it sorts: Arabic without its article (ال), diacritics and tatweel, with
+/// alef forms, taa marbuta and alef maqsura folded (أ إ آ ٱ → ا, ة → ه, ى → ي).
+fn sort_key(name: &str) -> String {
+    let name = name.trim();
+    let name = name.strip_prefix("ال").filter(|rest| rest.chars().count() > 1).unwrap_or(name);
+    name.chars()
+        .filter(|c| !matches!(c, '\u{064B}'..='\u{065F}' | '\u{0670}' | '\u{0640}'))
+        .map(|c| match c {
+            'أ' | 'إ' | 'آ' | 'ٱ' => 'ا',
+            'ة' => 'ه',
+            'ى' => 'ي',
+            c => c,
+        })
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// Splits list-ordered references where the document's language ends: the entries
+/// in it, then the others (either may be empty).
+pub fn split_by_language(refs: &[Reference], main: Language) -> (&[Reference], &[Reference]) {
+    let at = refs.iter().position(|r| r.lang != main).unwrap_or(refs.len());
+    refs.split_at(at)
 }
 
 /// The preamble lines that replace BibTeX with Texloom's list (empty when BibTeX
@@ -84,9 +112,9 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
         return String::new();
     }
     let style = style_of(t);
-    let refs = references(doc, style);
-    let mut o = String::from("% Reference list written by Texloom: BibTeX can't set entries in two directions\n\\makeatletter\n\\def\\tl@reflist{\\begin{thebibliography}{99}\n");
-    for r in &refs {
+    let split = t.bibliography.split_by_language;
+    let refs = references(doc, style, langs.main, split);
+    let item = |r: &Reference| {
         // natbib reads "Author(Year)"; the authors keep their direction in the text
         // the citation appears in (the document's language).
         let label = r
@@ -103,9 +131,38 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
             // An entry in the other language keeps its own direction.
             format!("\\text{}{{{}}}", r.lang.polyglossia(), r.latex)
         };
-        o.push_str(&format!("\\bibitem{label}{{{}}} {body}\n", r.key));
+        format!("\\bibitem{label}{{{}}} {body}\n", r.key)
+    };
+    let mut o = String::from("% Reference list written by Texloom: BibTeX can't set entries in two directions\n\\makeatletter\n");
+    let (own, other) = split_by_language(&refs, langs.main);
+    if split && !own.is_empty() && !other.is_empty() {
+        // Under the list's heading, a list for each language with its own heading;
+        // numbers run on from the first list into the second.
+        let words = words(langs.main);
+        let chapters = t.base.is_none() && t.structure.top_level == texloom_core::TopLevel::Chapter;
+        let (heading, group) = if chapters { ("chapter", "section") } else { ("section", "subsection") };
+        o.push_str(&format!("\\def\\tl@reflist{{\\{heading}*{{\\refname}}\\@mkboth{{\\refname}}{{\\refname}}%\n"));
+        o.push_str(&format!("\\def\\bibname{{\\refname}}\\let\\tl@nohead\\@gobbletwo\n"));
+        for (i, (title, list)) in [(words.own_references, own), (words.other_references, other)].into_iter().enumerate() {
+            o.push_str(&format!("\\{group}*{{{}}}\n", language::text(title, langs.main, langs)));
+            // The lists' own headings are left out (the one above stands for both).
+            o.push_str(&format!("\\begingroup\\let\\section\\tl@nohead\\let\\chapter\\tl@nohead\\begin{{thebibliography}}{{99}}\n"));
+            if i == 1 {
+                o.push_str(&format!("\\setcounter{{enumiv}}{{{}}}\n", own.len()));
+            }
+            for r in list {
+                o.push_str(&item(r));
+            }
+            o.push_str("\\end{thebibliography}\\endgroup\n");
+        }
+        o.push_str("}\n");
+    } else {
+        o.push_str("\\def\\tl@reflist{\\begin{thebibliography}{99}\n");
+        for r in &refs {
+            o.push_str(&item(r));
+        }
+        o.push_str("\\end{thebibliography}}\n");
     }
-    o.push_str("\\end{thebibliography}}\n");
     if style == BibStyle::AuthorYear && langs.main.rtl() {
         // Arabic punctuation between authors and years, and between citations.
         o.push_str("\\AtBeginDocument{\\setcitestyle{aysep={،},yysep={،},citesep={؛}}}\n");
@@ -486,7 +543,7 @@ mod tests {
 
     #[test]
     fn ieee_in_citation_order_each_entry_in_its_language() {
-        let refs = references(&doc(), BibStyle::Ieee);
+        let refs = references(&doc(), BibStyle::Ieee, Language::Arabic, false);
         assert_eq!(refs.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(), ["smith2021", "ahmadi2020", "lora2019"]);
         assert_eq!(
             refs[0].text,
@@ -500,7 +557,7 @@ mod tests {
 
     #[test]
     fn author_year_sorted_with_labels() {
-        let refs = references(&doc(), BibStyle::AuthorYear);
+        let refs = references(&doc(), BibStyle::AuthorYear, Language::Arabic, false);
         // Arabic entries first, then by family name.
         assert_eq!(refs.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(), ["ahmadi2020", "lora2019", "smith2021"]);
         assert_eq!(refs[0].label.as_deref(), Some("الأحمدي وعلي(2020)"));

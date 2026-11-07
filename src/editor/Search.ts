@@ -24,11 +24,34 @@ export const searchKey = new PluginKey<SearchState>("texloomSearch");
 
 const EMPTY: SearchState = { query: "", caseSensitive: false, matches: [], current: -1 };
 
-/** Every place `query` occurs in a textblock of `doc`. */
+/** Arabic diacritics (tashkeel, the dagger alef) and tatweel: ignored by loose search. */
+const IGNORED = /[ً-ٰٟـ]/;
+const FOLDED: Record<string, string> = { "أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ة": "ه", "ى": "ي" };
+
+/** Text for loose matching: lower case, without Arabic diacritics and tatweel, with
+ *  alef forms, taa marbuta and alef maqsura folded, so "الاسلام" finds "الإسلام" and
+ *  "مُحَمَّد". `at[i]` is the index in `s` of the folded text's character `i`. */
+export function fold(s: string): { text: string; at: number[] } {
+  let text = "";
+  const at: number[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (IGNORED.test(c)) continue;
+    for (const l of (FOLDED[c] ?? c).toLowerCase()) {
+      text += l;
+      at.push(i);
+    }
+  }
+  return { text, at };
+}
+
+/** Every place `query` occurs in a textblock of `doc`. Without `caseSensitive`
+ *  ("Match case"), case, Arabic diacritics and letter variants are ignored. */
 export function findMatches(doc: PMNode, query: string, caseSensitive: boolean): Match[] {
   const out: Match[] = [];
   if (!query) return out;
-  const needle = caseSensitive ? query : query.toLowerCase();
+  const needle = caseSensitive ? query : fold(query).text;
+  if (!needle) return out;
   doc.descendants((node, pos) => {
     if (!node.isTextblock) return true;
     // The block's text, with the document position of each character.
@@ -44,9 +67,18 @@ export function findMatches(doc: PMNode, query: string, caseSensitive: boolean):
         text += "￼";
       }
     });
-    const hay = caseSensitive ? text : text.toLowerCase();
-    for (let i = hay.indexOf(needle); i >= 0; i = hay.indexOf(needle, i + needle.length)) {
-      out.push({ from: at[i], to: at[i + needle.length - 1] + 1 });
+    if (caseSensitive) {
+      for (let i = text.indexOf(needle); i >= 0; i = text.indexOf(needle, i + needle.length)) {
+        out.push({ from: at[i], to: at[i + needle.length - 1] + 1 });
+      }
+    } else {
+      const loose = fold(text);
+      for (let i = loose.text.indexOf(needle); i >= 0; i = loose.text.indexOf(needle, i + needle.length)) {
+        let last = loose.at[i + needle.length - 1];
+        // The last letter's diacritics belong to the match (so replacing doesn't leave them).
+        while (last + 1 < text.length && IGNORED.test(text[last + 1])) last++;
+        out.push({ from: at[loose.at[i]], to: at[last] + 1 });
+      }
     }
     return false;
   });

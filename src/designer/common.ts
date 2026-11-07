@@ -24,7 +24,17 @@ export function dynamicPlaceholders(tr: Translate): PlaceholderOption[] {
 }
 
 export function fieldPlaceholders(t: Template, kinds: string[] = ["text", "list"]): PlaceholderOption[] {
-  return t.fields.filter((f) => kinds.includes(f.kind)).map((f) => ({ name: f.id, description: f.label }));
+  // Date fields go wherever text does, with their Hijri form beside them.
+  return t.fields
+    .filter((f) => kinds.includes(f.kind) || (f.kind === "date" && kinds.includes("text")))
+    .flatMap((f) =>
+      f.kind === "date"
+        ? [
+            { name: f.id, description: f.label },
+            { name: f.id + "_hijri", description: tr("designer.hijriOf", { label: f.label }) },
+          ]
+        : [{ name: f.id, description: f.label }],
+    );
 }
 
 /** Placeholder names in a text (`{title}`, `{team}`…); `{{` and `}}` are literal braces. */
@@ -47,7 +57,9 @@ export function fieldUses(t: Template): Map<string, string[]> {
     for (const f of t.fields) note(f.id, tr(t.kind === "presentation" ? "designer.usedTitleSlide" : "designer.usedClassTitleBlock"));
     return uses;
   }
-  const scan = (text: string | undefined, place: string) => placeholderNames(text ?? "").forEach((n) => note(n, place));
+  // {date_hijri} uses the date field.
+  const scan = (text: string | undefined, place: string) =>
+    placeholderNames(text ?? "").forEach((n) => note(n.endsWith("_hijri") && t.fields.some((f) => f.id === n.slice(0, -6) && f.kind === "date") ? n.slice(0, -6) : n, place));
   for (const item of t.titlePage.items) if (item.content.type === "text") scan(item.content.text, tr("designer.usedTitlePage"));
   // Parts left out of a template file are empty (the backend fills them in, a raw file may not).
   const hf = t.headerFooter ?? {};

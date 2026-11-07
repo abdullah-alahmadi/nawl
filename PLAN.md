@@ -238,6 +238,11 @@ Word is an export target only; Texloom never imports Word files.
 - [x] Word export (`crates/docx`): hand-written OOXML with RTL properties, styles from
       the template, MathML → OMML equations, merged cells, crops, TOC and STYLEREF fields
 - [x] Arabic interface (`src/i18n/`, Settings → Appearance → Language)
+- [x] Separate Arabic and foreign reference lists; Arabic sorting without ال
+- [x] Date fields with Hijri dates (Umm al-Qura) for {field_hijri}
+- [x] Find and replace ignoring Arabic diacritics and letter variants
+- [ ] Arabic letters for list and appendix numbering (أ، ب، ج); kashida justification;
+      Arabic punctuation as you type; bilingual author names
 - [ ] Exact house styles of particular Arabic journals and universities
 - [ ] Equation numbers on the left in RTL; Arabic-Indic page numbers in Word (Word
       shows them only with its own "Hindi digits" option)

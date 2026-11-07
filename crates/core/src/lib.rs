@@ -6,6 +6,7 @@
 //! - [`Issue`]: validation results for templates and metadata.
 
 pub mod bib;
+pub mod date;
 mod document;
 pub mod placeholder;
 mod template;

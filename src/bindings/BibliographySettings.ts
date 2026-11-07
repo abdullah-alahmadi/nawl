@@ -5,4 +5,9 @@ export type BibliographySettings = { style: BibStyle,
 /**
  * Heading of the reference list.
  */
-title: string, inToc: boolean, };
+title: string, inToc: boolean, 
+/**
+ * Two lists under the heading: entries in the document's language, then the
+ * others ("المراجع العربية" then "المراجع الأجنبية", as Arabic theses do).
+ */
+splitByLanguage?: boolean, };

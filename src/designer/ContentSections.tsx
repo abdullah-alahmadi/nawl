@@ -34,6 +34,7 @@ const KINDS: { value: FieldKind; label: MessageKey }[] = [
   { value: "list", label: "designerContent.fieldKindList" },
   { value: "image", label: "designerContent.fieldKindImage" },
   { value: "authors", label: "designerContent.fieldKindAuthors" },
+  { value: "date", label: "designerContent.fieldKindDate" },
 ];
 
 function move<T>(list: T[], from: number, to: number) {
@@ -291,6 +292,18 @@ export function BibliographySection({ t, edit, issues }: SectionProps) {
       </Row>
       <Row label={tr("designerContent.contents")}>
         <Toggle checked={b.inToc} label={tr("designerContent.listItInToc")} onChange={(v) => edit((d) => void (d.bibliography.inToc = v))} />
+      </Row>
+      <Row label={tr("designerContent.byLanguage")} hint={tr("designerContent.byLanguageHint")}>
+        <Toggle
+          checked={!!b.splitByLanguage}
+          label={tr("designerContent.splitByLanguage")}
+          onChange={(v) =>
+            edit((d) => {
+              if (v) d.bibliography.splitByLanguage = true;
+              else delete d.bibliography.splitByLanguage;
+            })
+          }
+        />
       </Row>
       <p className="d-note">{tr("designerContent.bibNote")}</p>
     </>

@@ -166,7 +166,16 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   the designer's **Arabic font**, which lists Windows fonts such as Traditional Arabic and
   Simplified Arabic too. English text uses the template's Latin fonts.
 - **References:** Arabic entries are formatted in Arabic (وآخرون، د.ت.) and English
-  ones in English, in the same list, for IEEE, numeric and author-year styles.
+  ones in English, for IEEE, numeric and author-year styles. **A list for each
+  language** (designer → Bibliography; on in the Arabic thesis and book) prints the
+  Arabic references, then the foreign ones, each under its own heading, numbered on.
+  Arabic names sort without their article (ال) and ignore hamza forms.
+- **Dates:** a **Date** field (Document info shows a date picker) is written in the
+  document's language ("١٤ مايو ٢٠٢٦"), and `{field_hijri}` gives the same day in the
+  Hijri calendar (Umm al-Qura: "٢٧ ذو القعدة ١٤٤٧هـ"). The Arabic thesis prints the
+  defence date in both calendars on its title and approval pages.
+- **Find and replace** ignores Arabic diacritics and tatweel and treats أ إ آ ا, ة/ه and
+  ى/ي as the same letter, so "محمد" finds "مُحَمَّدٌ"; **Match exactly** turns that off.
 - **Engines:** Arabic needs XeLaTeX or LuaLaTeX; the built-in Tectonic is XeLaTeX.
   pdfLaTeX can't typeset Arabic, so with pdfLaTeX chosen in Settings, Arabic documents
   still compile with Tectonic (or an installed XeLaTeX), and Export LaTeX writes them

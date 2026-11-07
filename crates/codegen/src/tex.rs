@@ -53,6 +53,13 @@ pub fn document_to_tex_mapped(t: &Template, doc: &Document) -> (String, Vec<u32>
             None => continue,
         };
         o.push_str(&format!("\\texloomfield{{{}}}{{{rendered}}}\n", f.id));
+        // A date's Hijri form, for {id_hijri}.
+        if f.kind == FieldKind::Date
+            && let Some(FieldValue::Text(v)) = value
+            && let Some(hijri) = texloom_core::date::format_hijri(v, langs.main, langs.digits)
+        {
+            o.push_str(&format!("\\texloomfield{{{}{}}}{{{}}}\n", f.id, texloom_core::date::HIJRI_SUFFIX, language::text(&hijri, langs.main, &langs)));
+        }
     }
 
     let presentation = t.kind == DocumentKind::Presentation;
@@ -139,6 +146,7 @@ fn field_value(kind: FieldKind, v: &FieldValue, langs: &Languages) -> String {
     };
     match kind {
         FieldKind::Text | FieldKind::Image => items.iter().map(|s| escape(s.trim())).collect::<Vec<_>>().join(", "),
+        FieldKind::Date => items.iter().map(|s| escape(&texloom_core::date::format(s, langs.main, langs.digits))).collect::<Vec<_>>().join(", "),
         FieldKind::Paragraphs => items
             .iter()
             .flat_map(|s| s.split("\n\n"))

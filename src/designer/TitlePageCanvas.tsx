@@ -17,6 +17,7 @@ import { NumberInput, PlaceholderInput, Row, Toggle, issuesAt } from "./controls
 import { fieldPlaceholders, fieldUses, placeholderNames, type SectionProps } from "./common";
 import { TextStyleControls } from "./StyleSections";
 import { useT, type MessageKey } from "../i18n";
+import { withDates } from "../editor/dates";
 
 const MM_PER_PT = 25.4 / 72.27; // TeX points
 const SNAP_MM = 2; // distance at which items snap to the page's centre, margins and other items
@@ -229,6 +230,8 @@ export function TitlePageCanvas({
   }[paper.kind];
   const scale = Math.min(width, 560) / pageW; // px per mm
   const fixedPage = page >= 0 && t.frontMatter[page]?.type === "fixedPage" ? t.frontMatter[page] : null;
+  /** The document's values as they print (dates written out, Hijri forms added). */
+  const shownMetadata = useMemo(() => withDates(t, metadata), [t, metadata]);
   /** An article's title block: where the text starts below it (mm); undefined for a title page. */
   const textStart = t.titlePage.blockHeightMm;
   const items = pageItems(t, fixedPage ? page : -1);
@@ -675,7 +678,7 @@ export function TitlePageCanvas({
                 scale={scale}
                 selected={selection.includes(i)}
                 hasError={issuesAt(issues, `${pathPrefix}[${i}]`).length > 0}
-                metadata={metadata}
+                metadata={shownMetadata}
                 stretch={lineStretch(t)}
                 onMeasure={(el) => {
                   if (el) sizes.current.set(i, { w: el.offsetWidth / scale, h: el.offsetHeight / scale });

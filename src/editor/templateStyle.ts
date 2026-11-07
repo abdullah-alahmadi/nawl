@@ -285,7 +285,9 @@ function articleCss(t: Template, scope: string): string {
     rules.push(
       // counter-set, not counter-reset: the counters already exist on .tiptap, and a
       // reset on a sibling would start a nested counter that later headings ignore.
-      `${scope} ${tag}{${textRules(h.text, px)};line-height:1.2;margin:${px(h.spaceBeforePt)} 0 ${px(h.spaceAfterPt)};counter-increment:tl-h${i + 1}${resets.length ? `;counter-set:${resets.map((r) => `${r} 0`).join(" ")}` : ""}}`,
+      // A publisher or standard class sets its own headings (the designer hides the
+      // Headings panel), and they start where the line starts: the right in Arabic.
+      `${scope} ${tag}{${textRules(t.base ? { ...h.text, align: "start" as TextStyle["align"] } : h.text, px)};line-height:1.2;margin:${px(h.spaceBeforePt)} 0 ${px(h.spaceAfterPt)};counter-increment:tl-h${i + 1}${resets.length ? `;counter-set:${resets.map((r) => `${r} 0`).join(" ")}` : ""}}`,
     );
     if (i < t.structure.numberedDepth && h.label.trim() !== "") {
       const display = h.layout === "display";

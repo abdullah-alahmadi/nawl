@@ -766,11 +766,16 @@ pub struct BibliographySettings {
     /// Heading of the reference list.
     pub title: String,
     pub in_toc: bool,
+    /// Two lists under the heading: entries in the document's language, then the
+    /// others ("المراجع العربية" then "المراجع الأجنبية", as Arabic theses do).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<bool>", optional)]
+    pub split_by_language: bool,
 }
 
 impl Default for BibliographySettings {
     fn default() -> Self {
-        Self { style: BibStyle::Ieee, title: "References".into(), in_toc: true }
+        Self { style: BibStyle::Ieee, title: "References".into(), in_toc: true, split_by_language: false }
     }
 }
 
@@ -889,6 +894,9 @@ pub enum FieldKind {
     /// An image chosen by the author (a presentation's logo): a path relative to the
     /// document's folder, like figures.
     Image,
+    /// A date, stored as `YYYY-MM-DD` and written in the document's language;
+    /// `{id_hijri}` gives the same day in the Hijri calendar.
+    Date,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]

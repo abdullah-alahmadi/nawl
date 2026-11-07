@@ -233,7 +233,7 @@ impl<'a> Writer<'a> {
         let doc = input.doc;
         let langs = Languages::of(t, doc);
         let style = refs::style_of(t);
-        let references = refs::references(doc, style);
+        let references = refs::references(doc, style, langs.main, t.bibliography.split_by_language);
         let mut citations = HashMap::new();
         for (i, r) in references.iter().enumerate() {
             let label = match (&r.label, style) {
@@ -438,7 +438,17 @@ impl<'a> Writer<'a> {
         let style = if self.t.bibliography.in_toc { "Heading1" } else { "FrontHeading" };
         o.push_str(&self.para_dir(Some(style), self.text_is_rtl(&title), &self.text_runs(&title, &Rp::default())));
         let numbered = refs::style_of(self.t) != BibStyle::AuthorYear;
-        for (i, r) in self.references.clone().iter().enumerate() {
+        let references = self.references.clone();
+        // Two lists (Arabic theses): entries in the document's language, then the
+        // others, each under its own heading; numbers run on.
+        let (own, other) = refs::split_by_language(&references, self.langs.main);
+        let split = self.t.bibliography.split_by_language && !own.is_empty() && !other.is_empty();
+        let words = texloom_codegen::strings::words(self.langs.main);
+        for (i, r) in references.iter().enumerate() {
+            if split && (i == 0 || i == own.len()) {
+                let heading = if i == 0 { words.own_references } else { words.other_references };
+                o.push_str(&self.para_dir(Some("Heading2"), self.rtl, &self.text_runs(heading, &Rp::default())));
+            }
             let mut runs = String::new();
             if numbered {
                 runs.push_str(&self.text_runs(&format!("[{}] ", local_digits(&(i + 1).to_string(), self.langs.digits)), &Rp::default()));
@@ -708,6 +718,22 @@ impl<'a> Writer<'a> {
 
     /// The value of a field as text (lists one per line).
     fn field(&self, id: &str) -> Option<Vec<String>> {
+        let date = |id: &str| {
+            let f = self.t.field(id).filter(|f| f.kind == FieldKind::Date)?;
+            match self.input.doc.metadata.get(&f.id)? {
+                FieldValue::Text(v) if !v.trim().is_empty() => Some(v.clone()),
+                _ => None,
+            }
+        };
+        // A date's Hijri form ({defense_date_hijri}), and dates in the document's language.
+        if let Some(base) = id.strip_suffix(texloom_core::date::HIJRI_SUFFIX)
+            && let Some(v) = date(base)
+        {
+            return texloom_core::date::format_hijri(&v, self.langs.main, self.langs.digits).map(|h| vec![h]);
+        }
+        if let Some(v) = date(id) {
+            return Some(vec![texloom_core::date::format(&v, self.langs.main, self.langs.digits)]);
+        }
         let v = self.input.doc.metadata.get(id).filter(|v| !v.is_empty())?;
         Some(match v {
             FieldValue::Text(s) => vec![s.clone()],

@@ -133,7 +133,8 @@
   "bibliography": {
     "style": "authorYear",
     "title": "المراجع",
-    "inToc": true
+    "inToc": true,
+    "splitByLanguage": true
   },
   "skeleton": [
     {
@@ -320,7 +321,7 @@
         "anchor": "top",
         "content": {
           "type": "text",
-          "text": "{date}",
+          "text": "{date_hijri} الموافق {date}م",
           "widthMm": 160,
           "style": {
             "sizePt": 14,
@@ -381,7 +382,7 @@
     {
       "id": "date",
       "label": "تاريخ المناقشة",
-      "kind": "text",
+      "kind": "date",
       "required": true
     },
     {
@@ -435,7 +436,7 @@
           "anchor": "top",
           "content": {
             "type": "text",
-            "text": "نوقشت هذه الرسالة «{title}» وأجيزت بتاريخ {date}، وتتكون لجنة المناقشة من:",
+            "text": "نوقشت هذه الرسالة «{title}» وأجيزت بتاريخ {date_hijri} الموافق {date}م، وتتكون لجنة المناقشة من:",
             "widthMm": 160,
             "style": {
               "sizePt": 14,

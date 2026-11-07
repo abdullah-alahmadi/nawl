@@ -144,6 +144,24 @@ fn articles_start_on_the_first_page() {
     assert!(!last.contains("w:start="), "page numbers go on from the title block");
 }
 
+/// The Arabic thesis: the defence date in both calendars, and Arabic references
+/// before the foreign ones, each list under its heading, numbered on.
+#[test]
+fn thesis_dates_and_reference_lists() {
+    let t = template("arabic-thesis");
+    let mut doc = example("arabic-article.loom");
+    doc.metadata.insert("date".into(), FieldValue::Text("2026-05-14".into()));
+    let parts = unzip(&write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new() }).unwrap());
+    assert_well_formed(&parts);
+    let d = &parts["word/document.xml"];
+    assert!(d.contains("٢٧ ذو القعدة ١٤٤٧هـ") && d.contains("١٤ مايو ٢٠٢٦"), "both calendars");
+    let arabic = d.find("المراجع العربية").expect("Arabic list heading");
+    let foreign = d.find("المراجع الأجنبية").expect("foreign list heading");
+    assert!(arabic < foreign);
+    let ahmadi = d.find("الأحمدي").map(|_| d.rfind("الأحمدي").unwrap()).unwrap();
+    assert!(arabic < ahmadi && ahmadi < foreign, "the Arabic entry is in the Arabic list");
+}
+
 #[test]
 fn number_ranges_hold_together() {
     assert_eq!(hold_ranges("ص 45–70."), "ص 45\u{200E}–\u{200E}70.");

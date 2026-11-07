@@ -7,7 +7,7 @@
 mod cls;
 pub mod language;
 pub mod refs;
-mod strings;
+pub mod strings;
 mod latex;
 mod presentation;
 mod publisher;

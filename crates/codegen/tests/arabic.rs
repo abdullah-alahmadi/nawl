@@ -102,6 +102,24 @@ fn english_document_with_arabic_words_gets_arabic() {
     assert!(tex.contains("\\begin{Arabic}\nالسلام عليكم\n\\end{Arabic}"), "{tex}");
 }
 
+/// The thesis's defence date in both calendars, and its references as two lists:
+/// Arabic first, then the others, numbered on.
+#[test]
+fn thesis_dates_and_split_references() {
+    let (_, t, doc) = arabic_samples().into_iter().find(|(n, ..)| *n == "arabic-thesis").unwrap();
+    assert!(!texloom_core::has_errors(&t.validate()), "{{date_hijri}} is a valid placeholder: {:?}", t.validate());
+    let g = texloom_codegen::generate(&t, &doc);
+    assert!(g.tex.contains("\\texloomfield{date}{١٤ مايو ٢٠٢٦}"), "{}", g.tex);
+    // 14 May 2026 is 27 Dhu al-Qadah 1447 (Umm al-Qura).
+    assert!(g.tex.contains("\\texloomfield{date_hijri}{٢٧ ذو القعدة ١٤٤٧هـ}"), "{}", g.tex);
+    assert!(g.cls.contains("وأجيزت بتاريخ \\tl@f{date_hijri} الموافق \\tl@f{date}م"), "{}", g.cls);
+    let arabic = g.tex.find("\\section*{المراجع العربية}").expect("Arabic list");
+    let foreign = g.tex.find("\\section*{المراجع الأجنبية}").expect("foreign list");
+    let ahmadi = g.tex.find("\\bibitem").unwrap();
+    assert!(arabic < ahmadi && ahmadi < foreign, "Arabic entries first");
+    assert!(g.tex.contains("\\setcounter{enumiv}{1}"), "numbers run on");
+}
+
 /// Title-page text is drawn in TikZ nodes, which run left to right unless told
 /// otherwise: in right-to-left templates each node's text is wrapped in `\RL`.
 #[test]
@@ -163,7 +181,7 @@ fn arabic_samples() -> Vec<(&'static str, Template, Document)> {
             ("college", "كلية الحاسبات وتقنية المعلومات"),
             ("department", "قسم علوم الحاسب"),
             ("degree", "الماجستير في علوم الحاسب"),
-            ("date", "١٤٤٦هـ / 2025م"),
+            ("date", "2026-05-14"),
             ("abstract", "تتناول هذه الرسالة أثر التعلم العميق في التعليم.\n\nوتوصي بمزيد من الدراسات."),
             ("abstract_en", "This thesis studies the effect of deep learning on education."),
             ("dedication", "إلى والديّ الكريمين."),

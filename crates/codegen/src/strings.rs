@@ -22,6 +22,10 @@ pub struct Words {
     pub masters_thesis: &'static str,
     pub technical_report: &'static str,
     pub in_: &'static str,
+    /// Headings of split reference lists: entries in the document's language, then
+    /// the others.
+    pub own_references: &'static str,
+    pub other_references: &'static str,
 }
 
 pub fn words(lang: Language) -> &'static Words {
@@ -51,6 +55,8 @@ static ENGLISH: Words = Words {
     masters_thesis: "Master's thesis",
     technical_report: "Tech. Rep.",
     in_: "In",
+    own_references: "English references",
+    other_references: "Arabic references",
 };
 
 static ARABIC: Words = Words {
@@ -73,4 +79,6 @@ static ARABIC: Words = Words {
     masters_thesis: "رسالة ماجستير",
     technical_report: "تقرير فني",
     in_: "في",
+    own_references: "المراجع العربية",
+    other_references: "المراجع الأجنبية",
 };

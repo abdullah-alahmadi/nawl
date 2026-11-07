@@ -9,3 +9,4 @@ serde.workspace = true
 serde_json.workspace = true
 ts-rs = "12"
 biblatex = "0.12"
+icu_calendar = "2"

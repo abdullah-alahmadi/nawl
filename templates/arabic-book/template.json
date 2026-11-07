@@ -136,7 +136,8 @@
   "bibliography": {
     "style": "authorYear",
     "title": "المراجع",
-    "inToc": true
+    "inToc": true,
+    "splitByLanguage": true
   },
   "skeleton": [],
   "titlePage": {
