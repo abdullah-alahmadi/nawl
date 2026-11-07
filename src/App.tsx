@@ -695,6 +695,12 @@ export default function App() {
 
   const report = (e: unknown) => setStatus({ state: "error", error: api.asAppError(e) });
 
+  /** After a save: with compiling while typing off, "Compile after saving" updates the preview. */
+  const compileAfterSave = useCallback(() => {
+    const s = settingsRef.current;
+    if (s.compileOnSave && !s.autoCompile) compile();
+  }, [compile, settingsRef]);
+
   const saveAs = useCallback(async () => {
     if (!editor) return;
     const target = await save({ filters: docFilter(), defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom") });
@@ -703,8 +709,9 @@ export default function App() {
       setPath(target);
       addRecent(target);
       markClean();
+      compileAfterSave();
     }, report);
-  }, [editor, path, markClean, addRecent, settingsRef]);
+  }, [editor, path, markClean, addRecent, settingsRef, compileAfterSave]);
 
   /** Saves the document and its images as one .loom file, to email or upload. */
   const saveAsSingleFile = async () => {
@@ -719,14 +726,18 @@ export default function App() {
       setPath(target);
       addRecent(target);
       markClean();
+      compileAfterSave();
     }, report);
   };
 
   const saveDoc = useCallback(async () => {
     if (!editor) return;
     if (!path) return saveAs();
-    await api.saveDocument(path, docState()).then(() => void markClean(), report);
-  }, [editor, path, saveAs, markClean]);
+    await api.saveDocument(path, docState()).then(() => {
+      markClean();
+      compileAfterSave();
+    }, report);
+  }, [editor, path, saveAs, markClean, compileAfterSave]);
 
   /** Opens a document from the dialog, or `target` (a recent file). */
   const openDoc = async (target?: string) => {

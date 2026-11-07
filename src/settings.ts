@@ -23,6 +23,8 @@ export interface Settings {
   engine: string;
   /** Recompile the preview while typing. */
   autoCompile: boolean;
+  /** Recompile the preview when the document is saved (never together with autoCompile). */
+  compileOnSave: boolean;
   /** Pause after typing before recompiling, in milliseconds. */
   compileDelayMs: number;
   /** Keep a copy of unsaved changes for crash recovery. */
@@ -50,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pageColor: "#f4efe6",
   engine: "tectonic",
   autoCompile: true,
+  compileOnSave: false,
   compileDelayMs: 700,
   crashRecovery: true,
   defaultFolder: "",
@@ -78,6 +81,8 @@ function sanitize(raw: unknown): Settings {
   if (!["system", "light", "dark"].includes(out.theme)) out.theme = "system";
   if (!["comfortable", "compact"].includes(out.density)) out.density = "comfortable";
   out.compileDelayMs = Math.min(5000, Math.max(200, out.compileDelayMs));
+  // One or the other: compiling while typing wins.
+  if (out.autoCompile) out.compileOnSave = false;
   if (!["tectonic", "pdflatex", "xelatex", "lualatex"].includes(out.engine)) out.engine = "tectonic";
   if (!/^#[0-9a-f]{6}$/i.test(out.pageColor)) out.pageColor = DEFAULT_SETTINGS.pageColor;
   out.recentLimit = Math.min(20, Math.max(0, Math.round(out.recentLimit)));

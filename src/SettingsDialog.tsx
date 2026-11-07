@@ -161,7 +161,11 @@ export function SettingsDialog({
                 {engines && !engines.some((e) => e.id !== "tectonic" && e.available) && t("dialogs.noInstalledTex")}
               </div>
               <Field label={t("dialogs.compileWhileTyping")} hint={t("dialogs.compileWhileTypingHint")}>
-                <Switch checked={settings.autoCompile} onChange={(v) => onChange({ autoCompile: v })} />
+                {/* One or the other (or neither: only the Compile button): turning one on turns the other off. */}
+                <Switch checked={settings.autoCompile} onChange={(v) => onChange(v ? { autoCompile: true, compileOnSave: false } : { autoCompile: false })} />
+              </Field>
+              <Field label={t("dialogs.compileOnSave")} hint={t("dialogs.compileOnSaveHint")}>
+                <Switch checked={settings.compileOnSave} onChange={(v) => onChange(v ? { compileOnSave: true, autoCompile: false } : { compileOnSave: false })} />
               </Field>
               <Field label={t("dialogs.compileDelay")} hint={t("dialogs.compileDelayHint")}>
                 <span className="settings-range">
