@@ -68,7 +68,8 @@ pub fn style_of(t: &Template) -> BibStyle {
 /// The cited entries, formatted and in list order. Sorted styles put the entries in
 /// the document's language first, then the others, each by first author; `split`
 /// (two lists) groups citation-ordered (IEEE) lists the same way.
-pub fn references(doc: &Document, style: BibStyle, main: Language, split: bool) -> Vec<Reference> {
+pub fn references(doc: &Document, style: BibStyle, langs: &Languages, split: bool) -> Vec<Reference> {
+    let main = langs.main;
     let info = bib::parse(&doc.bibliography);
     let cited = cited_keys(doc);
     let mut entries: Vec<&BibEntry> = cited.iter().filter_map(|k| info.entries.iter().find(|e| &e.key == k)).collect();
@@ -78,7 +79,7 @@ pub fn references(doc: &Document, style: BibStyle, main: Language, split: bool) 
         // Stable: citation order within each list.
         entries.sort_by_key(|e| entry_language(e) != main);
     }
-    entries.into_iter().map(|e| format(e, style)).collect()
+    entries.into_iter().map(|e| format(e, style, langs)).collect()
 }
 
 /// A name as it sorts: Arabic without its article (ال), diacritics and tatweel, with
@@ -113,7 +114,7 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
     }
     let style = style_of(t);
     let split = t.bibliography.split_by_language;
-    let refs = references(doc, style, langs.main, split);
+    let refs = references(doc, style, langs, split);
     // Numbers in citations follow the document's digits. LaTeX writes a cited
     // entry's number to the .aux in Western digits whatever the language, so with
     // Arabic-Indic digits each entry gets its number as its label.
@@ -248,20 +249,49 @@ struct Out {
     latex: String,
     text: String,
     lang: Language,
+    /// Numbers in Arabic-Indic digits.
+    indic: bool,
+}
+
+/// `s` with its numbers in Arabic-Indic digits, except those that belong to Latin
+/// words before them ("IEEE 802.11", "Windows 11").
+fn indic_digits(s: &str) -> String {
+    let mut latin = false;
+    s.chars()
+        .map(|c| {
+            if c.is_alphabetic() {
+                latin = !language::is_arabic(c);
+            }
+            match c.to_digit(10) {
+                Some(n) if c.is_ascii_digit() && !latin => char::from_u32(0x0660 + n).unwrap_or(c),
+                _ => c,
+            }
+        })
+        .collect()
 }
 
 impl Out {
+    fn local<'a>(&self, s: &'a str) -> std::borrow::Cow<'a, str> {
+        if self.indic {
+            indic_digits(s).into()
+        } else {
+            s.into()
+        }
+    }
     fn plain(&mut self, s: &str) {
-        self.latex.push_str(&crate::latex::escape(s));
-        self.text.push_str(s);
+        let s = self.local(s);
+        self.latex.push_str(&crate::latex::escape(&s));
+        self.text.push_str(&s);
     }
     /// Text from the entry: words in another script keep their direction.
     fn value(&mut self, s: &str) {
+        let s = &*self.local(s).into_owned();
         let langs = Languages { main: self.lang, others: vec![Language::English, Language::Arabic].into_iter().filter(|l| *l != self.lang).collect(), digits: Default::default() };
         self.latex.push_str(&language::text(s, self.lang, &langs));
         self.text.push_str(s);
     }
     fn italic(&mut self, s: &str) {
+        let s = &*self.local(s).into_owned();
         let langs = Languages { main: self.lang, others: vec![Language::English, Language::Arabic].into_iter().filter(|l| *l != self.lang).collect(), digits: Default::default() };
         self.latex.push_str(&format!("\\emph{{{}}}", language::text(s, self.lang, &langs)));
         self.text.push_str(&format!("*{s}*"));
@@ -272,8 +302,11 @@ impl Out {
     }
 }
 
-fn format(e: &BibEntry, style: BibStyle) -> Reference {
+fn format(e: &BibEntry, style: BibStyle, langs: &Languages) -> Reference {
     let lang = entry_language(e);
+    // Arabic entries write their numbers (years, volumes, pages) in the document's
+    // digits, as its citations do; entries in English keep Western digits.
+    let indic = lang == Language::Arabic && langs.local_digits("0") != "0";
     let w = words(lang);
     let f = |name: &str| e.fields.get(name).map(|v| clean(v)).filter(|v| !v.is_empty());
     let comma = if lang.rtl() { "، " } else { ", " };
@@ -282,7 +315,7 @@ fn format(e: &BibEntry, style: BibStyle) -> Reference {
     let title = f("title").unwrap_or_default();
     let (open, close) = if lang.rtl() { ("«", "»") } else { ("\u{201C}", "\u{201D}") };
     let kind = e.kind.to_lowercase();
-    let mut o = Out { latex: String::new(), text: String::new(), lang };
+    let mut o = Out { latex: String::new(), text: String::new(), lang, indic };
     // A list of parts joined with commas.
     let parts = |o: &mut Out, items: Vec<(bool, String)>| {
         for (i, (italic, s)) in items.into_iter().filter(|(_, s)| !s.is_empty()).enumerate() {
@@ -567,7 +600,7 @@ mod tests {
 
     #[test]
     fn ieee_in_citation_order_each_entry_in_its_language() {
-        let refs = references(&doc(), BibStyle::Ieee, Language::Arabic, false);
+        let refs = references(&doc(), BibStyle::Ieee, &western(), false);
         assert_eq!(refs.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(), ["smith2021", "ahmadi2020", "lora2019"]);
         assert_eq!(
             refs[0].text,
@@ -581,7 +614,7 @@ mod tests {
 
     #[test]
     fn author_year_sorted_with_labels() {
-        let refs = references(&doc(), BibStyle::AuthorYear, Language::Arabic, false);
+        let refs = references(&doc(), BibStyle::AuthorYear, &western(), false);
         // Arabic entries first, then by family name.
         assert_eq!(refs.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(), ["ahmadi2020", "lora2019", "smith2021"]);
         assert_eq!(refs[0].label.as_deref(), Some("الأحمدي وعلي(2020)"));
@@ -609,6 +642,26 @@ mod tests {
 
     fn indic() -> Languages {
         Languages { main: Language::Arabic, others: vec![Language::English], digits: texloom_core::Digits::ArabicIndic }
+    }
+
+    fn western() -> Languages {
+        Languages { digits: texloom_core::Digits::Western, ..indic() }
+    }
+
+    #[test]
+    fn arabic_entries_in_the_document_digits() {
+        let refs = references(&doc(), BibStyle::Ieee, &indic(), false);
+        assert_eq!(refs[1].text, "عبدالله الأحمدي وأحمد علي، *مقدمة في الحوسبة*، جدة: دار المعرفة، ٢٠٢٠.");
+        // English entries keep Western digits.
+        assert!(refs[0].text.contains("vol. 9, no. 2, pp. 10–20, 2021."), "{}", refs[0].text);
+        let mut d = doc();
+        d.bibliography.push_str("@article{ar2022, author = {الزهراني, فهد}, title = {شبكات IEEE 802.11 في المدن}, journal = {مجلة الهندسة}, volume = {12}, pages = {77--98}, year = {2022}}\n");
+        let body = serde_json::json!({"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "citation", "attrs": {"keys": ["ar2022"]}}]}]});
+        d.body = serde_json::from_value(body).unwrap();
+        let r = &references(&d, BibStyle::AuthorYear, &indic(), false)[0];
+        // Volume, pages and year; the number in "IEEE 802.11" belongs to the Latin words.
+        assert_eq!(r.text, "فهد الزهراني (٢٠٢٢). شبكات IEEE 802.11 في المدن. *مجلة الهندسة*، *١٢*، ٧٧–٩٨.");
+        assert!(r.latex.contains("\\textenglish{IEEE 802.11}"), "{}", r.latex);
     }
 
     #[test]

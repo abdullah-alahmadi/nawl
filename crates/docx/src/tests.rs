@@ -95,6 +95,10 @@ fn author_year_citations_in_arabic() {
     assert!(d.contains("(Box et al.\u{200E}"), "Box et al.");
     // English entries are left-to-right paragraphs.
     assert!(d.contains("<w:bidi w:val=\"0\"/></w:pPr><w:r><w:rPr></w:rPr><w:t xml:space=\"preserve\">Hochreiter, S."), "Hochreiter");
+    assert!(d.contains("(1997)") && d.contains("1735\u{200E}–\u{200E}1780"), "English entries keep Western digits");
+    // Arabic entries in Arabic-Indic digits too (years, volumes, page ranges).
+    assert!(d.contains("(٢٠٢١)") && d.contains("٧٧–٩٨"), "Arabic entries");
+    assert!(!d.contains("77–98"));
 }
 
 #[test]

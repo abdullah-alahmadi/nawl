@@ -267,7 +267,7 @@ impl<'a> Writer<'a> {
         let doc = input.doc;
         let langs = Languages::of(t, doc);
         let style = refs::style_of(t);
-        let references = refs::references(doc, style, langs.main, t.bibliography.split_by_language);
+        let references = refs::references(doc, style, &langs, t.bibliography.split_by_language);
         let mut citations = HashMap::new();
         for (i, r) in references.iter().enumerate() {
             let label = match (&r.label, style) {
