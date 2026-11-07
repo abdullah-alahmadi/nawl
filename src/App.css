@@ -641,7 +641,9 @@ textarea.recipe { font-size: 12.5px; width: 100%; }
 
 /* Inline math */
 .page .inline-math { display: inline-block; vertical-align: baseline; border-radius: 3px; padding: 0 1px; }
-.page .inline-math math-field { display: inline-block; font-size: 1em; border: none; background: transparent; outline: none; min-width: 1.2em; padding: 0; }
+/* Inline, not inline-block: as an inline block the field's baseline is its bottom edge
+   (its hidden keyboard sink adds height), so formulas sat above the line of text. */
+.page .inline-math math-field { display: inline; font-size: 1em; border: none; background: transparent; outline: none; min-width: 1.2em; padding: 0; }
 .page .inline-math math-field::part(virtual-keyboard-toggle), .page .inline-math math-field::part(menu-toggle) { display: none; }
 /* Formulas, code and raw LaTeX read left to right, also on an Arabic page; isolated so
    they don't reorder the Arabic text around them. */

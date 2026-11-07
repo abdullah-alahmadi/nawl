@@ -1,0 +1,3343 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "metadata": {
+    "title": "التنبؤ قصير المدى بالأحمال الكهربائية باستخدام شبكات الذاكرة الطويلة قصيرة المدى وآلية الانتباه: دراسة تطبيقية على مدينة جدة",
+    "authors": [
+      {
+        "name": "عبدالله الأحمدي",
+        "affiliations": [
+          "قسم الهندسة الكهربائية وهندسة الحاسبات، جامعة الملك عبدالعزيز، جدة"
+        ],
+        "email": "author@example.edu.sa",
+        "corresponding": true,
+        "nameEn": "Abdullah Al-Ahmadi",
+        "affiliationsEn": [
+          "Department of Electrical and Computer Engineering, King Abdulaziz University, Jeddah"
+        ]
+      },
+      {
+        "name": "سارة القحطاني",
+        "affiliations": [
+          "قسم الهندسة الكهربائية وهندسة الحاسبات، جامعة الملك عبدالعزيز، جدة"
+        ],
+        "nameEn": "Sarah Al-Qahtani",
+        "affiliationsEn": [
+          "Department of Electrical and Computer Engineering, King Abdulaziz University, Jeddah"
+        ]
+      }
+    ],
+    "abstract": "يُعدّ التنبؤ الدقيق بالأحمال الكهربائية للساعات القادمة أساسًا لتشغيل الشبكات الكهربائية بكفاءة وأمان. تقترح هذه الدراسة نموذجًا يجمع بين طبقتين من شبكات الذاكرة الطويلة قصيرة المدى (LSTM) وآلية انتباه زمنية، ويستفيد من متغيرات الطقس ومؤشرات التقويمين الهجري والميلادي للتنبؤ بأحمال الساعات الأربع والعشرين التالية. طُبّق النموذج على بيانات ساعية لمدينة جدة امتدت خمس سنوات، وقورن بأربعة نماذج مرجعية هي SARIMA وSVR وMLP وGRU. وأظهرت النتائج أن النموذج المقترح خفّض متوسط الخطأ النسبي المطلق إلى ٢٫٣١٪ في الصيف و٢٫٠٧٪ في الشتاء، وأن مؤشرات التقويم الهجري تسهم إسهامًا ملموسًا في الدقة خلال شهر رمضان.",
+    "keywords": "التنبؤ بالأحمال الكهربائية، التعلم العميق، شبكات LSTM، آلية الانتباه، التقويم الهجري",
+    "title_en": "Short-Term Electric Load Forecasting Using Long Short-Term Memory Networks and Attention: A Case Study of Jeddah",
+    "abstract_en": "Accurate forecasts of the electric load for the coming hours are the basis of efficient and secure grid operation. This study proposes a model that combines two Long Short-Term Memory (LSTM) layers with a temporal attention mechanism and uses weather variables and both Hijri and Gregorian calendar indicators to forecast the next 24 hours of load. The model was applied to five years of hourly data for Jeddah and compared with four baselines: SARIMA, SVR, MLP and GRU. It reduced the mean absolute percentage error to 2.31% in summer and 2.07% in winter, and the Hijri calendar indicators contributed markedly to its accuracy during Ramadan.",
+    "keywords_en": "electric load forecasting, deep learning, LSTM, attention, Hijri calendar"
+  },
+  "bibliography": "@article{alghamdi2021,\n  author = {الغامدي, خالد and الزهراني, فهد},\n  title = {التنبؤ بالطلب على الطاقة الكهربائية في المنطقة الغربية باستخدام نماذج السلاسل الزمنية},\n  journal = {المجلة العربية للهندسة الكهربائية},\n  volume = {9},\n  number = {2},\n  pages = {77--98},\n  year = {2021}\n}\n\n@inproceedings{alshammari2023,\n  author = {الشمري, نورة and العنزي, سلطان},\n  title = {الشبكات العصبية التكرارية في تقدير الأحمال الكهربائية للمباني السكنية},\n  booktitle = {وقائع المؤتمر العربي للذكاء الاصطناعي وتطبيقاته},\n  pages = {112--121},\n  year = {2023}\n}\n\n@book{alotaibi2020,\n  author = {العتيبي, محمد},\n  title = {أساسيات تحليل السلاسل الزمنية والتنبؤ},\n  publisher = {دار النشر الجامعي},\n  address = {الرياض},\n  year = {2020}\n}\n\n@article{hochreiter1997,\n  author = {Hochreiter, Sepp and Schmidhuber, Jürgen},\n  title = {Long Short-Term Memory},\n  journal = {Neural Computation},\n  volume = {9},\n  number = {8},\n  pages = {1735--1780},\n  year = {1997},\n  doi = {10.1162/neco.1997.9.8.1735}\n}\n\n@inproceedings{cho2014,\n  author = {Cho, Kyunghyun and van Merriënboer, Bart and Gulcehre, Caglar and Bahdanau, Dzmitry and Bougares, Fethi and Schwenk, Holger and Bengio, Yoshua},\n  title = {Learning Phrase Representations using {RNN} Encoder--Decoder for Statistical Machine Translation},\n  booktitle = {Proceedings of the 2014 Conference on Empirical Methods in Natural Language Processing},\n  pages = {1724--1734},\n  year = {2014}\n}\n\n@inproceedings{bahdanau2015,\n  author = {Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},\n  title = {Neural Machine Translation by Jointly Learning to Align and Translate},\n  booktitle = {International Conference on Learning Representations},\n  year = {2015}\n}\n\n@article{hong2016,\n  author = {Hong, Tao and Fan, Shu},\n  title = {Probabilistic Electric Load Forecasting: A Tutorial Review},\n  journal = {International Journal of Forecasting},\n  volume = {32},\n  number = {3},\n  pages = {914--938},\n  year = {2016}\n}\n\n@article{kong2019,\n  author = {Kong, Weicong and Dong, Zhao Yang and Jia, Youwei and Hill, David J. and Xu, Yan and Zhang, Yuan},\n  title = {Short-Term Residential Load Forecasting Based on {LSTM} Recurrent Neural Network},\n  journal = {IEEE Transactions on Smart Grid},\n  volume = {10},\n  number = {1},\n  pages = {841--851},\n  year = {2019}\n}\n\n@book{box2015,\n  author = {Box, George E. P. and Jenkins, Gwilym M. and Reinsel, Gregory C. and Ljung, Greta M.},\n  title = {Time Series Analysis: Forecasting and Control},\n  edition = {5},\n  publisher = {Wiley},\n  address = {Hoboken, NJ},\n  year = {2015}\n}\n\n@book{hyndman2021,\n  author = {Hyndman, Rob J. and Athanasopoulos, George},\n  title = {Forecasting: Principles and Practice},\n  edition = {3},\n  publisher = {OTexts},\n  address = {Melbourne},\n  year = {2021}\n}\n\n@inproceedings{kingma2015,\n  author = {Kingma, Diederik P. and Ba, Jimmy},\n  title = {Adam: A Method for Stochastic Optimization},\n  booktitle = {International Conference on Learning Representations},\n  year = {2015}\n}\n\n@article{bergmeir2012,\n  author = {Bergmeir, Christoph and Benítez, José M.},\n  title = {On the Use of Cross-Validation for Time Series Predictor Evaluation},\n  journal = {Information Sciences},\n  volume = {191},\n  pages = {192--213},\n  year = {2012}\n}\n\n@article{srivastava2014,\n  author = {Srivastava, Nitish and Hinton, Geoffrey and Krizhevsky, Alex and Sutskever, Ilya and Salakhutdinov, Ruslan},\n  title = {Dropout: A Simple Way to Prevent Neural Networks from Overfitting},\n  journal = {Journal of Machine Learning Research},\n  volume = {15},\n  number = {56},\n  pages = {1929--1958},\n  year = {2014}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "sec-intro"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المقدمة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يُعدّ التنبؤ قصير المدى بالأحمال الكهربائية، أي تقدير الطلب على الطاقة للساعات والأيام القليلة القادمة، من أهم المهام التشغيلية في شبكات الكهرباء الحديثة؛ إذ تعتمد عليه قرارات جدولة وحدات التوليد، وتحديد الاحتياطي الدوار، وتخطيط أعمال الصيانة، وتسعير الطاقة في الأسواق الفورية "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "hong2016"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". ويؤدي الخطأ في التنبؤ إلى تكاليف مباشرة؛ فالتقدير المنخفض قد يستدعي تشغيل وحدات طوارئ مرتفعة التكلفة، والتقدير المرتفع يعني تشغيل وحدات لا حاجة إليها وهدر الوقود."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وتتميز الأحمال الكهربائية في المملكة العربية السعودية بخصائص تجعل التنبؤ بها أكثر صعوبة من نظيراتها في المناخات المعتدلة؛ فأحمال التكييف تشكل نسبة كبيرة من الاستهلاك في أشهر الصيف، ويتضاعف الطلب تقريبًا بين الشتاء والصيف، كما تتأثر الأنماط اليومية بمواقيت الصلاة وبالتغير الكبير في ساعات النشاط خلال شهر رمضان والإجازات الرسمية "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alghamdi2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". ويبيّن "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-profiles"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الفرق الواضح بين منحنى الحمل في يوم صيفي ونظيره في يوم شتوي في المنطقة محل الدراسة."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وقد اعتمدت شركات الكهرباء طويلًا على الأساليب الإحصائية الكلاسيكية مثل نماذج ARIMA والتمهيد الأسي "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "box2015",
+                "hyndman2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "، إلا أن هذه النماذج خطية في جوهرها، ويصعب عليها التقاط العلاقة غير الخطية بين درجة الحرارة والحمل، أو التفاعل بين التقويم الهجري والتقويم الميلادي. ومع تطور التعلم العميق ظهرت الشبكات العصبية التكرارية، وبخاصة شبكات الذاكرة الطويلة قصيرة المدى (Long Short-Term Memory, LSTM) "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "hochreiter1997"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "، بوصفها أداة قادرة على تعلم الاعتماديات الزمنية الطويلة من البيانات مباشرة."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تقترح هذه الدراسة نموذجًا هجينًا يجمع بين طبقتين من LSTM وآلية انتباه زمنية، ويُغذّى بمتغيرات الطقس والتقويمين الهجري والميلادي معًا، وتتلخص إسهاماتها فيما يأتي:"
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "بناء مجموعة بيانات ساعية لأحمال مدينة جدة لمدة خمس سنوات، مدمجة مع بيانات الطقس ومؤشرات التقويم الهجري."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تصميم نموذج LSTM مع طبقة انتباه يتنبأ بالأحمال الأربع والعشرين التالية دفعة واحدة."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "مقارنة النموذج المقترح بأربعة نماذج مرجعية على فترتي الصيف والشتاء، مع دراسة استئصال توضح أثر كل مكوّن."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وتنتظم بقية الورقة على النحو الآتي: يستعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "sec-related"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الدراسات السابقة، ويصف "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "sec-method"
+            }
+          },
+          {
+            "type": "text",
+            "text": " البيانات والنموذج المقترح، ويعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "sec-results"
+            }
+          },
+          {
+            "type": "text",
+            "text": " نتائج التجارب، ثم يناقش "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "sec-discussion"
+            }
+          },
+          {
+            "type": "text",
+            "text": " دلالاتها، ويختم "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "sec-conclusion"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الورقة بالتوصيات."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "sec-related"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الدراسات السابقة"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-stat"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الأساليب الإحصائية"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تقوم نماذج الانحدار الذاتي والمتوسط المتحرك التكاملية على افتراض أن القيمة الحالية للسلسلة دالة خطية في قيمها السابقة وفي أخطاء التنبؤ السابقة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "box2015"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". وتتميز هذه النماذج بسهولة التفسير وقلة البيانات اللازمة لتقديرها، ولذلك ما زالت تُستخدم مرجعًا للمقارنة في معظم الدراسات. وقد طبّق "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alghamdi2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " نموذج SARIMA الموسمي على أحمال المنطقة الغربية وحصل على متوسط خطأ نسبي مطلق يقارب ستة في المئة في أشهر الصيف، وأشار إلى أن معظم الخطأ يتركز في أيام الموجات الحارة المفاجئة التي لا يستطيع النموذج الخطي استيعابها. ويقدّم "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alotaibi2020"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " عرضًا عربيًا شاملًا لهذه الأساليب وطرق تشخيص بواقيها."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-ml"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "أساليب تعلم الآلة والتعلم العميق"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "اتجهت الدراسات في العقد الأخير إلى نماذج تعلم الآلة مثل آلات متجهات الدعم للانحدار (SVR) والشبكات العصبية متعددة الطبقات (MLP)، ثم إلى الشبكات التكرارية. فقد أظهر "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "kong2019"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " أن شبكة LSTM تتفوق على الشبكات التقليدية في التنبؤ بأحمال المنازل الفردية ذات التذبذب العالي، واقترح "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "cho2014"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " وحدة GRU بوصفها بديلًا أبسط من LSTM بعدد أقل من المعاملات. أما آلية الانتباه التي قدّمها "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "bahdanau2015"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " في سياق الترجمة الآلية، فتسمح للنموذج بأن يمنح أوزانًا مختلفة للخطوات الزمنية السابقة بدل الاعتماد على الحالة الأخيرة وحدها."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وعلى المستوى المحلي، درست "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alshammari2023"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " استخدام الشبكات التكرارية في تقدير أحمال المباني السكنية في الرياض، إلا أنها اقتصرت على بيانات سنة واحدة ولم تُدرج أثر شهر رمضان. ويسعى هذا البحث إلى سد هذه الفجوة باستخدام بيانات أطول تغطي خمسة مواسم رمضانية تقع في فصول مختلفة من السنة الميلادية."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "sec-method"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "البيانات ومنهجية الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-data"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "وصف البيانات"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "جُمعت بيانات الحمل الساعي لمدينة جدة في الفترة من يناير ٢٠١٩ إلى ديسمبر ٢٠٢٣، بإجمالي ٤٣٬٨٢٤ قراءة. ودُمجت معها قراءات الطقس الساعية من محطة الأرصاد في المطار، وأُضيفت مؤشرات للتقويم تشمل يوم الأسبوع والإجازات الرسمية وأيام شهر رمضان. ويلخص "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-variables"
+            }
+          },
+          {
+            "type": "text",
+            "text": " المتغيرات المستخدمة مدخلاتٍ للنموذج."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-variables"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "متغيرات الإدخال المستخدمة في النموذج"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المتغير"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الوحدة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المصدر"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الدقة الزمنية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الحمل الكهربائي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ميجاواط"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مركز التحكم"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ساعية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "درجة الحرارة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "درجة مئوية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "محطة الأرصاد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ساعية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الرطوبة النسبية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٪"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "محطة الأرصاد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ساعية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الإشعاع الشمسي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "واط/م²"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "محطة الأرصاد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ساعية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الساعة ويوم الأسبوع"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ترميز دوري"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التقويم الميلادي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ساعية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مؤشر رمضان والأعياد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ثنائي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التقويم الهجري"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "يومية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مؤشر الإجازة الرسمية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ثنائي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التقويم الرسمي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "يومية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/load-profiles.png",
+          "widthPercent": 85,
+          "id": "fig-profiles"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "منحنى الحمل اليومي في يوم صيفي ويوم شتوي في مدينة جدة"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ويتضح من "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-profiles"
+            }
+          },
+          {
+            "type": "text",
+            "text": " أن ذروة الصيف تقع بعد الظهر نتيجة أحمال التكييف، بينما تتأخر ذروة الشتاء إلى ما بعد المغرب حين يرتفع استهلاك الإنارة والأجهزة المنزلية. ويعني ذلك أن النموذج يحتاج إلى تعلّم نمطين مختلفين للذروة تبعًا للموسم، وهو ما يصعب على النماذج الخطية ذات المعاملات الثابتة."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-preprocess"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المعالجة المسبقة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "عولجت القيم المفقودة، وهي أقل من ٠٫٤٪ من القراءات، بالاستيفاء الخطي للفجوات التي لا تتجاوز ثلاث ساعات، وحُذفت الأيام التي شهدت انقطاعات واسعة. ثم طُبّعت المتغيرات المستمرة إلى المدى من صفر إلى واحد وفق المعادلة "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-norm"
+            }
+          },
+          {
+            "type": "text",
+            "text": "، مع حساب القيم الصغرى والعظمى من بيانات التدريب وحدها لتجنب تسرب المعلومات:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\tilde{x}_t = \\frac{x_t - x_{\\min}}{x_{\\max} - x_{\\min}}",
+          "numbered": true,
+          "id": "eq-norm"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ورُمّزت الساعة ويوم الأسبوع ترميزًا دوريًا بدالتي الجيب وجيب التمام، حتى يدرك النموذج أن الساعة ٢٣ مجاورة للساعة صفر؛ فالساعة "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "h"
+            }
+          },
+          {
+            "type": "text",
+            "text": " تُمثَّل بالزوج "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "(\\sin(2\\pi h/24),\\ \\cos(2\\pi h/24))"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-model"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النموذج المقترح"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يوضح "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-model"
+            }
+          },
+          {
+            "type": "text",
+            "text": " بنية النموذج المقترح. يستقبل النموذج نافذة من ١٦٨ ساعة سابقة (أسبوع كامل)، ويمررها عبر طبقتين من LSTM، ثم طبقة انتباه زمنية، ثم طبقة كثيفة تُخرج تقديرات الساعات الأربع والعشرين التالية دفعة واحدة."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/model-architecture.png",
+          "widthPercent": 95,
+          "id": "fig-model"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "بنية النموذج المقترح: طبقتا LSTM تليهما طبقة انتباه وطبقة إخراج كثيفة"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وتُحدَّث خلية LSTM في كل خطوة زمنية "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "t"
+            }
+          },
+          {
+            "type": "text",
+            "text": " عبر بوابات النسيان والإدخال والإخراج "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "hochreiter1997"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "، وتُحسب حالة الخلية والحالة المخفية كما في المعادلة "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-lstm"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "c_t = f_t \\odot c_{t-1} + i_t \\odot \\tanh\\left(W_c [h_{t-1}, x_t] + b_c\\right), \\qquad h_t = o_t \\odot \\tanh(c_t)",
+          "numbered": true,
+          "id": "eq-lstm"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "حيث "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "f_t"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "i_t"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "o_t"
+            }
+          },
+          {
+            "type": "text",
+            "text": " مخرجات البوابات الثلاث، و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\odot"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الضرب العنصري. وبدل الاعتماد على الحالة المخفية الأخيرة وحدها، تحسب طبقة الانتباه متجه سياق "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "s"
+            }
+          },
+          {
+            "type": "text",
+            "text": " هو متوسط مرجّح لجميع الحالات المخفية "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "bahdanau2015"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\alpha_t = \\frac{\\exp(v^\\top \\tanh(W_a h_t))}{\\sum_{k=1}^{T} \\exp(v^\\top \\tanh(W_a h_k))}, \\qquad s = \\sum_{t=1}^{T} \\alpha_t h_t",
+          "numbered": true,
+          "id": "eq-attention"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وتسمح الأوزان "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\alpha_t"
+            }
+          },
+          {
+            "type": "text",
+            "text": " في المعادلة "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-attention"
+            }
+          },
+          {
+            "type": "text",
+            "text": " للنموذج بأن يركّز على الساعات الأكثر صلة بالتنبؤ، كالساعة نفسها في اليوم السابق أو في الأسبوع السابق، وهو ما يسهّل أيضًا تفسير قراراته."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-metrics"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "مقاييس التقييم"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "قُيّمت النماذج بمقياسين شائعين في أدبيات التنبؤ بالأحمال "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "hyndman2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ": متوسط الخطأ النسبي المطلق (MAPE)، وجذر متوسط مربع الخطأ (RMSE)، ويُعرَّفان كما يأتي:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\mathrm{MAPE} = \\frac{100}{N} \\sum_{t=1}^{N} \\left| \\frac{y_t - \\hat{y}_t}{y_t} \\right|, \\qquad \\mathrm{RMSE} = \\sqrt{\\frac{1}{N} \\sum_{t=1}^{N} (y_t - \\hat{y}_t)^2}",
+          "numbered": true,
+          "id": "eq-metrics"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "حيث "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "y_t"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الحمل الفعلي و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\hat{y}_t"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الحمل المتنبأ به و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "N"
+            }
+          },
+          {
+            "type": "text",
+            "text": " عدد الساعات في فترة الاختبار."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "sec-results"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "التجارب والنتائج"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-setup"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "إعداد التجارب"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "قُسّمت البيانات زمنيًا دون خلط: السنوات ٢٠١٩–٢٠٢١ للتدريب، وسنة ٢٠٢٢ للتحقق وضبط المعاملات، وسنة ٢٠٢٣ للاختبار النهائي، اتباعًا لتوصيات "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "bergmeir2012"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " في تقييم نماذج السلاسل الزمنية. ودُرّب النموذج بخوارزمية Adam "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "kingma2015"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " مع إيقاف مبكر عند توقف تحسن خطأ التحقق، واستُخدم الإسقاط العشوائي "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "srivastava2014"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": " للحد من فرط التخصيص. ويعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-hyper"
+            }
+          },
+          {
+            "type": "text",
+            "text": " قيم المعاملات النهائية."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-hyper"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "المعاملات الفائقة للنموذج المقترح بعد الضبط"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المعامل"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "القيمة"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "طول نافذة الإدخال"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٦٨ ساعة"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "عدد وحدات طبقتي LSTM"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٢٨ و٦٤"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "نسبة الإسقاط العشوائي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٢"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "معدل التعلم الابتدائي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٠٠١"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "حجم الدفعة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٦٤"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الحد الأقصى لعدد الدورات"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٥٠ (إيقاف مبكر بعد ١٥)"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "دالة الخسارة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "متوسط مربع الخطأ"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وقورن النموذج المقترح بأربعة نماذج مرجعية: نموذج SARIMA بمعاملات اختيرت بمعيار أكايكي، ونموذج SVR بنواة شعاعية، وشبكة MLP بطبقتين مخفيتين، وشبكة GRU بالبنية نفسها للنموذج المقترح دون طبقة الانتباه. وأُعيد تدريب كل نموذج عصبي خمس مرات ببذور عشوائية مختلفة، وتُعرض المتوسطات."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-comparison"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "مقارنة النماذج"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يلخص "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-results"
+            }
+          },
+          {
+            "type": "text",
+            "text": " أداء النماذج على بيانات اختبار سنة ٢٠٢٣، ويعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-mape"
+            }
+          },
+          {
+            "type": "text",
+            "text": " قيم MAPE لكل نموذج في موسمي الصيف والشتاء. وقد حقق النموذج المقترح أدنى خطأ في جميع المقاييس، إذ بلغ MAPE "
+          },
+          {
+            "type": "text",
+            "text": "٢٫٣١٪",
+            "marks": [
+              {
+                "type": "bold"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " في الصيف و"
+          },
+          {
+            "type": "text",
+            "text": "٢٫٠٧٪",
+            "marks": [
+              {
+                "type": "bold"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " في الشتاء، مقابل ٥٫٨٤٪ و٤٫٩٢٪ لنموذج SARIMA، أي بانخفاض يتجاوز ٦٠٪ في الخطأ."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-results"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "أداء النماذج على بيانات الاختبار (سنة ٢٠٢٣)"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "النموذج"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "MAPE صيفًا (٪)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "MAPE شتاءً (٪)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "RMSE (ميجاواط)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "زمن التدريب (دقيقة)"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "SARIMA"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٥٫٨٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٫٩٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٦١٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "SVR"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٫٧١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٫١٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٩٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١١"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "MLP"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٫٩٥"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٫٤٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٢١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٦"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "GRU"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٫٨٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٫٦١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣١٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٤"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "النموذج المقترح"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٫٣١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٫٠٧"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٥٩"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣١"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/mape-comparison.png",
+          "widthPercent": 85,
+          "id": "fig-mape"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "متوسط الخطأ النسبي المطلق للنماذج في موسمي الصيف والشتاء"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ويُلاحظ أن الفارق بين النماذج يتسع في الصيف؛ فالعلاقة بين درجة الحرارة والحمل تصبح أشد لا خطية حين تتجاوز الحرارة ٤٠ درجة، وهنا تظهر ميزة الشبكات التكرارية القادرة على التقاط هذه العلاقة من البيانات دون افتراض شكل مسبق لها."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-week"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "تحليل الأداء الأسبوعي"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-week"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الحمل الفعلي مقابل تنبؤات النموذج المقترح ونموذج ARIMA لأسبوع من شهر أغسطس ٢٠٢٣. ويتبع النموذج المقترح المنحنى الفعلي بدقة في أوقات الذروة والقاع، بما في ذلك الانخفاض الملحوظ في يومي عطلة نهاية الأسبوع، بينما يُظهر نموذج ARIMA تذبذبًا أكبر حول الذروة وتأخرًا في الاستجابة لتغير النمط."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/forecast-week.png",
+          "widthPercent": 90,
+          "id": "fig-week"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "الحمل الفعلي والمتنبأ به لأسبوع من شهر أغسطس ٢٠٢٣"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true,
+          "id": "sec-ablation"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "دراسة الاستئصال"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "لقياس إسهام كل مكوّن في النموذج، أُعيد تدريبه بعد حذف مكوّن واحد في كل مرة، ويعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-ablation"
+            }
+          },
+          {
+            "type": "text",
+            "text": " النتائج. ويتبين أن حذف متغيرات الطقس هو الأشد أثرًا، يليه حذف مؤشرات التقويم الهجري التي يرتفع أثرها خاصة في شهر رمضان، إذ يتغير توقيت الذروة اليومية تغيرًا كبيرًا بسبب اختلاف مواعيد النوم والعمل."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-ablation"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "نتائج دراسة الاستئصال (MAPE على كامل سنة الاختبار)"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "صيغة النموذج"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "MAPE (٪)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الزيادة في الخطأ"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "النموذج الكامل"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٫١٩"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "—"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "دون طبقة الانتباه"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٫٧٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "+٠٫٥٥"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "دون مؤشرات التقويم الهجري"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٫٩٧"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "+٠٫٧٨"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "دون متغيرات الطقس"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٫٨٦"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "+١٫٦٧"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "نافذة إدخال ٢٤ ساعة بدل ١٦٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٫٦٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "+٠٫٤٩"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "كما أظهرت أوزان الانتباه أن النموذج يمنح الساعة المناظرة في اليوم السابق والساعة المناظرة في الأسبوع السابق أعلى الأوزان، وهو ما يتوافق مع الحدس الهندسي لمشغلي الشبكة الذين يعتمدون تقليديًا على «اليوم المشابه» في تقديراتهم اليدوية."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "sec-discussion"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المناقشة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تؤكد النتائج ما توصلت إليه الدراسات السابقة من تفوق الشبكات التكرارية على النماذج الخطية في التنبؤ بالأحمال "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "kong2019",
+                "alshammari2023"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "، وتضيف إليها أن إدراج التقويم الهجري صراحة يحسّن الدقة تحسنًا ملموسًا في البيئة السعودية. فشهر رمضان ينتقل عبر فصول السنة الميلادية بمعدل أحد عشر يومًا تقريبًا كل عام، ولا يمكن لنموذج يعتمد على التقويم الميلادي وحده أن يتعلم نمطه من بيانات بضع سنوات."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ومن الناحية العملية، فإن خفض MAPE من نحو ٥٪ إلى نحو ٢٪ في شبكة تبلغ ذروتها قرابة ١٥ جيجاواط يعني تقليص الخطأ المتوقع في الذروة من نحو ٧٥٠ ميجاواط إلى نحو ٣٠٠ ميجاواط، وهو فرق يعادل وحدة توليد غازية متوسطة الحجم يمكن الاستغناء عن تشغيلها احتياطًا. غير أن للنموذج حدودًا ينبغي الإشارة إليها؛ فهو يحتاج إلى تنبؤات جوية دقيقة للساعات القادمة، ويزداد خطؤه حين تكون هذه التنبؤات غير دقيقة، كما أن زمن تدريبه أطول من النماذج الإحصائية، وإن ظل مقبولًا للتشغيل اليومي."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Beyond the local setting, the results suggest that calendar features should be built from every calendar that shapes daily life in a region, not only the Gregorian one."
+          }
+        ],
+        "attrs": {
+          "dir": "ltr"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "sec-conclusion"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الخاتمة والتوصيات"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "قدّمت هذه الدراسة نموذجًا للتنبؤ قصير المدى بالأحمال الكهربائية يجمع بين شبكات LSTM وآلية الانتباه، ويستفيد من بيانات الطقس والتقويمين الهجري والميلادي. وأظهرت التجارب على بيانات خمس سنوات لمدينة جدة أن النموذج يخفض متوسط الخطأ النسبي المطلق إلى ٢٫١٩٪ على كامل سنة الاختبار، متفوقًا على أربعة نماذج مرجعية. وتوصي الدراسة بما يأتي:"
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "اعتماد مؤشرات التقويم الهجري مدخلاتٍ أساسية في نماذج التنبؤ المستخدمة في مراكز التحكم بالمنطقة."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "توسيع النموذج ليقدّم تنبؤات احتمالية بفترات ثقة بدل التقدير النقطي وحده."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "اختبار النموذج على مدن ذات مناخ مختلف، كالمدن الجبلية في الجنوب، لقياس قابليته للتعميم."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": false
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "شكر وتقدير"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يشكر الباحثان مركز التحكم الإقليمي على توفير بيانات الأحمال، والمركز الوطني للأرصاد على بيانات الطقس."
+          }
+        ]
+      }
+    ]
+  }
+}
