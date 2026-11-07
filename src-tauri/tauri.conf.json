@@ -35,6 +35,10 @@
     "externalBin": [
       "binaries/tectonic"
     ],
+    "resources": {
+      "tex-cache/": "tex-cache/",
+      "fonts/": "fonts/"
+    },
     "publisher": "Abdullah Al-Ahmadi",
     "copyright": "© 2026 Abdullah Al-Ahmadi",
     "category": "Productivity",

@@ -37,6 +37,8 @@ features and setup; PLAN.md tracks what's done and what's next.
 
 ```bash
 scripts/fetch-tectonic.sh                 # bundled TeX engine (add a target triple for other OSes)
+node scripts/fetch-fonts.mjs              # Arabic font library into src-tauri/fonts (pip install fonttools)
+node scripts/build-tex-cache.mjs          # TeX packages for offline compiles into src-tauri/tex-cache
 npm ci
 npm run tauri dev                         # run the app
 cargo test --workspace                    # tests

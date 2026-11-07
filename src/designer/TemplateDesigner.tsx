@@ -34,7 +34,9 @@ const SECTIONS = [
 type SectionKey = (typeof SECTIONS)[number]["key"];
 
 /** With a publisher class, the class decides these; their panels are hidden. */
-const CLASS_DEFINED: SectionKey[] = ["page", "fonts", "structure", "headings", "headerFooter", "captions", "bibliography", "frontMatter", "titlePage"];
+// Fonts stay: the Arabic font (and, in Arabic documents, the English fonts) apply
+// on top of any class or theme; FontsSection shows only what takes effect.
+const CLASS_DEFINED: SectionKey[] = ["page", "structure", "headings", "headerFooter", "captions", "bibliography", "frontMatter", "titlePage"];
 
 export function TemplateDesigner({
   info,
@@ -75,7 +77,7 @@ export function TemplateDesigner({
   const deck = draft.kind === "presentation";
   // Presentations: the theme decides the layout; only info, slides and fields apply.
   const visible = deck
-    ? SECTIONS.filter((s) => ["info", "slides", "fields"].includes(s.key))
+    ? SECTIONS.filter((s) => ["info", "slides", "fonts", "fields"].includes(s.key))
     : SECTIONS.filter((s) => s.key !== "slides" && (usesClass ? !CLASS_DEFINED.includes(s.key) : s.key !== "publisher"));
   const [chosen, setSection] = useState<SectionKey>("page");
   // Fall back to the first visible panel when the chosen one is hidden for this template.

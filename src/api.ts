@@ -147,6 +147,18 @@ export const importFigure = (source: string) => invoke<string>("import_figure", 
 export const readDocumentFile = (path: string) => invoke<ArrayBuffer>("read_document_file", { path });
 export const exportPdf = (path: string, d: DocState) => invoke<void>("export_pdf", { path, ...d });
 export const listSystemFonts = () => invoke<string[]>("list_system_fonts");
+/** A family of Texloom's Arabic font library. */
+export interface LibraryFont {
+  id: string;
+  name: string;
+  /** naskh, sans, kufi, calligraphic, display or nastaliq. */
+  category: string;
+  hasBold: boolean;
+  /** Its files are there (a development checkout may not have them). */
+  available: boolean;
+}
+export const listLibraryFonts = () => invoke<LibraryFont[]>("list_library_fonts");
+export const readLibraryFont = (id: string, bold: boolean) => invoke<ArrayBuffer>("read_library_font", { id, bold });
 /** An example document: the senior design report, or "presentation". */
 export const sampleDocument = (name?: "presentation") => invoke<OpenedDocument>("sample_document", { name: name ?? null });
 /** Everything about the open document that the backend needs to generate it. */

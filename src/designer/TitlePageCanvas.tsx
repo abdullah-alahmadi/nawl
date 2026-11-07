@@ -18,6 +18,7 @@ import { fieldPlaceholders, fieldUses, placeholderNames, type SectionProps } fro
 import { TextStyleControls } from "./StyleSections";
 import { useT, type MessageKey } from "../i18n";
 import { withDates } from "../editor/dates";
+import { libraryFamily } from "../editor/libraryFonts";
 
 const MM_PER_PT = 25.4 / 72.27; // TeX points
 const SNAP_MM = 2; // distance at which items snap to the page's centre, margins and other items
@@ -66,6 +67,7 @@ function lineStretch(t: SectionProps["t"]): number {
 /** CSS stack approximating the template's main font. */
 function cssFont(f: FontChoice): string {
   if (f.kind === "system") return `"${f.family}", serif`;
+  if (f.kind === "library") return `"${libraryFamily(f.id)}", "Amiri", serif`;
   return {
     latinModern: '"Latin Modern Roman", "CMU Serif", serif',
     termes: '"TeX Gyre Termes", "Times New Roman", Times, serif',

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 // Designer panels: template info, page, fonts, structure.
 import type { BuiltinFont } from "../bindings/BuiltinFont";
 import type { Language } from "../bindings/Language";
@@ -9,6 +10,8 @@ import type { PageNumberStyle } from "../bindings/PageNumberStyle";
 import { NumberInput, Row, Segmented, Select, Toggle, issuesAt } from "./controls";
 import { headingLevels, type SectionProps, type Translate } from "./common";
 import { useT, type MessageKey } from "../i18n";
+import * as api from "../api";
+import { ensureLibraryFont, libraryFamily } from "../editor/libraryFonts";
 
 export function InfoSection({ t, edit, issues }: SectionProps) {
   const tr = useT();
@@ -226,57 +229,140 @@ function FontPicker({ value, onChange, systemFonts }: { value: FontChoice; onCha
 export function FontsSection({ t, edit, issues, systemFonts }: SectionProps & { systemFonts: string[] }) {
   const tr = useT();
   const anySystem = [t.fonts.main, t.fonts.sans, t.fonts.mono].some((f) => f.kind === "system");
+  // On a publisher's class or a beamer theme, the class or theme sets the text size and
+  // the Latin fonts; the Arabic font always applies, and in an Arabic document so do
+  // the English fonts (polyglossia sets both up after the class).
+  const ownLayout = !t.base && t.kind !== "presentation";
+  const arabicMain = t.language?.main === "arabic";
+  const latinFonts = ownLayout || arabicMain;
   return (
     <>
-      <Row label={tr("designer.bodyTextSize")} issues={issuesAt(issues, "fonts.baseSizePt")}>
-        <Select
-          value={t.fonts.baseSizePt}
-          options={[10, 11, 12].map((v) => ({ value: v, label: `${v} pt` }))}
-          onChange={(v) => edit((d) => void (d.fonts.baseSizePt = v))}
-        />
-      </Row>
-      <Row label={tr("designer.mainFont")} hint={tr("designer.mainFontHint")} issues={issuesAt(issues, "fonts.main")}>
-        <FontPicker value={t.fonts.main} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.main = f))} />
-      </Row>
-      <Row label={tr("designer.sansFont")} issues={issuesAt(issues, "fonts.sans")}>
-        <FontPicker value={t.fonts.sans} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.sans = f))} />
-      </Row>
-      <Row label={tr("designer.monoFont")} hint={tr("designer.monoFontHint")} issues={issuesAt(issues, "fonts.mono")}>
-        <FontPicker value={t.fonts.mono} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.mono = f))} />
-      </Row>
+      {ownLayout && (
+        <Row label={tr("designer.bodyTextSize")} issues={issuesAt(issues, "fonts.baseSizePt")}>
+          <Select
+            value={t.fonts.baseSizePt}
+            options={[10, 11, 12].map((v) => ({ value: v, label: `${v} pt` }))}
+            onChange={(v) => edit((d) => void (d.fonts.baseSizePt = v))}
+          />
+        </Row>
+      )}
+      {!ownLayout && <p className="d-note">{tr(latinFonts ? "designer.fontsOnClassArabic" : "designer.fontsOnClass")}</p>}
+      {latinFonts && (
+        <>
+          <Row label={tr(ownLayout ? "designer.mainFont" : "designer.englishMainFont")} hint={tr("designer.mainFontHint")} issues={issuesAt(issues, "fonts.main")}>
+            <FontPicker value={t.fonts.main} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.main = f))} />
+          </Row>
+          <Row label={tr("designer.sansFont")} issues={issuesAt(issues, "fonts.sans")}>
+            <FontPicker value={t.fonts.sans} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.sans = f))} />
+          </Row>
+          <Row label={tr("designer.monoFont")} hint={tr("designer.monoFontHint")} issues={issuesAt(issues, "fonts.mono")}>
+            <FontPicker value={t.fonts.mono} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.mono = f))} />
+          </Row>
+        </>
+      )}
       <Row label={tr("designer.arabicFont")} hint={tr("designer.arabicFontHint")} issues={issuesAt(issues, "fonts.arabic")}>
-        <span className="d-inline">
-          <select
-            value={t.fonts.arabic?.kind === "system" ? "__system" : "amiri"}
-            onChange={(e) =>
-              edit((d) => {
-                if (e.target.value === "amiri") delete d.fonts.arabic;
-                else d.fonts.arabic = { kind: "system", family: systemFonts.find((f) => /arab|naskh|majalla|kufi|amiri/i.test(f)) ?? "" };
-              })
-            }
-          >
-            <option value="amiri">{tr("designer.amiriAlways")}</option>
-            <option value="__system">{tr("designer.fontInstalled")}</option>
-          </select>
-          {t.fonts.arabic?.kind === "system" && (
-            <input
-              list="system-fonts-arabic"
-              value={t.fonts.arabic.family}
-              placeholder={tr("designer.arabicFontPlaceholder")}
-              onChange={(e) => edit((d) => void (d.fonts.arabic = { kind: "system", family: e.target.value }))}
-            />
-          )}
-          <datalist id="system-fonts-arabic">
-            {systemFonts.map((f) => (
-              <option key={f} value={f} />
-            ))}
-          </datalist>
-        </span>
+        <ArabicFontGallery
+          value={t.fonts.arabic}
+          systemFonts={systemFonts}
+          onChange={(f) =>
+            edit((d) => {
+              if (f) d.fonts.arabic = f;
+              else delete d.fonts.arabic;
+            })
+          }
+        />
       </Row>
       {anySystem && (
         <p className="d-note">{tr("designer.systemFontsNote")}</p>
       )}
     </>
+  );
+}
+
+const FONT_CATEGORIES: { key: string; label: MessageKey }[] = [
+  { key: "naskh", label: "designer.fontCategoryNaskh" },
+  { key: "sans", label: "designer.fontCategorySans" },
+  { key: "kufi", label: "designer.fontCategoryKufi" },
+  { key: "calligraphic", label: "designer.fontCategoryCalligraphic" },
+  { key: "display", label: "designer.fontCategoryDisplay" },
+  { key: "nastaliq", label: "designer.fontCategoryNastaliq" },
+];
+
+/** A line of Arabic that shows a font's character: letters of every shape, digits. */
+const FONT_SAMPLE = "أبجد هوز حطي كلمن ١٢٣";
+
+/** The Arabic font: Amiri (built in), a family from Texloom's font library (each shown
+ *  in its own face, by style), or a font installed on this computer. */
+function ArabicFontGallery({
+  value,
+  systemFonts,
+  onChange,
+}: {
+  value: FontChoice | undefined;
+  systemFonts: string[];
+  onChange: (f: FontChoice | undefined) => void;
+}) {
+  const tr = useT();
+  const [fonts, setFonts] = useState<api.LibraryFont[]>([]);
+  useEffect(() => {
+    api.listLibraryFonts().then(
+      (list) => {
+        setFonts(list);
+        // Each card shows its font, so they're all loaded (about 6 MB, once).
+        for (const f of list) if (f.available) void ensureLibraryFont(f.id);
+      },
+      () => setFonts([]),
+    );
+  }, []);
+  const card = (selected: boolean) => `font-card${selected ? " selected" : ""}`;
+  return (
+    <div className="font-gallery">
+      <div className="font-grid">
+        <button type="button" className={card(!value || value.kind === "builtin")} onClick={() => onChange(undefined)} aria-pressed={!value || value.kind === "builtin"}>
+          <span className="font-card-name">Amiri · {tr("designer.fontBuiltIn")}</span>
+          <span className="font-card-sample" style={{ fontFamily: '"Amiri", "Traditional Arabic", serif' }} dir="rtl" lang="ar">
+            {FONT_SAMPLE}
+          </span>
+        </button>
+      </div>
+      {FONT_CATEGORIES.map(({ key, label }) => {
+        const list = fonts.filter((f) => f.category === key && f.available);
+        if (list.length === 0) return null;
+        return (
+          <section key={key}>
+            <h4 className="font-category">{tr(label)}</h4>
+            <div className="font-grid">
+              {list.map((f) => {
+                const selected = value?.kind === "library" && value.id === f.id;
+                return (
+                  <button key={f.id} type="button" className={card(selected)} aria-pressed={selected} onClick={() => onChange({ kind: "library", id: f.id })}>
+                    <span className="font-card-name">{f.name}</span>
+                    <span className="font-card-sample" style={{ fontFamily: `"${libraryFamily(f.id)}", serif` }} dir="rtl" lang="ar">
+                      {FONT_SAMPLE}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+      <h4 className="font-category">{tr("designer.fontInstalled")}</h4>
+      <span className="d-inline">
+        <input
+          list="system-fonts-arabic"
+          value={value?.kind === "system" ? value.family : ""}
+          placeholder={tr("designer.arabicFontPlaceholder")}
+          onChange={(e) => onChange(e.target.value.trim() ? { kind: "system", family: e.target.value } : undefined)}
+        />
+        <datalist id="system-fonts-arabic">
+          {systemFonts.map((f) => (
+            <option key={f} value={f} />
+          ))}
+        </datalist>
+      </span>
+      <p className="d-note">{tr("designer.fontLibraryNote")}</p>
+    </div>
   );
 }
 

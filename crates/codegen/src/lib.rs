@@ -56,6 +56,27 @@ pub struct Generated {
     pub bibliography: Option<String>,
     /// Line of `tex` (1-based) where each top-level block of the body starts.
     pub block_lines: Vec<u32>,
+    /// Files of the template's library fonts (`fonts/cairo-Regular.ttf`…), relative
+    /// to the font library; they go into the build folder at the same paths.
+    pub fonts: Vec<String>,
+}
+
+/// The files of a template's library fonts (see [`texloom_core::fonts`]).
+pub fn library_font_files(template: &Template) -> Vec<String> {
+    let f = &template.fonts;
+    let mut files: Vec<String> = Vec::new();
+    for choice in [Some(&f.main), Some(&f.sans), Some(&f.mono), f.arabic.as_ref()].into_iter().flatten() {
+        if let texloom_core::FontChoice::Library { id } = choice
+            && let Some(font) = texloom_core::fonts::find(id)
+        {
+            for file in font.files() {
+                if !files.contains(&file) {
+                    files.push(file);
+                }
+            }
+        }
+    }
+    files
 }
 
 /// Where a kit file goes in the build folder: its file name only.
@@ -114,5 +135,6 @@ pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Gene
         kit_files: template.base.as_ref().map(|b| b.files.clone()).unwrap_or_default(),
         bibliography: has_bibliography(doc).then(|| doc.bibliography.clone()),
         block_lines,
+        fonts: library_font_files(template),
     }
 }

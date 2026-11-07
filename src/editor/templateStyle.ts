@@ -1,6 +1,7 @@
 // Turns a template into CSS for the editor page, so the page you type on looks like
 // the PDF: margins, fonts, spacing, heading styles with their numbers ("CHAPTER 1",
 // "3.1"), and figure/table/equation numbering. The PDF preview stays the exact version.
+import { libraryFamily } from "./libraryFonts";
 import type { Template } from "../api";
 import type { FontChoice } from "../bindings/FontChoice";
 import type { TextStyle } from "../bindings/TextStyle";
@@ -12,6 +13,8 @@ const MM_PER_PT = 25.4 / 72.27;
 
 export function cssFontStack(f: FontChoice): string {
   if (f.kind === "system") return `"${f.family.replace(/"/g, "")}", serif`;
+  // Loaded from the app's font library (libraryFonts.ts).
+  if (f.kind === "library") return `"${libraryFamily(f.id)}", "Amiri", serif`;
   return {
     latinModern: '"Latin Modern Roman", "CMU Serif", serif',
     termes: '"TeX Gyre Termes", "Times New Roman", Times, serif',
@@ -31,7 +34,8 @@ export function cssFontStack(f: FontChoice): string {
 export function pageFontStack(t: Template, latin = cssFontStack(t.fonts.main)): string {
   const parts = latin.split(",").map((s) => s.trim());
   const generic = parts.pop() ?? "serif";
-  const arabic = t.fonts.arabic?.kind === "system" ? [`"${t.fonts.arabic.family.replace(/"/g, "")}"`] : [];
+  const a = t.fonts.arabic;
+  const arabic = a?.kind === "system" ? [`"${a.family.replace(/"/g, "")}"`] : a?.kind === "library" ? [`"${libraryFamily(a.id)}"`] : [];
   return [...parts, ...arabic, ...ARABIC_FALLBACKS, generic].join(", ");
 }
 

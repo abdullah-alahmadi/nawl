@@ -436,7 +436,7 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
     if langs.english_only() {
         return String::new();
     }
-    let arabic = arabic_font(t);
+    let (arabic, ar) = arabic_font(t);
     let mut o = String::new();
     let names: Vec<&str> = std::iter::once(langs.main).chain(langs.others.iter().copied()).map(Language::polyglossia).collect();
     o.push_str(&format!("% Languages: {} (compile with XeLaTeX or LuaLaTeX)\n", names.join(", ")));
@@ -449,20 +449,20 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
     if langs.main == Language::Arabic {
         // The Arabic font is the main font: headings and \normalfont use it too.
         // English text switches to the template's Latin fonts.
-        o.push_str(&format!("\\setmainfont[Script=Arabic]{{{arabic}}}\n"));
+        o.push_str(&format!("\\setmainfont[Script=Arabic{ar}]{{{arabic}}}\n"));
         // Not quite the same options as the main font: identical ones make one font
         // family, and polyglossia would then take body text for sans (English
         // words would come out in the sans font).
-        o.push_str(&format!("\\setsansfont[Script=Arabic,WordSpace=1]{{{arabic}}}\n"));
+        o.push_str(&format!("\\setsansfont[Script=Arabic,WordSpace=1{ar}]{{{arabic}}}\n"));
         o.push_str(&format!("\\newfontfamily\\englishfont{}\n", latin_spec(&t.fonts.main, Role::Main)));
         o.push_str(&format!("\\newfontfamily\\englishfontsf{}\n", latin_spec(&t.fonts.sans, Role::Sans)));
         o.push_str(&format!("\\newfontfamily\\englishfonttt{}\n", latin_spec(&t.fonts.mono, Role::Mono)));
         // Arabic in code font (newer polyglossia insists every style can show Arabic).
-        o.push_str(&format!("\\newfontfamily\\arabicfonttt[Script=Arabic,Ligatures=TeX]{{{arabic}}}\n"));
+        o.push_str(&format!("\\newfontfamily\\arabicfonttt[Script=Arabic,Ligatures=TeX{ar}]{{{arabic}}}\n"));
     } else {
-        o.push_str(&format!("\\newfontfamily\\arabicfont[Script=Arabic,Ligatures=TeX]{{{arabic}}}\n"));
-        o.push_str(&format!("\\newfontfamily\\arabicfontsf[Script=Arabic,Ligatures=TeX]{{{arabic}}}\n"));
-        o.push_str(&format!("\\newfontfamily\\arabicfonttt[Script=Arabic,Ligatures=TeX]{{{arabic}}}\n"));
+        o.push_str(&format!("\\newfontfamily\\arabicfont[Script=Arabic,Ligatures=TeX{ar}]{{{arabic}}}\n"));
+        o.push_str(&format!("\\newfontfamily\\arabicfontsf[Script=Arabic,Ligatures=TeX{ar}]{{{arabic}}}\n"));
+        o.push_str(&format!("\\newfontfamily\\arabicfonttt[Script=Arabic,Ligatures=TeX{ar}]{{{arabic}}}\n"));
     }
     o.push_str("\\usepackage{polyglossia}\n");
     let options = |l: Language| if l == Language::Arabic { format!("[{numerals}]") } else { String::new() };
@@ -488,12 +488,17 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
     o
 }
 
-/// The font for Arabic text, as fontspec takes it.
-fn arabic_font(t: &Template) -> String {
+/// The font for Arabic text, as fontspec takes it: the name, and options to add.
+fn arabic_font(t: &Template) -> (String, String) {
     match &t.fonts.arabic {
-        Some(FontChoice::System { family }) if !family.trim().is_empty() => escape(family.trim()),
+        Some(FontChoice::System { family }) if !family.trim().is_empty() => (escape(family.trim()), String::new()),
+        // From Texloom's font library: by file, from the build folder's fonts/.
+        Some(FontChoice::Library { id }) if texloom_core::fonts::find(id).is_some() => {
+            let f = texloom_core::fonts::find(id).expect("checked");
+            (f.regular_file(), format!(",{}", crate::cls::library_options(f)))
+        }
         // Amiri comes with every TeX distribution (Tectonic's bundle too).
-        _ => "Amiri".into(),
+        _ => ("Amiri".into(), String::new()),
     }
 }
 
@@ -510,6 +515,10 @@ fn latin_spec(choice: &FontChoice, role: Role) -> String {
     let files = |stem: &str| format!("{{{stem}}}[Extension=.otf,Ligatures=TeX,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]");
     match choice {
         FontChoice::System { family } => format!("{{{}}}[Ligatures=TeX]", escape(family)),
+        FontChoice::Library { id } => match texloom_core::fonts::find(id) {
+            Some(f) => format!("{{{}}}[Ligatures=TeX,{}]", f.regular_file(), crate::cls::library_options(f)),
+            None => "{Amiri}[Ligatures=TeX]".into(),
+        },
         FontChoice::Builtin { font: BuiltinFont::Amiri } => "{Amiri}[Ligatures=TeX]".into(),
         FontChoice::Builtin { font: BuiltinFont::LatinModern } => match role {
             Role::Main => files("lmroman10"),

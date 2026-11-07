@@ -24,6 +24,7 @@ import { Direction } from "./editor/Direction";
 import { ArabicPunctuation } from "./editor/ArabicPunctuation";
 import { docLanguage } from "./editor/language";
 import { formulasAsMathMl } from "./editor/wordExport";
+import { ensureLibraryFont, libraryFontIds } from "./editor/libraryFonts";
 import { LanguageContext, resolveUiLanguage, translate, useT, t as tNow, type MessageKey } from "./i18n";
 import { Flash, flashBlock } from "./editor/Flash";
 import { SearchBar } from "./editor/SearchBar";
@@ -414,6 +415,12 @@ export default function App() {
       setTexloomContext(editor, { template: activeTemplate });
     }
   }, [editor, activeTemplate]);
+  // Fonts from the font library the page uses (the designer's draft included).
+  useEffect(() => {
+    for (const t of [template, draft]) {
+      if (t) libraryFontIds([t.fonts.main, t.fonts.sans, t.fonts.mono, t.fonts.arabic]).forEach((id) => void ensureLibraryFont(id));
+    }
+  }, [template, draft]);
   const lang = docLanguage(template);
 
   const onBibliographyChange = (source: string) => {

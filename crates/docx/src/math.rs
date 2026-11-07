@@ -96,6 +96,7 @@ fn local(name: &[u8]) -> String {
 }
 
 /// OMML for a MathML formula (`<m:oMath>…</m:oMath>`), or `None` if it doesn't parse.
+#[cfg(test)]
 pub fn omml(mathml: &str) -> Option<String> {
     omml_with(mathml, false)
 }

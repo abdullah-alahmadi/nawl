@@ -56,7 +56,7 @@ fn arabic_article_exports() {
         "<math><mi>g</mi><mo>=</mo><mfrac><mrow><mi>post</mi><mo>-</mo><mi>pre</mi></mrow><mrow><mn>100</mn><mo>-</mo><mi>pre</mi></mrow></mfrac></math>".to_string(),
     )]
     .into();
-    let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml }).unwrap();
+    let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml, font: &|_| None }).unwrap();
     let parts = unzip(&bytes);
     assert_well_formed(&parts);
     assert!(parts["word/document.xml"].contains("Abdullah Al-Ahmadi, Sarah Al-Qahtani"), "English names under the English title");
@@ -103,7 +103,7 @@ fn english_report_with_merged_cells_and_crop() {
     }
     visit(&mut json);
     doc.body = serde_json::from_value(json).unwrap();
-    let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new() }).unwrap();
+    let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap();
     let parts = unzip(&bytes);
     assert_well_formed(&parts);
     let d = &parts["word/document.xml"];
@@ -120,7 +120,7 @@ fn english_report_with_merged_cells_and_crop() {
 fn slides_are_not_exported() {
     let t = template("beamer-presentation");
     let doc = example("presentation.loom");
-    assert!(write(&Input { template: &t, doc: &doc, image: &|_| None, asset: &|_| None, mathml: &HashMap::new() }).is_err());
+    assert!(write(&Input { template: &t, doc: &doc, image: &|_| None, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).is_err());
 }
 
 /// An article's title block and abstract share the first page with the text; in two
@@ -128,14 +128,14 @@ fn slides_are_not_exported() {
 #[test]
 fn articles_start_on_the_first_page() {
     let doc = example("article.loom");
-    let one = unzip(&write(&Input { template: &template("general-article"), doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new() }).unwrap());
+    let one = unzip(&write(&Input { template: &template("general-article"), doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
     assert_well_formed(&one);
     let d = &one["word/document.xml"];
     assert!(!d.contains("w:type=\"page\""), "no page breaks before the text");
     assert_eq!(d.matches("<w:sectPr>").count(), 1, "one section, numbered from 1");
     assert!(!d.contains("<w:cols"));
 
-    let two = unzip(&write(&Input { template: &template("article-two-column"), doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new() }).unwrap());
+    let two = unzip(&write(&Input { template: &template("article-two-column"), doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
     assert_well_formed(&two);
     let d = &two["word/document.xml"];
     assert!(!d.contains("w:type=\"page\""));
@@ -152,7 +152,7 @@ fn thesis_dates_and_reference_lists() {
     let t = template("arabic-thesis");
     let mut doc = example("arabic-article.loom");
     doc.metadata.insert("date".into(), FieldValue::Text("2026-05-14".into()));
-    let parts = unzip(&write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new() }).unwrap());
+    let parts = unzip(&write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
     assert_well_formed(&parts);
     let d = &parts["word/document.xml"];
     assert!(d.contains("٢٧ ذو القعدة ١٤٤٧هـ") && d.contains("١٤ مايو ٢٠٢٦"), "both calendars");
@@ -163,6 +163,30 @@ fn thesis_dates_and_reference_lists() {
     assert!(arabic < ahmadi && ahmadi < foreign, "the Arabic entry is in the Arabic list");
     // Sub-lists in abjad letters, as polyglossia prints them: (ا) (ب) (ج).
     assert!(parts["word/numbering.xml"].contains("<w:numFmt w:val=\"arabicAbjad\"/><w:lvlText w:val=\"(%2)\"/>"));
+}
+
+/// A library font is embedded: listed in the font table with its key, stored
+/// obfuscated (XORing again gives the file back), and Word told to use embedded fonts.
+#[test]
+fn library_fonts_are_embedded() {
+    let mut t = template("arabic-article");
+    t.fonts.arabic = Some(texloom_core::FontChoice::Library { id: "cairo".into() });
+    let regular = b"OTTO regular font bytes, longer than thirty-two bytes".to_vec();
+    let font = |rel: &str| (rel == "fonts/cairo-Regular.ttf").then(|| regular.clone());
+    let parts = unzip(&write(&Input { template: &t, doc: &example("arabic-article.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
+    assert_well_formed(&parts);
+    let table = &parts["word/fontTable.xml"];
+    assert!(table.contains("<w:font w:name=\"Cairo\">") && table.contains("<w:embedRegular r:id=\"rIdF1\" w:fontKey=\"{"), "{table}");
+    assert!(!table.contains("embedBold"), "only files that are there");
+    assert!(parts["word/settings.xml"].contains("<w:embedTrueTypeFonts/>"));
+    assert!(parts["word/_rels/document.xml.rels"].contains("Target=\"fontTable.xml\""));
+    assert!(parts["[Content_Types].xml"].contains("Extension=\"odttf\""));
+    let key = table.split("w:fontKey=\"").nth(1).unwrap().split('"').next().unwrap();
+    assert_eq!(obfuscate(&obfuscate(&regular, key), key), regular);
+    assert_ne!(obfuscate(&regular, key)[..32], regular[..32]);
+    // Without library fonts, nothing of this.
+    let plain = unzip(&write(&Input { template: &template("arabic-article"), doc: &example("arabic-article.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
+    assert!(!plain.contains_key("word/fontTable.xml") && !plain["word/settings.xml"].contains("embedTrueType"));
 }
 
 #[test]
@@ -228,12 +252,12 @@ fn properties_are_in_schema_order() {
     for (tpl, ex) in [("arabic-article", "arabic-article.loom"), ("senior-design", "senior-design-report.loom")] {
         let t = template(tpl);
         let doc = example(ex);
-        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new() }).unwrap();
+        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap();
         assert_schema_order(&unzip(&bytes));
     }
     let t = template("arabic-thesis");
     let doc = example("arabic-article.loom");
-    let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new() }).unwrap();
+    let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap();
     assert_schema_order(&unzip(&bytes));
 }
 
@@ -252,11 +276,23 @@ fn write_samples() {
         ("arabic-thesis", "arabic-article.loom", "arabic-thesis.docx"),
         ("senior-design", "senior-design-report.loom", "senior-design.docx"),
         ("general-article", "article.loom", "general-article.docx"),
+        ("arabic-article-cairo", "arabic-article.loom", "arabic-article-cairo.docx"),
         ("article-two-column", "article.loom", "article-two-column.docx"),
     ] {
-        let t = template(tpl);
+        // "-cairo": the Arabic article with a library font, embedded (the fonts fetched
+        // by scripts/fetch-fonts.mjs).
+        let t = match tpl.strip_suffix("-cairo") {
+            Some(base) => {
+                let mut t = template(base);
+                t.fonts.arabic = Some(texloom_core::FontChoice::Library { id: "cairo".into() });
+                t
+            }
+            None => template(tpl),
+        };
         let doc = example(ex);
-        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml }).unwrap();
+        let fonts_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src-tauri");
+        let font = |rel: &str| std::fs::read(fonts_dir.join(rel)).ok();
+        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml, font: &font }).unwrap();
         std::fs::write(out.join(name), bytes).unwrap();
     }
     // Formulas as MathLive converts them (a JSON map of LaTeX → MathML), one per equation.
@@ -270,11 +306,11 @@ fn write_samples() {
             bibliography: String::new(),
         };
         let t = template("senior-design");
-        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml }).unwrap();
+        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml, font: &|_| None }).unwrap();
         std::fs::write(out.join("formulas.docx"), bytes).unwrap();
         // The same formulas in an Arabic document with Arabic-Indic digits.
         let t = template("arabic-thesis");
-        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml }).unwrap();
+        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml, font: &|_| None }).unwrap();
         std::fs::write(out.join("formulas-ar.docx"), bytes).unwrap();
     }
 }

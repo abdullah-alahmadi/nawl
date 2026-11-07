@@ -249,6 +249,8 @@ Word is an export target only; Texloom never imports Word files.
       digits in formulas
 - [ ] Arabic school notation: Arabic variables and function names (جا، جتا، نها) in the
       editor; fully right-to-left mirrored formulas (LuaLaTeX only)
+- [x] Arabic font library: 31 OFL families shipped with the app (catalog in
+      fonts/catalog.json), shown in a gallery, sent with the document, embedded in Word
 - [ ] Kashida justification (LuaLaTeX only)
 - [ ] Exact house styles of particular Arabic journals and universities
 - [ ] Arabic-Indic page numbers in Word (Word
@@ -262,7 +264,9 @@ Word is an export target only; Texloom never imports Word files.
       XeTeX/LuaTeX, plain tables for REVTeX)
 - [x] Installers: Ubuntu .deb (CI on 22.04), snap (from the .deb), Windows .exe/.msi
       (GitHub Actions); app icon; no console windows for TeX runs on Windows
-- [ ] Bundled TeX package cache so it works offline; auto-update; macOS build
+- [x] Bundled TeX package cache (the built-in templates and beamer themes compile
+      offline from the first start)
+- [ ] Auto-update; macOS build
 - [x] Crash recovery: unsaved changes copied to the app data folder (with figures)
       3 s after each edit; offered back on the next start; closing asks first
 - [x] Importing a kit into a built-in template asks for a name (My templates), then saves it

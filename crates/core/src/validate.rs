@@ -159,6 +159,13 @@ impl Template {
                 c.error(format!("fonts.{name}.family"), crate::tr!("font family is empty", "اسم عائلة الخط فارغ"));
             }
         }
+        for (name, f) in [("main", Some(&t.fonts.main)), ("sans", Some(&t.fonts.sans)), ("mono", Some(&t.fonts.mono)), ("arabic", t.fonts.arabic.as_ref())] {
+            if let Some(crate::FontChoice::Library { id }) = f
+                && crate::fonts::find(id).is_none()
+            {
+                c.error(format!("fonts.{name}.id"), crate::tr!("{id:?} isn't in Texloom's font library", "{id:?} ليس من مكتبة خطوط Texloom"));
+            }
+        }
 
         if t.structure.numbered_depth > 4 {
             c.error("structure.numberedDepth", crate::tr!("must be 0–4", "يجب أن يكون من 0 إلى 4"));

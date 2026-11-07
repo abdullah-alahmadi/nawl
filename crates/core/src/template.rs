@@ -519,6 +519,9 @@ pub enum FontChoice {
     Builtin { font: BuiltinFont },
     /// A font installed on the system, by family name.
     System { family: String },
+    /// A font from Texloom's Arabic font library (shipped with the app, see
+    /// [`crate::fonts`]): its files go with the document.
+    Library { id: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]

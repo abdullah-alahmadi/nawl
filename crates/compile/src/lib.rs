@@ -19,6 +19,47 @@ pub use synctex::{PdfSpot, SyncTex};
 
 /// A command for an external program. On Windows it runs without opening a console
 /// window (a GUI app's child processes get one otherwise, flashing on every compile).
+static CACHE_DIR: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
+/// Held by each Tectonic run (see `Compiler::compile`) and while a shipped cache is
+/// copied in (`fill_cache`).
+static TECTONIC: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Copies the package cache shipped with the app (`from`) into the cache Tectonic uses
+/// (`to`), when `from`'s `texloom-cache-version` differs from the one copied last.
+/// Files already there are kept (packages downloaded since). Compiles wait meanwhile.
+pub fn fill_cache(from: &Path, to: &Path) -> std::io::Result<()> {
+    const VERSION: &str = "texloom-cache-version";
+    let wanted = std::fs::read(from.join(VERSION))?;
+    if std::fs::read(to.join(VERSION)).ok().as_deref() == Some(wanted.as_slice()) {
+        return Ok(());
+    }
+    let _filling = TECTONIC.lock().unwrap_or_else(|e| e.into_inner());
+    fn copy(from: &Path, to: &Path) -> std::io::Result<()> {
+        std::fs::create_dir_all(to)?;
+        for entry in std::fs::read_dir(from)? {
+            let entry = entry?;
+            let dest = to.join(entry.file_name());
+            if entry.file_type()?.is_dir() {
+                copy(&entry.path(), &dest)?;
+            } else if !dest.exists() {
+                std::fs::copy(entry.path(), &dest)?;
+            }
+        }
+        Ok(())
+    }
+    copy(from, to)?;
+    // Last, so an interrupted copy is redone next time.
+    std::fs::write(to.join(VERSION), wanted)
+}
+
+/// Where Tectonic keeps its downloaded packages and format files, for every run from
+/// now on (the app's own folder, filled from the cache it ships with, so built-in
+/// templates compile without internet). Unset, Tectonic uses its per-user default.
+pub fn set_cache_dir(dir: PathBuf) {
+    let _ = CACHE_DIR.set(dir);
+}
+
 pub fn tool(program: impl AsRef<std::ffi::OsStr>) -> Command {
     #[allow(unused_mut)]
     let mut cmd = Command::new(program);
@@ -306,9 +347,12 @@ impl Compiler {
         // other holds open ("cannot write format file … Access is denied"), which
         // happened on the first start, when the empty page and the opened document
         // compiled together. One run at a time avoids it.
-        static TECTONIC: std::sync::Mutex<()> = std::sync::Mutex::new(());
         let _running = TECTONIC.lock().unwrap_or_else(|e| e.into_inner());
-        let output = tool(&self.tectonic)
+        let mut cmd = tool(&self.tectonic);
+        if let Some(cache) = CACHE_DIR.get() {
+            cmd.env("TECTONIC_CACHE_DIR", cache);
+        }
+        let output = cmd
             .current_dir(root)
             // Never allow \write18 shell escape: documents and templates may be shared.
             .arg("--untrusted")

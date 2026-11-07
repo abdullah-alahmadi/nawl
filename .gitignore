@@ -33,3 +33,11 @@ dist-ssr
 /src-tauri/assets/
 /src-tauri/ieee-access.json
 /snap/local/
+
+# Tectonic package cache built for the installers (scripts/build-tex-cache.mjs)
+/src-tauri/tex-cache/*
+!/src-tauri/tex-cache/README.md
+
+# Arabic font library downloaded for the installers (scripts/fetch-fonts.mjs)
+/src-tauri/fonts/*
+!/src-tauri/fonts/README.md

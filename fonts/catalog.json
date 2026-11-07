@@ -1,0 +1,41 @@
+{
+  "_comment": "Texloom's Arabic font library: free fonts (SIL Open Font License) from github.com/google/fonts, shipped with the app (scripts/fetch-fonts.mjs). 'source' is the folder there; variable fonts are cut into static Regular and Bold files at the given axis values, since XeTeX handles variable fonts poorly.",
+  "fonts": [
+    { "id": "noto-naskh-arabic", "name": "Noto Naskh Arabic", "category": "naskh", "source": "notonaskharabic", "variable": "NotoNaskhArabic[wght].ttf" },
+    { "id": "scheherazade-new", "name": "Scheherazade New", "category": "naskh", "source": "scheherazadenew", "regular": "ScheherazadeNew-Regular.ttf", "bold": "ScheherazadeNew-Bold.ttf" },
+    { "id": "lateef", "name": "Lateef", "category": "naskh", "source": "lateef", "regular": "Lateef-Regular.ttf", "bold": "Lateef-Bold.ttf" },
+    { "id": "harmattan", "name": "Harmattan", "category": "naskh", "source": "harmattan", "regular": "Harmattan-Regular.ttf", "bold": "Harmattan-Bold.ttf" },
+    { "id": "markazi-text", "name": "Markazi Text", "category": "naskh", "source": "markazitext", "variable": "MarkaziText[wght].ttf" },
+    { "id": "mirza", "name": "Mirza", "category": "naskh", "source": "mirza", "regular": "Mirza-Regular.ttf", "bold": "Mirza-Bold.ttf" },
+
+    { "id": "noto-sans-arabic", "name": "Noto Sans Arabic", "category": "sans", "source": "notosansarabic", "variable": "NotoSansArabic[wdth,wght].ttf", "axes": { "wdth": 100 } },
+    { "id": "ibm-plex-sans-arabic", "name": "IBM Plex Sans Arabic", "category": "sans", "source": "ibmplexsansarabic", "regular": "IBMPlexSansArabic-Regular.ttf", "bold": "IBMPlexSansArabic-Bold.ttf" },
+    { "id": "cairo", "name": "Cairo", "category": "sans", "source": "cairo", "variable": "Cairo[slnt,wght].ttf", "axes": { "slnt": 0 } },
+    { "id": "tajawal", "name": "Tajawal", "category": "sans", "source": "tajawal", "regular": "Tajawal-Regular.ttf", "bold": "Tajawal-Bold.ttf" },
+    { "id": "almarai", "name": "Almarai", "category": "sans", "source": "almarai", "regular": "Almarai-Regular.ttf", "bold": "Almarai-Bold.ttf" },
+    { "id": "readex-pro", "name": "Readex Pro", "category": "sans", "source": "readexpro", "variable": "ReadexPro[HEXP,wght].ttf", "axes": { "HEXP": 0 } },
+    { "id": "mada", "name": "Mada", "category": "sans", "source": "mada", "variable": "Mada[wght].ttf" },
+    { "id": "changa", "name": "Changa", "category": "sans", "source": "changa", "variable": "Changa[wght].ttf" },
+    { "id": "vazirmatn", "name": "Vazirmatn", "category": "sans", "source": "vazirmatn", "variable": "Vazirmatn[wght].ttf" },
+    { "id": "alexandria", "name": "Alexandria", "category": "sans", "source": "alexandria", "variable": "Alexandria[wght].ttf" },
+    { "id": "rubik", "name": "Rubik", "category": "sans", "source": "rubik", "variable": "Rubik[wght].ttf" },
+
+    { "id": "noto-kufi-arabic", "name": "Noto Kufi Arabic", "category": "kufi", "source": "notokufiarabic", "variable": "NotoKufiArabic[wght].ttf" },
+    { "id": "reem-kufi", "name": "Reem Kufi", "category": "kufi", "source": "reemkufi", "variable": "ReemKufi[wght].ttf" },
+    { "id": "kufam", "name": "Kufam", "category": "kufi", "source": "kufam", "variable": "Kufam[wght].ttf" },
+    { "id": "el-messiri", "name": "El Messiri", "category": "kufi", "source": "elmessiri", "variable": "ElMessiri[wght].ttf" },
+
+    { "id": "aref-ruqaa", "name": "Aref Ruqaa", "category": "calligraphic", "source": "arefruqaa", "regular": "ArefRuqaa-Regular.ttf", "bold": "ArefRuqaa-Bold.ttf" },
+    { "id": "katibeh", "name": "Katibeh", "category": "calligraphic", "source": "katibeh", "regular": "Katibeh-Regular.ttf" },
+    { "id": "alkalami", "name": "Alkalami", "category": "calligraphic", "source": "alkalami", "regular": "Alkalami-Regular.ttf" },
+
+    { "id": "lalezar", "name": "Lalezar", "category": "display", "source": "lalezar", "regular": "Lalezar-Regular.ttf" },
+    { "id": "rakkas", "name": "Rakkas", "category": "display", "source": "rakkas", "regular": "Rakkas-Regular.ttf" },
+    { "id": "jomhuria", "name": "Jomhuria", "category": "display", "source": "jomhuria", "regular": "Jomhuria-Regular.ttf" },
+    { "id": "lemonada", "name": "Lemonada", "category": "display", "source": "lemonada", "variable": "Lemonada[wght].ttf" },
+    { "id": "marhey", "name": "Marhey", "category": "display", "source": "marhey", "variable": "Marhey[wght].ttf" },
+
+    { "id": "noto-nastaliq-urdu", "name": "Noto Nastaliq Urdu", "category": "nastaliq", "source": "notonastaliqurdu", "variable": "NotoNastaliqUrdu[wght].ttf" },
+    { "id": "gulzar", "name": "Gulzar", "category": "nastaliq", "source": "gulzar", "regular": "Gulzar-Regular.ttf" }
+  ]
+}

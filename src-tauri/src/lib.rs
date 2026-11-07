@@ -748,6 +748,7 @@ async fn compile_document(
     let mut assets = active.load_assets(&generated.assets)?;
     assets.extend(active.load_kit_files(&generated.kit_files, target)?);
     assets.extend(state.doc_folder.load(&generated.figures)?);
+    assets.extend(load_library_fonts(&generated.fonts)?);
     let block_lines = generated.block_lines.clone();
     let out = tauri::async_runtime::spawn_blocking(move || {
         let support = generated.support_files();
@@ -1042,6 +1043,7 @@ fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Me
     let mut assets = active.load_assets(&g.assets)?;
     assets.extend(active.load_kit_files(&g.kit_files, target)?);
     assets.extend(state.doc_folder.load(&g.figures)?);
+    assets.extend(load_library_fonts(&g.fonts)?);
     let path = Path::new(&path);
     std::fs::write(path, &g.tex)?;
     let dir = path.parent().unwrap_or(Path::new("."));
@@ -1053,6 +1055,71 @@ fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Me
         std::fs::write(dest, bytes)?;
     }
     Ok(())
+}
+
+/// Where the app's resources are (the font library, the bundled TeX packages).
+static RESOURCES: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
+/// The font library's folder: the app's resources, or the checkout's
+/// `src-tauri/fonts` in development (`node scripts/fetch-fonts.mjs`).
+fn font_library_dir() -> PathBuf {
+    let shipped = RESOURCES.get().map(|r| r.join("fonts"));
+    match shipped {
+        Some(dir) if dir.join("README.md").is_file() && dir.read_dir().is_ok_and(|mut d| d.any(|e| e.is_ok_and(|e| e.path().extension().is_some_and(|x| x == "ttf")))) => dir,
+        _ => Path::new(env!("CARGO_MANIFEST_DIR")).join("fonts"),
+    }
+}
+
+/// A document's library font files (`fonts/cairo-Regular.ttf`…), for its build folder.
+fn load_library_fonts(files: &[String]) -> Result<Vec<(String, Vec<u8>)>, AppError> {
+    let dir = font_library_dir();
+    files
+        .iter()
+        .map(|rel| {
+            let name = rel.strip_prefix("fonts/").unwrap_or(rel);
+            std::fs::read(dir.join(name)).map(|b| (rel.clone(), b)).map_err(|_| {
+                AppError::other(texloom_core::tr!(
+                    "The font file {name} isn't installed with Texloom. Reinstall Texloom, or in a checkout run: node scripts/fetch-fonts.mjs",
+                    "ملف الخط {name} غير مثبت مع Texloom. أعد تثبيت Texloom، أو شغّل في نسخة المصدر: node scripts/fetch-fonts.mjs"
+                ))
+            })
+        })
+        .collect()
+}
+
+/// The font library, for the designer's font picker.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LibraryFontInfo {
+    id: String,
+    name: String,
+    category: String,
+    has_bold: bool,
+    /// Whether its files are there (a development checkout may not have them).
+    available: bool,
+}
+
+#[tauri::command]
+fn list_library_fonts() -> Vec<LibraryFontInfo> {
+    let dir = font_library_dir();
+    texloom_core::fonts::library()
+        .iter()
+        .map(|f| LibraryFontInfo {
+            id: f.id.clone(),
+            name: f.name.clone(),
+            category: f.category.clone(),
+            has_bold: f.has_bold(),
+            available: dir.join(f.regular_file()).is_file(),
+        })
+        .collect()
+}
+
+/// A library font's regular or bold file, for the editor (`bold` picks which).
+#[tauri::command]
+fn read_library_font(id: String, bold: bool) -> Result<Response, AppError> {
+    let font = texloom_core::fonts::find(&id).ok_or_else(|| AppError::other(texloom_core::tr!("Unknown font {id}", "خط غير معروف {id}")))?;
+    let file = if bold { font.bold_file().unwrap_or_else(|| font.regular_file()) } else { font.regular_file() };
+    Ok(Response::new(std::fs::read(font_library_dir().join(file))?))
 }
 
 /// The language of the backend's messages (errors, validation problems): the
@@ -1080,7 +1147,9 @@ async fn export_docx(
         // A missing image becomes a placeholder in the Word file rather than an error.
         let image = |rel: &str| files::is_safe_relative(rel).then(|| std::fs::read(folder.join(rel)).ok()).flatten();
         let asset = |rel: &str| active.load_assets(&[rel.to_string()]).ok().and_then(|mut v| v.pop()).map(|(_, b)| b);
-        let input = texloom_docx::Input { template: &active.template, doc: &document, image: &image, asset: &asset, mathml: &mathml };
+        // Library fonts are embedded, so the file shows them where they aren't installed.
+        let font = |rel: &str| load_library_fonts(&[rel.to_string()]).ok().and_then(|mut v| v.pop()).map(|(_, b)| b);
+        let input = texloom_docx::Input { template: &active.template, doc: &document, image: &image, asset: &asset, mathml: &mathml, font: &font };
         let bytes = texloom_docx::write(&input).map_err(AppError::other)?;
         std::fs::write(&path, bytes)?;
         Ok(())
@@ -1114,6 +1183,25 @@ pub fn run() {
         .setup(|app| {
             enable_spell_checking(app);
             let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom"));
+            if let Ok(resources) = app.path().resource_dir() {
+                let _ = RESOURCES.set(resources);
+            }
+            // Compiling without internet: the packages the built-in templates need ship
+            // with the app (scripts/build-tex-cache.mjs). Tectonic writes to its cache, so
+            // they're copied into the app's data folder, which it then uses (and where
+            // other packages still download to).
+            if let Ok(resources) = app.path().resource_dir() {
+                let shipped = resources.join("tex-cache");
+                if shipped.join("texloom-cache-version").is_file() {
+                    let cache = data.join("tex-cache");
+                    texloom_compile::set_cache_dir(cache.clone());
+                    std::thread::spawn(move || {
+                        if let Err(e) = texloom_compile::fill_cache(&shipped, &cache) {
+                            log!("Warning: couldn't copy the bundled TeX packages: {e}");
+                        }
+                    });
+                }
+            }
             app.manage(Recovery::new(data.join("recovery")));
             let config = app.path().app_config_dir().unwrap_or_else(|_| data.clone());
             app.manage(SettingsFile(config.join("settings.json")));
@@ -1177,7 +1265,9 @@ pub fn run() {
             save_settings,
             export_tex,
             export_docx,
-            set_message_language
+            set_message_language,
+            list_library_fonts,
+            read_library_font
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

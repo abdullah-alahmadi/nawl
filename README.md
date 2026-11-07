@@ -12,11 +12,14 @@ sudo apt install -y build-essential curl wget file libwebkit2gtk-4.1-dev libxdo-
 rustup default stable
 npm install                 # also copies MathLive fonts into public/
 scripts/fetch-tectonic.sh   # downloads Tectonic into src-tauri/binaries/
+pip install fonttools && node scripts/fetch-fonts.mjs   # the Arabic font library (optional)
 npm run tauri dev
 ```
 
 The first compile takes a minute or two while Tectonic downloads its TeX package bundle;
-after that it's cached in `~/.cache/Tectonic`.
+after that it's cached in `~/.cache/Tectonic`. The installers instead ship the packages
+the built-in templates need (`node scripts/build-tex-cache.mjs`), so they compile without
+internet from the first start; other packages still download when needed.
 
 **TeX engine** (Settings → Preview): Texloom compiles with the bundled Tectonic by
 default, so nothing else needs installing. If TeX Live, MiKTeX or MacTeX is installed,
@@ -162,9 +165,14 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   marks them for LaTeX itself (no `\textenglish` by hand). A whole paragraph in the other
   language: **Ctrl+Shift+X** or the direction button in the toolbar. Numbers with a
   decimal point stay left to right.
-- **Fonts:** Amiri (part of TeX Live and Tectonic) by default, or any installed font in
-  the designer's **Arabic font**, which lists Windows fonts such as Traditional Arabic and
-  Simplified Arabic too. English text uses the template's Latin fonts.
+- **Fonts:** the designer's **Arabic font** shows a gallery of 32 Arabic fonts, each in
+  its own face, grouped by style: Amiri (built in, the default) and 31 free fonts that
+  come with Texloom (Noto Naskh, Scheherazade New, Lateef, IBM Plex Sans Arabic, Cairo,
+  Tajawal, Almarai, Noto Kufi, Reem Kufi, El Messiri, Aref Ruqaa, Lalezar, Noto Nastaliq
+  Urdu and more; all under the SIL Open Font License). Their files go with the document,
+  so it looks the same on any computer and in exported LaTeX, and Export Word embeds
+  them. Any installed font works too (Windows' Traditional Arabic, Sakkal Majalla…).
+  English text uses the template's Latin fonts.
 - **References:** Arabic entries are formatted in Arabic (وآخرون، د.ت.) and English
   ones in English, for IEEE, numeric and author-year styles. **A list for each
   language** (designer → Bibliography; on in the Arabic thesis and book) prints the
@@ -322,6 +330,8 @@ Locally, on Linux:
 
 ```bash
 scripts/fetch-tectonic.sh
+node scripts/fetch-fonts.mjs         # Arabic font library (needs: pip install fonttools)
+node scripts/build-tex-cache.mjs     # TeX packages for compiling offline
 npm run tauri build -- --bundles deb
 sudo apt install ./target/release/bundle/deb/Texloom_0.1.0_amd64.deb
 ```

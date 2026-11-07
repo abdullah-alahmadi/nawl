@@ -186,6 +186,15 @@ fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path, engine: texlo
     for rel in &g.figures {
         out.push(from(doc_dir, rel, "figure image")?);
     }
+    // Library fonts: from TEXLOOM_FONTS, or the checkout's src-tauri/fonts
+    // (node scripts/fetch-fonts.mjs).
+    let fonts = std::env::var_os("TEXLOOM_FONTS")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src-tauri/fonts"));
+    for rel in &g.fonts {
+        let (_, bytes) = from(&fonts, &rel.trim_start_matches("fonts/").to_string(), "library font")?;
+        out.push((rel.clone(), bytes));
+    }
     for rel in &g.kit_files {
         let (_, bytes) = from(template_dir, rel, "class kit file")?;
         let name = texloom_codegen::kit_destination(rel);

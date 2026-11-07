@@ -36,6 +36,9 @@ pub struct Input<'a> {
     pub asset: &'a dyn Fn(&str) -> Option<Vec<u8>>,
     /// MathML for each formula's LaTeX (from the editor); others are shown as LaTeX.
     pub mathml: &'a HashMap<String, String>,
+    /// A library font's file by its path (`fonts/cairo-Regular.ttf`), embedded so the
+    /// document shows it where it isn't installed.
+    pub font: &'a dyn Fn(&str) -> Option<Vec<u8>>,
 }
 
 /// The `.docx` file's bytes.
@@ -71,6 +74,27 @@ fn letters(n: usize) -> String {
         x = (x - 1) / 26;
     }
     s
+}
+
+/// A font's key (a GUID made from its name, so the file comes out the same each time).
+fn font_key(name: &str) -> String {
+    // FNV-1a, twice over, for 16 bytes.
+    let hash = |seed: u64| name.bytes().fold(0xcbf29ce484222325 ^ seed, |h, b| (h ^ u64::from(b)).wrapping_mul(0x100000001b3));
+    let b: Vec<u8> = hash(0).to_be_bytes().into_iter().chain(hash(0x9e3779b97f4a7c15).to_be_bytes()).collect();
+    let hex = |r: std::ops::Range<usize>| b[r].iter().map(|x| format!("{x:02X}")).collect::<String>();
+    format!("{{{}-{}-{}-{}-{}}}", hex(0..4), hex(4..6), hex(6..8), hex(8..10), hex(10..16))
+}
+
+/// Word's font obfuscation: the first 32 bytes XORed with the key's 16 bytes, which
+/// are the GUID's hex digits read as bytes from the end.
+fn obfuscate(data: &[u8], key: &str) -> Vec<u8> {
+    let hex: String = key.chars().filter(char::is_ascii_hexdigit).collect();
+    let k: Vec<u8> = (0..16).rev().map(|i| u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16).unwrap_or(0)).collect();
+    let mut out = data.to_vec();
+    for (i, byte) in out.iter_mut().take(32).enumerate() {
+        *byte ^= k[i % 16];
+    }
+    out
 }
 
 /// How the main text follows the front matter.
@@ -1030,6 +1054,7 @@ impl<'a> Writer<'a> {
             zip.start_file(name, deflate).map_err(|e| e.to_string())?;
             zip.write_all(data).map_err(|e| e.to_string())
         };
+        let fonts = self.embedded_fonts();
         let has_png = self.media.iter().any(|(_, f, _)| f.ends_with(".png"));
         let has_jpeg = self.media.iter().any(|(_, f, _)| f.ends_with(".jpeg"));
         let mut types = String::from(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>"#);
@@ -1038,6 +1063,9 @@ impl<'a> Writer<'a> {
         }
         if has_jpeg {
             types.push_str(r#"<Default Extension="jpeg" ContentType="image/jpeg"/>"#);
+        }
+        if !fonts.is_empty() {
+            types.push_str(r#"<Default Extension="odttf" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/><Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>"#);
         }
         for (part, ct) in [
             ("/word/document.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"),
@@ -1062,6 +1090,9 @@ impl<'a> Writer<'a> {
         rels.push_str(&rel("rIdNumbering", "numbering", "numbering.xml"));
         rels.push_str(&rel("rIdFooter", "footer", "footer1.xml"));
         rels.push_str(&rel("rIdHeader", "header", "header1.xml"));
+        if !fonts.is_empty() {
+            rels.push_str(&rel("rIdFontTable", "fontTable", "fontTable.xml"));
+        }
         for (id, file, _) in &self.media {
             rels.push_str(&rel(id, "image", &format!("media/{file}")));
         }
@@ -1077,6 +1108,28 @@ impl<'a> Writer<'a> {
         put("word/numbering.xml", self.numbering().as_bytes())?;
         put("word/footer1.xml", self.footer().as_bytes())?;
         put("word/header1.xml", self.header().as_bytes())?;
+        if !fonts.is_empty() {
+            // Library fonts embedded as Word does it: obfuscated files, each with the key
+            // that undoes it, listed in the font table.
+            let mut table = String::from(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">"#);
+            let mut font_rels = String::from(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"#);
+            let mut n = 0;
+            for (name, files) in &fonts {
+                table.push_str(&format!(r#"<w:font w:name="{}"><w:charset w:val="00"/><w:family w:val="auto"/><w:pitch w:val="variable"/>"#, esc(name)));
+                for (style, data) in files {
+                    n += 1;
+                    let key = font_key(&format!("{name}/{style}"));
+                    put(&format!("word/fonts/font{n}.odttf"), &obfuscate(data, &key))?;
+                    font_rels.push_str(&format!(r#"<Relationship Id="rIdF{n}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="fonts/font{n}.odttf"/>"#));
+                    table.push_str(&format!(r#"<w:{style} r:id="rIdF{n}" w:fontKey="{key}"/>"#));
+                }
+                table.push_str("</w:font>");
+            }
+            table.push_str("</w:fonts>");
+            font_rels.push_str("</Relationships>");
+            put("word/fontTable.xml", table.as_bytes())?;
+            put("word/_rels/fontTable.xml.rels", font_rels.as_bytes())?;
+        }
         for (_, file, bytes) in &self.media {
             put(&format!("word/media/{file}"), bytes)?;
         }
@@ -1104,11 +1157,37 @@ impl<'a> Writer<'a> {
         format!(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr {}>{content}</w:hdr>"#, xml::DOCUMENT_NS)
     }
 
+    /// The template's library fonts to embed, by family: (name, [(embedRegular |
+    /// embedBold, file)]), for those whose files are there.
+    fn embedded_fonts(&self) -> Vec<(String, Vec<(&'static str, Vec<u8>)>)> {
+        let f = &self.t.fonts;
+        let mut out: Vec<(String, Vec<(&'static str, Vec<u8>)>)> = Vec::new();
+        for choice in [Some(&f.main), Some(&f.sans), Some(&f.mono), f.arabic.as_ref()].into_iter().flatten() {
+            let FontChoice::Library { id } = choice else { continue };
+            let Some(font) = texloom_core::fonts::find(id) else { continue };
+            if out.iter().any(|(n, _)| *n == font.name) {
+                continue;
+            }
+            let mut files = Vec::new();
+            if let Some(data) = (self.input.font)(&format!("fonts/{}", font.regular_file())) {
+                files.push(("embedRegular", data));
+            }
+            if let Some(data) = font.bold_file().and_then(|b| (self.input.font)(&format!("fonts/{b}"))) {
+                files.push(("embedBold", data));
+            }
+            if !files.is_empty() {
+                out.push((font.name.clone(), files));
+            }
+        }
+        out
+    }
+
     fn settings(&self) -> String {
         let mirror = if self.t.page.two_sided { "<w:mirrorMargins/>" } else { "" };
+        let embed = if self.embedded_fonts().is_empty() { "" } else { "<w:embedTrueTypeFonts/>" };
         // In the schema's order.
         format!(
-            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">{mirror}<w:defaultTabStop w:val="720"/><w:characterSpacingControl w:val="doNotCompress"/><w:updateFields w:val="true"/><m:mathPr><m:mathFont m:val="Cambria Math"/></m:mathPr><w:themeFontLang w:val="en-US" w:bidi="ar-SA"/></w:settings>"#
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">{embed}{mirror}<w:defaultTabStop w:val="720"/><w:characterSpacingControl w:val="doNotCompress"/><w:updateFields w:val="true"/><m:mathPr><m:mathFont m:val="Cambria Math"/></m:mathPr><w:themeFontLang w:val="en-US" w:bidi="ar-SA"/></w:settings>"#
         )
     }
 
@@ -1144,6 +1223,7 @@ impl<'a> Writer<'a> {
         let mono = word_font(&t.fonts.mono, Role::Mono);
         let arabic = esc(&match &t.fonts.arabic {
             Some(FontChoice::System { family }) if !family.trim().is_empty() => family.clone(),
+            Some(FontChoice::Library { id }) if texloom_core::fonts::find(id).is_some() => texloom_core::fonts::find(id).expect("checked").name.clone(),
             // Amiri isn't on most Word users' machines; Traditional Arabic is
             // Windows' classic naskh.
             _ => "Traditional Arabic".into(),
@@ -1249,6 +1329,7 @@ enum Role {
 fn word_font(f: &FontChoice, role: Role) -> String {
     match f {
         FontChoice::System { family } => family.clone(),
+        FontChoice::Library { id } => texloom_core::fonts::find(id).map(|f| f.name.clone()).unwrap_or_else(|| "Traditional Arabic".into()),
         FontChoice::Builtin { font } => match font {
             BuiltinFont::LatinModern => match role {
                 Role::Main => "Cambria",

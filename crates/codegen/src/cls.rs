@@ -136,8 +136,8 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
         for choice in [&t.fonts.main, &t.fonts.sans, &t.fonts.mono] {
             match pdf_font_package(choice) {
                 Some(pkg) => w!(o, "\\RequirePackage{{{pkg}}}"),
-                None if matches!(choice, FontChoice::System { .. }) => {
-                    w!(o, "% System font not available with pdfLaTeX (use XeLaTeX or LuaLaTeX); Latin Modern instead")
+                None if matches!(choice, FontChoice::System { .. } | FontChoice::Library { .. }) => {
+                    w!(o, "% Font files need XeLaTeX or LuaLaTeX (pdfLaTeX can't load them); Latin Modern instead")
                 }
                 None => {}
             }
@@ -478,7 +478,7 @@ fn pdf_font_package(choice: &FontChoice) -> Option<&'static str> {
             BuiltinFont::Cursor => Some("tgcursor"),
             BuiltinFont::Amiri => None,
         },
-        FontChoice::System { .. } => None,
+        FontChoice::System { .. } | FontChoice::Library { .. } => None,
     }
 }
 
@@ -496,6 +496,20 @@ fn font_line(cmd: &str, choice: &FontChoice) -> Option<String> {
             ))
         }
         FontChoice::System { family } => Some(format!("\\{cmd}{{{}}}", escape(family))),
+        // From Texloom's font library: its files are in the build folder's fonts/.
+        FontChoice::Library { id } => {
+            let f = texloom_core::fonts::find(id)?;
+            Some(format!("\\{cmd}{{{}}}[{}]", f.regular_file(), library_options(f)))
+        }
+    }
+}
+
+/// fontspec options that load a library font from the build folder's `fonts/`.
+pub(crate) fn library_options(f: &texloom_core::fonts::LibraryFont) -> String {
+    match f.bold_file() {
+        Some(bold) => format!("Path=fonts/,BoldFont={bold}"),
+        // No bold in the family: a slightly emboldened regular, rather than none.
+        None => "Path=fonts/,AutoFakeBold=1.5".into(),
     }
 }
 

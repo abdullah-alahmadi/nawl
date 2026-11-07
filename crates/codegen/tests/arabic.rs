@@ -123,6 +123,25 @@ fn thesis_dates_and_split_references() {
     assert!(g.tex.contains("\\setcounter{enumiv}{1}"), "numbers run on");
 }
 
+/// A font from Texloom's library is loaded by file from the build folder's fonts/, and
+/// its files are listed to go there.
+#[test]
+fn library_fonts_go_with_the_document() {
+    let (_, mut t, doc) = arabic_samples().into_iter().find(|(n, ..)| *n == "arabic-thesis").unwrap();
+    t.fonts.arabic = Some(texloom_core::FontChoice::Library { id: "cairo".into() });
+    assert!(!texloom_core::has_errors(&t.validate()), "{:?}", t.validate());
+    let g = texloom_codegen::generate(&t, &doc);
+    assert!(g.tex.contains("\\setmainfont[Script=Arabic,Path=fonts/,BoldFont=cairo-Bold.ttf]{cairo-Regular.ttf}"), "{}", g.tex);
+    assert!(g.tex.contains("\\newfontfamily\\arabicfonttt[Script=Arabic,Ligatures=TeX,Path=fonts/,BoldFont=cairo-Bold.ttf]{cairo-Regular.ttf}"));
+    assert_eq!(g.fonts, ["fonts/cairo-Regular.ttf", "fonts/cairo-Bold.ttf"]);
+    // A family without a bold: an emboldened regular.
+    t.fonts.arabic = Some(texloom_core::FontChoice::Library { id: "lalezar".into() });
+    assert!(texloom_codegen::generate(&t, &doc).tex.contains("[Script=Arabic,Path=fonts/,AutoFakeBold=1.5]{lalezar-Regular.ttf}"));
+    // An id the library doesn't have is a template error.
+    t.fonts.arabic = Some(texloom_core::FontChoice::Library { id: "nope".into() });
+    assert!(t.validate().iter().any(|i| i.path == "fonts.arabic.id"));
+}
+
 /// Title-page text is drawn in TikZ nodes, which run left to right unless told
 /// otherwise: in right-to-left templates each node's text is wrapped in `\RL`.
 #[test]
