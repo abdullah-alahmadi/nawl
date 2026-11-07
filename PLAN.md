@@ -212,12 +212,36 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] Logo (image field in Document info; every slide / title slide / off), short
       title, footer (theme's own / custom left-centre-right with placeholders / none),
       shown on the slides in the editor too
+- [x] Articles in Texloom's own layout: a title block on page 1 that flows (rows placed
+      below the real bottom of the row above), the abstract under it, one or two
+      columns (title block spanning); built-in Article, Two-column Article, Short Paper
 - [ ] Posters (tikzposter / beamerposter): a big canvas of boxes in columns
 - [ ] Letters (letter / scrlttr2): sender, recipient, opening, closing
 - [ ] CVs (moderncv): sections of dated entries
 - [ ] Books and theses: parts, front/back matter on top of the report template
 - [ ] Presentations next: slide layouts, speaker notes, overlays beyond \pause,
       reordering slides by dragging
+
+### Arabic publishing
+Goal: Arabic journals, universities and publishers write in Texloom instead of Word.
+Word is an export target only; Texloom never imports Word files.
+- [x] Language in the model: template language (main, second, digits), Arabic font,
+      Amiri built in, paragraph and heading direction (`dir`)
+- [x] LaTeX: polyglossia + bidi block, automatic `\textenglish`/`\textarabic` runs,
+      localised built-in words, mirrored layout, Arabic-Indic numbering; the app's own
+      reference formatter for documents with Arabic (IEEE, numeric, author-year);
+      pdfLaTeX refused with an explanation; RTL slides through beamer-rl (LuaLaTeX)
+- [x] Editor: right-to-left pages, Ctrl+Shift+X per paragraph, logical CSS, Arabic
+      digits and words on screen, Windows fonts in the font list
+- [x] Designer Language section; Arabic journal article, thesis, book and presentation
+      templates; Arabic example article
+- [x] Word export (`crates/docx`): hand-written OOXML with RTL properties, styles from
+      the template, MathML → OMML equations, merged cells, crops, TOC and STYLEREF fields
+- [x] Arabic interface (`src/i18n/`, Settings → Appearance → Language)
+- [ ] Exact house styles of particular Arabic journals and universities
+- [ ] Equation numbers on the left in RTL; Arabic-Indic page numbers in Word (Word
+      shows them only with its own "Hindi digits" option)
+- [ ] More languages on the same model (Persian, Urdu, Hebrew)
 
 ### Phase 6: Polish and distribution (ongoing)
 - [x] Installed TeX as an alternative engine (pdfLaTeX, XeLaTeX, LuaLaTeX via latexmk,

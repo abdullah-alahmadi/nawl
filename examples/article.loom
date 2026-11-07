@@ -1,0 +1,59 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "metadata": {
+    "title": "Low-Power Soil Moisture Sensing for Precision Irrigation with Long-Range Wireless Networks",
+    "short_title": "Low-Power Soil Moisture Sensing",
+    "authors": ["Jane Doe", "John Smith", "Amira Hassan", "Kenji Watanabe"],
+    "affiliation": "Department of Electrical Engineering, Example University, Springfield",
+    "email": "jane.doe@example.edu",
+    "abstract": "Irrigation accounts for most of the fresh water used in agriculture, yet many farms still water on a fixed schedule. We present a low-cost sensing node that measures soil moisture at three depths and reports over LoRa, running for two seasons on a single battery.\n\nIn a field trial over twelve weeks the system cut water use by 31% without lowering yield, compared with scheduled irrigation.",
+    "keywords": "precision agriculture, soil moisture, LoRa, low-power sensing, irrigation control"
+  },
+  "bibliography": "@article{doe2021,\n  author = {Doe, Jane and Roe, Richard},\n  title = {Capacitive Soil Moisture Sensors in the Field},\n  journal = {Journal of Agricultural Engineering},\n  year = {2021},\n  volume = {12},\n  number = {3},\n  pages = {45--58}\n}\n@inproceedings{smith2019,\n  author = {Smith, John},\n  title = {Long-Range Radio for Farm Networks},\n  booktitle = {Proceedings of the Workshop on Sensor Networks},\n  year = {2019},\n  pages = {1--8}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      { "type": "heading", "attrs": { "level": 1 }, "content": [{ "type": "text", "text": "Introduction" }] },
+      { "type": "paragraph", "content": [
+        { "type": "text", "text": "Water is the limiting resource for much of the world's agriculture. Sensor-driven irrigation waters only when the soil needs it " },
+        { "type": "citation", "attrs": { "keys": ["doe2021"] } },
+        { "type": "text", "text": ", and long-range radio makes it practical over whole fields " },
+        { "type": "citation", "attrs": { "keys": ["smith2019"] } },
+        { "type": "text", "text": ". This paper describes a node built for that purpose and the results of a season of field use. The remaining sections cover the design of the node, the network, the control rule that turns measurements into watering decisions, and what we measured over twelve weeks." }
+      ] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Earlier systems either used expensive probes or needed mains power at every sensor, which keeps them out of reach of small farms. Our aim was a node that costs less than a day of hired labour and needs no attention for a season." }] },
+      { "type": "heading", "attrs": { "level": 1 }, "content": [{ "type": "text", "text": "Method" }] },
+      { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "Sensing node" }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Each node reads three capacitive probes and estimates the volumetric water content with a two-point calibration:" }] },
+      { "type": "equation", "attrs": { "latex": "\\theta = \\theta_{dry} + \\frac{C - C_{dry}}{C_{wet} - C_{dry}} \\left(\\theta_{wet} - \\theta_{dry}\\right)", "id": "eq1" } },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "The node sleeps between readings and wakes every fifteen minutes, which keeps the average current below 20 microamperes. Readings are averaged over eight samples to reduce noise from the probe's oscillator." }] },
+      { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "Network and control" }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Nodes report to a gateway at the edge of the field, which opens a valve when the average moisture in the root zone falls below a threshold set for the crop. The threshold is lowered by a small margin after rain is forecast, to avoid watering soil that is about to be wet." }] },
+      { "type": "tableFigure", "attrs": { "id": "tab1" }, "content": [
+        { "type": "caption", "content": [{ "type": "text", "text": "Water use and yield over the twelve-week trial." }] },
+        { "type": "table", "content": [
+          { "type": "tableRow", "content": [
+            { "type": "tableHeader", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Plot" }] }] },
+            { "type": "tableHeader", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Water (m3)" }] }] },
+            { "type": "tableHeader", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Yield (t)" }] }] }
+          ] },
+          { "type": "tableRow", "content": [
+            { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Scheduled" }] }] },
+            { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "412" }] }] },
+            { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "8.1" }] }] }
+          ] },
+          { "type": "tableRow", "content": [
+            { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Sensor-driven" }] }] },
+            { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "284" }] }] },
+            { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "8.2" }] }] }
+          ] }
+        ] }
+      ] },
+      { "type": "heading", "attrs": { "level": 1 }, "content": [{ "type": "text", "text": "Results" }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Over the trial the sensor-driven plot used 31% less water than the scheduled plot with the same yield. Battery voltage fell by less than a tenth of a volt, which projects to more than two seasons of operation. Radio links held at distances up to 2.3 km with a packet loss below 2%." }] },
+      { "type": "heading", "attrs": { "level": 1 }, "content": [{ "type": "text", "text": "Conclusion" }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "A simple, cheap node is enough to replace scheduled irrigation on small farms. Future work will test the system on more crops and soil types, and add a forecast-aware control rule." }] }
+    ]
+  }
+}

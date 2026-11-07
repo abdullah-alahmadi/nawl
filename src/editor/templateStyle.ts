@@ -4,6 +4,7 @@
 import type { Template } from "../api";
 import type { FontChoice } from "../bindings/FontChoice";
 import type { TextStyle } from "../bindings/TextStyle";
+import { ARABIC_FALLBACKS, docLanguage } from "./language";
 
 /** Width of the on-screen page in CSS pixels. */
 export const PAGE_WIDTH_PX = 800;
@@ -20,7 +21,18 @@ export function cssFontStack(f: FontChoice): string {
     heros: '"TeX Gyre Heros", Helvetica, Arial, sans-serif',
     adventor: '"TeX Gyre Adventor", "Avant Garde", sans-serif',
     cursor: '"TeX Gyre Cursor", "Courier New", monospace',
+    amiri: '"Amiri", "Traditional Arabic", serif',
   }[f.font];
+}
+
+/** The page's font: the template's main font for Latin letters, then its Arabic font
+ *  and common Arabic fonts for Arabic letters (each letter takes the first font that
+ *  has it), as in the PDF. */
+export function pageFontStack(t: Template, latin = cssFontStack(t.fonts.main)): string {
+  const parts = latin.split(",").map((s) => s.trim());
+  const generic = parts.pop() ?? "serif";
+  const arabic = t.fonts.arabic?.kind === "system" ? [`"${t.fonts.arabic.family.replace(/"/g, "")}"`] : [];
+  return [...parts, ...arabic, ...ARABIC_FALLBACKS, generic].join(", ");
 }
 
 function paperWidthMm(t: Template): number {
@@ -183,7 +195,7 @@ function presentationCss(t: Template, scope: string, info?: DeckInfo): string {
     }
     return rules;
   };
-  const font = serif ? '"Latin Modern Roman", "CMU Serif", serif' : '"Latin Modern Sans", "CMU Sans Serif", "Helvetica Neue", Arial, sans-serif';
+  const font = pageFontStack(t, serif ? '"Latin Modern Roman", "CMU Serif", serif' : '"Latin Modern Sans", "CMU Sans Serif", "Helvetica Neue", Arial, sans-serif');
   return [
     `${scope}{width:${width}px;max-width:none;padding:0;font-family:${font};font-size:${px(size)};line-height:1.3}`,
     // Each slide is a page-coloured card at the slide's size; cards stack down the page.
@@ -192,18 +204,18 @@ function presentationCss(t: Template, scope: string, info?: DeckInfo): string {
     // An overlay from the bottom edge down (a gradient stop would ignore the page zoom).
     `${scope} .slide::after{content:"";position:absolute;left:0;right:0;top:${height}px;bottom:0;background:rgba(220, 38, 38, 0.12);pointer-events:none}`,
     `${scope} .slide-title{background:${c.bar};color:${c.barFg};font-size:${px(size * 1.2)};line-height:1.25;padding:${mm(2.5)} ${mm(4)};margin-bottom:${mm(4)};min-height:1.25em;border-radius:2px 2px 0 0}`,
-    `${scope} .slide-title:has(> br.ProseMirror-trailingBreak:only-child)::before{content:"Slide title";float:left;height:0;opacity:0.55;pointer-events:none}`,
+    `${scope} .slide-title:has(> br.ProseMirror-trailingBreak:only-child)::before{content:"Slide title";float:inline-start;height:0;opacity:0.55;pointer-events:none}`,
     `${scope} .slide-body > :not(.slide-title){margin-left:${mm(5)};margin-right:${mm(5)}}`,
     ...slideChrome(),
     `${scope} .slide p{margin:0 0 ${mm(1.5)};text-indent:0}`,
-    `${scope} .slide ul, ${scope} .slide ol{margin:${mm(1)} 0 ${mm(2)};padding-left:${mm(6)}}`,
+    `${scope} .slide ul, ${scope} .slide ol{margin:${mm(1)} 0 ${mm(2)};padding-inline-start:${mm(6)}}`,
     `${scope} .slide li::marker{color:${c.structure}}`,
     `${scope} .slide :is(h1,h2,h3,h4){font-size:1em;font-weight:700;color:${c.structure};margin:${mm(2)} 0 ${mm(1)}}`,
     `${scope} :is(h1,h2,h3,h4)::before{content:none}`,
     // Section headings between slides: a label in the app's own style, like a divider.
-    `${scope} .tiptap > :is(h1,h2,h3,h4){font:600 21px/1.3 system-ui, sans-serif;color:var(--text, #1d2228);margin:${mm(7)} 0 ${mm(3)};padding:0 0 4px;border-bottom:1px solid var(--border, #ccc);text-align:left}`,
+    `${scope} .tiptap > :is(h1,h2,h3,h4){font:600 21px/1.3 system-ui, sans-serif;color:var(--text, #1d2228);margin:${mm(7)} 0 ${mm(3)};padding:0 0 4px;border-bottom:1px solid var(--border, #ccc);text-align:start}`,
     `${scope} .tiptap > :first-child:is(h1,h2,h3,h4){margin-top:0}`,
-    `${scope} .tiptap > :is(h1,h2,h3,h4):has(> br.ProseMirror-trailingBreak:only-child)::before{content:"Section title";float:left;height:0;opacity:0.5}`,
+    `${scope} .tiptap > :is(h1,h2,h3,h4):has(> br.ProseMirror-trailingBreak:only-child)::before{content:"Section title";float:inline-start;height:0;opacity:0.5}`,
     // Anything outside a slide (it gets a slide of its own in the PDF).
     `${scope} .tiptap > :not(.slide):not(h1,h2,h3,h4){background:var(--page-bg, #f4efe6);color:var(--page-fg, #1d2228);margin:0 0 ${mm(5)};padding:${mm(2)} ${mm(5)};border-radius:2px;opacity:0.9}`,
     // The empty line the editor keeps at the end: just room for the cursor.
@@ -227,7 +239,12 @@ function presentationCss(t: Template, scope: string, info?: DeckInfo): string {
 
 /** CSS rules scoped to `scope` (the editor page element). */
 export function templateCss(t: Template, scope = ".page", deck?: DeckInfo): string {
-  if (t.kind === "presentation") return presentationCss(t, scope, deck);
+  const css = t.kind === "presentation" ? presentationCss(t, scope, deck) : articleCss(t, scope);
+  // Arabic-Indic digits (٣٫١) for every number the page counts, as in the PDF.
+  return docLanguage(t).digits === "arabicIndic" ? css.replace(/counter\((tl-[\w-]+)\)/g, "counter($1, arabic-indic)") : css;
+}
+
+function articleCss(t: Template, scope: string): string {
   const k = PAGE_WIDTH_PX / paperWidthMm(t); // px per mm
   const px = (pt: number) => `${(pt * MM_PER_PT * k).toFixed(2)}px`;
   const mm = (v: number) => `${(v * k).toFixed(1)}px`;
@@ -253,7 +270,8 @@ export function templateCss(t: Template, scope = ".page", deck?: DeckInfo): stri
   const captionAlign = t.captions.align === "left" ? "left" : t.captions.align === "justified" ? "justify" : "center";
 
   const rules: string[] = [
-    `${scope}{width:${PAGE_WIDTH_PX}px;max-width:none;padding:${mm(t.page.margins.topMm)} ${mm(t.page.margins.outerMm)} ${mm(t.page.margins.bottomMm)} ${mm(inner)};font-family:${cssFontStack(t.fonts.main)};font-size:${px(t.fonts.baseSizePt)};line-height:${lineHeight}}`,
+    // The binding (inner) margin is on the side text starts from: the right in Arabic.
+    `${scope}{width:${PAGE_WIDTH_PX}px;max-width:none;padding-block:${mm(t.page.margins.topMm)} ${mm(t.page.margins.bottomMm)};padding-inline:${mm(inner)} ${mm(t.page.margins.outerMm)};font-family:${pageFontStack(t)};font-size:${px(t.fonts.baseSizePt)};line-height:${lineHeight}}`,
     `${scope} .tiptap{counter-reset:tl-h1 tl-h2 tl-h3 tl-h4 tl-figure tl-table tl-equation}`,
     `${scope} p{margin:0;text-indent:${mm(t.page.paragraph.indentMm)};padding-top:${px(t.page.paragraph.spacingPt)}}`,
     `${scope} li p, ${scope} figcaption, ${scope} td p, ${scope} th p{text-indent:0;padding-top:0}`,
@@ -272,12 +290,12 @@ export function templateCss(t: Template, scope = ".page", deck?: DeckInfo): stri
     if (i < t.structure.numberedDepth && h.label.trim() !== "") {
       const display = h.layout === "display";
       rules.push(
-        `${scope} ${tag}::before{content:${labelContent(h.label, i)};${display ? `display:block;margin-bottom:${px(h.labelGapPt)}` : `margin-right:${px(h.labelGapPt)}`}}`,
+        `${scope} ${tag}::before{content:${labelContent(h.label, i)};${display ? `display:block;margin-bottom:${px(h.labelGapPt)}` : `margin-inline-end:${px(h.labelGapPt)}`}}`,
       );
       // In an empty heading (just ProseMirror's trailing <br>) WebKit draws the caret
       // at the start of the line, left of the number. Floated, the number narrows the
       // line box, so the caret starts after it.
-      if (!display) rules.push(`${scope} ${tag}:has(> br.ProseMirror-trailingBreak:only-child)::before{float:left}`);
+      if (!display) rules.push(`${scope} ${tag}:has(> br.ProseMirror-trailingBreak:only-child)::before{float:inline-start}`);
     }
   });
   // A level-1 chapter starts a new page in the PDF; show a little more space on screen.

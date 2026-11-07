@@ -1,20 +1,39 @@
 // Designer panels: metadata fields, front matter, title page summary.
-import { useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { importTemplateFile, type Template } from "../api";
+import type { BibStyle } from "../bindings/BibStyle";
 import type { FieldKind } from "../bindings/FieldKind";
+import type { FrontMatterStyle } from "../bindings/FrontMatterStyle";
 import type { FrontMatterItem } from "../bindings/FrontMatterItem";
 import { Row, Select, Toggle, issuesAt } from "./controls";
 import { fieldUses, slugId, type SectionProps } from "./common";
 import { approvalPageItems } from "./TitlePageCanvas";
+import { useT, type MessageKey } from "../i18n";
 
-const KINDS: { value: FieldKind; label: string }[] = [
-  { value: "text", label: "One line" },
-  { value: "paragraphs", label: "Paragraphs" },
-  { value: "list", label: "List (one per line)" },
-  { value: "image", label: "Image (e.g. a logo)" },
-  { value: "authors", label: "Authors (affiliations, e-mail…)" },
+type Translate = ReturnType<typeof useT>;
+
+// Option lists hold message keys: they're made at import, before the interface
+// language is known, and translated when shown.
+function options<T>(list: readonly { value: T; label: MessageKey }[], tr: Translate): { value: T; label: string }[] {
+  return list.map((o) => ({ value: o.value, label: tr(o.label) }));
+}
+
+/** A translated sentence with elements (<code>, <strong>…) in place of its {name} parts. */
+function rich(text: string, parts: Record<string, ReactNode>): ReactNode[] {
+  return text.split(/(\{[a-zA-Z]+\})/).map((piece, i) => {
+    const name = /^\{([a-zA-Z]+)\}$/.exec(piece)?.[1];
+    return name !== undefined && name in parts ? <Fragment key={i}>{parts[name]}</Fragment> : piece;
+  });
+}
+
+const KINDS: { value: FieldKind; label: MessageKey }[] = [
+  { value: "text", label: "designerContent.fieldKindText" },
+  { value: "paragraphs", label: "designerContent.fieldKindParagraphs" },
+  { value: "list", label: "designerContent.fieldKindList" },
+  { value: "image", label: "designerContent.fieldKindImage" },
+  { value: "authors", label: "designerContent.fieldKindAuthors" },
 ];
 
 function move<T>(list: T[], from: number, to: number) {
@@ -24,15 +43,16 @@ function move<T>(list: T[], from: number, to: number) {
 }
 
 function RowButtons({ index, count, onMove, onRemove }: { index: number; count: number; onMove: (to: number) => void; onRemove: () => void }) {
+  const tr = useT();
   return (
     <span className="d-row-buttons">
-      <button type="button" title="Move up" disabled={index === 0} onClick={() => onMove(index - 1)}>
+      <button type="button" title={tr("common.moveUp")} disabled={index === 0} onClick={() => onMove(index - 1)}>
         ↑
       </button>
-      <button type="button" title="Move down" disabled={index === count - 1} onClick={() => onMove(index + 1)}>
+      <button type="button" title={tr("common.moveDown")} disabled={index === count - 1} onClick={() => onMove(index + 1)}>
         ↓
       </button>
-      <button type="button" title="Remove" className="danger" onClick={onRemove}>
+      <button type="button" title={tr("common.remove")} className="danger" onClick={onRemove}>
         ✕
       </button>
     </span>
@@ -40,33 +60,37 @@ function RowButtons({ index, count, onMove, onRemove }: { index: number; count: 
 }
 
 export function FieldsSection({ t, edit, issues }: SectionProps) {
+  const tr = useT();
   const uses = fieldUses(t);
+  const kinds = options(KINDS, tr);
   return (
     <>
       <p className="d-note">
-        Fields are what authors fill in under <strong>Document info</strong>. Use them in the title page and in
-        headers and footers as <code>{"{id}"}</code>.
+        {rich(tr("designerContent.fieldsNote"), {
+          documentInfo: <strong>{tr("designerContent.documentInfo")}</strong>,
+          placeholder: <code>{"{id}"}</code>,
+        })}
       </p>
       <div className="d-table">
         <div className="d-table-head">
-          <span>Label</span>
-          <span>ID</span>
-          <span>Kind</span>
-          <span>Required</span>
+          <span>{tr("designerContent.colLabel")}</span>
+          <span>{tr("designerContent.colId")}</span>
+          <span>{tr("designerContent.colKind")}</span>
+          <span>{tr("designerContent.colRequired")}</span>
           <span />
         </div>
         {t.fields.map((f, i) => (
           <div key={i} className="d-table-row-wrap">
             <div className="d-table-row">
-              <input value={f.label} aria-label="Label" onChange={(e) => edit((d) => void (d.fields[i].label = e.target.value))} />
+              <input value={f.label} aria-label={tr("designerContent.colLabel")} onChange={(e) => edit((d) => void (d.fields[i].label = e.target.value))} />
               <input
                 className="mono"
                 value={f.id}
-                aria-label="ID"
+                aria-label={tr("designerContent.colId")}
                 onChange={(e) => edit((d) => void (d.fields[i].id = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_")))}
               />
-              <Select value={f.kind} options={KINDS} onChange={(v) => edit((d) => void (d.fields[i].kind = v))} />
-              <input type="checkbox" aria-label="Required" checked={f.required} onChange={(e) => edit((d) => void (d.fields[i].required = e.target.checked))} />
+              <Select value={f.kind} options={kinds} onChange={(v) => edit((d) => void (d.fields[i].kind = v))} />
+              <input type="checkbox" aria-label={tr("designerContent.colRequired")} checked={f.required} onChange={(e) => edit((d) => void (d.fields[i].required = e.target.checked))} />
               <RowButtons
                 index={i}
                 count={t.fields.length}
@@ -75,12 +99,9 @@ export function FieldsSection({ t, edit, issues }: SectionProps) {
               />
             </div>
             {uses.has(f.id) ? (
-              <div className="d-hint">Shown in {uses.get(f.id)!.join(" and ")}.</div>
+              <div className="d-hint">{tr("designerContent.shownIn", { places: uses.get(f.id)!.join(tr("designerContent.and")) })}</div>
             ) : (
-              <div className="d-hint">
-                Not shown anywhere in the template, but Document info still asks for it. Remove it, or show it with{" "}
-                <code>{`{${f.id}}`}</code> on the title page or in a header.
-              </div>
+              <div className="d-hint">{rich(tr("designerContent.notShown"), { placeholder: <code>{`{${f.id}}`}</code> })}</div>
             )}
             {issuesAt(issues, `fields[${i}]`).map((iss, n) => (
               <div key={n} className="d-error">
@@ -99,25 +120,20 @@ export function FieldsSection({ t, edit, issues }: SectionProps) {
           })
         }
       >
-        + Add field
+        {tr("designerContent.addField")}
       </button>
-      {issues.some((i) => i.message.includes("unknown placeholder")) && (
-        <p className="d-warning">
-          Some text still uses a placeholder whose field was renamed or removed; see the Headers &amp; footers and
-          Title page panels.
-        </p>
-      )}
+      {issues.some((i) => i.message.includes("unknown placeholder")) && <p className="d-warning">{tr("designerContent.unknownPlaceholderWarning")}</p>}
     </>
   );
 }
 
-const FRONT_TYPES: { value: FrontMatterItem["type"]; label: string }[] = [
-  { value: "titlePage", label: "Title page" },
-  { value: "fieldPage", label: "Text page from a field (abstract…)" },
-  { value: "tableOfContents", label: "Table of contents" },
-  { value: "listOfFigures", label: "List of figures" },
-  { value: "listOfTables", label: "List of tables" },
-  { value: "fixedPage", label: "Fixed page (approval, signatures, declaration…)" },
+const FRONT_TYPES: { value: FrontMatterItem["type"]; label: MessageKey }[] = [
+  { value: "titlePage", label: "designerContent.titlePage" },
+  { value: "fieldPage", label: "designerContent.frontFieldPage" },
+  { value: "tableOfContents", label: "designerContent.frontToc" },
+  { value: "listOfFigures", label: "designerContent.frontLof" },
+  { value: "listOfTables", label: "designerContent.frontLot" },
+  { value: "fixedPage", label: "designerContent.frontFixedPage" },
 ];
 
 function newItem(type: FrontMatterItem["type"], t: SectionProps["t"]): FrontMatterItem {
@@ -143,16 +159,17 @@ function newItem(type: FrontMatterItem["type"], t: SectionProps["t"]): FrontMatt
 }
 
 export function FrontMatterSection({ t, edit, issues }: SectionProps) {
+  const tr = useT();
   const [adding, setAdding] = useState<FrontMatterItem["type"]>("fieldPage");
   const paragraphFields = t.fields.filter((f) => f.kind === "paragraphs");
   return (
     <>
-      <p className="d-note">Pages before chapter 1, in this order. They use the front-matter page numbers.</p>
+      <p className="d-note">{tr("designerContent.frontMatterNote")}</p>
       <ol className="d-list">
         {t.frontMatter.map((item, i) => (
           <li key={i}>
             <div className="d-list-row">
-              <strong>{FRONT_TYPES.find((f) => f.value === item.type)?.label}</strong>
+              <strong>{tr(FRONT_TYPES.find((f) => f.value === item.type)?.label ?? "designerContent.fixedPage")}</strong>
               <RowButtons
                 index={i}
                 count={t.frontMatter.length}
@@ -161,7 +178,7 @@ export function FrontMatterSection({ t, edit, issues }: SectionProps) {
               />
             </div>
             {"title" in item && (
-              <Row label="Heading">
+              <Row label={tr("designerContent.heading")}>
                 <input
                   value={item.title}
                   onChange={(e) =>
@@ -175,10 +192,10 @@ export function FrontMatterSection({ t, edit, issues }: SectionProps) {
             )}
             {item.type === "fixedPage" && (
               <>
-                <Row label="Contents">
+                <Row label={tr("designerContent.contents")}>
                   <Toggle
                     checked={item.inToc}
-                    label="List in the table of contents"
+                    label={tr("designerContent.listInToc")}
                     onChange={(v) =>
                       edit((d) => {
                         const it = d.frontMatter[i];
@@ -187,17 +204,17 @@ export function FrontMatterSection({ t, edit, issues }: SectionProps) {
                     }
                   />
                 </Row>
-                <p className="d-note">Lay it out under Title page: choose it in the Page list above the canvas.</p>
+                <p className="d-note">{tr("designerContent.fixedPageLayoutNote")}</p>
               </>
             )}
             {item.type === "fieldPage" && (
               <>
-                <Row label="Shows field" issues={issuesAt(issues, `frontMatter[${i}].field`)}>
+                <Row label={tr("designerContent.showsField")} issues={issuesAt(issues, `frontMatter[${i}].field`)}>
                   <Select
                     value={item.field}
                     options={[
                       ...paragraphFields.map((f) => ({ value: f.id, label: f.label })),
-                      ...(paragraphFields.some((f) => f.id === item.field) ? [] : [{ value: item.field, label: `${item.field} (missing)` }]),
+                      ...(paragraphFields.some((f) => f.id === item.field) ? [] : [{ value: item.field, label: tr("designerContent.missingField", { field: item.field }) }]),
                     ]}
                     onChange={(v) =>
                       edit((d) => {
@@ -207,14 +224,28 @@ export function FrontMatterSection({ t, edit, issues }: SectionProps) {
                     }
                   />
                 </Row>
-                <Row label="Contents">
+                <Row label={tr("designerContent.contents")}>
                   <Toggle
                     checked={item.inToc}
-                    label="List in the table of contents"
+                    label={tr("designerContent.listInToc")}
                     onChange={(v) =>
                       edit((d) => {
                         const it = d.frontMatter[i];
                         if (it.type === "fieldPage") it.inToc = v;
+                      })
+                    }
+                  />
+                </Row>
+                <Row label={tr("designerContent.placement")}>
+                  <Toggle
+                    checked={!!item.inline}
+                    label={tr("designerContent.underTitle")}
+                    onChange={(v) =>
+                      edit((d) => {
+                        const it = d.frontMatter[i];
+                        if (it.type !== "fieldPage") return;
+                        if (v) it.inline = true;
+                        else delete it.inline;
                       })
                     }
                   />
@@ -228,66 +259,61 @@ export function FrontMatterSection({ t, edit, issues }: SectionProps) {
         <select value={adding} onChange={(e) => setAdding(e.target.value as FrontMatterItem["type"])}>
           {FRONT_TYPES.map((f) => (
             <option key={f.value} value={f.value}>
-              {f.label}
+              {tr(f.label)}
             </option>
           ))}
         </select>
         <button type="button" className="d-add" onClick={() => edit((d) => void d.frontMatter.push(newItem(adding, d)))}>
-          + Add page
+          {tr("designerContent.addPage")}
         </button>
       </div>
-      {paragraphFields.length === 0 && (
-        <p className="d-note">Text pages need a “Paragraphs” field; add one under Fields.</p>
-      )}
+      {paragraphFields.length === 0 && <p className="d-note">{tr("designerContent.textPagesNeedField")}</p>}
     </>
   );
 }
 
-const BIB_STYLES = [
-  { value: "ieee", label: "IEEE — [1], numbered in order of citation" },
-  { value: "numeric", label: "Numeric — [1], list sorted by author" },
-  { value: "authorYear", label: "Author–year — (Smith, 2021), APA-like" },
-] as const;
+const BIB_STYLES: { value: BibStyle; label: MessageKey }[] = [
+  { value: "ieee", label: "designerContent.bibIeee" },
+  { value: "numeric", label: "designerContent.bibNumeric" },
+  { value: "authorYear", label: "designerContent.bibAuthorYear" },
+];
 
 export function BibliographySection({ t, edit, issues }: SectionProps) {
+  const tr = useT();
   const b = t.bibliography;
   return (
     <>
-      <Row label="Citation style">
-        <Select value={b.style} options={[...BIB_STYLES]} onChange={(v) => edit((d) => void (d.bibliography.style = v))} />
+      <Row label={tr("designerContent.citationStyle")}>
+        <Select value={b.style} options={options(BIB_STYLES, tr)} onChange={(v) => edit((d) => void (d.bibliography.style = v))} />
       </Row>
-      <Row label="List heading" issues={issuesAt(issues, "bibliography.title")}>
+      <Row label={tr("designerContent.listHeading")} issues={issuesAt(issues, "bibliography.title")}>
         <input value={b.title} onChange={(e) => edit((d) => void (d.bibliography.title = e.target.value))} />
       </Row>
-      <Row label="Contents">
-        <Toggle checked={b.inToc} label="List it in the table of contents" onChange={(v) => edit((d) => void (d.bibliography.inToc = v))} />
+      <Row label={tr("designerContent.contents")}>
+        <Toggle checked={b.inToc} label={tr("designerContent.listItInToc")} onChange={(v) => edit((d) => void (d.bibliography.inToc = v))} />
       </Row>
-      <p className="d-note">
-        The reference list appears after the last chapter (before any appendices) when the document cites something.
-        References are formatted by BibTeX, so they follow the chosen style exactly.
-      </p>
+      <p className="d-note">{tr("designerContent.bibNote")}</p>
     </>
   );
 }
 
 export function SkeletonSection({ t, edit, issues }: SectionProps) {
+  const tr = useT();
   const level = t.structure.topLevel === "chapter" ? "chapter" : "section";
   return (
     <>
-      <p className="d-note">
-        The {level}s this kind of document needs. Required ones are checked: authors see a warning if one is missing.
-      </p>
+      <p className="d-note">{tr(level === "chapter" ? "designerContent.skeletonNoteChapters" : "designerContent.skeletonNoteSections")}</p>
       <div className="d-table">
         <div className="d-table-head skeleton">
-          <span>Title</span>
-          <span>Required</span>
+          <span>{tr("common.title")}</span>
+          <span>{tr("designerContent.colRequired")}</span>
           <span />
         </div>
         {t.skeleton.map((sec, i) => (
           <div key={i} className="d-table-row-wrap">
             <div className="d-table-row skeleton">
-              <input value={sec.title} aria-label="Title" onChange={(e) => edit((d) => void (d.skeleton[i].title = e.target.value))} />
-              <input type="checkbox" aria-label="Required" checked={sec.required} onChange={(e) => edit((d) => void (d.skeleton[i].required = e.target.checked))} />
+              <input value={sec.title} aria-label={tr("common.title")} onChange={(e) => edit((d) => void (d.skeleton[i].title = e.target.value))} />
+              <input type="checkbox" aria-label={tr("designerContent.colRequired")} checked={sec.required} onChange={(e) => edit((d) => void (d.skeleton[i].required = e.target.checked))} />
               <RowButtons
                 index={i}
                 count={t.skeleton.length}
@@ -304,22 +330,22 @@ export function SkeletonSection({ t, edit, issues }: SectionProps) {
         ))}
       </div>
       <button type="button" className="d-add" onClick={() => edit((d) => void d.skeleton.push({ title: `New ${level}`, required: false }))}>
-        + Add {level}
+        {tr(level === "chapter" ? "designerContent.addChapter" : "designerContent.addSection")}
       </button>
     </>
   );
 }
 
-const FRONT_STYLES = [
-  { value: "ieeeJournal", label: "IEEE journal (affiliations in a footnote)" },
-  { value: "ieeeConference", label: "IEEE conference (author blocks)" },
-  { value: "elsevier", label: "Elsevier (frontmatter, numbered affiliations)" },
-  { value: "acm", label: "ACM (per-author affiliation)" },
-  { value: "lncs", label: "Springer LNCS (institutes)" },
-  { value: "revtex", label: "APS REVTeX (per-author affiliation)" },
-  { value: "ieeeAccess", label: "IEEE Access (\\address, \\corresp, \\EOD)" },
-  { value: "custom", label: "Custom recipe (write it below)" },
-] as const;
+const FRONT_STYLES: { value: FrontMatterStyle; label: MessageKey }[] = [
+  { value: "ieeeJournal", label: "designerContent.styleIeeeJournal" },
+  { value: "ieeeConference", label: "designerContent.styleIeeeConference" },
+  { value: "elsevier", label: "designerContent.styleElsevier" },
+  { value: "acm", label: "designerContent.styleAcm" },
+  { value: "lncs", label: "designerContent.styleLncs" },
+  { value: "revtex", label: "designerContent.styleRevtex" },
+  { value: "ieeeAccess", label: "designerContent.styleIeeeAccess" },
+  { value: "custom", label: "designerContent.styleCustom" },
+];
 
 /** A starting point for custom recipes, showing every construct. */
 const EXAMPLE_RECIPE = String.raw`\title{{title}}
@@ -355,6 +381,7 @@ export function PublisherSection({
   canImport,
   onImportKit,
 }: SectionProps & { canImport: boolean; onImportKit: (zip: string) => Promise<void> }) {
+  const tr = useT();
   const base = t.base;
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -364,7 +391,7 @@ export function PublisherSection({
   const kitMissing = kit ? kit.required.filter((r) => !haveNames.includes(r)) : [];
   const importZip = async () => {
     setProblem(null);
-    const file = await open({ multiple: false, directory: false, filters: [{ name: "Publisher LaTeX kit", extensions: ["zip"] }] });
+    const file = await open({ multiple: false, directory: false, filters: [{ name: tr("designerContent.kitFilter"), extensions: ["zip"] }] });
     if (!file) return;
     setBusy(true);
     try {
@@ -380,7 +407,7 @@ export function PublisherSection({
     const picked = await open({
       multiple: true,
       directory: false,
-      filters: [{ name: "LaTeX kit files", extensions: ["cls", "sty", "bst", "clo", "cfg", "def", "fd", "png", "jpg", "jpeg", "pdf", "eps", "otf", "ttf"] }],
+      filters: [{ name: tr("designerContent.kitFilesFilter"), extensions: ["cls", "sty", "bst", "clo", "cfg", "def", "fd", "png", "jpg", "jpeg", "pdf", "eps", "otf", "ttf"] }],
     });
     const files = Array.isArray(picked) ? picked : picked ? [picked] : [];
     const added: string[] = [];
@@ -404,36 +431,34 @@ export function PublisherSection({
     <>
       {kit && (
         <div className={`kit-card${kitMissing.length ? " missing" : ""}`}>
-          <strong>{kitMissing.length ? `This template needs the ${kit.name}` : `${kit.name}: imported`}</strong>
+          <strong>{tr(kitMissing.length ? "designerContent.kitNeeded" : "designerContent.kitImported", { kit: kit.name })}</strong>
           {kitMissing.length > 0 && (
             <>
-              <p>
-                The publisher distributes it separately, so it can’t come with Texloom. It takes a minute, once:
-              </p>
+              <p>{tr("designerContent.kitSeparately")}</p>
               <ol>
                 <li>
-                  <button type="button" className="link" onClick={() => openUrl(kit.url)}>
-                    Download the kit
-                  </button>{" "}
-                  (a .zip) from the publisher.
+                  {rich(tr("designerContent.downloadKitStep"), {
+                    link: (
+                      <button type="button" className="link" onClick={() => openUrl(kit.url)}>
+                        {tr("designerContent.downloadKit")}
+                      </button>
+                    ),
+                  })}
                 </li>
-                <li>{canImport ? "Import the .zip:" : "Import the .zip. You’ll be asked where to save this template first, since the kit is kept next to it:"}</li>
+                <li>{tr(canImport ? "designerContent.importZipStep" : "designerContent.importZipStepSave")}</li>
               </ol>
               <button type="button" className="primary" onClick={importZip} disabled={busy}>
-                {busy ? "Importing…" : "Import kit (.zip)…"}
+                {tr(busy ? "designerContent.importing" : "designerContent.importKit")}
               </button>
             </>
           )}
         </div>
       )}
-      <p className="d-note">
-        This template uses the publisher’s official LaTeX class, so page layout, fonts, headings and captions follow
-        the publisher exactly and can’t be changed here.
-      </p>
-      <Row label="Class" issues={issuesAt(issues, "base.class")}>
+      <p className="d-note">{tr("designerContent.publisherNote")}</p>
+      <Row label={tr("designerContent.class")} issues={issuesAt(issues, "base.class")}>
         <input className="mono" value={base.class} onChange={(e) => edit((d) => void (d.base && (d.base.class = e.target.value.trim())))} />
       </Row>
-      <Row label="Class options" hint="Comma-separated" issues={issuesAt(issues, "base.options")}>
+      <Row label={tr("designerContent.classOptions")} hint={tr("designerContent.commaSeparated")} issues={issuesAt(issues, "base.options")}>
         <input
           className="mono"
           value={base.options.join(", ")}
@@ -444,12 +469,12 @@ export function PublisherSection({
           }
         />
       </Row>
-      <Row label="Title block style">
-        <Select value={base.frontMatter} options={[...FRONT_STYLES]} onChange={(v) => edit((d) => void (d.base && (d.base.frontMatter = v)))} />
+      <Row label={tr("designerContent.titleBlockStyle")}>
+        <Select value={base.frontMatter} options={options(FRONT_STYLES, tr)} onChange={(v) => edit((d) => void (d.base && (d.base.frontMatter = v)))} />
       </Row>
       {base.frontMatter === "custom" && (
         <>
-          <Row label="Title block recipe" hint="LaTeX with placeholders" issues={issuesAt(issues, "base.titleBlock")}>
+          <Row label={tr("designerContent.titleBlockRecipe")} hint={tr("designerContent.latexWithPlaceholders")} issues={issuesAt(issues, "base.titleBlock")}>
             <div className="d-control">
               <textarea
                 className="mono recipe"
@@ -460,33 +485,43 @@ export function PublisherSection({
               />
               {!base.titleBlock && (
                 <button type="button" className="d-add" onClick={() => edit((d) => void (d.base && (d.base.titleBlock = EXAMPLE_RECIPE)))}>
-                  Start from an example
+                  {tr("designerContent.startFromExample")}
                 </button>
               )}
               <details className="recipe-help">
-                <summary>Placeholders</summary>
+                <summary>{tr("designerContent.placeholders")}</summary>
                 <p>
-                  <code>{"{title}"}</code> <code>{"{abstract}"}</code> <code>{"{keywords}"}</code>, any field by id,{" "}
-                  <code>{"{corresponding}"}</code>, <code>{"{corresponding_email}"}</code>.
+                  {rich(tr("designerContent.recipeHelpFields"), {
+                    basic: (
+                      <>
+                        <code>{"{title}"}</code> <code>{"{abstract}"}</code> <code>{"{keywords}"}</code>
+                      </>
+                    ),
+                    corresponding: <code>{"{corresponding}"}</code>,
+                    email: <code>{"{corresponding_email}"}</code>,
+                  })}
                 </p>
                 <p>
-                  <code>{"{#authors| \\and }…{/authors}"}</code> repeats per author (text after <code>|</code> goes
-                  between them): <code>{"{name}"}</code> <code>{"{email}"}</code> <code>{"{orcid}"}</code>{" "}
-                  <code>{"{membership}"}</code> <code>{"{affiliation}"}</code> <code>{"{affiliations}"}</code>{" "}
-                  <code>{"{affnums}"}</code> <code>{"{n}"}</code>.
+                  {rich(tr("designerContent.recipeHelpAuthors"), {
+                    block: <code>{"{#authors| \\and }…{/authors}"}</code>,
+                    bar: <code>|</code>,
+                    fields: (
+                      <>
+                        <code>{"{name}"}</code> <code>{"{email}"}</code> <code>{"{orcid}"}</code> <code>{"{membership}"}</code>{" "}
+                        <code>{"{affiliation}"}</code> <code>{"{affiliations}"}</code> <code>{"{affnums}"}</code> <code>{"{n}"}</code>
+                      </>
+                    ),
+                  })}
                 </p>
                 <p>
                   <code>{"{#affiliations|, }…{/affiliations}"}</code>: <code>{"{n}"}</code> <code>{"{name}"}</code>{" "}
                   <code>{"{emails}"}</code>. <code>{"{#keywords| \\sep }{keyword}{/keywords}"}</code>.
                 </p>
-                <p>
-                  <code>{"{?email}…{/email}"}</code> includes the part only when the value isn’t empty. Everything else
-                  is written as-is; values are escaped for LaTeX.
-                </p>
+                <p>{rich(tr("designerContent.recipeHelpOptional"), { block: <code>{"{?email}…{/email}"}</code> })}</p>
               </details>
             </div>
           </Row>
-          <Row label="End block" hint="Optional, after everything" issues={issuesAt(issues, "base.endBlock")}>
+          <Row label={tr("designerContent.endBlock")} hint={tr("designerContent.endBlockHint")} issues={issuesAt(issues, "base.endBlock")}>
             <textarea
               className="mono recipe"
               rows={4}
@@ -503,43 +538,44 @@ export function PublisherSection({
           </Row>
         </>
       )}
-      <Row label="Biographies">
+      <Row label={tr("designerContent.biographies")}>
         <Toggle
           checked={base.biographies}
-          label="Print author biographies (with photos) at the end"
+          label={tr("designerContent.printBiographies")}
           onChange={(v) => edit((d) => void (d.base && (d.base.biographies = v)))}
         />
       </Row>
-      <Row label="BibTeX style" issues={issuesAt(issues, "base.bibStyle")}>
-        <input className="mono" placeholder="set by the class" value={base.bibStyle} onChange={(e) => edit((d) => void (d.base && (d.base.bibStyle = e.target.value.trim())))} />
+      <Row label={tr("designerContent.bibtexStyle")} issues={issuesAt(issues, "base.bibStyle")}>
+        <input className="mono" placeholder={tr("designerContent.setByClass")} value={base.bibStyle} onChange={(e) => edit((d) => void (d.base && (d.base.bibStyle = e.target.value.trim())))} />
       </Row>
-      <Row label="Publisher files" hint="From the publisher's LaTeX kit" issues={issuesAt(issues, "base.files")}>
+      <Row label={tr("designerContent.publisherFiles")} hint={tr("designerContent.publisherFilesHint")} issues={issuesAt(issues, "base.files")}>
         <div className="d-control">
-          {base.files.length === 0 && <span className="muted">None: the class comes with the TeX engine.</span>}
+          {base.files.length === 0 && <span className="muted">{tr("designerContent.noPublisherFiles")}</span>}
           {base.files.map((f, i) => (
             <span key={f} className="d-inline">
               <code>{f}</code>
               <button type="button" className="danger" onClick={() => edit((d) => void d.base?.files.splice(i, 1))}>
-                Remove
+                {tr("common.remove")}
               </button>
             </span>
           ))}
           <span className="d-inline">
             <button type="button" className="d-add" onClick={importZip} disabled={busy}>
-              + Import kit (.zip)…
+              {tr("designerContent.addImportKit")}
             </button>
-            <button type="button" className="d-add" onClick={importFiles} disabled={!canImport} title={canImport ? "" : "Save the template first"}>
-              + Import single files…
+            <button type="button" className="d-add" onClick={importFiles} disabled={!canImport} title={canImport ? "" : tr("designerContent.saveTemplateFirst")}>
+              {tr("designerContent.importSingleFiles")}
             </button>
           </span>
-          {!canImport && <span className="d-hint">Single files need a saved template (Save as…) to live next to.</span>}
+          {!canImport && <span className="d-hint">{tr("designerContent.singleFilesNeedSave")}</span>}
           {problem && <span className="d-error">{problem}</span>}
         </div>
       </Row>
       <p className="d-note">
-        <strong>Other journals</strong> (Springer Nature, MDPI, Taylor &amp; Francis…): download the publisher’s LaTeX
-        kit and use <em>Import template…</em> (title bar template menu, or File → New from template). Texloom makes a
-        template around the kit’s class; adjust the title block here if the journal needs a special one.
+        {rich(tr("designerContent.otherJournals"), {
+          title: <strong>{tr("designerContent.otherJournalsTitle")}</strong>,
+          importTemplate: <em>{tr("designerContent.importTemplate")}</em>,
+        })}
       </p>
     </>
   );

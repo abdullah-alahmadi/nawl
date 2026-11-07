@@ -10,6 +10,7 @@ import {
   ReactNodeViewRenderer,
   type ReactNodeViewProps,
 } from "@tiptap/react";
+import { useT } from "../i18n";
 
 MathfieldElement.fontsDirectory = "/mathlive/fonts";
 MathfieldElement.soundsDirectory = null;
@@ -43,6 +44,7 @@ function toSingleLine(latex: string) {
 }
 
 function EquationView({ node, updateAttributes, selected, editor, getPos }: ReactNodeViewProps) {
+  const t = useT();
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
 
@@ -105,20 +107,20 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
       {/* The number "(3.1)" comes from CSS counters (see templateStyle.ts). */}
       {numbered && <span className="equation-number" aria-hidden />}
       <div className="equation-tools" contentEditable={false}>
-        <label title="Numbered equations can be referenced">
+        <label title={t("editor.eqNumberedTitle")}>
           <input type="checkbox" checked={numbered} onChange={(e) => updateAttributes({ numbered: e.target.checked })} />
-          Numbered
+          {t("editor.eqNumbered")}
         </label>
-        <label title="Several lines, aligned at & (e.g. at the = signs)">
+        <label title={t("editor.eqMultiTitle")}>
           <input
             type="checkbox"
             checked={multi}
             onChange={(e) => setLatex(e.target.checked ? toMultiLine(node.attrs.latex ?? "") : toSingleLine(node.attrs.latex ?? ""))}
           />
-          Multi-line
+          {t("editor.eqMulti")}
         </label>
-        <button type="button" onClick={addLine} title="Add a line below (type & where lines should align)">
-          + Line
+        <button type="button" onClick={addLine} title={t("editor.eqAddLineTitle")}>
+          {t("editor.eqAddLine")}
         </button>
       </div>
     </NodeViewWrapper>

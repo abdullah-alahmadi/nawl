@@ -5,10 +5,12 @@ import type { MetadataField } from "../bindings/MetadataField";
 import { useState } from "react";
 import { AuthorsEditor, toAuthors } from "./AuthorsEditor";
 import { pickFigureImage, useDocumentImage } from "./Figures";
+import { useT } from "../i18n";
 
 /** An image field (a logo): a thumbnail, Choose and Remove. The image is copied
  *  into the document's figures/ folder like any figure. */
 function ImageField({ value, onChange }: { value: string; onChange: (path: string) => void }) {
+  const t = useT();
   const { url } = useDocumentImage(value);
   const [problem, setProblem] = useState<string | null>(null);
   const choose = async () => {
@@ -22,14 +24,14 @@ function ImageField({ value, onChange }: { value: string; onChange: (path: strin
   };
   return (
     <span className="image-field">
-      <span className="image-field-thumb">{url ? <img src={url} alt="" /> : <span className="muted">{value ? value : "No image"}</span>}</span>
+      <span className="image-field-thumb">{url ? <img src={url} alt="" /> : <span className="muted">{value ? value : t("editor.imageFieldEmpty")}</span>}</span>
       <span className="image-field-actions">
         <button type="button" onClick={choose}>
-          {value ? "Change…" : "Choose image…"}
+          {value ? t("editor.changeImage") : t("editor.chooseImage")}
         </button>
         {value && (
           <button type="button" onClick={() => onChange("")}>
-            Remove
+            {t("common.remove")}
           </button>
         )}
       </span>
@@ -53,6 +55,7 @@ export function MetadataForm({
   metadata: Metadata;
   onChange: (m: Metadata) => void;
 }) {
+  const t = useT();
   const set = (field: MetadataField, raw: string) => {
     const next = { ...metadata };
     // List fields store one entry per line; empty values are removed.
@@ -64,7 +67,7 @@ export function MetadataForm({
 
   return (
     <form className="metadata-form" onSubmit={(e) => e.preventDefault()}>
-      <p className="muted metadata-help">Fields defined by the “{template.meta.name}” template.</p>
+      <p className="muted metadata-help">{t("editor.metadataHelp", { name: template.meta.name })}</p>
       {template.fields.map((f) => {
         const id = `field-${f.id}`;
         if (f.kind === "authors") {
@@ -74,7 +77,7 @@ export function MetadataForm({
             <div key={f.id} className={`field-group${missing ? " missing" : ""}`}>
               <span className="field-label">
                 {f.label}
-                {f.required && <span className="required" title="Required"> *</span>}
+                {f.required && <span className="required" title={t("editor.required")}> *</span>}
               </span>
               <AuthorsEditor
                 value={metadata[f.id]}
@@ -98,7 +101,7 @@ export function MetadataForm({
             <div key={f.id} className={`field-group${missing ? " missing" : ""}`}>
               <span className="field-label">
                 {f.label}
-                {f.required && <span className="required" title="Required"> *</span>}
+                {f.required && <span className="required" title={t("editor.required")}> *</span>}
               </span>
               <ImageField value={value} onChange={(path) => set(f, path)} />
             </div>
@@ -107,8 +110,8 @@ export function MetadataForm({
           <label key={f.id} htmlFor={id} className={missing ? "missing" : ""}>
             <span>
               {f.label}
-              {f.required && <span className="required" title="Required"> *</span>}
-              {f.kind === "list" && <span className="muted"> (one per line)</span>}
+              {f.required && <span className="required" title={t("editor.required")}> *</span>}
+              {f.kind === "list" && <span className="muted"> {t("editor.onePerLine")}</span>}
             </span>
             {f.kind === "text" ? (
               <input id={id} value={value} onChange={(e) => set(f, e.target.value)} />

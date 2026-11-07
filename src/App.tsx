@@ -20,6 +20,10 @@ import { toAuthors } from "./editor/AuthorsEditor";
 import { DeckDocument, SLIDE_EXTENSIONS } from "./editor/Slides";
 import { Spaces } from "./editor/Spaces";
 import { Search } from "./editor/Search";
+import { Direction } from "./editor/Direction";
+import { docLanguage } from "./editor/language";
+import { formulasAsMathMl } from "./editor/wordExport";
+import { LanguageContext, resolveUiLanguage, translate, useT, t as tNow, type MessageKey } from "./i18n";
 import { Flash, flashBlock } from "./editor/Flash";
 import { SearchBar } from "./editor/SearchBar";
 import { TemplateDesigner } from "./designer/TemplateDesigner";
@@ -40,7 +44,7 @@ import {
   BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
   LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Palette, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
-  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit,
+  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit, ArrowRightLeft,
 } from "lucide-react";
 import "./App.css";
 
@@ -48,8 +52,9 @@ import "./App.css";
 const TEMPLATE_DEBOUNCE_MS = 400;
 /** Unsaved changes are copied for crash recovery after this pause in typing. */
 const RECOVERY_DELAY_MS = 3000;
-const DOC_FILTER = [{ name: "Texloom document", extensions: ["loom"] }];
-const TEMPLATE_FILTER = [{ name: "Texloom template", extensions: ["json"] }];
+// Functions, not constants: the filter names follow the interface language.
+const docFilter = () => [{ name: tNow("app.filterDocument"), extensions: ["loom"] }];
+const templateFilter = () => [{ name: tNow("app.filterTemplate"), extensions: ["json"] }];
 
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
@@ -59,7 +64,7 @@ function loadDocument(editor: Editor, doc: JSONContent) {
   try {
     editor.schema.nodeFromJSON(doc).check();
   } catch (e) {
-    throw new Error(`This document can't be opened: ${e instanceof Error ? e.message : String(e)}`);
+    throw new Error(tNow("app.cantOpenDocument", { error: e instanceof Error ? e.message : String(e) }));
   }
   editor.commands.setContent(doc, { emitUpdate: false });
   // A fresh undo history: Ctrl+Z must not step back into the previous document.
@@ -85,8 +90,8 @@ function whenText(secs: number) {
   const d = new Date(secs * 1000);
   const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return d.toDateString() === new Date().toDateString()
-    ? `today at ${time}`
-    : `on ${d.toLocaleDateString([], { day: "numeric", month: "short" })} at ${time}`;
+    ? tNow("app.todayAt", { time })
+    : tNow("app.onDateAt", { date: d.toLocaleDateString([], { day: "numeric", month: "short" }), time });
 }
 
 /** `name` inside `folder` (or just `name` without a folder), for dialog defaults. */
@@ -117,7 +122,7 @@ export default function App() {
   const [showGallery, setShowGallery] = useState(false);
   // The gallery as the start window: also offers Open, recent files and the example.
   const [startWindow, setStartWindow] = useState(false);
-  const { settings, update: updateSettings, addRecent, removeRecent, latest: settingsRef } = useSettings();
+  const { settings, loaded: settingsLoaded, update: updateSettings, addRecent, removeRecent, latest: settingsRef } = useSettings();
   const [compileMs, setCompileMs] = useState<number | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(100);
@@ -175,6 +180,9 @@ export default function App() {
   const recoveryQueue = useRef<Promise<unknown>>(Promise.resolve());
   const [fitZoom, setFitZoom] = useState(1);
   const pageZoom = settings.pageZoom > 0 ? settings.pageZoom / 100 : fitZoom;
+  // App renders the LanguageContext provider, so its own body can't use useT().
+  const uiLang = resolveUiLanguage(settings.uiLanguage);
+  const tr = (key: MessageKey, vars?: Record<string, string | number>) => translate(uiLang, key, vars);
 
   const compile = useCallback(async () => {
     const editor = editorRef.current;
@@ -273,6 +281,7 @@ export default function App() {
       EmptyLines,
       Search,
       Flash,
+      Direction,
       Spaces,
       Caption,
       Figure,
@@ -297,9 +306,10 @@ export default function App() {
   }, []);
 
   // Startup: offer to restore unsaved changes from a crash, else show the start
-  // window (templates, open, recent files) over an empty document.
+  // window (templates, open, recent files) over an empty document. Waits for the
+  // settings, so the first dialogs use the interface language.
   useEffect(() => {
-    if (!editor || started.current) return;
+    if (!editor || !settingsLoaded || started.current) return;
     started.current = true; // React StrictMode runs effects twice in development
     (async () => {
       const t = await api.getTemplate();
@@ -314,19 +324,19 @@ export default function App() {
       setShowGallery(true);
     })().catch((e) => setStatus({ state: "error", error: api.asAppError(e) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, compile, setMetadata, setBibliography]);
+  }, [editor, settingsLoaded, compile, setMetadata, setBibliography]);
 
   /** Restores the changes a crash left behind, if the user wants them. */
   const offerRecovery = async (editor: Editor): Promise<boolean> => {
     const info = await api.recoveryInfo().catch(() => null);
     if (!info) return false;
-    const name = info.originalPath ? `“${fileNameOf(info.originalPath)}”` : "an unsaved document";
-    const when = info.savedAt ? ` (last change ${whenText(info.savedAt)})` : "";
-    const restore = await ask(`Texloom closed before you saved your changes to ${name}${when}. Restore them?`, {
-      title: "Restore unsaved changes",
+    const name = info.originalPath ? `“${fileNameOf(info.originalPath)}”` : tNow("app.anUnsavedDocument");
+    const when = info.savedAt ? tNow("app.lastChange", { when: whenText(info.savedAt) }) : "";
+    const restore = await ask(tNow("app.restorePrompt", { name, when }), {
+      title: tNow("app.restoreTitle"),
       kind: "warning",
-      okLabel: "Restore",
-      cancelLabel: "Discard",
+      okLabel: tNow("app.restore"),
+      cancelLabel: tNow("app.discard"),
     });
     if (!restore) {
       await markClean();
@@ -356,12 +366,12 @@ export default function App() {
       const doc = dirtyRef.current;
       const tpl = draftDirtyRef.current;
       if (!doc && !tpl) return;
-      const what = doc && tpl ? "The document and the template have" : doc ? "The document has" : "The template has";
-      const close = await ask(`${what} unsaved changes. Close without saving?`, {
-        title: "Unsaved changes",
+      const question = doc && tpl ? "app.closeBothUnsaved" : doc ? "app.closeDocUnsaved" : "app.closeTemplateUnsaved";
+      const close = await ask(tNow(question), {
+        title: tNow("app.unsavedChanges"),
         kind: "warning",
-        okLabel: "Close without saving",
-        cancelLabel: "Cancel",
+        okLabel: tNow("app.closeWithoutSaving"),
+        cancelLabel: tNow("common.cancel"),
       });
       if (!close) e.preventDefault();
       else if (doc) await markClean();
@@ -396,8 +406,13 @@ export default function App() {
   // Node views (references, citations) read the template from the editor.
   const activeTemplate = templateInfo?.template ?? null;
   useEffect(() => {
-    if (editor && activeTemplate) setTexloomContext(editor, { template: activeTemplate });
+    if (editor && activeTemplate) {
+      // Paragraphs switch to the other direction relative to the document's.
+      editor.storage.direction.rtl = docLanguage(activeTemplate).rtl;
+      setTexloomContext(editor, { template: activeTemplate });
+    }
   }, [editor, activeTemplate]);
+  const lang = docLanguage(template);
 
   const onBibliographyChange = (source: string) => {
     setBibliography(source);
@@ -445,7 +460,7 @@ export default function App() {
 
   /** Opens a template file in place (edits to it reload live). Returns whether one was opened. */
   const openTemplateFile = async (path?: string): Promise<boolean> => {
-    const target = path ?? (await open({ filters: TEMPLATE_FILTER, multiple: false, directory: false }));
+    const target = path ?? (await open({ filters: templateFilter(), multiple: false, directory: false }));
     return target ? loadTemplateWith(() => api.openTemplate(target)) : false;
   };
 
@@ -454,7 +469,7 @@ export default function App() {
     const source = await open({
       multiple: false,
       directory: false,
-      filters: [{ name: "Template, template package or publisher LaTeX kit", extensions: ["json", "zip"] }],
+      filters: [{ name: tr("app.filterTemplateImport"), extensions: ["json", "zip"] }],
     });
     if (!source) return false;
     const ok = await loadTemplateWith(() => api.importTemplate(source));
@@ -464,12 +479,12 @@ export default function App() {
 
   const exportTemplateFile = async () => {
     if (!template) return;
-    const target = await save({ filters: [{ name: "Texloom template package", extensions: ["zip"] }], defaultPath: `${template.meta.id}.zip` });
+    const target = await save({ filters: [{ name: tr("app.filterTemplatePackage"), extensions: ["zip"] }], defaultPath: `${template.meta.id}.zip` });
     if (target) await api.exportTemplate(target).catch(report);
   };
 
   const removeUserTemplate = async (t: api.UserTemplate) => {
-    if (!(await ask(`Remove “${t.name}” from My templates? Documents made with it keep a copy of the template.`, { title: "Remove template", kind: "warning" }))) return;
+    if (!(await ask(tr("app.removeTemplatePrompt", { name: t.name }), { title: tr("app.removeTemplateTitle"), kind: "warning" }))) return;
     await api.removeUserTemplate(t.id).catch(report);
     refreshUserTemplates();
   };
@@ -499,7 +514,15 @@ export default function App() {
       const engines = await api.listEngines().catch(() => []);
       // pdfLaTeX: what the picker's previews of these themes are rendered with.
       const pdf = engines.find((e) => e.id === "pdflatex" && e.available);
-      if (pdf && (await ask("This theme comes from your TeX installation; Tectonic, the current engine, doesn't have it.\n\nSwitch the TeX engine to pdfLaTeX from your TeX installation? (Settings → Preview)", { title: "TeX engine", kind: "info", okLabel: "Use pdfLaTeX", cancelLabel: "Keep Tectonic" })))
+      if (
+        pdf &&
+        (await ask(`${tr("app.themeNeedsInstalledTex")}\n\n${tr("app.switchToPdflatex")}`, {
+          title: tr("app.texEngineTitle"),
+          kind: "info",
+          okLabel: tr("app.usePdflatex"),
+          cancelLabel: tr("app.keepEngine", { engine: "Tectonic" }),
+        }))
+      )
         updateSettings({ engine: "pdflatex" });
     }
   };
@@ -512,15 +535,12 @@ export default function App() {
     if (engine === "tectonic" || (entry?.pdflatexOnly && engine !== "pdflatex")) {
       const engines = await api.listEngines().catch(() => []);
       if (engines.some((e) => e.id === "pdflatex" && e.available)) {
-        const why =
-          engine === "tectonic"
-            ? "This template uses the class installed on your computer. Tectonic, the current engine, downloads its own copy of each class, which may be older or missing."
-            : "This class works with pdfLaTeX only.";
-        const sw = await ask(`${why}\n\nSwitch the TeX engine to pdfLaTeX from your TeX installation? (Settings → Preview)`, {
-          title: "TeX engine",
+        const why = tr(engine === "tectonic" ? "app.classInstalledWhy" : "app.classPdflatexOnly");
+        const sw = await ask(`${why}\n\n${tr("app.switchToPdflatex")}`, {
+          title: tr("app.texEngineTitle"),
           kind: "info",
-          okLabel: "Use pdfLaTeX",
-          cancelLabel: `Keep ${engine === "tectonic" ? "Tectonic" : engine === "xelatex" ? "XeLaTeX" : "LuaLaTeX"}`,
+          okLabel: tr("app.usePdflatex"),
+          cancelLabel: tr("app.keepEngine", { engine: engine === "tectonic" ? "Tectonic" : engine === "xelatex" ? "XeLaTeX" : "LuaLaTeX" }),
         });
         if (sw) updateSettings({ engine: "pdflatex" });
       }
@@ -563,12 +583,12 @@ export default function App() {
     async (t: api.Template, title?: string): Promise<api.TemplateInfo | null> => {
       // A copy already has its own name; otherwise a name My templates doesn't have yet.
       const name = t.meta.name;
-      const defaultName = draftNeedsSaveAs || !userTemplates.some((u) => u.name === name) ? name : `${name} (copy)`;
+      const defaultName = draftNeedsSaveAs || !userTemplates.some((u) => u.name === name) ? name : tNow("app.copyName", { name });
       const choice = await new Promise<SaveAsChoice | null>((resolve) => setSaveAsRequest({ defaultName, title, resolve }));
       setSaveAsRequest(null);
       if (!choice) return null;
       if (choice.kind === "file") {
-        const target = await save({ filters: TEMPLATE_FILTER, defaultPath: `${t.meta.id}.json` });
+        const target = await save({ filters: templateFilter(), defaultPath: `${t.meta.id}.json` });
         return target ? api.saveTemplate(target, t) : null;
       }
       const info = await api.saveTemplateToLibrary(choice.name, t);
@@ -610,7 +630,7 @@ export default function App() {
     let t = draft;
     let target = templateInfo?.path ?? null;
     if (!target || draftNeedsSaveAs) {
-      const info = await saveDraftAs(t, "Save the template first: the kit is stored with it.");
+      const info = await saveDraftAs(t, tr("app.saveTemplateFirst"));
       if (!info?.path) return;
       applyTemplate(info);
       t = info.template;
@@ -627,7 +647,7 @@ export default function App() {
 
   /** Creates a blank template in My templates and opens it in the designer. */
   const createBlankTemplate = async (name: string, spec: api.BlankSpec): Promise<boolean> => {
-    if (draftDirty && !(await ask("Discard the unsaved changes to this template?", { title: "New template", kind: "warning" }))) return false;
+    if (draftDirty && !(await ask(tr("app.discardTemplateChanges"), { title: tr("app.newTemplateTitle"), kind: "warning" }))) return false;
     try {
       applyTemplate(await api.createBlankTemplate(name, spec));
       refreshUserTemplates();
@@ -643,7 +663,7 @@ export default function App() {
     if (!draft) return;
     const copy = structuredClone(draft);
     copy.meta.id = `${copy.meta.id}-copy`;
-    copy.meta.name = `${copy.meta.name} (copy)`;
+    copy.meta.name = tr("app.copyName", { name: copy.meta.name });
     copy.meta.version = "0.1.0";
     setDraftNeedsSaveAs(true);
     onDraftChange(copy);
@@ -668,7 +688,7 @@ export default function App() {
 
   const saveAs = useCallback(async () => {
     if (!editor) return;
-    const target = await save({ filters: DOC_FILTER, defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom") });
+    const target = await save({ filters: docFilter(), defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom") });
     if (!target) return;
     await api.saveDocument(target, docState()).then(() => {
       setPath(target);
@@ -681,8 +701,8 @@ export default function App() {
   const saveAsSingleFile = async () => {
     if (!editor) return;
     const target = await save({
-      title: "Save as a single file (images included)",
-      filters: DOC_FILTER,
+      title: tr("app.saveSingleFileTitle"),
+      filters: docFilter(),
       defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom"),
     });
     if (!target) return;
@@ -702,9 +722,9 @@ export default function App() {
   /** Opens a document from the dialog, or `target` (a recent file). */
   const openDoc = async (target?: string) => {
     if (!editor) return;
-    if (dirty && !(await ask("Discard unsaved changes and open another document?", { title: "Open document", kind: "warning" }))) return;
+    if (dirty && !(await ask(tr("app.discardAndOpen"), { title: tr("app.openDocumentTitle"), kind: "warning" }))) return;
     if (!target) {
-      const picked = await open({ filters: DOC_FILTER, multiple: false, directory: false, defaultPath: settings.defaultFolder || undefined });
+      const picked = await open({ filters: docFilter(), multiple: false, directory: false, defaultPath: settings.defaultFolder || undefined });
       if (!picked) return;
       target = picked;
     }
@@ -742,9 +762,18 @@ export default function App() {
     if (target) await api.exportTex(target, docState()).catch(report);
   };
 
+  const exportWord = async () => {
+    if (!editor) return;
+    const name = (path ? fileNameOf(path).replace(/\.loom$/, "") : "report") + ".docx";
+    const target = await save({ filters: [{ name: "Word", extensions: ["docx"] }], defaultPath: path ? name : inFolder(settings.defaultFolder, name) });
+    if (!target) return;
+    const state = docState();
+    await api.exportDocx(target, state, formulasAsMathMl(state.doc)).catch(report);
+  };
+
   const newDoc = async (skipAsk = false) => {
     if (!editor) return;
-    if (!skipAsk && dirty && !(await ask("Discard unsaved changes and start a new document?", { title: "New document", kind: "warning" }))) return;
+    if (!skipAsk && dirty && !(await ask(tr("app.discardAndNew"), { title: tr("app.newDocumentTitle"), kind: "warning" }))) return;
     try {
       const fresh = await api.newDocument();
       loadDocument(editor, fresh.doc);
@@ -768,7 +797,7 @@ export default function App() {
   /** The example senior design report, with its template. */
   const openExample = async (which: "report" | "presentation" = "report") => {
     if (!editor) return;
-    if (dirty && !(await ask("Discard unsaved changes and open the example?", { title: "Example", kind: "warning" }))) return;
+    if (dirty && !(await ask(tr("app.discardAndExample"), { title: tr("app.exampleTitle"), kind: "warning" }))) return;
     setShowGallery(false);
     try {
       const deck = which === "presentation";
@@ -790,7 +819,7 @@ export default function App() {
 
   /** New document with another template: from the gallery, or a template file. */
   const newFromTemplate = async (choose: () => Promise<boolean>, recentKey?: string) => {
-    if (dirty && !(await ask("Discard unsaved changes and start a new document?", { title: "New document", kind: "warning" }))) return;
+    if (dirty && !(await ask(tr("app.discardAndNew"), { title: tr("app.newDocumentTitle"), kind: "warning" }))) return;
     setShowGallery(false);
     if (!(await choose())) return;
     // "Recently used" in the template window: the last five, newest first.
@@ -828,23 +857,23 @@ export default function App() {
   const describeBlock = (index: number): string => {
     const node = editor?.state.doc.maybeChild(index);
     if (!node) return "";
-    const kind: Record<string, string> = {
-      heading: "Heading",
-      paragraph: "Paragraph",
-      figure: "Figure",
-      tableFigure: "Table",
-      table: "Table",
-      equation: "Equation",
-      rawLatex: "Raw LaTeX",
-      bulletList: "List",
-      orderedList: "List",
-      blockquote: "Quote",
-      codeBlock: "Code",
-      slide: "Slide",
+    const kind: Record<string, MessageKey> = {
+      heading: "app.blockHeading",
+      paragraph: "app.blockParagraph",
+      figure: "app.blockFigure",
+      tableFigure: "app.blockTable",
+      table: "app.blockTable",
+      equation: "app.blockEquation",
+      rawLatex: "app.blockRawLatex",
+      bulletList: "app.blockList",
+      orderedList: "app.blockList",
+      blockquote: "app.blockQuote",
+      codeBlock: "app.blockCode",
+      slide: "app.blockSlide",
     };
     const text = node.textContent.trim().replace(/\s+/g, " ");
-    const name = kind[node.type.name] ?? "Block";
-    return text ? `${name} “${text.length > 40 ? text.slice(0, 40) + "…" : text}”` : name;
+    const name = tr(kind[node.type.name] ?? "app.blockOther");
+    return text ? tr("app.blockWithText", { kind: name, text: text.length > 40 ? text.slice(0, 40) + "…" : text }) : name;
   };
 
   /** SyncTeX, editor → PDF: scrolls the preview to the block with the cursor. */
@@ -945,25 +974,26 @@ export default function App() {
     };
   })();
 
-  const fileName = path ? fileNameOf(path) : "Untitled";
+  const fileName = path ? fileNameOf(path) : tr("app.untitled");
   const missing = issues.filter((i) => i.path.startsWith("metadata.") && i.message.includes("required")).length;
   const headingNames =
     template?.structure.topLevel === "section"
-      ? ["Section", "Subsection", "Subsubsection", "Paragraph"]
-      : ["Chapter", "Section", "Subsection", "Subsubsection"];
+      ? [tr("app.styleSection"), tr("app.styleSubsection"), tr("app.styleSubsubsection"), tr("app.styleParagraph")]
+      : [tr("app.styleChapter"), tr("app.styleSection"), tr("app.styleSubsection"), tr("app.styleSubsubsection")];
   const draftErrors = draftIssues.filter((i) => i.severity === "error").length;
   const panelTitle: Record<SidePanel, string> = {
-    outline: "Outline",
-    info: "Document info",
-    refs: "References",
-    checks: "Things to check",
+    outline: tr("app.panelOutline"),
+    info: tr("app.panelInfo"),
+    refs: tr("app.panelRefs"),
+    checks: tr("app.panelChecks"),
   };
 
   return (
+    <LanguageContext.Provider value={uiLang}>
     <div className="app">
       <header className="titlebar">
         <div className="titlebar-side">
-          <Menu label={<><MenuIcon size={16} /><span>File</span></>} className="tb-button">
+          <Menu label={<><MenuIcon size={16} /><span>{tr("app.menuFile")}</span></>} className="tb-button">
             {(close) => {
               const act = (f: () => unknown) => () => {
                 close();
@@ -971,54 +1001,61 @@ export default function App() {
               };
               return (
                 <>
-                  <MenuItem icon={<FilePlus2 />} label="New" shortcut="Ctrl+N" onClick={act(() => newDoc())} title="New empty document with the current template" />
-                  <MenuItem icon={<LayoutTemplate />} label="New from template…" shortcut="Ctrl+Shift+N" onClick={act(() => openGallery())} title="Reports, IEEE, Elsevier, ACM, Springer…" />
-                  <MenuItem icon={<FolderOpen />} label="Open…" shortcut="Ctrl+O" onClick={act(() => openDoc())} />
-                  <MenuItem icon={<Sparkles />} label="Open the example report" onClick={act(() => openExample())} />
-                  <MenuItem icon={<Sparkles />} label="Open the example presentation" onClick={act(() => openExample("presentation"))} />
+                  <MenuItem icon={<FilePlus2 />} label={tr("app.menuNew")} shortcut="Ctrl+N" onClick={act(() => newDoc())} title={tr("app.menuNewTitle")} />
+                  <MenuItem icon={<LayoutTemplate />} label={tr("app.menuNewFromTemplate")} shortcut="Ctrl+Shift+N" onClick={act(() => openGallery())} title={tr("app.menuNewFromTemplateTitle")} />
+                  <MenuItem icon={<FolderOpen />} label={tr("app.menuOpen")} shortcut="Ctrl+O" onClick={act(() => openDoc())} />
+                  <MenuItem icon={<Sparkles />} label={tr("app.menuOpenExampleReport")} onClick={act(() => openExample())} />
+                  <MenuItem icon={<Sparkles />} label={tr("app.menuOpenExamplePresentation")} onClick={act(() => openExample("presentation"))} />
                   {settings.recentFiles.length > 0 && (
                     <>
-                      <MenuHeading>Recent</MenuHeading>
+                      <MenuHeading>{tr("app.menuRecent")}</MenuHeading>
                       {settings.recentFiles.map((f) => (
                         <MenuItem key={f} icon={<History />} label={fileNameOf(f)} title={f} current={f === path} onClick={act(() => openDoc(f))} />
                       ))}
                     </>
                   )}
                   <MenuSeparator />
-                  <MenuItem icon={<Save />} label="Save" shortcut="Ctrl+S" onClick={act(saveDoc)} />
-                  <MenuItem label="Save as…" shortcut="Ctrl+Shift+S" onClick={act(saveAs)} />
+                  <MenuItem icon={<Save />} label={tr("common.save")} shortcut="Ctrl+S" onClick={act(saveDoc)} />
+                  <MenuItem label={tr("app.menuSaveAs")} shortcut="Ctrl+Shift+S" onClick={act(saveAs)} />
                   <MenuItem
-                    label="Save as single file…"
+                    label={tr("app.menuSaveSingleFile")}
                     onClick={act(saveAsSingleFile)}
-                    title="One .loom file with the images inside, to email or upload. Saving it again keeps it one file."
+                    title={tr("app.menuSaveSingleFileTitle")}
                   />
                   <MenuSeparator />
-                  <MenuItem icon={<FileDown />} label="Export PDF…" shortcut="Ctrl+Shift+E" onClick={act(exportPdfFile)} />
+                  <MenuItem icon={<FileDown />} label={tr("app.menuExportPdf")} shortcut="Ctrl+Shift+E" onClick={act(exportPdfFile)} />
                   <MenuItem
                     icon={<FileCode2 />}
-                    label="Export LaTeX…"
+                    label={tr("app.menuExportLatex")}
                     onClick={act(exportLatex)}
-                    title="Writes the .tex file, the template's .cls and images next to each other"
+                    title={tr("app.menuExportLatexTitle")}
+                  />
+                  <MenuItem
+                    icon={<FileText />}
+                    label={tr("app.menuExportWord")}
+                    onClick={act(exportWord)}
+                    disabled={isDeck}
+                    title={isDeck ? tr("app.menuExportWordDeck") : tr("app.menuExportWordTitle")}
                   />
                   <MenuSeparator />
-                  <MenuItem icon={<SettingsIcon />} label="Settings" shortcut="Ctrl+," onClick={act(() => setShowSettings(true))} />
+                  <MenuItem icon={<SettingsIcon />} label={tr("app.settings")} shortcut="Ctrl+," onClick={act(() => setShowSettings(true))} />
                 </>
               );
             }}
           </Menu>
-          <div className="doc-title" title={path ?? "Not saved yet"}>
+          <div className="doc-title" title={path ?? tr("app.notSavedYet")}>
             <FileText size={15} aria-hidden="true" />
             <span className="doc-name">{fileName}</span>
-            {dirty && <span className="dirty-dot" title="Unsaved changes" />}
+            {dirty && <span className="dirty-dot" title={tr("app.unsavedChanges")} />}
           </div>
         </div>
-        <div className="mode-switch" role="tablist" aria-label="Mode">
+        <div className="mode-switch" role="tablist" aria-label={tr("app.mode")}>
           <button role="tab" aria-selected={mode === "document"} className={mode === "document" ? "active" : ""} onClick={() => setMode("document")}>
-            <PenLine size={15} aria-hidden="true" /> Write
+            <PenLine size={15} aria-hidden="true" /> {tr("app.modeWrite")}
           </button>
           <button role="tab" aria-selected={mode === "template"} className={mode === "template" ? "active" : ""} onClick={() => setMode("template")}>
-            <LayoutTemplate size={15} aria-hidden="true" /> Design template
-            {draftDirty && <span className="dirty-dot" title="Unsaved template changes" />}
+            <LayoutTemplate size={15} aria-hidden="true" /> {tr("app.modeDesign")}
+            {draftDirty && <span className="dirty-dot" title={tr("app.unsavedTemplateChanges")} />}
             {draftErrors > 0 && <span className="badge">{draftErrors}</span>}
           </button>
         </div>
@@ -1026,7 +1063,10 @@ export default function App() {
           <Menu
             align="right"
             className="tb-button template-button"
-            title={`Template: ${template?.meta.name ?? ""}. ${templateInfo?.path ?? (currentTexClass ? `Class ${currentTexClass} from your TeX installation` : "Built into Texloom")}`}
+            title={tr("app.templateTooltip", {
+              name: template?.meta.name ?? "",
+              where: templateInfo?.path ?? (currentTexClass ? tr("app.templateFromTex", { cls: currentTexClass }) : tr("app.templateBuiltIn")),
+            })}
             label={
               <>
                 <LayoutTemplate size={16} aria-hidden="true" />
@@ -1042,14 +1082,14 @@ export default function App() {
                 <strong>{template?.meta.name}</strong>
                 <span className="muted">
                   {templateInfo?.path ??
-                    (currentTexClass ? `Class ${currentTexClass} from your TeX installation` : "Built into Texloom")}
+                    (currentTexClass ? tr("app.templateFromTex", { cls: currentTexClass }) : tr("app.templateBuiltIn"))}
                 </span>
-                {templateInfo?.path && <span className="muted">Reloads automatically when the file changes.</span>}
-                <span className="muted">Choosing another template restyles this document; its text stays.</span>
+                {templateInfo?.path && <span className="muted">{tr("app.templateReloads")}</span>}
+                <span className="muted">{tr("app.templateRestyles")}</span>
               </div>
               <MenuItem
                 icon={<FilePlus2 />}
-                label="New document from template…"
+                label={tr("app.newDocFromTemplate")}
                 onClick={() => {
                   close();
                   openGallery();
@@ -1057,8 +1097,8 @@ export default function App() {
               />
               <MenuItem
                 icon={<FileInput />}
-                label="Import template…"
-                title="A Texloom template (.json), a template package (.zip), or any publisher's LaTeX kit (.zip)"
+                label={tr("app.importTemplate")}
+                title={tr("app.importTemplateTitle")}
                 onClick={() => {
                   close();
                   importTemplateFile();
@@ -1066,8 +1106,8 @@ export default function App() {
               />
               <MenuItem
                 icon={<FileOutput />}
-                label="Export template…"
-                title="Save this template and its files as a .zip others can import"
+                label={tr("app.exportTemplate")}
+                title={tr("app.exportTemplateTitle")}
                 onClick={() => {
                   close();
                   exportTemplateFile();
@@ -1075,8 +1115,8 @@ export default function App() {
               />
               <MenuItem
                 icon={<FilePlus2 />}
-                label="New blank template…"
-                title="Design a template from scratch"
+                label={tr("app.newBlankTemplate")}
+                title={tr("app.newBlankTemplateTitle")}
                 onClick={() => {
                   close();
                   setShowNewTemplate(true);
@@ -1084,8 +1124,8 @@ export default function App() {
               />
               <MenuItem
                 icon={<FolderOpen />}
-                label="Open template file…"
-                title="Open a template.json in place; edits to the file reload live"
+                label={tr("app.openTemplateFile")}
+                title={tr("app.openTemplateFileTitle")}
                 onClick={() => {
                   close();
                   openTemplateFile();
@@ -1093,7 +1133,7 @@ export default function App() {
               />
               {userTemplates.length > 0 && (
                 <div>
-                  <MenuHeading>My templates</MenuHeading>
+                  <MenuHeading>{tr("app.myTemplates")}</MenuHeading>
                   {userTemplates.map((u) => (
                     <MenuItem
                       key={u.id}
@@ -1111,9 +1151,9 @@ export default function App() {
                 </div>
               )}
               {[
-                { title: "Reports", items: builtins.filter((b) => !b.class && b.kind !== "presentation") },
-                { title: "Presentations", items: builtins.filter((b) => b.kind === "presentation") },
-                { title: "Journals and conferences", items: builtins.filter((b) => b.class) },
+                { title: tr("app.groupReports"), items: builtins.filter((b) => !b.class && b.kind !== "presentation") },
+                { title: tr("app.groupPresentations"), items: builtins.filter((b) => b.kind === "presentation") },
+                { title: tr("app.groupJournals"), items: builtins.filter((b) => b.class) },
               ].map(
                 (group) =>
                   group.items.length > 0 && (
@@ -1138,14 +1178,14 @@ export default function App() {
               )}
               {texTemplates.length > 0 && (
                 <div>
-                  <MenuHeading>From your TeX installation</MenuHeading>
+                  <MenuHeading>{tr("app.fromTexInstallation")}</MenuHeading>
                   {currentTexClass && (
                     <MenuItem current icon={<CircleCheck />} label={template?.meta.name ?? currentTexClass} shortcut={currentTexClass} onClick={close} />
                   )}
                   <MenuItem
                     icon={<Library />}
-                    label={`Choose from ${texTemplates.length} classes…`}
-                    title="Journal, thesis, book and article classes found in your TeX distribution"
+                    label={tr("app.chooseFromClasses", { n: texTemplates.length })}
+                    title={tr("app.chooseFromClassesTitle")}
                     onClick={() => {
                       close();
                       setShowTexPicker(true);
@@ -1156,10 +1196,10 @@ export default function App() {
             </>
           )}
           </Menu>
-          <button className="tb-button" onClick={exportPdfFile} title="Export PDF (Ctrl+Shift+E)">
-            <FileDown size={16} aria-hidden="true" /> Export PDF
+          <button className="tb-button" onClick={exportPdfFile} title={tr("app.exportPdfTitle")}>
+            <FileDown size={16} aria-hidden="true" /> {tr("app.exportPdf")}
           </button>
-          <button className="icon-button" onClick={() => setShowSettings(true)} title="Settings (Ctrl+,)" aria-label="Settings">
+          <button className="icon-button" onClick={() => setShowSettings(true)} title={tr("app.settingsTitle")} aria-label={tr("app.settings")}>
             <SettingsIcon size={17} />
           </button>
         </div>
@@ -1169,19 +1209,19 @@ export default function App() {
 
       <main className={`workspace${mode === "template" ? " template-mode" : ""}`}>
         {mode === "document" && (
-          <nav className="rail" aria-label="Panels">
-            <RailButton icon={<ListTree />} label="Outline" active={panel === "outline"} onClick={() => togglePanel("outline")} />
-            <RailButton icon={<IdCard />} label="Document info" badge={missing || undefined} active={panel === "info"} onClick={() => togglePanel("info")} />
+          <nav className="rail" aria-label={tr("app.panels")}>
+            <RailButton icon={<ListTree />} label={panelTitle.outline} active={panel === "outline"} onClick={() => togglePanel("outline")} />
+            <RailButton icon={<IdCard />} label={panelTitle.info} badge={missing || undefined} active={panel === "info"} onClick={() => togglePanel("info")} />
             <RailButton
               icon={<Library />}
-              label="References"
+              label={panelTitle.refs}
               badge={bibInfo.error ? "!" : undefined}
               active={panel === "refs"}
               onClick={() => togglePanel("refs")}
             />
             <RailButton
               icon={<TriangleAlert />}
-              label="Things to check"
+              label={panelTitle.checks}
               badge={issues.length || undefined}
               warn
               active={panel === "checks"}
@@ -1193,7 +1233,7 @@ export default function App() {
           <aside className={`side-panel side-${panel}`} aria-label={panelTitle[panel]}>
             <div className="side-head">
               <span>{panelTitle[panel]}</span>
-              <button className="icon-button small" onClick={() => setPanel(null)} aria-label="Close panel" title="Close">
+              <button className="icon-button small" onClick={() => setPanel(null)} aria-label={tr("app.closePanel")} title={tr("common.close")}>
                 <X size={15} />
               </button>
             </div>
@@ -1238,39 +1278,44 @@ export default function App() {
             </div>
           )}
           <div className="editor-scroll" ref={editorScroll} style={{ ["--page-zoom" as string]: pageZoom }}>
-            <div className={`page${isDeck ? " deck" : ""}`} style={logoUrl ? { ["--slide-logo" as string]: `url("${logoUrl}")` } : undefined}>
+            <div
+              className={`page${isDeck ? " deck" : ""}`}
+              dir={lang.rtl ? "rtl" : "ltr"}
+              lang={lang.tag}
+              style={logoUrl ? { ["--slide-logo" as string]: `url("${logoUrl}")` } : undefined}
+            >
               <EditorContent editor={editor} />
             </div>
           </div>
         </section>
         <section className="preview-pane">
           <div className="pane-head">
-            <span className="pane-title">{showLatex ? "LaTeX source" : "Preview"}</span>
+            <span className="pane-title">{showLatex ? tr("app.latexSource") : tr("app.preview")}</span>
             {mode === "template" && !showLatex && (
-              <span className="segmented" role="group" aria-label="Preview kind">
-                <button className={designPreview === "pdf" ? "active" : ""} aria-pressed={designPreview === "pdf"} onClick={() => setDesignPreview("pdf")} title="The compiled PDF (exact)">
+              <span className="segmented" role="group" aria-label={tr("app.previewKind")}>
+                <button className={designPreview === "pdf" ? "active" : ""} aria-pressed={designPreview === "pdf"} onClick={() => setDesignPreview("pdf")} title={tr("app.previewPdfTitle")}>
                   PDF
                 </button>
-                <button className={designPreview === "page" ? "active" : ""} aria-pressed={designPreview === "page"} onClick={() => setDesignPreview("page")} title="The document's page with this template, updated instantly (no compile)">
-                  Page
+                <button className={designPreview === "page" ? "active" : ""} aria-pressed={designPreview === "page"} onClick={() => setDesignPreview("page")} title={tr("app.previewPageTitle")}>
+                  {tr("app.previewPage")}
                 </button>
               </span>
             )}
             <span className="spacer" />
             {!settings.autoCompile && (
-              <button className="tb-button" onClick={compile} title="Compile now (Ctrl+Enter)">
-                <Play size={14} aria-hidden="true" /> Compile
+              <button className="tb-button" onClick={compile} title={tr("app.compileTitle")}>
+                <Play size={14} aria-hidden="true" /> {tr("app.compile")}
               </button>
             )}
             {!showLatex && (
-              <span className="zoom" role="group" aria-label="Preview zoom">
-                <button className="icon-button small" onClick={() => setPreviewZoom((z) => Math.max(50, z - 10))} aria-label="Zoom out" title="Zoom out">
+              <span className="zoom" role="group" aria-label={tr("app.previewZoom")}>
+                <button className="icon-button small" onClick={() => setPreviewZoom((z) => Math.max(50, z - 10))} aria-label={tr("app.zoomOut")} title={tr("app.zoomOut")}>
                   <ZoomOut size={15} />
                 </button>
-                <button className="zoom-value" onClick={() => setPreviewZoom(100)} title="Fit width">
+                <button className="zoom-value" onClick={() => setPreviewZoom(100)} title={tr("app.fitWidth")}>
                   {previewZoom}%
                 </button>
-                <button className="icon-button small" onClick={() => setPreviewZoom((z) => Math.min(200, z + 10))} aria-label="Zoom in" title="Zoom in">
+                <button className="icon-button small" onClick={() => setPreviewZoom((z) => Math.min(200, z + 10))} aria-label={tr("app.zoomIn")} title={tr("app.zoomIn")}>
                   <ZoomIn size={15} />
                 </button>
               </span>
@@ -1280,8 +1325,8 @@ export default function App() {
                 className="icon-button small"
                 onClick={showInPdf}
                 disabled={!pdf}
-                aria-label="Show in PDF"
-                title="Show the cursor's place in the PDF (Ctrl+J). Double-click the PDF to go back to the editor."
+                aria-label={tr("app.showInPdf")}
+                title={tr("app.showInPdfTitle")}
               >
                 <LocateFixed size={15} />
               </button>
@@ -1289,8 +1334,8 @@ export default function App() {
             <button
               className={`icon-button small${showLatex ? " active" : ""}`}
               onClick={() => setShowLatex((v) => !v)}
-              aria-label="LaTeX source"
-              title={showLatex ? "Back to the PDF" : "Show the generated LaTeX"}
+              aria-label={tr("app.latexSource")}
+              title={showLatex ? tr("app.backToPdf") : tr("app.showLatex")}
             >
               <Code size={15} />
             </button>
@@ -1309,28 +1354,34 @@ export default function App() {
 
       <footer className="statusbar">
         <StatusBadge status={status} ms={compileMs} />
-        {pageCount > 0 && <span>{pageCount} page{pageCount === 1 ? "" : "s"}</span>}
-        {mode === "document" && <span>{wordCount.toLocaleString()} words</span>}
+        {pageCount > 0 && <span>{tr(pageCount === 1 ? "app.pageCountOne" : "app.pageCountMany", { n: pageCount })}</span>}
+        {mode === "document" && <span>{tr("app.wordCount", { n: wordCount.toLocaleString() })}</span>}
         {mode === "document" && issues.length > 0 && (
           <button className="status-link warn" onClick={() => setPanel("checks")}>
-            <TriangleAlert size={13} aria-hidden="true" /> {issues.length} to check
+            <TriangleAlert size={13} aria-hidden="true" /> {tr("app.toCheck", { n: issues.length })}
           </button>
         )}
         <span className="spacer" />
         {mode === "document" && template && (
-          <span title={templateInfo?.path ?? "Built-in template"}>
+          <span title={templateInfo?.path ?? tr("app.builtInTemplate")}>
             <LayoutTemplate size={13} aria-hidden="true" /> {template.meta.name}
           </span>
         )}
         {mode === "document" && (
-          <Menu up align="right" className="status-link" title="Page zoom" label={<>Page {settings.pageZoom ? `${settings.pageZoom}%` : `fit (${Math.round(fitZoom * 100)}%)`}</>}>
+          <Menu
+            up
+            align="right"
+            className="status-link"
+            title={tr("app.pageZoom")}
+            label={settings.pageZoom ? tr("app.pageZoomValue", { z: settings.pageZoom }) : tr("app.pageZoomFit", { z: Math.round(fitZoom * 100) })}
+          >
             {(close) =>
               [0, 75, 90, 100, 110, 125, 150].map((z) => (
                 <MenuItem
                   key={z}
                   current={settings.pageZoom === z}
                   icon={settings.pageZoom === z ? <CircleCheck /> : undefined}
-                  label={z ? `${z}%` : "Fit width"}
+                  label={z ? `${z}%` : tr("app.fitWidth")}
                   onClick={() => {
                     close();
                     updateSettings({ pageZoom: z });
@@ -1423,6 +1474,7 @@ export default function App() {
       )}
       {showSettings && <SettingsDialog settings={settings} onChange={updateSettings} onClose={() => setShowSettings(false)} />}
     </div>
+    </LanguageContext.Provider>
   );
 }
 
@@ -1450,11 +1502,11 @@ function RailButton({
 }
 
 function ChecksList({ issues }: { issues: api.Issue[] }) {
+  const t = useT();
   if (issues.length === 0) {
     return (
       <p className="side-empty">
-        <CircleCheck size={16} aria-hidden="true" /> Nothing to check: required fields are filled in and every reference
-        points somewhere.
+        <CircleCheck size={16} aria-hidden="true" /> {t("app.nothingToCheck")}
       </p>
     );
   }
@@ -1487,6 +1539,7 @@ function FormatBar({
   /** Opens the presentation theme picker. */
   onThemes: () => void;
 }) {
+  const t = useT();
   // Re-render only when the formatting state at the cursor changes.
   const s = useEditorState({
     editor,
@@ -1503,6 +1556,8 @@ function FormatBar({
       canMerge: editor.can().mergeCells(),
       canSplit: editor.can().splitCell(),
       headingNumbered: editor.getAttributes("heading").numbered !== false,
+      // The paragraph or heading at the cursor runs the other way than the document.
+      otherDir: (editor.getAttributes("paragraph").dir ?? editor.getAttributes("heading").dir ?? null) as string | null,
       canUndo: editor.can().undo(),
       canRedo: editor.can().redo(),
     }),
@@ -1531,13 +1586,13 @@ function FormatBar({
   };
   const sz = 17;
   return (
-    <div className="toolbar" role="toolbar" aria-label="Formatting">
-      <T icon={<Undo2 size={sz} />} title="Undo (Ctrl+Z)" run={() => c().undo().run()} disabled={!s.canUndo} />
-      <T icon={<Redo2 size={sz} />} title="Redo (Ctrl+Shift+Z)" run={() => c().redo().run()} disabled={!s.canRedo} />
+    <div className="toolbar" role="toolbar" aria-label={t("app.formatting")}>
+      <T icon={<Undo2 size={sz} />} title={t("app.undo")} run={() => c().undo().run()} disabled={!s.canUndo} />
+      <T icon={<Redo2 size={sz} />} title={t("app.redo")} run={() => c().redo().run()} disabled={!s.canRedo} />
       <span className="sep" />
-      <select className="style-select" value={styleValue} onChange={(e) => setStyle(e.target.value)} title="Paragraph style" aria-label="Paragraph style">
+      <select className="style-select" value={styleValue} onChange={(e) => setStyle(e.target.value)} title={t("app.paragraphStyle")} aria-label={t("app.paragraphStyle")}>
         {!styleValue && <option value="">—</option>}
-        <option value="p">Body text</option>
+        <option value="p">{t("app.styleBodyText")}</option>
         {headingNames.map((n, i) => (
           <option key={n} value={`h${i + 1}`}>
             {n}
@@ -1545,63 +1600,69 @@ function FormatBar({
         ))}
       </select>
       <span className="sep" />
-      <T icon={<Bold size={sz} />} title="Bold (Ctrl+B)" on={s.bold} run={() => c().toggleBold().run()} />
-      <T icon={<Italic size={sz} />} title="Italic (Ctrl+I)" on={s.italic} run={() => c().toggleItalic().run()} />
-      <T icon={<Code size={sz} />} title="Code (Ctrl+E)" on={s.code} run={() => c().toggleCode().run()} />
+      <T icon={<Bold size={sz} />} title={t("app.boldTitle")} on={s.bold} run={() => c().toggleBold().run()} />
+      <T icon={<Italic size={sz} />} title={t("app.italicTitle")} on={s.italic} run={() => c().toggleItalic().run()} />
+      <T icon={<Code size={sz} />} title={t("app.codeTitle")} on={s.code} run={() => c().toggleCode().run()} />
       <span className="sep" />
-      <T icon={<List size={sz} />} title="Bullet list" on={s.bullet} run={() => ins().toggleBulletList().run()} />
-      <T icon={<ListOrdered size={sz} />} title="Numbered list" on={s.ordered} run={() => ins().toggleOrderedList().run()} />
-      <T icon={<TextQuote size={sz} />} title="Quote" on={s.quote} run={() => c().toggleBlockquote().run()} />
+      <T icon={<List size={sz} />} title={t("app.bulletList")} on={s.bullet} run={() => ins().toggleBulletList().run()} />
+      <T icon={<ListOrdered size={sz} />} title={t("app.numberedList")} on={s.ordered} run={() => ins().toggleOrderedList().run()} />
+      <T icon={<TextQuote size={sz} />} title={t("app.quote")} on={s.quote} run={() => c().toggleBlockquote().run()} />
+      <T
+        icon={<ArrowRightLeft size={sz} />}
+        title={t("app.textDirection")}
+        on={!!s.otherDir}
+        run={() => c().toggleDirection().run()}
+      />
       <span className="sep" />
-      <T icon={<Superscript size={sz} />} title="Inline math (Ctrl+M, or type $x^2$)" run={() => c().insertInlineMath().run()} />
-      <T icon={<Sigma size={sz} />} title="Equation on its own line ($$ + space)" run={() => ins().insertEquation().run()} />
+      <T icon={<Superscript size={sz} />} title={t("app.inlineMath")} run={() => c().insertInlineMath().run()} />
+      <T icon={<Sigma size={sz} />} title={t("app.equation")} run={() => ins().insertEquation().run()} />
       <T
         icon={<Image size={sz} />}
-        title="Figure: an image with a caption"
+        title={t("app.figure")}
         run={() =>
           pickFigureImage().then((src) => {
             if (src) ins().insertFigure(src).run();
           }, onError)
         }
       />
-      <T icon={<Table size={sz} />} title="Table with a caption" run={() => ins().insertCaptionedTable(3, 3).run()} />
-      <T icon={<Braces size={sz} />} title="Raw LaTeX block, written into the PDF as typed (TikZ, special tables…)" run={() => ins().insertRawLatex().run()} />
+      <T icon={<Table size={sz} />} title={t("app.tableWithCaption")} run={() => ins().insertCaptionedTable(3, 3).run()} />
+      <T icon={<Braces size={sz} />} title={t("app.rawLatex")} run={() => ins().insertRawLatex().run()} />
       {deck && (
         <>
           <span className="sep" />
-          <T icon={<GalleryVerticalEnd size={sz} />} label="Slide" title="New slide after this one" run={() => c().insertSlide().run()} />
-          <T icon={<Columns2 size={sz} />} title="Two columns side by side" run={() => ins().insertColumns(2).run()} />
-          <T icon={<SquareStack size={sz} />} title="Box with a title (block; switch to alert or example in its corner)" run={() => ins().insertSlideBox("block").run()} />
-          <T icon={<Pause size={sz} />} title="Pause: what follows appears on the next click" run={() => ins().insertPause().run()} />
-          <T icon={<Palette size={sz} />} label="Theme" title="Presentation theme and colours" run={onThemes} />
+          <T icon={<GalleryVerticalEnd size={sz} />} label={t("app.slide")} title={t("app.slideTitle")} run={() => c().insertSlide().run()} />
+          <T icon={<Columns2 size={sz} />} title={t("app.columns")} run={() => ins().insertColumns(2).run()} />
+          <T icon={<SquareStack size={sz} />} title={t("app.slideBox")} run={() => ins().insertSlideBox("block").run()} />
+          <T icon={<Pause size={sz} />} title={t("app.pause")} run={() => ins().insertPause().run()} />
+          <T icon={<Palette size={sz} />} label={t("app.theme")} title={t("app.themeTitle")} run={onThemes} />
         </>
       )}
       <span className="sep" />
-      <T icon={<Link2 size={sz} />} title="Cross-reference (“see Figure 3.1”)" run={() => onPicker("ref")} />
-      <T icon={<Quote size={sz} />} title="Citation" run={() => onPicker("cite")} />
-      {!deck && <T icon={<BookMarked size={sz} />} title="Start the appendices here (chapters after it are A, B…)" run={() => c().insertAppendices().run()} />}
+      <T icon={<Link2 size={sz} />} title={t("app.crossRef")} run={() => onPicker("ref")} />
+      <T icon={<Quote size={sz} />} title={t("app.citation")} run={() => onPicker("cite")} />
+      {!deck && <T icon={<BookMarked size={sz} />} title={t("app.appendices")} run={() => c().insertAppendices().run()} />}
       <span className="spacer" />
       {s.level > 0 && (
-        <span className="context-tools" role="group" aria-label="Heading">
+        <span className="context-tools" role="group" aria-label={t("app.heading")}>
           <T
             icon={<Hash size={15} />}
-            label="Numbered"
+            label={t("app.numbered")}
             on={s.headingNumbered}
-            title="Number this heading. Turn off for Acknowledgment, Preface… (still listed in the table of contents)"
+            title={t("app.numberedTitle")}
             run={() => c().toggleHeadingNumbered().run()}
           />
         </span>
       )}
       {s.inTable && (
-        <span className="context-tools" role="group" aria-label="Table">
-          <T icon={<Rows3 size={15} />} label="+ Row" title="Add a row below" run={() => c().addRowAfter().run()} />
-          <T icon={<Columns3 size={15} />} label="+ Col" title="Add a column to the right" run={() => c().addColumnAfter().run()} />
-          <T icon={<Rows3 size={15} />} label="− Row" title="Delete this row" run={() => c().deleteRow().run()} />
-          <T icon={<Columns3 size={15} />} label="− Col" title="Delete this column" run={() => c().deleteColumn().run()} />
-          <T icon={<Table size={15} />} label="Header" title="Toggle the header row" run={() => c().toggleHeaderRow().run()} />
-          <T icon={<TableCellsMerge size={15} />} label="Merge" title="Merge the selected cells into one (drag across cells to select them); it can span rows and columns" run={() => c().mergeCells().run()} disabled={!s.canMerge} />
-          <T icon={<TableCellsSplit size={15} />} label="Split" title="Split a merged cell back into single cells" run={() => c().splitCell().run()} disabled={!s.canSplit} />
-          <T icon={<Trash2 size={15} />} title="Delete the table and its caption" run={() => c().deleteCaptionedTable().run()} />
+        <span className="context-tools" role="group" aria-label={t("app.table")}>
+          <T icon={<Rows3 size={15} />} label={t("app.addRow")} title={t("app.addRowTitle")} run={() => c().addRowAfter().run()} />
+          <T icon={<Columns3 size={15} />} label={t("app.addCol")} title={t("app.addColTitle")} run={() => c().addColumnAfter().run()} />
+          <T icon={<Rows3 size={15} />} label={t("app.deleteRow")} title={t("app.deleteRowTitle")} run={() => c().deleteRow().run()} />
+          <T icon={<Columns3 size={15} />} label={t("app.deleteCol")} title={t("app.deleteColTitle")} run={() => c().deleteColumn().run()} />
+          <T icon={<Table size={15} />} label={t("app.header")} title={t("app.headerTitle")} run={() => c().toggleHeaderRow().run()} />
+          <T icon={<TableCellsMerge size={15} />} label={t("app.merge")} title={t("app.mergeTitle")} run={() => c().mergeCells().run()} disabled={!s.canMerge} />
+          <T icon={<TableCellsSplit size={15} />} label={t("app.split")} title={t("app.splitTitle")} run={() => c().splitCell().run()} disabled={!s.canSplit} />
+          <T icon={<Trash2 size={15} />} title={t("app.deleteTable")} run={() => c().deleteCaptionedTable().run()} />
         </span>
       )}
     </div>
@@ -1609,26 +1670,30 @@ function FormatBar({
 }
 
 function StatusBadge({ status, ms }: { status: Status; ms: number | null }) {
+  const t = useT();
   if (status.state === "compiling")
     return (
       <span className="status status-compiling">
-        <LoaderCircle size={13} className="spin" aria-hidden="true" /> Compiling…
+        <LoaderCircle size={13} className="spin" aria-hidden="true" /> {t("app.compiling")}
       </span>
     );
   if (status.state === "error")
     return (
       <span className="status status-error">
         <CircleAlert size={13} aria-hidden="true" />{" "}
-        {status.error.kind === "texErrors" ? `${status.error.errors.length} LaTeX error${status.error.errors.length === 1 ? "" : "s"}` : "Error"}
+        {status.error.kind === "texErrors"
+          ? t(status.error.errors.length === 1 ? "app.latexErrorsOne" : "app.latexErrorsMany", { n: status.error.errors.length })
+          : t("app.error")}
       </span>
     );
   if (status.state === "ok")
     return (
       <span className="status status-ok">
-        <CircleCheck size={13} aria-hidden="true" /> Up to date{ms != null && ` · ${(ms / 1000).toFixed(1)} s`}
+        <CircleCheck size={13} aria-hidden="true" /> {t("app.upToDate")}
+        {ms != null && ` · ${t("app.seconds", { s: (ms / 1000).toFixed(1) })}`}
       </span>
     );
-  return <span className="status">Ready</span>;
+  return <span className="status">{t("app.ready")}</span>;
 }
 
 function TemplateProblemPanel({
@@ -1638,12 +1703,13 @@ function TemplateProblemPanel({
   problem: { path: string; issues: api.Issue[] };
   onDismiss: () => void;
 }) {
+  const t = useT();
   return (
     <div className="error-panel">
-      <button className="dismiss" onClick={onDismiss} title="Dismiss">
+      <button className="dismiss" onClick={onDismiss} title={t("app.dismiss")} aria-label={t("app.dismiss")}>
         ×
       </button>
-      <strong>The template has errors, so the last valid version is still in use:</strong>
+      <strong>{t("app.templateHasErrors")}</strong>
       <div className="muted path">{problem.path}</div>
       <ul>
         {problem.issues
@@ -1659,41 +1725,42 @@ function TemplateProblemPanel({
 }
 
 /** What a TeX error usually means, for people who don't read LaTeX logs. */
-function errorHint(message: string): string | null {
+function errorHint(message: string): MessageKey | null {
   const m = message.toLowerCase();
-  if (m.includes("undefined control sequence")) return "A LaTeX command that doesn't exist: check formulas and raw LaTeX blocks for a typo.";
-  if (m.includes("missing $ inserted")) return "A maths symbol (^, _, \\alpha…) outside a formula: put it in a formula, or check raw LaTeX.";
-  if (m.includes("missing } inserted") || m.includes("extra }") || m.includes("runaway argument")) return "Unbalanced braces { } in a formula or raw LaTeX block.";
-  if (m.includes("not found") && (m.includes("file") || m.includes(".png") || m.includes(".jpg"))) return "A file is missing: an image moved or a package isn't installed.";
-  if (m.includes("misplaced alignment tab")) return "An & outside a table or aligned formula.";
-  if (m.includes("there's no line here to end")) return "A line break (\\\\) where nothing came before it.";
+  if (m.includes("undefined control sequence")) return "app.hintUndefinedCommand";
+  if (m.includes("missing $ inserted")) return "app.hintMissingDollar";
+  if (m.includes("missing } inserted") || m.includes("extra }") || m.includes("runaway argument")) return "app.hintBraces";
+  if (m.includes("not found") && (m.includes("file") || m.includes(".png") || m.includes(".jpg"))) return "app.hintFileMissing";
+  if (m.includes("misplaced alignment tab")) return "app.hintAlignmentTab";
+  if (m.includes("there's no line here to end")) return "app.hintNoLine";
   return null;
 }
 
 function ErrorPanel({ error, onJump, describe }: { error: AppError; onJump?: (block: number) => void; describe?: (block: number) => string }) {
+  const t = useT();
   if (error.kind === "texErrors") {
     return (
       <div className="error-panel">
-        <strong>LaTeX reported errors (the preview shows the last good version):</strong>
+        <strong>{t("app.latexReportedErrors")}</strong>
         <ul className="error-list">
           {error.errors.map((e, i) => {
             const hint = errorHint(e.message);
             const body = (
               <>
                 <span className="error-message">{e.message}</span>
-                {hint && <span className="error-hint">{hint}</span>}
-                {e.block != null && describe && <span className="error-where">in {describe(e.block)}</span>}
+                {hint && <span className="error-hint">{t(hint)}</span>}
+                {e.block != null && describe && <span className="error-where">{t("app.errorIn", { where: describe(e.block) })}</span>}
               </>
             );
             return (
               <li key={i}>
                 {e.block != null && onJump ? (
-                  <button type="button" className="error-jump" onClick={() => onJump(e.block!)} title="Go to this place in the editor">
+                  <button type="button" className="error-jump" onClick={() => onJump(e.block!)} title={t("app.goToPlace")}>
                     {body}
                   </button>
                 ) : (
                   <div className="error-item">
-                    {e.line != null && <span className="muted">line {e.line}: </span>}
+                    {e.line != null && <span className="muted">{t("app.errorLine", { n: e.line })}</span>}
                     {body}
                   </div>
                 )}
@@ -1702,7 +1769,7 @@ function ErrorPanel({ error, onJump, describe }: { error: AppError; onJump?: (bl
           })}
         </ul>
         <details>
-          <summary>Full log</summary>
+          <summary>{t("app.fullLog")}</summary>
           <pre>{error.log}</pre>
         </details>
       </div>
@@ -1713,7 +1780,7 @@ function ErrorPanel({ error, onJump, describe }: { error: AppError; onJump?: (bl
   }
   return (
     <div className="error-panel">
-      <strong>{error.kind === "tectonicMissing" ? "TeX engine not available" : "Error"}:</strong> {error.message}
+      <strong>{error.kind === "tectonicMissing" ? t("app.engineNotAvailable") : t("app.error")}:</strong> {error.message}
     </div>
   );
 }

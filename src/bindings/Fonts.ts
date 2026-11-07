@@ -5,4 +5,8 @@ export type Fonts = {
 /**
  * Body text size: 10, 11 or 12 (the sizes LaTeX's standard classes support).
  */
-baseSizePt: number, main: FontChoice, sans: FontChoice, mono: FontChoice, };
+baseSizePt: number, main: FontChoice, sans: FontChoice, mono: FontChoice, 
+/**
+ * The font for Arabic text (Amiri when absent).
+ */
+arabic?: FontChoice, };

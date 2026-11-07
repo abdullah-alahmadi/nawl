@@ -12,6 +12,7 @@ import {
 } from "@tiptap/react";
 import { TextSelection } from "@tiptap/pm/state";
 import * as api from "../api";
+import { t as tr, useT } from "../i18n";
 
 declare module "@tiptap/react" {
   interface Commands<ReturnType> {
@@ -79,7 +80,7 @@ export function useDocumentImage(src: string) {
         made = URL.createObjectURL(new Blob([bytes]));
         setUrl(made);
       },
-      (e) => !cancelled && setError(api.asAppError(e).kind === "other" ? (api.asAppError(e) as { message: string }).message : "Can't load image"),
+      (e) => !cancelled && setError(api.asAppError(e).kind === "other" ? (api.asAppError(e) as { message: string }).message : tr("editor.imageLoadFailed")),
     );
     return () => {
       cancelled = true;
@@ -92,7 +93,7 @@ export function useDocumentImage(src: string) {
 /** Asks for an image file and copies it into the document's figures/ folder. */
 export async function pickFigureImage(): Promise<string | null> {
   const { open } = await import("@tauri-apps/plugin-dialog");
-  const file = await open({ multiple: false, directory: false, filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "pdf"] }] });
+  const file = await open({ multiple: false, directory: false, filters: [{ name: tr("editor.imagesFilter"), extensions: ["png", "jpg", "jpeg", "pdf"] }] });
   if (!file) return null;
   return api.importFigure(file);
 }
@@ -125,6 +126,7 @@ function croppedImageStyle(c: Crop, aspect: number): React.CSSProperties {
 
 /** Crop mode: the whole image with a frame whose edges are dragged. */
 function CropFrame({ url, crop, onChange }: { url: string; crop: Crop; onChange: (c: Crop) => void }) {
+  const t = useT();
   const box = useRef<HTMLDivElement>(null);
   const drag = (side: keyof Crop) => (e: ReactPointerEvent) => {
     e.preventDefault();
@@ -154,7 +156,7 @@ function CropFrame({ url, crop, onChange }: { url: string; crop: Crop; onChange:
       <img src={url} alt="" draggable={false} />
       <div className="crop-frame" style={{ left: `${crop.left}%`, right: `${crop.right}%`, top: `${crop.top}%`, bottom: `${crop.bottom}%` }}>
         {(["left", "right", "top", "bottom"] as const).map((side) => (
-          <span key={side} className={`crop-handle crop-${side}`} onPointerDown={drag(side)} title="Drag to crop" />
+          <span key={side} className={`crop-handle crop-${side}`} onPointerDown={drag(side)} title={t("editor.dragToCrop")} />
         ))}
       </div>
     </div>
@@ -162,6 +164,7 @@ function CropFrame({ url, crop, onChange }: { url: string; crop: Crop; onChange:
 }
 
 function FigureView({ node, updateAttributes, selected }: ReactNodeViewProps) {
+  const t = useT();
   const src: string = node.attrs.src;
   const width: number = node.attrs.widthPercent;
   const crop: Crop = { ...NO_CROP, ...(node.attrs.crop ?? {}) };
@@ -196,18 +199,19 @@ function FigureView({ node, updateAttributes, selected }: ReactNodeViewProps) {
             style={cropped ? croppedImageStyle(crop, aspect) : undefined}
           />
         ) : (
-          <div className="figure-placeholder">{error ?? (src ? `${src} (PDF image: shown in the preview)` : "No image")}</div>
+          <div className="figure-placeholder">{/* "No image" sits on the page, like the image would: it stays as it is. */}
+            {error ?? (src ? t("editor.pdfImageNote", { src }) : "No image")}</div>
         )}
       </div>
       <div className={`figure-controls${cropDraft ? " cropping" : ""}`} contentEditable={false}>
         {cropDraft ? (
           <>
-            <span>Drag the edges to crop</span>
+            <span>{t("editor.cropHint")}</span>
             <button type="button" onClick={() => setCropDraft({ ...NO_CROP })}>
-              Reset
+              {t("common.reset")}
             </button>
             <button type="button" onClick={() => setCropDraft(null)}>
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="button"
@@ -218,21 +222,21 @@ function FigureView({ node, updateAttributes, selected }: ReactNodeViewProps) {
                 setCropDraft(null);
               }}
             >
-              Done
+              {t("common.done")}
             </button>
           </>
         ) : (
           <>
             <label>
-              Width
+              {t("editor.width")}
               <input type="range" min={10} max={100} step={5} value={width} onChange={(e) => updateAttributes({ widthPercent: Number(e.target.value) })} />
               <span>{width}%</span>
             </label>
-            <button type="button" onClick={() => setCropDraft({ ...crop })} disabled={!url} title={url ? "Cut off parts of the image at its edges" : "PDF images can't be cropped here"}>
-              Crop…
+            <button type="button" onClick={() => setCropDraft({ ...crop })} disabled={!url} title={url ? t("editor.cropTitle") : t("editor.cropPdfDisabled")}>
+              {t("editor.crop")}
             </button>
             <button type="button" onClick={replace}>
-              Replace image…
+              {t("editor.replaceImage")}
             </button>
           </>
         )}

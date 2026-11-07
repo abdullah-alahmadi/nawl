@@ -29,6 +29,7 @@ tempfile.workspace = true
 texloom-core = { path = "../crates/core" }
 texloom-compile = { path = "../crates/compile" }
 texloom-codegen = { path = "../crates/codegen" }
+texloom-docx = { path = "../crates/docx" }
 tauri-plugin-dialog = "2"
 
 

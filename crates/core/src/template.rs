@@ -26,6 +26,11 @@ pub struct Template {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub base: Option<ClassBase>,
+    /// The document's language (Arabic is right to left), a second language used in
+    /// it, and the digits. Absent means English only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub language: Option<LanguageSettings>,
     pub page: PageSetup,
     pub fonts: Fonts,
     pub structure: Structure,
@@ -317,6 +322,18 @@ pub struct PageSetup {
     pub binding_offset_mm: f32,
     pub line_spacing: LineSpacing,
     pub paragraph: ParagraphStyle,
+    /// Text columns: 1, or 2 for a two-column journal or conference layout.
+    #[serde(default = "one_column", skip_serializing_if = "is_one_column")]
+    #[ts(as = "Option<u8>", optional)]
+    pub columns: u8,
+}
+
+fn one_column() -> u8 {
+    1
+}
+
+fn is_one_column(n: &u8) -> bool {
+    *n == 1
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
@@ -377,6 +394,106 @@ pub struct ParagraphStyle {
     pub spacing_pt: f32,
 }
 
+// ---------------------------------------------------------------- language
+
+/// A language Texloom typesets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum Language {
+    #[default]
+    English,
+    Arabic,
+}
+
+impl Language {
+    /// Written right to left.
+    pub fn rtl(self) -> bool {
+        matches!(self, Language::Arabic)
+    }
+
+    /// The name polyglossia knows it by (`\setotherlanguage{arabic}`, `\textarabic`).
+    pub fn polyglossia(self) -> &'static str {
+        match self {
+            Language::English => "english",
+            Language::Arabic => "arabic",
+        }
+    }
+
+    /// polyglossia's environment for a passage in the language. Arabic's is
+    /// `Arabic`, because `\arabic` is LaTeX's counter command.
+    pub fn environment(self) -> &'static str {
+        match self {
+            Language::English => "english",
+            Language::Arabic => "Arabic",
+        }
+    }
+
+    /// BCP 47 tag, for the editor (spell checking) and Word.
+    pub fn tag(self) -> &'static str {
+        match self {
+            Language::English => "en",
+            Language::Arabic => "ar",
+        }
+    }
+}
+
+/// How numbers are written in Arabic documents.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum Digits {
+    /// 0123456789, as in the Maghreb and most of the world.
+    #[default]
+    Western,
+    /// ٠١٢٣٤٥٦٧٨٩, as in the Gulf, the Levant and Egypt.
+    ArabicIndic,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LanguageSettings {
+    #[serde(default)]
+    pub main: Language,
+    /// A second language with passages of its own (an English abstract, English
+    /// references). Latin words in an Arabic document always work without it.
+    #[serde(default)]
+    pub other: Option<Language>,
+    /// Digits for page, chapter, figure and equation numbers (Arabic documents).
+    #[serde(default)]
+    pub digits: Digits,
+}
+
+impl LanguageSettings {
+    /// The languages the document uses besides the main one. An Arabic document
+    /// always has English (Latin words, references, URLs).
+    pub fn others(&self) -> Vec<Language> {
+        let mut out: Vec<Language> = self.other.into_iter().filter(|l| *l != self.main).collect();
+        if self.main == Language::Arabic && !out.contains(&Language::English) {
+            out.push(Language::English);
+        }
+        out
+    }
+
+    /// The document needs polyglossia: anything but English alone.
+    pub fn multilingual(&self) -> bool {
+        self.main != Language::English || !self.others().is_empty()
+    }
+
+    /// Arabic text can only be typeset by XeTeX and LuaTeX (not pdfLaTeX).
+    pub fn needs_unicode_engine(&self) -> bool {
+        self.main == Language::Arabic || self.others().contains(&Language::Arabic)
+    }
+}
+
+impl Template {
+    /// The language settings (English only when the template has none).
+    pub fn lang(&self) -> LanguageSettings {
+        self.language.unwrap_or_default()
+    }
+}
+
 // ---------------------------------------------------------------- fonts
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -388,6 +505,10 @@ pub struct Fonts {
     pub main: FontChoice,
     pub sans: FontChoice,
     pub mono: FontChoice,
+    /// The font for Arabic text (Amiri when absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub arabic: Option<FontChoice>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -420,6 +541,8 @@ pub enum BuiltinFont {
     Adventor,
     /// Courier-like monospace.
     Cursor,
+    /// Arabic naskh in the style of Bulaq press books (with Latin letters too).
+    Amiri,
 }
 
 // ---------------------------------------------------------------- structure
@@ -679,6 +802,12 @@ pub struct SkeletonSection {
 #[ts(export)]
 pub struct TitlePage {
     pub items: Vec<TitleItem>,
+    /// An article's title block: the items are drawn at the top of the first page
+    /// and the text starts this far below the paper's top edge, instead of the title
+    /// having a page of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub block_height_mm: Option<f32>,
 }
 
 /// An item placed at an exact position on the title page. `x_mm`/`y_mm` locate the
@@ -770,7 +899,21 @@ pub enum FrontMatterItem {
     /// An unnumbered page showing a `paragraphs` field, e.g. the abstract.
     /// Skipped when an optional field is empty.
     #[serde(rename_all = "camelCase")]
-    FieldPage { title: String, field: String, in_toc: bool },
+    FieldPage {
+        title: String,
+        field: String,
+        in_toc: bool,
+        /// Written in another language than the document (an English abstract in an
+        /// Arabic thesis): the page is set in that language and direction.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        language: Option<Language>,
+        /// Under the title on the first page (an article's abstract) instead of on a
+        /// page of its own.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        #[ts(as = "Option<bool>", optional)]
+        inline: bool,
+    },
     TableOfContents { title: String },
     ListOfFigures { title: String },
     ListOfTables { title: String },

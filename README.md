@@ -97,6 +97,9 @@ bar switches the open document to another template. Texloom's own templates:
 | Template | Built on |
 |---|---|
 | Senior Design Report | Texloom's own layout (fully editable in the designer) |
+| Article | Texloom's own layout: one column, A4, title block with abstract and keywords on page 1 |
+| Two-column Article | Texloom's own layout: journal style, title and abstract across both columns, running head |
+| Short Paper | Texloom's own layout: compact one-column paper on US Letter for workshops and letters |
 | IEEE Journal / Transactions | `IEEEtran` (journal) |
 | IEEE Conference | `IEEEtran` (conference) |
 | Elsevier Journal Article | `elsarticle` (options `1p`/`3p`/`5p` for journal layouts) |
@@ -141,6 +144,41 @@ presentation**). A presentation is a list of slides with section headings betwee
 
 A presentation opened with an article template still compiles: slide titles become
 bold lines, columns become side-by-side boxes, and pauses are dropped.
+
+## Arabic documents
+
+Texloom typesets Arabic and mixed Arabic/English documents: journal articles, theses,
+books and presentations, right to left, with Arabic fonts, headings and labels.
+
+- **Templates:** the gallery's **العربية** (Arabic) category has an Arabic journal
+  article (Arabic title, abstract and keywords, then the English ones), a thesis (title
+  page, approval page, Arabic and English abstracts, chapters), a book (two-sided,
+  170×240 mm) and a presentation. **New blank template…** in the template menu (title
+  bar) can start a blank Arabic template, and the
+  designer's **Language** section turns any template Arabic: main language, second
+  language, and Arabic-Indic (١٢٣) or Western (123) digits for page, chapter, figure and
+  equation numbers.
+- **Writing:** type Arabic and English freely; Texloom finds the English words and
+  marks them for LaTeX itself (no `\textenglish` by hand). A whole paragraph in the other
+  language: **Ctrl+Shift+X** or the direction button in the toolbar. Numbers with a
+  decimal point stay left to right.
+- **Fonts:** Amiri (part of TeX Live and Tectonic) by default, or any installed font in
+  the designer's **Arabic font**, which lists Windows fonts such as Traditional Arabic and
+  Simplified Arabic too. English text uses the template's Latin fonts.
+- **References:** Arabic entries are formatted in Arabic (وآخرون، د.ت.) and English
+  ones in English, in the same list, for IEEE, numeric and author-year styles.
+- **Engines:** Arabic needs XeLaTeX or LuaLaTeX; the built-in Tectonic is XeLaTeX.
+  pdfLaTeX can't typeset Arabic, so with pdfLaTeX chosen in Settings, Arabic documents
+  still compile with Tectonic (or an installed XeLaTeX), and Export LaTeX writes them
+  for XeLaTeX. Arabic slides need LuaLaTeX (beamer-rl), from TeX Live or MiKTeX.
+- **Word:** **File → Export Word…** writes a `.docx` for anyone who still asks for Word:
+  right-to-left paragraphs and tables, Arabic and English fonts, headings Word's
+  navigation pane and table of contents understand, editable equations, figures (with
+  their crop), tables with merged cells, captions, the reference list and page numbers.
+  Texloom doesn't open Word files; the `.loom` stays the source.
+- **Interface:** **Settings → Appearance → Language** switches the interface to Arabic
+  (right to left). It follows the system language by default. The editor page keeps the
+  document's own direction.
 
 ## Templates for any journal
 
@@ -208,6 +246,15 @@ page or a declaration; it goes into the front matter after the title page (move 
 under **Front matter**) and can be listed in the table of contents. Images are copied
 into the template's `assets/` folder, so save a new template once (Save as…) before
 adding them.
+
+For articles, set the Title page panel's **Layout** to **A block at the top of page 1**:
+the title, authors and affiliation sit above the text instead of on a page of their
+own, and **Text starts at** says where the text begins (the canvas marks it). A title
+or author list longer than designed pushes the text down rather than running into it.
+Under **Front matter**, **Under the title on the first page** puts the abstract (or any
+paragraphs field) right below the block. **Page → Columns** sets one or two columns;
+with two, the title block and abstract span both. The editor keeps one column, and the
+PDF and Word export have two.
 
 While designing, the preview's **Page** view shows the document's page with the
 template as you change it, without waiting for a compile; **PDF** is the exact

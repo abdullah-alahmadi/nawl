@@ -6,7 +6,6 @@ macro_rules! log {
     }};
 }
 
-mod bib;
 mod bundle;
 mod files;
 mod installed;
@@ -15,6 +14,7 @@ mod recovery;
 mod templates;
 mod themes;
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -23,6 +23,7 @@ use serde_json::Value;
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State};
 use texloom_compile::{Asset, CompileError, CompileOutput, Compiler, LatexProgram, PdfSpot, SyncTex, SystemLatex, TexError};
+use texloom_core::bib;
 use texloom_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
 
 use library::{Library, LibraryEntry};
@@ -184,6 +185,16 @@ impl Runner {
             Runner::System(s) => s.compile(tex, files),
         }
     }
+}
+
+/// An engine that can typeset Arabic: Tectonic, else an installed XeLaTeX or LuaLaTeX.
+fn unicode_runner(state: &AppState) -> Option<(Runner, texloom_codegen::Engine)> {
+    if let Ok(c) = &state.compiler {
+        return Some((Runner::Tectonic(c.clone()), texloom_codegen::Engine::Xe));
+    }
+    [(LatexProgram::XeLatex, texloom_codegen::Engine::Xe), (LatexProgram::LuaLatex, texloom_codegen::Engine::Lua)]
+        .into_iter()
+        .find_map(|(p, e)| SystemLatex::find(p).map(|s| (Runner::System(s), e)))
 }
 
 impl AppState {
@@ -563,26 +574,54 @@ fn import_kit_zip(state: State<'_, AppState>, source: String) -> Result<Vec<Stri
     files::import_kit_zip(&file, Path::new(&source))
 }
 
-/// Font families installed on the system (empty if fontconfig isn't available).
+/// Font families installed on the system: from fontconfig, or on Windows (which
+/// has no fontconfig) from the registry's font list.
 #[tauri::command]
 async fn list_system_fonts() -> Vec<String> {
     tauri::async_runtime::spawn_blocking(|| {
-        let Ok(out) = texloom_compile::tool("fc-list").args([":", "family"]).output() else {
-            return Vec::new();
+        let mut families: Vec<String> = match texloom_compile::tool("fc-list").args([":", "family"]).output() {
+            Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout)
+                .lines()
+                // "DejaVu Sans,DejaVu Sans Condensed" → the first name is the family.
+                .filter_map(|l| l.split(',').next())
+                .map(|f| f.trim().to_string())
+                .filter(|f| !f.is_empty())
+                .collect(),
+            _ => windows_font_families(),
         };
-        let mut families: Vec<String> = String::from_utf8_lossy(&out.stdout)
-            .lines()
-            // "DejaVu Sans,DejaVu Sans Condensed" → the first name is the family.
-            .filter_map(|l| l.split(',').next())
-            .map(|f| f.trim().to_string())
-            .filter(|f| !f.is_empty())
-            .collect();
         families.sort_by_key(|f| f.to_lowercase());
         families.dedup();
         families
     })
     .await
     .unwrap_or_default()
+}
+
+/// Windows fonts (the machine's and the user's own), by family: "Traditional Arabic
+/// Bold (TrueType)" → "Traditional Arabic". Empty elsewhere.
+fn windows_font_families() -> Vec<String> {
+    if !cfg!(windows) {
+        return Vec::new();
+    }
+    let key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts";
+    let mut out = Vec::new();
+    for root in ["HKLM", "HKCU"] {
+        let Ok(o) = texloom_compile::tool("reg").args(["query", &format!("{root}\\{key}")]).output() else { continue };
+        out.extend(String::from_utf8_lossy(&o.stdout).lines().filter_map(font_family_from_registry));
+    }
+    out
+}
+
+/// The family in a line of `reg query` output for the font list.
+fn font_family_from_registry(line: &str) -> Option<String> {
+    let (name, _) = line.trim().split_once("    REG_SZ")?;
+    // "Name (TrueType)", and collections: "Cambria & Cambria Math (TrueType)".
+    let name = name.split(" (").next()?.split(" & ").next()?.trim();
+    const STYLES: [&str; 12] = ["Bold", "Italic", "Oblique", "Light", "Semilight", "Semibold", "Black", "Regular", "Medium", "Thin", "ExtraLight", "Heavy"];
+    let words: Vec<&str> = name.split_whitespace().collect();
+    let keep = words.iter().rposition(|w| !STYLES.contains(w)).map_or(0, |i| i + 1);
+    let family = words[..keep].join(" ");
+    (!family.is_empty()).then_some(family)
 }
 
 /// An example document ("presentation", else the report), with its images in a
@@ -660,13 +699,32 @@ async fn compile_document(
     metadata: Metadata,
     bibliography: Option<String>,
 ) -> Result<Vec<u8>, AppError> {
-    let runner = state.runner()?;
-    let target = state.engine().target();
+    let mut runner = state.runner()?;
+    let mut target = state.engine().target();
     let active = state.templates.current();
     if let Some(e) = active.missing_kit() {
         return Err(e);
     }
-    let generated = texloom_codegen::generate_for(&active.template, &to_document(doc, metadata, bibliography)?, target);
+    let document = to_document(doc, metadata, bibliography)?;
+    if needs_lualatex(&active.template) && target != texloom_codegen::Engine::Lua {
+        // Right-to-left slides only work with LuaLaTeX (beamer-rl): the installed one,
+        // whatever engine is chosen for everything else.
+        let lua = SystemLatex::find(LatexProgram::LuaLatex).ok_or_else(|| {
+            AppError::other(
+                "Arabic slides need LuaLaTeX, which comes with TeX Live and MiKTeX: install one of them (the built-in Tectonic can typeset Arabic documents, but not right-to-left slides).",
+            )
+        })?;
+        runner = Runner::System(lua);
+        target = texloom_codegen::Engine::Lua;
+    }
+    if target == texloom_codegen::Engine::Pdf && texloom_codegen::language::Languages::of(&active.template, &document).need_unicode_engine() {
+        // pdfLaTeX can't typeset Arabic: such documents use the built-in Tectonic
+        // (or an installed XeLaTeX/LuaLaTeX) whatever engine is chosen for the rest.
+        (runner, target) = unicode_runner(state).ok_or_else(|| {
+            AppError::other("Arabic text needs XeLaTeX or LuaLaTeX, and pdfLaTeX can't typeset it. Install TeX Live or MiKTeX, or use the built-in Tectonic.")
+        })?;
+    }
+    let generated = texloom_codegen::generate_for(&active.template, &document, target);
     let mut assets = active.load_assets(&generated.assets)?;
     assets.extend(active.load_kit_files(&generated.kit_files, target)?);
     assets.extend(state.doc_folder.load(&generated.figures)?);
@@ -688,6 +746,11 @@ async fn compile_document(
     })?;
     *state.sync.lock().expect("sync lock") = out.synctex.map(|synctex| SyncState { synctex, block_lines });
     Ok(out.pdf)
+}
+
+/// Presentations in a right-to-left language: beamer-rl, which needs LuaLaTeX.
+fn needs_lualatex(t: &Template) -> bool {
+    t.kind == texloom_core::DocumentKind::Presentation && t.lang().main.rtl()
 }
 
 /// The top-level block of the document behind a point of the PDF preview (in PDF
@@ -949,8 +1012,13 @@ async fn export_pdf(state: State<'_, AppState>, path: String, doc: Value, metada
 fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<(), AppError> {
     let active = state.templates.current();
     // Written for the chosen engine (Overleaf and most editors default to pdfLaTeX).
-    let target = state.engine().target();
-    let g = texloom_codegen::generate_for(&active.template, &to_document(doc, metadata, bibliography)?, target);
+    let document = to_document(doc, metadata, bibliography)?;
+    let mut target = state.engine().target();
+    if target == texloom_codegen::Engine::Pdf && texloom_codegen::language::Languages::of(&active.template, &document).need_unicode_engine() {
+        // Arabic can't be typeset by pdfLaTeX: write it for XeLaTeX instead.
+        target = texloom_codegen::Engine::Xe;
+    }
+    let g = texloom_codegen::generate_for(&active.template, &document, target);
     let mut assets = active.load_assets(&g.assets)?;
     assets.extend(active.load_kit_files(&g.kit_files, target)?);
     assets.extend(state.doc_folder.load(&g.figures)?);
@@ -965,6 +1033,33 @@ fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Me
         std::fs::write(dest, bytes)?;
     }
     Ok(())
+}
+
+/// Writes the document as a Word file. `mathml` maps each formula's LaTeX to
+/// the MathML the editor made from it, so equations stay editable in Word.
+#[tauri::command]
+async fn export_docx(
+    state: State<'_, AppState>,
+    path: String,
+    doc: Value,
+    metadata: Metadata,
+    bibliography: Option<String>,
+    mathml: HashMap<String, String>,
+) -> Result<(), AppError> {
+    let active = state.templates.current();
+    let document = to_document(doc, metadata, bibliography)?;
+    let folder = state.doc_folder.get();
+    tauri::async_runtime::spawn_blocking(move || {
+        // A missing image becomes a placeholder in the Word file rather than an error.
+        let image = |rel: &str| files::is_safe_relative(rel).then(|| std::fs::read(folder.join(rel)).ok()).flatten();
+        let asset = |rel: &str| active.load_assets(&[rel.to_string()]).ok().and_then(|mut v| v.pop()).map(|(_, b)| b);
+        let input = texloom_docx::Input { template: &active.template, doc: &document, image: &image, asset: &asset, mathml: &mathml };
+        let bytes = texloom_docx::write(&input).map_err(AppError::other)?;
+        std::fs::write(&path, bytes)?;
+        Ok(())
+    })
+    .await
+    .map_err(AppError::other)?
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1053,7 +1148,8 @@ pub fn run() {
             remove_user_template,
             export_template,
             save_settings,
-            export_tex
+            export_tex,
+            export_docx
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -1062,6 +1158,16 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn windows_font_names() {
+        let f = |l: &str| font_family_from_registry(l);
+        assert_eq!(f("    Traditional Arabic Bold (TrueType)    REG_SZ    tradbdo.ttf").as_deref(), Some("Traditional Arabic"));
+        assert_eq!(f("    Sakkal Majalla (TrueType)    REG_SZ    majalla.ttf").as_deref(), Some("Sakkal Majalla"));
+        assert_eq!(f("    Cambria & Cambria Math (TrueType)    REG_SZ    cambria.ttc").as_deref(), Some("Cambria"));
+        assert_eq!(f("    Segoe UI Semibold Italic (TrueType)    REG_SZ    seguisbi.ttf").as_deref(), Some("Segoe UI"));
+        assert_eq!(f("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft"), None);
+    }
 
     #[test]
     fn errors_and_pdf_spots_find_their_block() {
@@ -1089,8 +1195,9 @@ mod tests {
         use texloom_core::{FrontMatterItem, Paper, TopLevel};
         for presentation in [false, true] {
             for chapters in [false, true] {
-                for paper in [Paper::A4, Paper::Letter] {
-                    let t = templates::blank_template(templates::BlankSpec { presentation, paper, chapters });
+                for (paper, arabic) in [(Paper::A4, false), (Paper::Letter, false), (Paper::A4, true)] {
+                    let t = templates::blank_template(templates::BlankSpec { presentation, paper, chapters, arabic });
+                    assert_eq!(t.lang().main.rtl(), arabic);
                     let issues = t.validate();
                     assert!(!texloom_core::has_errors(&issues), "{presentation} {chapters} {paper:?}: {issues:?}");
                     assert!(t.skeleton.is_empty(), "no required chapters");
@@ -1122,7 +1229,7 @@ mod tests {
         doc.metadata.retain(|k, _| k == "title");
         let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../examples");
         for chapters in [false, true] {
-            let t = templates::blank_template(templates::BlankSpec { presentation: false, paper: Paper::Letter, chapters });
+            let t = templates::blank_template(templates::BlankSpec { presentation: false, paper: Paper::Letter, chapters, arabic: false });
             for engine in [texloom_codegen::Engine::Xe, texloom_codegen::Engine::Pdf] {
                 let g = texloom_codegen::generate_for(&t, &doc, engine);
                 let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();

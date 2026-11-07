@@ -7,6 +7,7 @@ import type { Fonts } from "./Fonts";
 import type { FrontMatterItem } from "./FrontMatterItem";
 import type { HeaderFooter } from "./HeaderFooter";
 import type { Headings } from "./Headings";
+import type { LanguageSettings } from "./LanguageSettings";
 import type { MetadataField } from "./MetadataField";
 import type { PageSetup } from "./PageSetup";
 import type { PresentationSettings } from "./PresentationSettings";
@@ -30,7 +31,12 @@ presentation?: PresentationSettings,
  * Texloom's own layout. The class then decides page layout, fonts, headings and
  * captions; the rest of the template only styles the on-screen editor.
  */
-base?: ClassBase, page: PageSetup, fonts: Fonts, structure: Structure, headings: Headings, headerFooter: HeaderFooter, 
+base?: ClassBase, 
+/**
+ * The document's language (Arabic is right to left), a second language used in
+ * it, and the digits. Absent means English only.
+ */
+language?: LanguageSettings, page: PageSetup, fonts: Fonts, structure: Structure, headings: Headings, headerFooter: HeaderFooter, 
 /**
  * How figure and table captions look. Older templates get the defaults.
  */

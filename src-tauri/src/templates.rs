@@ -20,6 +20,9 @@ pub const BUILTIN_TEMPLATE: &str = include_str!("../../templates/senior-design/t
 /// Templates that ship with Texloom, by id (the first is the default).
 pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("senior-design", BUILTIN_TEMPLATE),
+    ("general-article", include_str!("../../templates/general-article/template.json")),
+    ("article-two-column", include_str!("../../templates/article-two-column/template.json")),
+    ("short-paper", include_str!("../../templates/short-paper/template.json")),
     ("ieee-journal", include_str!("../../templates/ieee-journal/template.json")),
     ("ieee-conference", include_str!("../../templates/ieee-conference/template.json")),
     ("elsevier-article", include_str!("../../templates/elsevier-article/template.json")),
@@ -27,6 +30,10 @@ pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("springer-lncs", include_str!("../../templates/springer-lncs/template.json")),
     ("aps-physical-review", include_str!("../../templates/aps-physical-review/template.json")),
     ("beamer-presentation", include_str!("../../templates/beamer-presentation/template.json")),
+    ("arabic-article", include_str!("../../templates/arabic-article/template.json")),
+    ("arabic-thesis", include_str!("../../templates/arabic-thesis/template.json")),
+    ("arabic-book", include_str!("../../templates/arabic-book/template.json")),
+    ("arabic-presentation", include_str!("../../templates/arabic-presentation/template.json")),
 ];
 
 /// What a blank template starts as ("New blank template").
@@ -38,6 +45,10 @@ pub struct BlankSpec {
     pub paper: Paper,
     /// Chapters at the top (reports, theses) instead of sections (articles).
     pub chapters: bool,
+    /// An Arabic template: right to left, Arabic labels and fields, English as the
+    /// second language.
+    #[serde(default)]
+    pub arabic: bool,
 }
 
 /// A template to design from scratch: plain styles, a title, authors and date, a
@@ -83,7 +94,56 @@ pub fn blank_template(spec: BlankSpec) -> Template {
             serde_json::json!([{ "type": "titlePage" }])
         };
     }
+    if spec.arabic {
+        arabize(&mut v, spec);
+    }
     serde_json::from_value(v).expect("blank template is a template")
+}
+
+/// Arabic labels, fields and direction for a blank template.
+fn arabize(v: &mut serde_json::Value, spec: BlankSpec) {
+    v["language"] = serde_json::json!({ "main": "arabic", "other": "english", "digits": "arabicIndic" });
+    v["captions"]["figureLabel"] = "شكل".into();
+    v["captions"]["tableLabel"] = "جدول".into();
+    v["bibliography"]["title"] = "المراجع".into();
+    let labels = [
+        ("title", "العنوان"),
+        ("authors", "المؤلفون"),
+        ("date", "التاريخ"),
+        ("subtitle", "العنوان الفرعي"),
+        ("institute", "الجهة"),
+        ("short_title", "عنوان مختصر"),
+        ("logo", "الشعار"),
+    ];
+    if let Some(fields) = v["fields"].as_array_mut() {
+        for f in fields {
+            if let Some((_, label)) = labels.iter().find(|(id, _)| f["id"] == *id) {
+                f["label"] = (*label).into();
+            }
+        }
+    }
+    if spec.presentation {
+        return;
+    }
+    v["structure"]["appendixLabel"] = "الملحق {n}".into();
+    if let Some(levels) = v["headings"]["levels"].as_array_mut() {
+        for (i, level) in levels.iter_mut().enumerate() {
+            if i == 0 && spec.chapters {
+                level["label"] = "الفصل {n}".into();
+                level["text"]["uppercase"] = false.into();
+            } else {
+                // Section headings start at the right, as Arabic text does.
+                level["text"]["align"] = "right".into();
+            }
+        }
+    }
+    if let Some(items) = v["frontMatter"].as_array_mut() {
+        for item in items {
+            if item["type"] == "tableOfContents" {
+                item["title"] = "المحتويات".into();
+            }
+        }
+    }
 }
 
 /// A built-in template, for the template gallery.
@@ -96,6 +156,10 @@ pub struct BuiltinInfo {
     /// The publisher class it's built on, if any (e.g. "IEEEtran").
     pub class: Option<String>,
     pub kind: texloom_core::DocumentKind,
+    /// The document language (the gallery lists Arabic templates together).
+    pub language: texloom_core::Language,
+    /// Sections at the top (articles) or chapters (reports, theses).
+    pub top_level: texloom_core::TopLevel,
 }
 
 pub fn builtin_list() -> Vec<BuiltinInfo> {
@@ -103,12 +167,15 @@ pub fn builtin_list() -> Vec<BuiltinInfo> {
         .iter()
         .map(|(id, json)| {
             let t: Template = serde_json::from_str(json).expect("built-in template parses");
+            let language = t.lang().main;
             BuiltinInfo {
                 id: (*id).to_string(),
                 name: t.meta.name,
                 description: t.meta.description,
+                language,
                 class: t.base.map(|b| b.class),
                 kind: t.kind,
+                top_level: t.structure.top_level,
             }
         })
         .collect()

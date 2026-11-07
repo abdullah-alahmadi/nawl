@@ -1,0 +1,564 @@
+{
+  "meta": {
+    "id": "arabic-thesis",
+    "name": "رسالة جامعية (ماجستير أو دكتوراه)",
+    "description": "رسالة علمية بالعربية: صفحة عنوان، إجازة، إهداء، مستخلص عربي وإنجليزي، فصول ومراجع. Arabic master's or PhD thesis with Arabic and English abstracts.",
+    "version": "1.0.0"
+  },
+  "page": {
+    "paper": {
+      "kind": "a4"
+    },
+    "margins": {
+      "topMm": 25,
+      "bottomMm": 25,
+      "innerMm": 35,
+      "outerMm": 25
+    },
+    "twoSided": false,
+    "bindingOffsetMm": 0,
+    "lineSpacing": {
+      "kind": "oneHalf"
+    },
+    "paragraph": {
+      "indentMm": 0,
+      "spacingPt": 6
+    }
+  },
+  "fonts": {
+    "baseSizePt": 12,
+    "main": {
+      "kind": "builtin",
+      "font": "termes"
+    },
+    "sans": {
+      "kind": "builtin",
+      "font": "heros"
+    },
+    "mono": {
+      "kind": "builtin",
+      "font": "latinModern"
+    }
+  },
+  "structure": {
+    "topLevel": "chapter",
+    "numberedDepth": 3,
+    "tocDepth": 2,
+    "frontMatterPageNumbers": "lowerRoman",
+    "mainPageNumbers": "arabic",
+    "perChapterNumbering": true,
+    "appendixLabel": "الملحق {n}"
+  },
+  "headings": {
+    "levels": [
+      {
+        "text": {
+          "sizePt": 20,
+          "bold": true,
+          "align": "center"
+        },
+        "layout": "display",
+        "label": "الفصل {n}",
+        "labelGapPt": 8,
+        "spaceBeforePt": 0,
+        "spaceAfterPt": 24
+      },
+      {
+        "text": {
+          "sizePt": 16,
+          "bold": true,
+          "align": "right"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 18,
+        "spaceAfterPt": 8
+      },
+      {
+        "text": {
+          "sizePt": 14,
+          "bold": true,
+          "align": "right"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 14,
+        "spaceAfterPt": 6
+      },
+      {
+        "text": {
+          "sizePt": 12,
+          "bold": true,
+          "align": "right"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 12,
+        "spaceAfterPt": 4
+      }
+    ]
+  },
+  "headerFooter": {
+    "frontMatter": {
+      "footer": {
+        "center": "{page}"
+      }
+    },
+    "main": {
+      "header": {
+        "right": "{chapter}"
+      },
+      "footer": {
+        "center": "{page}"
+      },
+      "headerRulePt": 0.4
+    },
+    "chapterOpening": {
+      "footer": {
+        "center": "{page}"
+      }
+    }
+  },
+  "captions": {
+    "figureLabel": "شكل",
+    "tableLabel": "جدول",
+    "separator": "colon",
+    "labelBold": true,
+    "size": "small",
+    "align": "center"
+  },
+  "bibliography": {
+    "style": "authorYear",
+    "title": "المراجع",
+    "inToc": true
+  },
+  "skeleton": [
+    {
+      "title": "مقدمة الدراسة",
+      "required": true
+    },
+    {
+      "title": "الإطار النظري والدراسات السابقة",
+      "required": true
+    },
+    {
+      "title": "منهجية الدراسة",
+      "required": true
+    },
+    {
+      "title": "النتائج ومناقشتها",
+      "required": true
+    },
+    {
+      "title": "الخاتمة والتوصيات",
+      "required": true
+    }
+  ],
+  "titlePage": {
+    "items": [
+      {
+        "xMm": 105,
+        "yMm": 28,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{university}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 18,
+            "align": "center",
+            "bold": true
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 39,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{college}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 15,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 48,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{department}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 15,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 60,
+        "anchor": "top",
+        "content": {
+          "type": "rule",
+          "lengthMm": 120,
+          "thicknessPt": 0.8
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 80,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{title}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 22,
+            "align": "center",
+            "bold": true
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 112,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{title_en}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 14,
+            "align": "center",
+            "italic": true
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 140,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "رسالة مقدمة لنيل درجة {degree}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 14,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 168,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "إعداد",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 177,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{author}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 16,
+            "align": "center",
+            "bold": true
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 205,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "إشراف",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 214,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{supervisor}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 16,
+            "align": "center",
+            "bold": true
+          }
+        }
+      },
+      {
+        "xMm": 105,
+        "yMm": 258,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{date}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 14,
+            "align": "center"
+          }
+        }
+      }
+    ]
+  },
+  "fields": [
+    {
+      "id": "title",
+      "label": "عنوان الرسالة",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "title_en",
+      "label": "عنوان الرسالة بالإنجليزية",
+      "kind": "text"
+    },
+    {
+      "id": "author",
+      "label": "اسم الباحث",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "supervisor",
+      "label": "المشرف",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "university",
+      "label": "الجامعة",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "college",
+      "label": "الكلية",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "department",
+      "label": "القسم",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "degree",
+      "label": "الدرجة العلمية",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "date",
+      "label": "تاريخ المناقشة",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "abstract",
+      "label": "المستخلص",
+      "kind": "paragraphs",
+      "required": true
+    },
+    {
+      "id": "abstract_en",
+      "label": "المستخلص بالإنجليزية (Abstract)",
+      "kind": "paragraphs"
+    },
+    {
+      "id": "dedication",
+      "label": "الإهداء",
+      "kind": "paragraphs"
+    },
+    {
+      "id": "acknowledgements",
+      "label": "الشكر والتقدير",
+      "kind": "paragraphs"
+    }
+  ],
+  "frontMatter": [
+    {
+      "type": "titlePage"
+    },
+    {
+      "type": "fixedPage",
+      "title": "إجازة الرسالة",
+      "items": [
+        {
+          "xMm": 105,
+          "yMm": 35,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "إجازة الرسالة",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 18,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 55,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "نوقشت هذه الرسالة «{title}» وأجيزت بتاريخ {date}، وتتكون لجنة المناقشة من:",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 14,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 110,
+          "anchor": "top",
+          "content": {
+            "type": "rule",
+            "lengthMm": 90,
+            "thicknessPt": 0.6
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 113,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "المشرف",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 13,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 155,
+          "anchor": "top",
+          "content": {
+            "type": "rule",
+            "lengthMm": 90,
+            "thicknessPt": 0.6
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 158,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "المناقش الداخلي",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 13,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 200,
+          "anchor": "top",
+          "content": {
+            "type": "rule",
+            "lengthMm": 90,
+            "thicknessPt": 0.6
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 203,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "المناقش الخارجي",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 13,
+              "align": "center"
+            }
+          }
+        }
+      ],
+      "inToc": false
+    },
+    {
+      "type": "fieldPage",
+      "title": "الإهداء",
+      "field": "dedication",
+      "inToc": false
+    },
+    {
+      "type": "fieldPage",
+      "title": "الشكر والتقدير",
+      "field": "acknowledgements",
+      "inToc": true
+    },
+    {
+      "type": "fieldPage",
+      "title": "المستخلص",
+      "field": "abstract",
+      "inToc": true
+    },
+    {
+      "type": "fieldPage",
+      "title": "Abstract",
+      "field": "abstract_en",
+      "inToc": true,
+      "language": "english"
+    },
+    {
+      "type": "tableOfContents",
+      "title": "المحتويات"
+    },
+    {
+      "type": "listOfFigures",
+      "title": "قائمة الأشكال"
+    },
+    {
+      "type": "listOfTables",
+      "title": "قائمة الجداول"
+    }
+  ],
+  "language": {
+    "main": "arabic",
+    "other": "english",
+    "digits": "arabicIndic"
+  }
+}

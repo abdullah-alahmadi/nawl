@@ -78,6 +78,10 @@ export interface BuiltinTemplate {
   /** Publisher class it's built on (e.g. "IEEEtran"); null for Texloom layouts. */
   class: string | null;
   kind: "article" | "presentation";
+  /** The document language: Arabic templates are listed together. */
+  language: "english" | "arabic";
+  /** Sections at the top (articles) or chapters (reports, theses). */
+  topLevel: "chapter" | "section";
 }
 export const listBuiltinTemplates = () => invoke<BuiltinTemplate[]>("list_builtin_templates");
 export const switchToBuiltinTemplate = (id?: string) => invoke<TemplateInfo>("use_builtin_template", { id: id ?? null });
@@ -129,6 +133,8 @@ export interface BlankSpec {
   paper: { kind: "a4" | "letter" };
   /** Chapters (reports) instead of sections (articles). */
   chapters: boolean;
+  /** Arabic: right to left, Arabic labels, English as the second language. */
+  arabic: boolean;
 }
 /** Creates a template from scratch in My templates and makes it active. */
 export const createBlankTemplate = (name: string, spec: BlankSpec) => invoke<TemplateInfo>("create_blank_template", { name, spec });
@@ -173,6 +179,9 @@ export const readBibFile = (path: string) => invoke<string>("read_bib_file", { p
 export const newDocument = () => invoke<OpenedDocument>("new_document");
 export const openDocument = (path: string) => invoke<OpenedDocument>("open_document", { path });
 export const exportTex = (path: string, d: DocState) => invoke<void>("export_tex", { path, ...d });
+/** Writes a Word file; `mathml` maps each formula's LaTeX to its MathML. */
+export const exportDocx = (path: string, d: DocState, mathml: Record<string, string>) =>
+  invoke<void>("export_docx", { path, ...d, mathml });
 
 // Crash recovery: unsaved changes are kept in the app's data folder.
 export interface RecoveryInfo {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { AuthorInfo } from "../bindings/AuthorInfo";
 import type { FieldValue } from "../api";
 import { pickFigureImage } from "./Figures";
+import { useT } from "../i18n";
 
 const EMPTY: AuthorInfo = {
   name: "",
@@ -43,8 +44,9 @@ export function AuthorsEditor({
   /** Presenters: name, affiliation and e-mail only (no ORCID, membership…). */
   simple?: boolean;
   /** "author" or "presenter", for the add button. */
-  noun?: string;
+  noun?: "author" | "presenter";
 }) {
+  const t = useT();
   const authors = toAuthors(value);
   const [open, setOpen] = useState<number | null>(authors.length === 0 ? null : 0);
   const [problem, setProblem] = useState<string | null>(null);
@@ -91,18 +93,18 @@ export function AuthorsEditor({
         <div key={i} className={`author-card${open === i ? " open" : ""}`}>
           <button type="button" className="author-summary" onClick={() => setOpen(open === i ? null : i)} aria-expanded={open === i}>
             <span className="author-n">{i + 1}</span>
-            <span className="author-name">{a.name || "(no name)"}</span>
-            {a.corresponding && !simple && <span className="author-tag">corresponding</span>}
+            <span className="author-name">{a.name || t("editor.authorNoName")}</span>
+            {a.corresponding && !simple && <span className="author-tag">{t("editor.authorCorresponding")}</span>}
             <span className="muted author-aff">{a.affiliations[0] ?? ""}</span>
           </button>
           {open === i && (
             <div className="author-fields">
               <label>
-                Name
+                {t("common.name")}
                 <input value={a.name} onChange={(e) => update(i, { name: e.target.value })} autoFocus={!a.name} />
               </label>
               <label>
-                Affiliations <span className="muted">(one per line)</span>
+                {t("editor.authorAffiliations")} <span className="muted">{t("editor.onePerLine")}</span>
                 <textarea
                   rows={2}
                   value={a.affiliations.join("\n")}
@@ -112,14 +114,14 @@ export function AuthorsEditor({
               </label>
               {simple ? (
                 <label>
-                  E-mail <span className="muted">(optional)</span>
+                  {t("editor.authorEmail")} <span className="muted">{t("editor.optional")}</span>
                   <input type="email" value={a.email} onChange={(e) => update(i, { email: e.target.value })} />
                 </label>
               ) : (
                 <>
                   <div className="author-row">
                     <label>
-                      E-mail
+                      {t("editor.authorEmail")}
                       <input type="email" value={a.email} onChange={(e) => update(i, { email: e.target.value })} />
                     </label>
                     <label>
@@ -128,30 +130,30 @@ export function AuthorsEditor({
                     </label>
                   </div>
                   <label>
-                    Membership <span className="muted">(e.g. Member, IEEE)</span>
+                    {t("editor.authorMembership")} <span className="muted">{t("editor.authorMembershipHint")}</span>
                     <input value={a.membership} onChange={(e) => update(i, { membership: e.target.value })} />
                   </label>
                   <label className="author-check">
                     <input type="checkbox" checked={a.corresponding} onChange={(e) => update(i, { corresponding: e.target.checked })} />
-                    Corresponding author
+                    {t("editor.correspondingAuthor")}
                   </label>
                 </>
               )}
               {showBiographies && (
                 <>
                   <label>
-                    Biography <span className="muted">(printed at the end of the paper)</span>
+                    {t("editor.biography")} <span className="muted">{t("editor.biographyHint")}</span>
                     <textarea rows={3} value={a.biography} onChange={(e) => update(i, { biography: e.target.value })} />
                   </label>
                   <div className="author-row">
-                    <span className="muted">{a.photo ? `Photo: ${a.photo}` : "No photo"}</span>
+                    <span className="muted">{a.photo ? t("editor.photo", { path: a.photo }) : t("editor.noPhoto")}</span>
                     <span>
                       <button type="button" onClick={() => choosePhoto(i)}>
-                        {a.photo ? "Change photo…" : "Add photo…"}
+                        {a.photo ? t("editor.changePhoto") : t("editor.addPhoto")}
                       </button>
                       {a.photo && (
                         <button type="button" onClick={() => update(i, { photo: "" })}>
-                          Remove
+                          {t("common.remove")}
                         </button>
                       )}
                     </span>
@@ -160,13 +162,13 @@ export function AuthorsEditor({
               )}
               <div className="author-actions">
                 <button type="button" disabled={i === 0} onClick={() => move(i, i - 1)}>
-                  ↑ Up
+                  {t("editor.up")}
                 </button>
                 <button type="button" disabled={i === authors.length - 1} onClick={() => move(i, i + 1)}>
-                  ↓ Down
+                  {t("editor.down")}
                 </button>
                 <button type="button" className="danger" onClick={() => remove(i)}>
-                  Remove
+                  {t("common.remove")}
                 </button>
               </div>
             </div>
@@ -175,7 +177,7 @@ export function AuthorsEditor({
       ))}
       {problem && <div className="d-error">{problem}</div>}
       <button type="button" className="d-add" onClick={add}>
-        + Add {noun}
+        + {t(noun === "presenter" ? "editor.addPresenter" : "editor.addAuthor")}
       </button>
     </div>
   );

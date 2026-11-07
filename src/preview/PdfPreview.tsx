@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import type { PdfSpot } from "../api";
+import { useT } from "../i18n";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -25,6 +26,7 @@ export function PdfPreview({
   /** A place to show; a new object each time, so the same place can be shown again. */
   spot?: PdfSpot | null;
 }) {
+  const t = useT();
   const reportPages = useRef(onPages);
   reportPages.current = onPages;
   const container = useRef<HTMLDivElement>(null);
@@ -120,7 +122,7 @@ export function PdfPreview({
         onLocate(Number(box.dataset.page), (e.clientX - rect.left) / scale, (e.clientY - rect.top) / scale);
       }}
     >
-      {!pdf && <p className="muted pdf-empty">The PDF preview appears here after the first compile.</p>}
+      {!pdf && <p className="muted pdf-empty">{t("dialogs.pdfEmpty")}</p>}
       {/* Filled imperatively; React never renders children into it. */}
       <div className="pdf-pages" ref={container} />
     </div>

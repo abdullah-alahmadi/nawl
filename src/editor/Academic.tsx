@@ -5,7 +5,9 @@ import type { Editor, ReactNodeViewProps } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import type { Template } from "../api";
 import type { BibEntry } from "../api";
+import { docLanguage, hasArabic, localDigits, words } from "./language";
 import { computeNumbering, type NumberedItem } from "./numbering";
+import { t as tr, useT } from "../i18n";
 
 /** Node types that cross-references can point at. */
 const TARGET_TYPES = ["heading", "figure", "tableFigure", "equation"];
@@ -134,6 +136,7 @@ export function useNumbering(editor: Editor): NumberedItem[] {
 // ---------------------------------------------------------------- cross-references
 
 function RefView({ node, editor, selected }: ReactNodeViewProps) {
+  const t = useT();
   const items = useNumbering(editor);
   const target = items.find((i) => i.id === node.attrs.target);
   const jump = (e: React.MouseEvent) => {
@@ -145,7 +148,7 @@ function RefView({ node, editor, selected }: ReactNodeViewProps) {
     <NodeViewWrapper
       as="span"
       className={`ref${target ? "" : " broken"}${selected ? " is-selected" : ""}`}
-      title={target ? `${target.refText}: ${target.text} (Ctrl+click to go there)` : "The item this pointed to was deleted"}
+      title={target ? t("editor.refTooltip", { ref: target.refText, text: target.text }) : t("editor.refBroken")}
       onClick={jump}
     >
       {target ? target.refText : "??"}
@@ -191,13 +194,17 @@ export function citationLabels(editor: Editor): Map<string, string> {
     if (n.type.name === "citation") for (const k of n.attrs.keys as string[]) if (!order.includes(k)) order.push(k);
   });
   const style = template.bibliography.style;
+  const digits = docLanguage(template).digits;
   if (style === "authorYear") {
     for (const k of order) {
       const e = byKey.get(k);
       if (!e) continue;
       const a = e.authors;
-      const who = a.length === 0 ? e.title || k : a.length === 1 ? a[0] : a.length === 2 ? `${a[0]} and ${a[1]}` : `${a[0]} et al.`;
-      labels.set(k, `${who}, ${e.year ?? "n.d."}`);
+      // The entry's own language: "et al." / "وآخرون", as in the reference list.
+      const w = words(hasArabic(e.title + a.join(" ")) ? "arabic" : "english");
+      const and = w.and === "و" ? ` ${w.and}` : ` ${w.and} `;
+      const who = a.length === 0 ? e.title || k : a.length === 1 ? a[0] : a.length === 2 ? `${a[0]}${and}${a[1]}` : `${a[0]} ${w.etAl}`;
+      labels.set(k, `${who}, ${localDigits(e.year ?? w.noDate, digits)}`);
     }
   } else {
     // IEEE numbers by first citation; "numeric" sorts the list by author, then year, then title.
@@ -209,12 +216,13 @@ export function citationLabels(editor: Editor): Map<string, string> {
       };
       known = [...known].sort((x, y) => sortKey(x).localeCompare(sortKey(y)));
     }
-    known.forEach((k, i) => labels.set(k, String(i + 1)));
+    known.forEach((k, i) => labels.set(k, localDigits(String(i + 1), digits)));
   }
   return labels;
 }
 
 function CitationView({ node, editor, selected }: ReactNodeViewProps) {
+  const t = useT();
   const labels = useEditorState({
     editor,
     selector: ({ editor }) => Array.from(citationLabels(editor).entries()),
@@ -230,7 +238,7 @@ function CitationView({ node, editor, selected }: ReactNodeViewProps) {
   const title = keys
     .map((k) => {
       const e = entries.find((x) => x.key === k);
-      return e ? `${k}: ${e.authors.join(", ")} (${e.year ?? "n.d."}) ${e.title}` : `${k}: not in the references`;
+      return e ? `${k}: ${e.authors.join(", ")} (${e.year ?? t("editor.citationNoDate")}) ${e.title}` : t("editor.citationMissing", { key: k });
     })
     .join("\n");
   return (
@@ -299,7 +307,8 @@ export const AppendixStart = Node.create({
   renderHTML: ({ HTMLAttributes }) => [
     "div",
     mergeAttributes(HTMLAttributes, { "data-appendix-start": "", class: "appendix-divider", contenteditable: "false" }),
-    "Appendices: chapters below are lettered A, B…",
+    // Interface text, not document content: the PDF has no such line.
+    tr("editor.appendixDivider"),
   ],
 
   addCommands() {

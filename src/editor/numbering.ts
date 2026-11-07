@@ -2,6 +2,7 @@
 // outline, the cross-reference picker and references in the text agree with it.
 import type { Node as PMNode } from "@tiptap/pm/model";
 import type { Template } from "../api";
+import { docLanguage, localDigits, words } from "./language";
 
 export type TargetKind = "heading" | "figure" | "table" | "equation";
 
@@ -31,11 +32,20 @@ function headingWord(t: Template, level: number, appendix: boolean): string {
   const label = appendix && level === 1 ? t.structure.appendixLabel : t.headings.levels[level - 1]?.label ?? "";
   const word = label.replace(/\{n\}/g, "").replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
   if (word) return word;
-  if (level === 1 && appendix) return "Appendix";
-  return level === 1 && t.structure.topLevel === "chapter" ? "Chapter" : "Section";
+  const w = words(docLanguage(t).main);
+  if (level === 1 && appendix) return w.appendix;
+  return level === 1 && t.structure.topLevel === "chapter" ? w.chapter : w.section;
 }
 
 export function computeNumbering(doc: PMNode, t: Template): NumberedItem[] {
+  // Numbers written with the document's digits (٣٫١ in Arabic documents that use them).
+  const digits = docLanguage(t).digits;
+  return computeWesternNumbering(doc, t).map((i) =>
+    digits === "western" ? i : { ...i, number: localDigits(i.number, digits), refText: i.number ? localDigits(i.refText, digits) : i.refText },
+  );
+}
+
+function computeWesternNumbering(doc: PMNode, t: Template): NumberedItem[] {
   const items: NumberedItem[] = [];
   const counters = [0, 0, 0, 0];
   let figure = 0;

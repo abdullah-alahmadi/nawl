@@ -1,0 +1,468 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "metadata": {
+    "title": "أثر التغذية الراجعة الفورية في بيئات التعلم الإلكتروني على تحصيل طلاب الجامعة",
+    "authors": [
+      {
+        "name": "عبدالله الأحمدي",
+        "affiliations": [
+          "قسم تقنيات التعليم، جامعة الملك عبدالعزيز، جدة"
+        ],
+        "email": "author@example.edu.sa",
+        "corresponding": true
+      },
+      {
+        "name": "سارة القحطاني",
+        "affiliations": [
+          "قسم تقنيات التعليم، جامعة الملك عبدالعزيز، جدة"
+        ]
+      }
+    ],
+    "abstract": "هدفت الدراسة إلى قياس أثر التغذية الراجعة الفورية في بيئات التعلم الإلكتروني على تحصيل طلاب الجامعة. استخدمت الدراسة المنهج شبه التجريبي، وأظهرت النتائج تفوق المجموعة التجريبية.",
+    "keywords": "التعلم الإلكتروني، التغذية الراجعة، التحصيل الدراسي",
+    "title_en": "The Effect of Immediate Feedback in E-Learning Environments on University Students' Achievement",
+    "abstract_en": "This study measured the effect of immediate feedback in e-learning environments on university students' achievement. A quasi-experimental design was used, and the experimental group outperformed the control group.",
+    "keywords_en": "e-learning, feedback, achievement"
+  },
+  "bibliography": "@article{alahmadi2022,\n  author = {الأحمدي, عبدالله and العتيبي, محمد},\n  title = {واقع استخدام أنظمة إدارة التعلم في الجامعات السعودية},\n  journal = {المجلة العربية للتربية},\n  volume = {14},\n  number = {3},\n  pages = {45--70},\n  year = {2022}\n}\n\n@article{siemens2013,\n  author = {Siemens, George},\n  title = {Learning Analytics: The Emergence of a Discipline},\n  journal = {American Behavioral Scientist},\n  volume = {57},\n  number = {10},\n  pages = {1380--1400},\n  year = {2013},\n  doi = {10.1177/0002764213498851}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "h-intro",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المقدمة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "شهد التعليم الإلكتروني نموًا متسارعًا في العقد الأخير، وأصبحت تقنيات "
+          },
+          {
+            "type": "text",
+            "text": "machine learning",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " جزءًا أساسيًا من أنظمة إدارة التعلم مثل "
+          },
+          {
+            "type": "text",
+            "text": "Moodle"
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "text",
+            "text": "Blackboard"
+          },
+          {
+            "type": "text",
+            "text": " "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alahmadi2022",
+                "siemens2013"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تهدف هذه الدراسة إلى قياس أثر التغذية الراجعة الفورية على تحصيل الطلاب، كما يوضح "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-model"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "h-method",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "منهجية الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "اعتمدت الدراسة المنهج شبه التجريبي على عينة من 120 طالبًا، وقيس التحصيل بالمعادلة "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-gain"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "g = \\frac{post - pre}{100 - pre}",
+          "numbered": true,
+          "id": "eq-gain"
+        }
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/system-diagram.png",
+          "widthPercent": 70,
+          "id": "fig-model"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "نموذج الدراسة المقترح"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "h-results",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النتائج"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يلخص "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-results"
+            }
+          },
+          {
+            "type": "text",
+            "text": " نتائج المجموعتين، إذ تفوقت المجموعة التجريبية بفارق دال إحصائيًا "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "p < 0.05"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-results"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "متوسط درجات التحصيل"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المجموعة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "القبلي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "البعدي"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التجريبية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "54.2"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "81.6"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الضابطة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "53.8"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "66.1"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "As Siemens notes, learning analytics should serve learners first, not institutions."
+          }
+        ],
+        "attrs": {
+          "dir": "ltr"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "h-conclusion",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الخاتمة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "توصي الدراسة بإدماج التغذية الراجعة الفورية في المقررات الإلكترونية، ودراسة أثرها على المدى الطويل."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": []
+      }
+    ]
+  }
+}

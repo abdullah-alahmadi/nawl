@@ -8,6 +8,7 @@ import { Check, LoaderCircle, Palette, Pipette, Search, X } from "lucide-react";
 import * as api from "./api";
 import type { PresentationSettings } from "./bindings/PresentationSettings";
 import { BEAMER_COLOR_THEMES, BEAMER_THEMES } from "./editor/templateStyle";
+import { useT } from "./i18n";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -48,6 +49,7 @@ function preview(theme: string, colorTheme: string, fontTheme: string, installed
 
 /** The title slide and the content slide of a preview PDF. */
 function Thumb({ theme, colorTheme, fontTheme, installed }: { theme: string; colorTheme: string; fontTheme: string; installed: boolean }) {
+  const t = useT();
   const box = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"waiting" | "loading" | "done" | "failed">("waiting");
 
@@ -97,7 +99,7 @@ function Thumb({ theme, colorTheme, fontTheme, installed }: { theme: string; col
       <span className="theme-thumb" ref={box} />
       {state !== "done" && (
         <span className={`theme-thumb-state${state === "failed" ? " failed" : ""}`}>
-          {state === "failed" ? "No preview: this theme didn't compile here" : <LoaderCircle size={16} className="spin" aria-label="Rendering" />}
+          {state === "failed" ? t("dialogs.noThemePreview") : <LoaderCircle size={16} className="spin" aria-label={t("dialogs.rendering")} />}
         </span>
       )}
     </span>
@@ -119,6 +121,7 @@ export function ThemePicker({
   onChange: (patch: Partial<PresentationSettings>, installedOnly: boolean) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [tab, setTab] = useState<"theme" | "colour">("theme");
   const [query, setQuery] = useState("");
   const [installed, setInstalled] = useState<api.BeamerThemeList>({ themes: [], colorThemes: [], fontThemes: [] });
@@ -139,38 +142,38 @@ export function ThemePicker({
   const themes = useMemo(() => merge(BEAMER_THEMES, installed.themes), [installed]);
   const colours = useMemo(() => merge(BEAMER_COLOR_THEMES.filter((c) => c !== "default"), installed.colorThemes.filter((c) => c !== "structure")), [installed]);
   const q = query.trim().toLowerCase();
-  const list = (tab === "theme" ? themes : colours).filter((t) => !q || t.name.toLowerCase().includes(q));
-  const themeInstalledOnly = themes.find((t) => t.name === settings.theme)?.installedOnly ?? false;
+  const list = (tab === "theme" ? themes : colours).filter((th) => !q || th.name.toLowerCase().includes(q));
+  const themeInstalledOnly = themes.find((th) => th.name === settings.theme)?.installedOnly ?? false;
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal gallery theme-picker" role="dialog" aria-modal="true" aria-label="Presentation theme">
+      <div className="modal gallery theme-picker" role="dialog" aria-modal="true" aria-label={t("dialogs.presentationTheme")}>
         <div className="gallery-main">
           <div className="gallery-head">
-            <h2>Presentation theme</h2>
+            <h2>{t("dialogs.presentationTheme")}</h2>
             <span className="segmented theme-tabs" role="tablist">
               <button role="tab" aria-selected={tab === "theme"} className={tab === "theme" ? "active" : ""} onClick={() => setTab("theme")}>
-                Theme
+                {t("dialogs.themeTab")}
               </button>
               <button role="tab" aria-selected={tab === "colour"} className={tab === "colour" ? "active" : ""} onClick={() => setTab("colour")}>
-                <Palette size={14} aria-hidden="true" /> Colours
+                <Palette size={14} aria-hidden="true" /> {t("dialogs.coloursTab")}
               </button>
             </span>
             <label className="gallery-search">
               <Search size={14} aria-hidden="true" />
-              <input type="search" placeholder={tab === "theme" ? `Search ${themes.length} themes` : `Search ${colours.length} colour themes`} value={query} onChange={(e) => setQuery(e.target.value)} spellCheck={false} />
+              <input type="search" placeholder={tab === "theme" ? t("dialogs.searchCountThemes", { n: themes.length }) : t("dialogs.searchCountColourThemes", { n: colours.length })} value={query} onChange={(e) => setQuery(e.target.value)} spellCheck={false} />
             </label>
-            <button className="icon-button" onClick={onClose} aria-label="Close" title="Close (Esc)">
+            <button className="icon-button" onClick={onClose} aria-label={t("common.close")} title={t("dialogs.closeEsc")}>
               <X size={17} />
             </button>
           </div>
           <div className="gallery-body">
             {tab === "colour" && (
               <section className="accent-row">
-                <h3>Main colour</h3>
+                <h3>{t("dialogs.mainColour")}</h3>
                 <div className="accent-swatches">
-                  <button className={`accent-none${settings.accentColor ? "" : " active"}`} onClick={() => onChange({ accentColor: undefined }, themeInstalledOnly)} title="The theme's own colours">
-                    Theme's own
+                  <button className={`accent-none${settings.accentColor ? "" : " active"}`} onClick={() => onChange({ accentColor: undefined }, themeInstalledOnly)} title={t("dialogs.themesOwnColours")}>
+                    {t("dialogs.themesOwn")}
                   </button>
                   {ACCENTS.map((c) => (
                     <button
@@ -178,27 +181,24 @@ export function ThemePicker({
                       className={`swatch${settings.accentColor?.toLowerCase() === c ? " active" : ""}`}
                       style={{ background: c }}
                       title={c}
-                      aria-label={`Main colour ${c}`}
+                      aria-label={t("dialogs.mainColourNamed", { color: c })}
                       onClick={() => onChange({ accentColor: c }, themeInstalledOnly)}
                     />
                   ))}
-                  <label className={`swatch-custom${settings.accentColor && !ACCENTS.includes(settings.accentColor.toLowerCase()) ? " active" : ""}`} title="Custom colour…" style={settings.accentColor && !ACCENTS.includes(settings.accentColor.toLowerCase()) ? { background: settings.accentColor } : undefined}>
+                  <label className={`swatch-custom${settings.accentColor && !ACCENTS.includes(settings.accentColor.toLowerCase()) ? " active" : ""}`} title={t("dialogs.customColour")} style={settings.accentColor && !ACCENTS.includes(settings.accentColor.toLowerCase()) ? { background: settings.accentColor } : undefined}>
                     <Pipette size={13} aria-hidden="true" />
-                    <input type="color" value={settings.accentColor ?? "#1f4e79"} onChange={(e) => onChange({ accentColor: e.target.value }, themeInstalledOnly)} aria-label="Custom main colour" />
+                    <input type="color" value={settings.accentColor ?? "#1f4e79"} onChange={(e) => onChange({ accentColor: e.target.value }, themeInstalledOnly)} aria-label={t("dialogs.customMainColour")} />
                   </label>
                 </div>
-                <p className="muted gallery-note">
-                  Title bars, bullets and blocks take this colour instead of the theme's. Or choose a colour theme below
-                  {settings.accentColor ? " (the main colour overrides it)" : ""}.
-                </p>
+                <p className="muted gallery-note">{t(settings.accentColor ? "dialogs.accentNoteOverride" : "dialogs.accentNote")}</p>
               </section>
             )}
             <section>
-              {tab === "colour" && <h3>Colour themes, shown with {settings.theme}</h3>}
+              {tab === "colour" && <h3>{t("dialogs.colourThemesWith", { theme: settings.theme })}</h3>}
               <div className="gallery-grid theme-grid">
                 {tab === "colour" && !q && (
                   <ThemeCard
-                    label="Theme's own"
+                    label={t("dialogs.themesOwn")}
                     current={!settings.colorTheme}
                     onClick={() => onChange({ colorTheme: "" }, themeInstalledOnly)}
                     theme={settings.theme}
@@ -207,31 +207,31 @@ export function ThemePicker({
                     installedOnly={themeInstalledOnly}
                   />
                 )}
-                {list.map((t) => (
+                {list.map((th) => (
                   <ThemeCard
-                    key={t.name}
-                    label={t.name}
-                    badge={t.installedOnly ? "TeX installation" : undefined}
-                    current={tab === "theme" ? settings.theme === t.name : settings.colorTheme === t.name}
-                    onClick={() => onChange(tab === "theme" ? { theme: t.name } : { colorTheme: t.name }, tab === "theme" ? t.installedOnly : t.installedOnly || themeInstalledOnly)}
-                    theme={tab === "theme" ? t.name : settings.theme}
-                    colorTheme={tab === "theme" ? "" : t.name}
+                    key={th.name}
+                    label={th.name}
+                    badge={th.installedOnly ? t("dialogs.sourceTex") : undefined}
+                    current={tab === "theme" ? settings.theme === th.name : settings.colorTheme === th.name}
+                    onClick={() => onChange(tab === "theme" ? { theme: th.name } : { colorTheme: th.name }, tab === "theme" ? th.installedOnly : th.installedOnly || themeInstalledOnly)}
+                    theme={tab === "theme" ? th.name : settings.theme}
+                    colorTheme={tab === "theme" ? "" : th.name}
                     fontTheme={settings.fontTheme}
-                    installedOnly={t.installedOnly || (tab === "colour" && themeInstalledOnly)}
+                    installedOnly={th.installedOnly || (tab === "colour" && themeInstalledOnly)}
                   />
                 ))}
               </div>
-              {list.length === 0 && <p className="muted gallery-empty">Nothing matches “{query.trim()}”.</p>}
+              {list.length === 0 && <p className="muted gallery-empty">{t("dialogs.nothingMatches", { query: query.trim() })}</p>}
             </section>
           </div>
           <div className="gallery-foot">
             <span className="muted">
-              Previews are rendered with {engine === "tectonic" ? "Tectonic" : engine}
-              {engine === "tectonic" && installed.themes.length > 0 ? " (themes from your TeX installation with pdfLaTeX)" : ""} and kept for next time. Choosing one
-              restyles the presentation at once.
+              {engine === "tectonic" && installed.themes.length > 0
+                ? t("dialogs.themePreviewsNoteInstalled")
+                : t("dialogs.themePreviewsNote", { engine: engine === "tectonic" ? "Tectonic" : engine })}
             </span>
             <button className="tb-button" onClick={onClose}>
-              <Check size={15} aria-hidden="true" /> Done
+              <Check size={15} aria-hidden="true" /> {t("common.done")}
             </button>
           </div>
         </div>
@@ -259,13 +259,14 @@ function ThemeCard({
   fontTheme: string;
   installedOnly: boolean;
 }) {
+  const t = useT();
   return (
     <button className={`gallery-card theme-card${current ? " current" : ""}`} onClick={onClick} aria-pressed={current}>
       <Thumb theme={theme} colorTheme={colorTheme} fontTheme={fontTheme} installed={installedOnly} />
       <span className="theme-card-label">
         <strong>{label}</strong>
         {badge && <span className="muted theme-badge">{badge}</span>}
-        {current && <Check size={14} className="theme-current" aria-label="Current" />}
+        {current && <Check size={14} className="theme-current" aria-label={t("dialogs.current")} />}
       </span>
     </button>
   );

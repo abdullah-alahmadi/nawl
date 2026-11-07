@@ -1,0 +1,49 @@
+// The document's language as the editor shows it: direction, digits, the words
+// Texloom writes itself ("Chapter", "et al."), and fonts for Arabic text. Mirrors
+// crates/codegen/src/language.rs and strings.rs, so the page matches the PDF.
+import type { Template } from "../api";
+import type { Language } from "../bindings/Language";
+import type { Digits } from "../bindings/Digits";
+
+export interface DocLanguage {
+  main: Language;
+  digits: Digits;
+  /** Right to left. */
+  rtl: boolean;
+  /** BCP 47 tag for `lang` (spell checking). */
+  tag: string;
+}
+
+export function docLanguage(t: Template | null | undefined): DocLanguage {
+  const main = t?.language?.main ?? "english";
+  return { main, digits: t?.language?.digits ?? "western", rtl: main === "arabic", tag: main === "arabic" ? "ar" : "en" };
+}
+
+/** Western digits written the document's way (٣٫١ stays ASCII-punctuated: "٣.١"). */
+export function localDigits(s: string, digits: Digits): string {
+  if (digits !== "arabicIndic") return s;
+  return s.replace(/[0-9]/g, (d) => String.fromCharCode(0x0660 + Number(d)));
+}
+
+export interface Words {
+  chapter: string;
+  section: string;
+  appendix: string;
+  and: string;
+  etAl: string;
+  noDate: string;
+}
+
+const WORDS: Record<Language, Words> = {
+  english: { chapter: "Chapter", section: "Section", appendix: "Appendix", and: "and", etAl: "et al.", noDate: "n.d." },
+  arabic: { chapter: "الفصل", section: "القسم", appendix: "الملحق", and: "و", etAl: "وآخرون", noDate: "د.ت." },
+};
+
+export const words = (lang: Language): Words => WORDS[lang];
+
+/** Arabic letters in a string. */
+export const hasArabic = (s: string) => /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/.test(s);
+
+/** Fonts that show Arabic, after the template's own Arabic font: Amiri (the PDF's
+ *  default), then fonts Windows, macOS and Linux usually have. */
+export const ARABIC_FALLBACKS = ['"Amiri"', '"Traditional Arabic"', '"Noto Naskh Arabic"', '"Geeza Pro"', '"Simplified Arabic"', '"Arial"'];

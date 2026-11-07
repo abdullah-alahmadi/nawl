@@ -1,0 +1,286 @@
+{
+  "meta": {
+    "id": "arabic-book",
+    "name": "كتاب عربي",
+    "description": "كتاب بالعربية: صفحات متقابلة، فصول، ترويسة باسم الفصل، فهرس. An Arabic book: two-sided pages, chapters, running headers.",
+    "version": "1.0.0"
+  },
+  "page": {
+    "paper": {
+      "kind": "custom",
+      "widthMm": 170,
+      "heightMm": 240
+    },
+    "margins": {
+      "topMm": 22,
+      "bottomMm": 22,
+      "innerMm": 24,
+      "outerMm": 18
+    },
+    "twoSided": true,
+    "bindingOffsetMm": 0,
+    "lineSpacing": {
+      "kind": "custom",
+      "stretch": 1.15
+    },
+    "paragraph": {
+      "indentMm": 5,
+      "spacingPt": 0
+    }
+  },
+  "fonts": {
+    "baseSizePt": 12,
+    "main": {
+      "kind": "builtin",
+      "font": "termes"
+    },
+    "sans": {
+      "kind": "builtin",
+      "font": "heros"
+    },
+    "mono": {
+      "kind": "builtin",
+      "font": "latinModern"
+    }
+  },
+  "structure": {
+    "topLevel": "chapter",
+    "numberedDepth": 3,
+    "tocDepth": 2,
+    "frontMatterPageNumbers": "lowerRoman",
+    "mainPageNumbers": "arabic",
+    "perChapterNumbering": true,
+    "appendixLabel": "الملحق {n}"
+  },
+  "headings": {
+    "levels": [
+      {
+        "text": {
+          "sizePt": 20,
+          "bold": true,
+          "align": "center"
+        },
+        "layout": "display",
+        "label": "الفصل {n}",
+        "labelGapPt": 8,
+        "spaceBeforePt": 0,
+        "spaceAfterPt": 24
+      },
+      {
+        "text": {
+          "sizePt": 16,
+          "bold": true,
+          "align": "right"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 18,
+        "spaceAfterPt": 8
+      },
+      {
+        "text": {
+          "sizePt": 14,
+          "bold": true,
+          "align": "right"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 14,
+        "spaceAfterPt": 6
+      },
+      {
+        "text": {
+          "sizePt": 12,
+          "bold": true,
+          "align": "right"
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 12,
+        "spaceAfterPt": 4
+      }
+    ]
+  },
+  "headerFooter": {
+    "frontMatter": {
+      "footer": {
+        "center": "{page}"
+      }
+    },
+    "main": {
+      "header": {
+        "center": "{chapter}"
+      },
+      "footer": {
+        "center": "{page}"
+      },
+      "headerRulePt": 0.4
+    },
+    "chapterOpening": {
+      "footer": {
+        "center": "{page}"
+      }
+    }
+  },
+  "captions": {
+    "figureLabel": "شكل",
+    "tableLabel": "جدول",
+    "separator": "colon",
+    "labelBold": true,
+    "size": "small",
+    "align": "center"
+  },
+  "bibliography": {
+    "style": "authorYear",
+    "title": "المراجع",
+    "inToc": true
+  },
+  "skeleton": [],
+  "titlePage": {
+    "items": [
+      {
+        "xMm": 85,
+        "yMm": 60,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{title}",
+          "widthMm": 140,
+          "style": {
+            "sizePt": 26,
+            "align": "center",
+            "bold": true
+          }
+        }
+      },
+      {
+        "xMm": 85,
+        "yMm": 92,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{subtitle}",
+          "widthMm": 140,
+          "style": {
+            "sizePt": 16,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 85,
+        "yMm": 120,
+        "anchor": "top",
+        "content": {
+          "type": "rule",
+          "lengthMm": 60,
+          "thicknessPt": 0.8
+        }
+      },
+      {
+        "xMm": 85,
+        "yMm": 140,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{author}",
+          "widthMm": 140,
+          "style": {
+            "sizePt": 17,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 85,
+        "yMm": 205,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{publisher}",
+          "widthMm": 140,
+          "style": {
+            "sizePt": 14,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 85,
+        "yMm": 214,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{place} {year}",
+          "widthMm": 140,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      }
+    ]
+  },
+  "fields": [
+    {
+      "id": "title",
+      "label": "عنوان الكتاب",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "subtitle",
+      "label": "العنوان الفرعي",
+      "kind": "text"
+    },
+    {
+      "id": "author",
+      "label": "المؤلف",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "publisher",
+      "label": "الناشر",
+      "kind": "text"
+    },
+    {
+      "id": "place",
+      "label": "مكان النشر",
+      "kind": "text"
+    },
+    {
+      "id": "year",
+      "label": "سنة النشر",
+      "kind": "text"
+    },
+    {
+      "id": "preface",
+      "label": "المقدمة",
+      "kind": "paragraphs"
+    }
+  ],
+  "frontMatter": [
+    {
+      "type": "titlePage"
+    },
+    {
+      "type": "fieldPage",
+      "title": "المقدمة",
+      "field": "preface",
+      "inToc": true
+    },
+    {
+      "type": "tableOfContents",
+      "title": "المحتويات"
+    }
+  ],
+  "language": {
+    "main": "arabic",
+    "other": "english",
+    "digits": "arabicIndic"
+  }
+}

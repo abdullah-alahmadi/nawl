@@ -8,6 +8,7 @@ import type { BibEntry, BibInfo } from "../api";
 import { useNumbering } from "./Academic";
 import { ReferenceDialog } from "./ReferenceDialog";
 import { appendEntry, replaceEntry } from "./bibtex";
+import { useT } from "../i18n";
 
 /** A popover with a search box and a keyboard-navigable list. */
 function Popover<T>({
@@ -29,6 +30,7 @@ function Popover<T>({
   empty: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const t = useT();
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
@@ -47,11 +49,11 @@ function Popover<T>({
     <div className="picker" role="dialog" aria-label={title} onKeyDown={onKey}>
       <div className="picker-head">
         <strong>{title}</strong>
-        <button onClick={onClose} aria-label="Close">
+        <button onClick={onClose} aria-label={t("common.close")}>
           ×
         </button>
       </div>
-      <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" />
+      <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("editor.searchPlaceholder")} />
       <div className="picker-list" role="listbox">
         {items.length === 0 && <div className="picker-empty">{empty}</div>}
         {shown.map((item, i) => (
@@ -73,10 +75,11 @@ function Popover<T>({
 }
 
 export function RefPicker({ editor, onClose }: { editor: Editor; onClose: () => void }) {
+  const t = useT();
   const items = useNumbering(editor).filter((i) => i.id && (i.kind !== "heading" || i.number));
   return (
     <Popover
-      title="Insert cross-reference"
+      title={t("editor.insertCrossRef")}
       items={items}
       match={(i, q) => !q || `${i.refText} ${i.text}`.toLowerCase().includes(q)}
       render={(i) => (
@@ -90,7 +93,7 @@ export function RefPicker({ editor, onClose }: { editor: Editor; onClose: () => 
         onClose();
       }}
       onClose={onClose}
-      empty="Numbered headings, figures, tables and equations appear here."
+      empty={t("editor.crossRefEmpty")}
     />
   );
 }
@@ -106,9 +109,10 @@ export function CitePicker({
   onClose: () => void;
   onManage: () => void;
 }) {
+  const t = useT();
   return (
     <Popover
-      title="Insert citation"
+      title={t("editor.insertCitation")}
       items={entries}
       match={(e, q) => !q || `${e.key} ${e.authors.join(" ")} ${e.year ?? ""} ${e.title}`.toLowerCase().includes(q)}
       render={(e) => (
@@ -125,7 +129,7 @@ export function CitePicker({
         onClose();
       }}
       onClose={onClose}
-      empty={<>No references yet. Add them in References.</>}
+      empty={t("editor.citationEmpty")}
       footer={
         <button
           onClick={() => {
@@ -133,7 +137,7 @@ export function CitePicker({
             onManage();
           }}
         >
-          Manage references…
+          {t("editor.manageReferences")}
         </button>
       }
     />
@@ -152,6 +156,7 @@ export function ReferencesPanel({
   cited: string[];
   onChange: (source: string) => void;
 }) {
+  const t = useT();
   const [problem, setProblem] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   /** The reference window: a new entry, or the key of one being edited. */
@@ -172,17 +177,17 @@ export function ReferencesPanel({
   return (
     <div className="refs">
       <p className="muted refs-help">
-        The document's references. Add one with the form, or import BibTeX exported from Zotero, Mendeley or Google Scholar.
+        {t("editor.refsHelp")}
       </p>
       <div className="refs-actions">
-        <button className="tb-button primary" onClick={() => setDialog({ key: null })} disabled={!!info.error} title={info.error ? "Fix the BibTeX error first" : undefined}>
-          New reference…
+        <button className="tb-button primary" onClick={() => setDialog({ key: null })} disabled={!!info.error} title={info.error ? t("editor.fixBibtexFirst") : undefined}>
+          {t("editor.newReference")}
         </button>
         <button className="tb-button" onClick={importFile}>
-          Import .bib…
+          {t("editor.importBib")}
         </button>
         <button className={`tb-button${editing ? " active" : ""}`} onClick={() => setEditing((v) => !v)}>
-          {editing ? "Hide BibTeX" : "Edit BibTeX"}
+          {editing ? t("editor.hideBibtex") : t("editor.editBibtex")}
         </button>
       </div>
       {problem && <div className="d-error">{problem}</div>}
@@ -200,7 +205,9 @@ export function ReferencesPanel({
         <div className="d-error">{info.error}</div>
       ) : (
         <div className="refs-count muted">
-          {info.entries.length} entr{info.entries.length === 1 ? "y" : "ies"}, {cited.length} cited
+          {info.entries.length === 1
+            ? t("editor.refsCountOne", { cited: cited.length })
+            : t("editor.refsCount", { n: info.entries.length, cited: cited.length })}
         </div>
       )}
       <div className="refs-entries">
@@ -208,7 +215,7 @@ export function ReferencesPanel({
           <button
             key={e.key}
             className={`refs-entry${cited.includes(e.key) ? " cited" : ""}`}
-            title={`${cited.includes(e.key) ? "Cited in the text" : "Not cited yet"}. Click to edit.`}
+            title={cited.includes(e.key) ? t("editor.citedInText") : t("editor.notCitedYet")}
             onClick={() => setDialog({ key: e.key })}
           >
             <code>{e.key}</code>

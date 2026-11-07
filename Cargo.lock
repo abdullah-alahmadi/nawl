@@ -4012,6 +4012,7 @@ dependencies = [
  "texloom-codegen",
  "texloom-compile",
  "texloom-core",
+ "texloom-docx",
  "webkit2gtk",
  "zip",
 ]
@@ -4052,9 +4053,22 @@ dependencies = [
 name = "texloom-core"
 version = "0.1.0"
 dependencies = [
+ "biblatex",
  "serde",
  "serde_json",
  "ts-rs",
+]
+
+[[package]]
+name = "texloom-docx"
+version = "0.1.0"
+dependencies = [
+ "png",
+ "quick-xml",
+ "serde_json",
+ "texloom-codegen",
+ "texloom-core",
+ "zip",
 ]
 
 [[package]]

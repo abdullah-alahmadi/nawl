@@ -6,8 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import type { Template } from "../api";
 import { PAGE_WIDTH_PX, templateCss, type DeckInfo } from "../editor/templateStyle";
+import { useT } from "../i18n";
 
 export function PagePreview({ editor, template, deck }: { editor: Editor | null; template: Template; deck?: DeckInfo }) {
+  const t = useT();
   // The document doesn't change while the template is designed: one snapshot does.
   const [html] = useState(() => editor?.view.dom.innerHTML ?? "");
   const pane = useRef<HTMLDivElement>(null);
@@ -26,7 +28,7 @@ export function PagePreview({ editor, template, deck }: { editor: Editor | null;
 
   const deckClass = template.kind === "presentation" ? " deck" : "";
   return (
-    <div className="page-preview" ref={pane} aria-label="Page preview">
+    <div className="page-preview" ref={pane} aria-label={t("dialogs.pagePreview")}>
       <style>{templateCss(template, ".page-preview .page", deck)}</style>
       <div className={`page${deckClass}`} style={{ ["--page-zoom" as string]: zoom }}>
         {/* A static copy of the editor's page: nothing in it can be edited. */}

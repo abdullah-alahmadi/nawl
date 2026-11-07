@@ -103,6 +103,11 @@ impl Template {
         if !id_ok {
             c.error("meta.id", "must start with a-z and contain only a-z, 0-9 and '-'");
         }
+        // The id names the generated class (<id>.cls), which loads LaTeX's own
+        // classes: one of their names would load itself.
+        if ["article", "report", "book", "letter", "slides", "beamer", "memoir", "minimal", "proc"].contains(&id.as_str()) {
+            c.error("meta.id", format!("\"{id}\" is the name of a LaTeX class; choose another id"));
+        }
 
         let (w, h) = t.page.paper.size_mm();
         c.positive("page.paper.widthMm", w);
@@ -117,6 +122,14 @@ impl Template {
             || m.top_mm + m.bottom_mm >= h * 0.8
         {
             c.error("page.margins", "margins leave too little room for text");
+        }
+        if !(1..=2).contains(&t.page.columns) {
+            c.error("page.columns", "must be 1 or 2");
+        }
+        if let Some(height) = t.title_page.block_height_mm
+            && !(height > m.top_mm && height < h - m.bottom_mm - 30.0)
+        {
+            c.error("titlePage.blockHeightMm", "the text must start below the top margin and leave room on the first page");
         }
         if let crate::LineSpacing::Custom { stretch } = t.page.line_spacing {
             c.positive("page.lineSpacing.stretch", stretch);

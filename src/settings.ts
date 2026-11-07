@@ -2,11 +2,14 @@
 // folder. Unknown or missing values fall back to the defaults.
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "./api";
+import { resolveUiLanguage, setUiLanguage, type MessageKey } from "./i18n";
 
 export type Theme = "system" | "light" | "dark";
 export type Density = "comfortable" | "compact";
 
 export interface Settings {
+  /** Interface language: "system" (the OS language), "en" or "ar". */
+  uiLanguage: string;
   theme: Theme;
   density: Density;
   /** Page zoom in percent; 0 fits the page to the pane. */
@@ -36,6 +39,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  uiLanguage: "system",
   theme: "system",
   density: "comfortable",
   pageZoom: 0,
@@ -67,6 +71,7 @@ function sanitize(raw: unknown): Settings {
       (out as Record<string, unknown>)[key] = v;
     }
   }
+  if (!["system", "en", "ar"].includes(out.uiLanguage)) out.uiLanguage = "system";
   if (!["system", "light", "dark"].includes(out.theme)) out.theme = "system";
   if (!["comfortable", "compact"].includes(out.density)) out.density = "comfortable";
   out.compileDelayMs = Math.min(5000, Math.max(200, out.compileDelayMs));
@@ -78,16 +83,16 @@ function sanitize(raw: unknown): Settings {
   return out;
 }
 
-/** Page colour presets for the settings window. */
-export const PAGE_COLORS: { name: string; color: string }[] = [
-  { name: "Warm paper", color: "#f4efe6" },
-  { name: "Sepia", color: "#efe3c8" },
-  { name: "Soft gray", color: "#e9ebee" },
-  { name: "Mint", color: "#e5efe7" },
-  { name: "Sky", color: "#e6eef6" },
-  { name: "White", color: "#ffffff" },
-  { name: "Slate", color: "#2b2f36" },
-  { name: "Night", color: "#1c1d21" },
+/** Page colour presets for the settings window (names are translated when shown). */
+export const PAGE_COLORS: { name: MessageKey; color: string }[] = [
+  { name: "dialogs.pageColorWarmPaper", color: "#f4efe6" },
+  { name: "dialogs.pageColorSepia", color: "#efe3c8" },
+  { name: "dialogs.pageColorSoftGray", color: "#e9ebee" },
+  { name: "dialogs.pageColorMint", color: "#e5efe7" },
+  { name: "dialogs.pageColorSky", color: "#e6eef6" },
+  { name: "dialogs.pageColorWhite", color: "#ffffff" },
+  { name: "dialogs.pageColorSlate", color: "#2b2f36" },
+  { name: "dialogs.pageColorNight", color: "#1c1d21" },
 ];
 
 /** Relative luminance (0 black – 1 white) of a #rrggbb colour. */
@@ -99,9 +104,14 @@ export function luminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** Theme, density and page colour are set on <html>, read by App.css. */
+/** Language, theme, density and page colour are set on <html>, read by App.css. */
 function applyToDocument(s: Settings) {
   const root = document.documentElement;
+  // The interface direction; the editor page keeps the document's own.
+  const lang = resolveUiLanguage(s.uiLanguage);
+  setUiLanguage(lang);
+  root.lang = lang;
+  root.dir = lang === "ar" ? "rtl" : "ltr";
   // Dark pages get light text (and a few adjusted colours, see .page-dark in App.css).
   const dark = luminance(s.pageColor) < 0.18;
   root.style.setProperty("--page-bg", s.pageColor);

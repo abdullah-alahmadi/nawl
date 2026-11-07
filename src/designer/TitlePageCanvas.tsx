@@ -16,9 +16,23 @@ import type { TitleItem } from "../bindings/TitleItem";
 import { NumberInput, PlaceholderInput, Row, Toggle, issuesAt } from "./controls";
 import { fieldPlaceholders, fieldUses, placeholderNames, type SectionProps } from "./common";
 import { TextStyleControls } from "./StyleSections";
+import { useT, type MessageKey } from "../i18n";
 
 const MM_PER_PT = 25.4 / 72.27; // TeX points
 const SNAP_MM = 2; // distance at which items snap to the page's centre, margins and other items
+
+/** What each anchor is called (its tooltip in the anchor picker). */
+const ANCHOR_NAMES: Record<Anchor, MessageKey> = {
+  topLeft: "designerContent.anchorTopLeft",
+  top: "designerContent.anchorTop",
+  topRight: "designerContent.anchorTopRight",
+  left: "designerContent.anchorLeft",
+  center: "designerContent.anchorCenter",
+  right: "designerContent.anchorRight",
+  bottomLeft: "designerContent.anchorBottomLeft",
+  bottom: "designerContent.anchorBottom",
+  bottomRight: "designerContent.anchorBottomRight",
+};
 
 const ANCHORS: Anchor[][] = [
   ["topLeft", "top", "topRight"],
@@ -60,6 +74,7 @@ function cssFont(f: FontChoice): string {
     heros: '"TeX Gyre Heros", Helvetica, Arial, sans-serif',
     adventor: '"TeX Gyre Adventor", "Avant Garde", sans-serif',
     cursor: '"TeX Gyre Cursor", "Courier New", monospace',
+    amiri: '"Amiri", "Traditional Arabic", serif',
   }[f.font];
 }
 
@@ -186,6 +201,7 @@ export function TitlePageCanvas({
   templatePath,
   canImport,
 }: SectionProps & { metadata: api.Metadata; templatePath: string | null; canImport: boolean }) {
+  const tr = useT();
   /** The page being designed: -1 for the title page, else a fixed page's index in the front matter. */
   const [page, setPage] = useState(-1);
   const [selection, setSelection] = useState<number[]>([]);
@@ -213,6 +229,8 @@ export function TitlePageCanvas({
   }[paper.kind];
   const scale = Math.min(width, 560) / pageW; // px per mm
   const fixedPage = page >= 0 && t.frontMatter[page]?.type === "fixedPage" ? t.frontMatter[page] : null;
+  /** An article's title block: where the text starts below it (mm); undefined for a title page. */
+  const textStart = t.titlePage.blockHeightMm;
   const items = pageItems(t, fixedPage ? page : -1);
   const itemsOf = (d: Template) => pageItems(d, fixedPage ? page : -1);
   const pathPrefix = fixedPage ? `frontMatter[${page}].items` : "titlePage.items";
@@ -419,7 +437,7 @@ export function TitlePageCanvas({
     });
   const addLine = () => add({ xMm: pageW / 2, yMm: 150, anchor: "top", content: { type: "rule", lengthMm: 100, thicknessPt: 0.8 } });
   const pickImage = async () => {
-    const file = await open({ multiple: false, directory: false, filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "pdf"] }] });
+    const file = await open({ multiple: false, directory: false, filters: [{ name: tr("designerContent.imagesFilter"), extensions: ["png", "jpg", "jpeg", "pdf"] }] });
     if (!file) return null;
     try {
       return await api.importTemplateAsset(file);
@@ -431,7 +449,7 @@ export function TitlePageCanvas({
   const addImage = async () => {
     setNotice(null);
     if (!canImport) {
-      setNotice("Save the template first (Save as…) so its images have a folder to live in.");
+      setNotice(tr("designerContent.saveBeforeImage"));
       return;
     }
     const asset = await pickImage();
@@ -456,17 +474,21 @@ export function TitlePageCanvas({
     const kept = t.fields.filter((f) => shown.includes(f.id) && uses.has(f.id));
     setNotice(
       kept.length > 0
-        ? kept.map((f) => `“${f.label}” is still used in ${uses.get(f.id)!.join(" and ")}, so Document info keeps asking for it.`).join(" ")
+        ? kept
+            .map((f) => tr("designerContent.fieldStillUsed", { label: f.label, places: uses.get(f.id)!.join(tr("designerContent.and")) }))
+            .join(" ")
         : null,
     );
     let dropFields = false;
     if (orphans.length > 0) {
-      const names = orphans.map((f) => `“${f.label}”`).join(", ");
+      const names = orphans.map((f) => tr("designerContent.quoted", { text: f.label })).join(tr("designerContent.listSeparator"));
       const one = orphans.length === 1;
-      dropFields = await ask(
-        `The template doesn't show ${names} anywhere else. Remove ${one ? "this field" : "these fields"} too, so Document info stops asking for ${one ? "it" : "them"}?`,
-        { title: "Remove field", kind: "info", okLabel: one ? "Remove field" : "Remove fields", cancelLabel: "Keep" },
-      );
+      dropFields = await ask(tr(one ? "designerContent.removeOrphanField" : "designerContent.removeOrphanFields", { names }), {
+        title: tr("designerContent.removeField"),
+        kind: "info",
+        okLabel: tr(one ? "designerContent.removeField" : "designerContent.removeFields"),
+        cancelLabel: tr("designerContent.keep"),
+      });
     }
     edit((d) => {
       const list = itemsOf(d);
@@ -547,31 +569,57 @@ export function TitlePageCanvas({
     <div className="tp">
       <div className="tp-toolbar tp-pages">
         <label>
-          Page{" "}
-          <select value={fixedPage ? page : -1} onChange={(e) => choosePage(Number(e.target.value))} aria-label="Page to design">
-            <option value={-1}>Title page</option>
+          {tr("designerContent.page")}{" "}
+          <select value={fixedPage ? page : -1} onChange={(e) => choosePage(Number(e.target.value))} aria-label={tr("designerContent.pageToDesign")}>
+            <option value={-1}>{tr("designerContent.titlePage")}</option>
             {fixedPages.map((f) => (
               <option key={f.index} value={f.index}>
-                {f.title.trim() || "Fixed page"}
+                {f.title.trim() || tr("designerContent.fixedPage")}
               </option>
             ))}
           </select>
         </label>
-        <button type="button" onClick={addFixedPage} title="A page laid out like the title page: approval or signature page, declaration… It goes into the front matter after the title page.">
-          + Fixed page
+        <button type="button" onClick={addFixedPage} title={tr("designerContent.addFixedPageHint")}>
+          {tr("designerContent.addFixedPage")}
         </button>
+        {!fixedPage && (
+          <>
+            <label title={tr("designerContent.titleLayoutHint")}>
+              {tr("designerContent.titleLayout")}{" "}
+              <select
+                value={textStart === undefined ? "page" : "block"}
+                onChange={(e) =>
+                  edit((d) => {
+                    if (e.target.value === "page") delete d.titlePage.blockHeightMm;
+                    // Below the lowest item, to start with.
+                    else d.titlePage.blockHeightMm = Math.round(Math.max(d.page.margins.topMm, ...d.titlePage.items.map((it) => it.yMm)) + 15);
+                  })
+                }
+              >
+                <option value="page">{tr("designerContent.ownPage")}</option>
+                <option value="block">{tr("designerContent.titleBlock")}</option>
+              </select>
+            </label>
+            {textStart !== undefined && (
+              <label title={tr("designerContent.textStartsAtHint")}>
+                {tr("designerContent.textStartsAt")}{" "}
+                <NumberInput value={textStart} unit="mm" step={1} min={0} onChange={(v) => edit((d) => void (d.titlePage.blockHeightMm = v))} />
+              </label>
+            )}
+          </>
+        )}
       </div>
       <div className="tp-toolbar">
         <button type="button" onClick={addText}>
-          + Text
+          {tr("designerContent.addText")}
         </button>
-        <button type="button" onClick={addImage} title={canImport ? "PNG, JPEG or PDF" : "Save the template first"}>
-          + Image
+        <button type="button" onClick={addImage} title={tr(canImport ? "designerContent.imageFormats" : "designerContent.saveTemplateFirst")}>
+          {tr("designerContent.addImage")}
         </button>
         <button type="button" onClick={addLine}>
-          + Line
+          {tr("designerContent.addLine")}
         </button>
-        <span className="d-hint">Drag to move · Shift-click or drag a frame to select several · right handle resizes · arrows nudge (Shift ×10, Alt fine and no snapping)</span>
+        <span className="d-hint">{tr("designerContent.canvasHint")}</span>
       </div>
       {notice && <div className="d-warning">{notice}</div>}
 
@@ -580,10 +628,13 @@ export function TitlePageCanvas({
           <div
             ref={pageRef}
             className="tp-page"
+            // The page keeps the document's direction whatever the interface's is;
+            // item positions stay physical (mm from the paper's top-left corner).
+            dir={t.language?.main === "arabic" ? "rtl" : "ltr"}
             style={{ width: pageW * scale, height: pageH * scale, fontFamily: font }}
             tabIndex={0}
             role="application"
-            aria-label="Title page canvas"
+            aria-label={tr("designerContent.canvasLabel")}
             onKeyDown={onKeyDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -599,6 +650,11 @@ export function TitlePageCanvas({
               if (!e.shiftKey) setSelection([]);
             }}
           >
+            {!fixedPage && textStart !== undefined && (
+              <div className="tp-text-start" style={{ top: textStart * scale }}>
+                <span>{tr("designerContent.textStartsHere")}</span>
+              </div>
+            )}
             {guides.x !== undefined && <div className="tp-guide" style={{ left: guides.x * scale }} />}
             {guides.y !== undefined && <div className="tp-guide tp-guide-h" style={{ top: guides.y * scale }} />}
             {marquee && (
@@ -630,7 +686,7 @@ export function TitlePageCanvas({
             ))}
           </div>
           <div className="d-hint tp-caption">
-            On-screen approximation; the PDF preview is exact. Placeholders show this document’s values.
+            {tr("designerContent.canvasCaption")}
           </div>
         </div>
 
@@ -638,39 +694,39 @@ export function TitlePageCanvas({
           {selection.length > 1 ? (
             <div className="tp-props-inner">
               <div className="d-list-row">
-                <strong>{selection.length} items</strong>
+                <strong>{tr("designerContent.itemsSelected", { n: selection.length })}</strong>
                 <button type="button" className="d-remove" onClick={() => remove(selection)}>
-                  Remove
+                  {tr("common.remove")}
                 </button>
               </div>
-              <Row label="Align">
+              <Row label={tr("designerContent.align")}>
                 <div className="tp-align">
                   {(
                     [
-                      ["left", "Left edges"],
-                      ["center", "Centres"],
-                      ["right", "Right edges"],
-                      ["top", "Tops"],
-                      ["middle", "Middles"],
-                      ["bottom", "Bottoms"],
+                      ["left", "designerContent.alignLeft"],
+                      ["center", "designerContent.alignCenter"],
+                      ["right", "designerContent.alignRight"],
+                      ["top", "designerContent.alignTop"],
+                      ["middle", "designerContent.alignMiddle"],
+                      ["bottom", "designerContent.alignBottom"],
                     ] as const
                   ).map(([how, label]) => (
                     <button key={how} type="button" onClick={() => align(how)}>
-                      {label}
+                      {tr(label)}
                     </button>
                   ))}
                 </div>
               </Row>
-              <Row label="Spread">
+              <Row label={tr("designerContent.spread")}>
                 <div className="tp-align">
-                  <button type="button" disabled={selection.length < 3} onClick={() => distribute("x")} title="Equal gaps from left to right (three or more items)">
-                    Across
+                  <button type="button" disabled={selection.length < 3} onClick={() => distribute("x")} title={tr("designerContent.spreadAcrossHint")}>
+                    {tr("designerContent.spreadAcross")}
                   </button>
-                  <button type="button" disabled={selection.length < 3} onClick={() => distribute("y")} title="Equal gaps from top to bottom (three or more items)">
-                    Down
+                  <button type="button" disabled={selection.length < 3} onClick={() => distribute("y")} title={tr("designerContent.spreadDownHint")}>
+                    {tr("designerContent.spreadDown")}
                   </button>
-                  <button type="button" onClick={() => align("page")} title="Move the group so it's centred on the page">
-                    Centre on page
+                  <button type="button" onClick={() => align("page")} title={tr("designerContent.centreOnPageHint")}>
+                    {tr("designerContent.centreOnPage")}
                   </button>
                 </div>
               </Row>
@@ -679,7 +735,7 @@ export function TitlePageCanvas({
             <>
               {fixedPage && fixedPage.type === "fixedPage" && (
                 <div className="tp-props-inner">
-                  <Row label="Name" issues={issuesAt(issues, `frontMatter[${page}].title`)}>
+                  <Row label={tr("common.name")} issues={issuesAt(issues, `frontMatter[${page}].title`)}>
                     <input
                       value={fixedPage.title}
                       onChange={(e) =>
@@ -690,10 +746,10 @@ export function TitlePageCanvas({
                       }
                     />
                   </Row>
-                  <Row label="Contents">
+                  <Row label={tr("designerContent.contents")}>
                     <Toggle
                       checked={fixedPage.inToc}
-                      label="List in the table of contents"
+                      label={tr("designerContent.listInToc")}
                       onChange={(v) =>
                         edit((d) => {
                           const f = d.frontMatter[page];
@@ -702,13 +758,13 @@ export function TitlePageCanvas({
                       }
                     />
                   </Row>
-                  <p className="d-note">Its place among the front-matter pages is set under Front matter.</p>
+                  <p className="d-note">{tr("designerContent.fixedPagePlaceNote")}</p>
                   <button type="button" className="d-remove" onClick={() => edit((d) => void d.frontMatter.splice(page, 1))}>
-                    Remove this page
+                    {tr("designerContent.removeThisPage")}
                   </button>
                 </div>
               )}
-              <p className="d-note">Select an item on the page to edit it, or add one above.</p>
+              <p className="d-note">{tr("designerContent.selectItemNote")}</p>
             </>
           ) : (
             <ItemProperties
@@ -756,6 +812,7 @@ function CanvasItem({
   imageUrl?: string;
   onPointerDown: (e: React.PointerEvent, mode: "move" | "resize") => void;
 }) {
+  const tr = useT();
   const [h, v] = anchorShift(item.anchor);
   const c = item.content;
   const base: React.CSSProperties = {
@@ -783,7 +840,7 @@ function CanvasItem({
       color: s.color ?? "#000",
     };
     const resolved = resolveText(c.text, metadata);
-    body = resolved.trim() === "" ? <span className="tp-empty">(empty)</span> : resolved;
+    body = resolved.trim() === "" ? <span className="tp-empty">{tr("designerContent.empty")}</span> : resolved;
   } else if (c.type === "image") {
     style = { ...base, width: c.widthMm * scale };
     body = imageUrl ? (
@@ -815,7 +872,7 @@ function CanvasItem({
     >
       {body}
       {selected && (c.type !== "text" || c.widthMm !== undefined) && (
-        <span className="tp-handle" title="Drag to resize" onPointerDown={(e) => onPointerDown(e, "resize")} />
+        <span className="tp-handle" title={tr("designerContent.dragToResize")} onPointerDown={(e) => onPointerDown(e, "resize")} />
       )}
       {selected && <span className="tp-anchor-dot" style={{ left: `${h * 100}%`, top: c.type === "rule" ? "50%" : `${v * 100}%` }} />}
     </div>
@@ -823,10 +880,13 @@ function CanvasItem({
 }
 
 function AnchorPicker({ value, onChange }: { value: Anchor; onChange: (a: Anchor) => void }) {
+  const tr = useT();
+  // Anchors are physical points of the item (top-left is top-left on the paper), so
+  // the grid doesn't mirror in a right-to-left interface.
   return (
-    <div className="tp-anchor" role="radiogroup" aria-label="Anchor point">
+    <div className="tp-anchor" role="radiogroup" aria-label={tr("designerContent.anchorPoint")} dir="ltr">
       {ANCHORS.flat().map((a) => (
-        <button key={a} type="button" role="radio" aria-checked={a === value} title={a} className={a === value ? "active" : ""} onClick={() => onChange(a)} />
+        <button key={a} type="button" role="radio" aria-checked={a === value} title={tr(ANCHOR_NAMES[a])} className={a === value ? "active" : ""} onClick={() => onChange(a)} />
       ))}
     </div>
   );
@@ -858,8 +918,9 @@ function ItemProperties({
   onReplaceImage: () => void;
   canImport: boolean;
 }) {
+  const tr = useT();
   const c = item.content;
-  const kind = c.type === "text" ? "Text" : c.type === "image" ? "Image" : "Line";
+  const kind = tr(c.type === "text" ? "designerContent.kindText" : c.type === "image" ? "designerContent.kindImage" : "designerContent.kindLine");
   const centre = () =>
     set((it) => {
       const [h] = anchorShift(it.anchor);
@@ -874,21 +935,21 @@ function ItemProperties({
       <div className="d-list-row">
         <strong>{kind}</strong>
         <span className="d-inline">
-          <button type="button" onClick={centre} title="Centre horizontally on the page">
-            Centre
+          <button type="button" onClick={centre} title={tr("designerContent.centreHint")}>
+            {tr("designerContent.centre")}
           </button>
           <button type="button" onClick={onDuplicate}>
-            Duplicate
+            {tr("designerContent.duplicate")}
           </button>
           <button type="button" className="danger" onClick={onRemove}>
-            Delete
+            {tr("common.delete")}
           </button>
         </span>
       </div>
 
       {c.type === "text" && (
         <>
-          <Row label="Text" issues={issuesAt(issues, `${path}.content.text`)}>
+          <Row label={tr("designerContent.kindText")} issues={issuesAt(issues, `${path}.content.text`)}>
             <PlaceholderInput
               multiline
               value={c.text}
@@ -902,11 +963,11 @@ function ItemProperties({
             issues={issues}
             onChange={(fn) => set((it) => void (it.content.type === "text" && fn(it.content.style)))}
           />
-          <Row label="Wrap width" issues={issuesAt(issues, `${path}.content.widthMm`)}>
+          <Row label={tr("designerContent.wrapWidth")} issues={issuesAt(issues, `${path}.content.widthMm`)}>
             <span className="d-inline">
               <Toggle
                 checked={c.widthMm !== undefined}
-                label="Wrap long text"
+                label={tr("designerContent.wrapLongText")}
                 onChange={(on) =>
                   set((it) => {
                     if (it.content.type !== "text") return;
@@ -925,15 +986,15 @@ function ItemProperties({
 
       {c.type === "image" && (
         <>
-          <Row label="Image" issues={issuesAt(issues, `${path}.content.asset`)}>
+          <Row label={tr("designerContent.kindImage")} issues={issuesAt(issues, `${path}.content.asset`)}>
             <span className="d-inline">
               <code>{c.asset}</code>
               <button type="button" onClick={onReplaceImage} disabled={!canImport}>
-                Replace…
+                {tr("designerContent.replace")}
               </button>
             </span>
           </Row>
-          <Row label="Width" issues={issuesAt(issues, `${path}.content.widthMm`)}>
+          <Row label={tr("designerContent.width")} issues={issuesAt(issues, `${path}.content.widthMm`)}>
             <NumberInput value={c.widthMm} unit="mm" min={1} onChange={(v) => set((it) => void (it.content.type === "image" && (it.content.widthMm = v)))} />
           </Row>
         </>
@@ -941,10 +1002,10 @@ function ItemProperties({
 
       {c.type === "rule" && (
         <>
-          <Row label="Length" issues={issuesAt(issues, `${path}.content.lengthMm`)}>
+          <Row label={tr("designerContent.length")} issues={issuesAt(issues, `${path}.content.lengthMm`)}>
             <NumberInput value={c.lengthMm} unit="mm" min={1} onChange={(v) => set((it) => void (it.content.type === "rule" && (it.content.lengthMm = v)))} />
           </Row>
-          <Row label="Thickness" issues={issuesAt(issues, `${path}.content.thicknessPt`)}>
+          <Row label={tr("designerContent.thickness")} issues={issuesAt(issues, `${path}.content.thicknessPt`)}>
             <NumberInput
               value={c.thicknessPt}
               unit="pt"
@@ -956,13 +1017,13 @@ function ItemProperties({
         </>
       )}
 
-      <Row label="Position" hint="From the paper's top-left corner">
+      <Row label={tr("designerContent.position")} hint={tr("designerContent.positionHint")}>
         <span className="d-inline">
-          <NumberInput value={item.xMm} unit="mm across" step={0.5} onChange={(v) => set((it) => void (it.xMm = v))} />
-          <NumberInput value={item.yMm} unit="mm down" step={0.5} onChange={(v) => set((it) => void (it.yMm = v))} />
+          <NumberInput value={item.xMm} unit={tr("designerContent.mmAcross")} step={0.5} onChange={(v) => set((it) => void (it.xMm = v))} />
+          <NumberInput value={item.yMm} unit={tr("designerContent.mmDown")} step={0.5} onChange={(v) => set((it) => void (it.yMm = v))} />
         </span>
       </Row>
-      <Row label="Anchor" hint="The point the position refers to; changing it doesn't move the item">
+      <Row label={tr("designerContent.anchor")} hint={tr("designerContent.anchorHint")}>
         <AnchorPicker
           value={item.anchor}
           onChange={(a) =>

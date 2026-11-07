@@ -5,6 +5,9 @@
 //! - [`generate`]: both at once, plus the list of template assets the build needs.
 
 mod cls;
+pub mod language;
+pub mod refs;
+mod strings;
 mod latex;
 mod presentation;
 mod publisher;

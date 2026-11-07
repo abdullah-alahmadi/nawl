@@ -15,6 +15,7 @@ use texloom_core::{
     PageStyle, Paper, Template, TitleContent, TopLevel,
 };
 
+use crate::language::Languages;
 use crate::latex::{align_name, escape, font_commands, num, render_placeholders, PlaceholderContext};
 
 /// Heading commands for editor levels 1–4.
@@ -43,6 +44,9 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     if let Some(base) = &t.base {
         return crate::publisher::wrapper_cls(t, base, engine);
     }
+    // Fixed texts in another script than the template's language keep their direction.
+    let langs = Languages::of_template(t);
+    let tx = |s: &str| crate::language::text(s, langs.main, &langs);
     let mut o = String::new();
     let id = &t.meta.id;
     let one_line = |s: &str| s.replace(['\n', '\r'], " ");
@@ -72,8 +76,14 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     // ---- base class
     let base = if chapters { "report" } else { "article" };
     let sides = if t.page.two_sided { "twoside" } else { "oneside" };
-    let extra = if chapters { ",openany" } else { "" };
+    let mut extra = if chapters { ",openany" } else { "" }.to_string();
+    if t.page.columns == 2 {
+        extra.push_str(",twocolumn");
+    }
     w!(o, "\\LoadClass[{}pt,{sides}{extra}]{{{base}}}", t.fonts.base_size_pt);
+    if t.page.columns == 2 {
+        w!(o, "\\setlength\\columnsep{{6mm}}");
+    }
     w!(o);
 
     // ---- page geometry
@@ -146,8 +156,10 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     w!(o, "\\RequirePackage{{enumitem}}");
     w!(o, "\\RequirePackage{{lastpage}}");
     w!(o, "\\RequirePackage{{tabularx}}");
-    // Table cells: ragged right (no stretched gaps in narrow columns), a little padding.
-    w!(o, "\\newcolumntype{{L}}{{>{{\\raggedright\\arraybackslash}}X}}");
+    // Table cells: ragged (no stretched gaps in narrow columns), a little padding;
+    // right-to-left text starts at the right.
+    let ragged = if langs.main.rtl() { "raggedleft" } else { "raggedright" };
+    w!(o, "\\newcolumntype{{L}}{{>{{\\{ragged}\\arraybackslash}}X}}");
     w!(o, "\\renewcommand\\arraystretch{{1.3}}");
     w!(o);
 
@@ -176,8 +188,8 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     w!(o, "\\captionsetup[table]{{position=top}}");
     w!(o, "% A caption outside a float (figures and tables inside columns)");
     w!(o, "\\newcommand\\texloomcaptionof[2]{{\\def\\@captype{{#1}}\\caption{{#2}}}}");
-    w!(o, "\\renewcommand\\figurename{{{}}}", escape(&c.figure_label));
-    w!(o, "\\renewcommand\\tablename{{{}}}", escape(&c.table_label));
+    w!(o, "\\renewcommand\\figurename{{{}}}", tx(&c.figure_label));
+    w!(o, "\\renewcommand\\tablename{{{}}}", tx(&c.table_label));
     w!(o);
 
     // ---- numbering
@@ -196,10 +208,7 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     // ---- headings
     w!(o, "% Headings");
     w!(o, "\\RequirePackage{{titlesec}}");
-    for (style, cmd) in t.headings.levels.iter().zip(cmds) {
-        w!(o, "{}", title_format(style, cmd, &style.label));
-        w!(o, "\\titlespacing*{{\\{cmd}}}{{0pt}}{{{}pt}}{{{}pt}}", num(style.space_before_pt), num(style.space_after_pt));
-    }
+    o.push_str(&heading_formats(t, &langs));
     w!(o);
 
     // ---- metadata fields
@@ -217,9 +226,9 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     w!(o, "% {{chapter}} and {{section}} placeholders show the plain titles.");
     w!(o, "\\newcommand\\tl@marks{{\\renewcommand\\{mark_top}mark[1]{{\\markboth{{##1}}{{}}}}\\renewcommand\\{mark_sub}mark[1]{{\\markright{{##1}}}}}}");
     let hf = &t.header_footer;
-    w!(o, "{}", page_style("texloomfront", &hf.front_matter));
-    w!(o, "{}", page_style("texloommain", &hf.main));
-    w!(o, "{}", page_style("texloomchapter", &hf.chapter_opening));
+    w!(o, "{}", page_style("texloomfront", &hf.front_matter, &langs));
+    w!(o, "{}", page_style("texloommain", &hf.main, &langs));
+    w!(o, "{}", page_style("texloomchapter", &hf.chapter_opening, &langs));
     // Chapter-opening pages use "plain": follow the front-matter style before the
     // main text, the chapter-opening style after it.
     w!(o, "\\let\\ps@plain\\ps@texloomchapter");
@@ -228,16 +237,46 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     // ---- title page
     w!(o, "% Title page");
     w!(o, "\\newcommand\\tl@titlepage{{%");
-    w!(o, "  \\begin{{titlepage}}%");
-    w!(o, "  \\renewcommand\\texloomsep{{\\\\}}%");
-    // Never hyphenate words on the title page.
-    w!(o, "  \\hyphenpenalty=10000\\exhyphenpenalty=10000%");
-    w!(o, "  \\begin{{tikzpicture}}[remember picture,overlay]%");
-    for item in &t.title_page.items {
-        w!(o, "  {}%", title_item(item));
+    match t.title_page.block_height_mm {
+        // An article's title block, at the top of the first page's text. A title or
+        // author list longer than designed mustn't run into what follows, so the items
+        // flow down: across, they keep their exact places; down, each row sits below
+        // the real bottom of the row above, at the designed gap. The picture takes up
+        // its height, and the text starts below it (at `height` when all fits).
+        Some(height) => {
+            let left = t.page.margins.inner_mm + t.page.binding_offset_mm;
+            let top = t.page.margins.top_mm;
+            // Lists (authors) run on in a line, as in articles; title pages stack them.
+            let sep = if langs.main.rtl() { "، " } else { ", " };
+            w!(o, "  {{\\renewcommand\\texloomsep{{{sep}}}\\hyphenpenalty=10000\\exhyphenpenalty=10000%");
+            // Full width, so it sits the same in right-to-left text.
+            w!(o, "  \\par\\noindent\\begin{{tikzpicture}}\\path (0,0) -- (\\linewidth,0);%");
+            let mut bottom = top;
+            for (k, row) in title_rows(&t.title_page.items).iter().enumerate() {
+                w!(o, "  \\coordinate (tl@row{k}) at (current bounding box.south -| 0,0);%");
+                let above = bottom;
+                for item in row {
+                    let at = |x: f32, y: f32| format!("([shift={{({}mm,{}mm)}}]tl@row{k})", num(x - left), num(above - y));
+                    w!(o, "  {}%", title_item(item, &langs, &at));
+                    bottom = bottom.max(item_extent(item).1);
+                }
+            }
+            w!(o, "  \\path (current bounding box.south) -- ++(0,-{}mm);%", num((height - bottom).max(2.0)));
+            w!(o, "  \\end{{tikzpicture}}\\par}}}}");
+        }
+        None => {
+            w!(o, "  \\begin{{titlepage}}%");
+            w!(o, "  \\renewcommand\\texloomsep{{\\\\}}%");
+            // Never hyphenate words on the title page.
+            w!(o, "  \\hyphenpenalty=10000\\exhyphenpenalty=10000%");
+            w!(o, "  \\begin{{tikzpicture}}[remember picture,overlay]%");
+            for item in &t.title_page.items {
+                w!(o, "  {}%", title_item(item, &langs, &at));
+            }
+            w!(o, "  \\end{{tikzpicture}}%");
+            w!(o, "  \\end{{titlepage}}}}");
+        }
     }
-    w!(o, "  \\end{{tikzpicture}}%");
-    w!(o, "  \\end{{titlepage}}}}");
     w!(o);
 
     // ---- front matter & main matter
@@ -249,50 +288,99 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     let new_page = if t.page.two_sided { "\\cleardoublepage" } else { "\\clearpage" };
     // With chapters, \chapter* starts its own page; without, end each item's page.
     let after_item = if chapters { "" } else { new_page };
-    w!(o, "% Front matter: everything before the main text, in template order");
-    w!(o, "\\newcommand\\texloomfrontmatter{{%");
-    w!(o, "  \\pagenumbering{{{}}}\\let\\ps@plain\\ps@texloomfront\\pagestyle{{texloomfront}}\\tl@marks", page_numbers(t.structure.front_matter_page_numbers));
-    for item in &t.front_matter {
+    let item_tex = |item: &FrontMatterItem| -> String {
+        let mut o = String::new();
         match item {
             FrontMatterItem::TitlePage => w!(o, "  \\tl@titlepage"),
-            FrontMatterItem::FieldPage { title, field, in_toc } => {
-                let title = escape(title);
+            FrontMatterItem::FieldPage { title, field, in_toc, language, inline } => {
+                let title = tx(title);
                 let toc = if *in_toc {
                     format!("\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{title}}}")
                 } else {
                     String::new()
                 };
-                w!(o, "  \\tl@ifnonempty{{{field}}}{{\\{mark_top}*{{{title}}}{toc}\\tl@f{{{field}}}\\par{after_item}}}%");
+                // Under the title (an article's abstract): a section heading on the same
+                // page; otherwise a page of its own.
+                let (heading, after) = if *inline { ("section", "") } else { (mark_top, after_item) };
+                match language.filter(|l| *l != langs.main) {
+                    // A page in the other language: its own direction. The contents
+                    // entry is made outside, in the document's language, after the page
+                    // break (so it has the right page number).
+                    Some(other) => {
+                        let env = other.environment();
+                        let page = if chapters && !*inline { new_page } else { "" };
+                        w!(o, "  \\tl@ifnonempty{{{field}}}{{{page}{toc}\\begin{{{env}}}\\{heading}*{{{title}}}\\tl@f{{{field}}}\\par\\end{{{env}}}{after}}}%");
+                    }
+                    None => w!(o, "  \\tl@ifnonempty{{{field}}}{{\\{heading}*{{{title}}}{toc}\\tl@f{{{field}}}\\par{after}}}%"),
+                }
             }
             FrontMatterItem::TableOfContents { title } => {
-                w!(o, "  \\renewcommand\\contentsname{{{}}}\\tableofcontents{after_item}", escape(title))
+                w!(o, "  \\renewcommand\\contentsname{{{}}}\\tableofcontents{after_item}", tx(title))
             }
             FrontMatterItem::ListOfFigures { title } => {
-                w!(o, "  \\renewcommand\\listfigurename{{{}}}\\listoffigures{after_item}", escape(title))
+                w!(o, "  \\renewcommand\\listfigurename{{{}}}\\listoffigures{after_item}", tx(title))
             }
             FrontMatterItem::FixedPage { title, items, in_toc } => {
                 // Like the title page, on a page of its own with the front matter's page
                 // style; \null gives the page something to ship besides the overlay.
                 let toc = if *in_toc {
-                    format!("\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}", escape(title))
+                    format!("\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}", tx(title))
                 } else {
                     String::new()
                 };
                 w!(o, "  \\clearpage{{\\renewcommand\\texloomsep{{\\\\}}\\hyphenpenalty=10000\\exhyphenpenalty=10000\\null{toc}%");
                 w!(o, "  \\begin{{tikzpicture}}[remember picture,overlay]%");
                 for item in items {
-                    w!(o, "  {}%", title_item(item));
+                    w!(o, "  {}%", title_item(item, &langs, &at));
                 }
                 w!(o, "  \\end{{tikzpicture}}\\par}}{new_page}%");
             }
             FrontMatterItem::ListOfTables { title } => {
-                w!(o, "  \\renewcommand\\listtablename{{{}}}\\listoftables{after_item}", escape(title))
+                w!(o, "  \\renewcommand\\listtablename{{{}}}\\listoftables{after_item}", tx(title))
             }
         }
+        o
+    };
+    // An article's first page: a title block and what is set under it (the abstract).
+    // In two columns they span both, in \twocolumn's optional argument. When that is
+    // the whole front matter, the main text follows on the same page, numbered from 1.
+    let on_first_page = |item: &FrontMatterItem| match item {
+        FrontMatterItem::TitlePage => t.title_page.block_height_mm.is_some(),
+        FrontMatterItem::FieldPage { inline, .. } => *inline,
+        _ => false,
+    };
+    let head = t.front_matter.iter().take_while(|i| on_first_page(i)).count();
+    let continuous = head > 0 && head == t.front_matter.len();
+    w!(o, "% Front matter: everything before the main text, in template order");
+    w!(o, "\\newcommand\\texloomfrontmatter{{%");
+    if continuous {
+        w!(o, "  \\pagenumbering{{{}}}\\pagestyle{{texloommain}}\\tl@marks", page_numbers(t.structure.main_page_numbers));
+    } else {
+        w!(o, "  \\pagenumbering{{{}}}\\let\\ps@plain\\ps@texloomfront\\pagestyle{{texloomfront}}\\tl@marks", page_numbers(t.structure.front_matter_page_numbers));
+    }
+    let first: String = t.front_matter[..head].iter().map(item_tex).collect();
+    if t.page.columns == 2 && head > 0 {
+        w!(o, "  \\twocolumn[{{%");
+        o.push_str(&first);
+        // Space between the spanning block and the columns' first lines.
+        w!(o, "  \\par\\vspace{{\\baselineskip}}}}]%");
+    } else {
+        o.push_str(&first);
+    }
+    if head > 0 {
+        // The first page opens like a chapter (the "plain" style: no running header).
+        w!(o, "  \\thispagestyle{{texloomchapter}}%");
+    }
+    for item in &t.front_matter[head..] {
+        o.push_str(&item_tex(item));
     }
     w!(o, "}}");
     w!(o, "\\newcommand\\texloommainmatter{{%");
-    w!(o, "  {new_page}\\pagenumbering{{{}}}\\let\\ps@plain\\ps@texloomchapter\\pagestyle{{texloommain}}\\tl@marks}}", page_numbers(t.structure.main_page_numbers));
+    if continuous {
+        w!(o, "  \\let\\ps@plain\\ps@texloomchapter\\pagestyle{{texloommain}}\\tl@marks}}");
+    } else {
+        w!(o, "  {new_page}\\pagenumbering{{{}}}\\let\\ps@plain\\ps@texloomchapter\\pagestyle{{texloommain}}\\tl@marks}}", page_numbers(t.structure.main_page_numbers));
+    }
     w!(o, "\\AtBeginDocument{{\\pagestyle{{texloommain}}\\tl@marks}}");
     w!(o);
 
@@ -309,7 +397,7 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
         w!(o, "\\RequirePackage[round]{{natbib}}");
     }
     let toc = if bib.in_toc {
-        format!("\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}", escape(&bib.title))
+        format!("\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}", tx(&bib.title))
     } else {
         String::new()
     };
@@ -317,14 +405,14 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     w!(
         o,
         "\\newcommand\\texloombibliography{{{bib_page}{toc}\\renewcommand\\{list_name}{{{}}}\\bibliographystyle{{{bst}}}\\bibliography{{refs}}}}",
-        escape(&bib.title)
+        tx(&bib.title)
     );
     w!(o);
 
     // ---- appendices: lettered, with their own label ("Appendix A")
     w!(o, "% Appendices");
     let top_style = &t.headings.levels[0];
-    w!(o, "\\newcommand\\texloomappendix{{{new_page}\\appendix{}}}", title_format(top_style, cmds[0], &t.structure.appendix_label));
+    w!(o, "\\newcommand\\texloomappendix{{{new_page}\\appendix{}}}", title_format(top_style, cmds[0], &t.structure.appendix_label, &langs));
     w!(o);
 
     // hyperref goes last, as it patches many of the packages above.
@@ -339,8 +427,19 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     o
 }
 
+/// `\titleformat` and `\titlespacing` for every heading level.
+pub(crate) fn heading_formats(t: &Template, langs: &Languages) -> String {
+    let mut o = String::new();
+    for (style, cmd) in t.headings.levels.iter().zip(heading_commands(t.structure.top_level)) {
+        o.push_str(&title_format(style, cmd, &style.label, langs));
+        o.push('\n');
+        o.push_str(&format!("\\titlespacing*{{\\{cmd}}}{{0pt}}{{{}pt}}{{{}pt}}\n", num(style.space_before_pt), num(style.space_after_pt)));
+    }
+    o
+}
+
 /// `\titleformat` for one heading level with the given number label.
-fn title_format(style: &texloom_core::HeadingStyle, cmd: &str, label_template: &str) -> String {
+fn title_format(style: &texloom_core::HeadingStyle, cmd: &str, label_template: &str, langs: &Languages) -> String {
     let shape = match style.layout {
         HeadingLayout::Display => "display",
         HeadingLayout::Inline => "hang",
@@ -351,7 +450,7 @@ fn title_format(style: &texloom_core::HeadingStyle, cmd: &str, label_template: &
         texloom_core::Align::Right => "\\filleft",
     };
     let number = format!("\\the{cmd}");
-    let mut label = render_placeholders(label_template, PlaceholderContext { number: Some(&number) });
+    let mut label = render_placeholders(label_template, PlaceholderContext { number: Some(&number), langs: Some(langs) });
     let mut before = String::new();
     if style.text.uppercase {
         label = format!("\\MakeUppercase{{{label}}}");
@@ -377,6 +476,7 @@ fn pdf_font_package(choice: &FontChoice) -> Option<&'static str> {
             BuiltinFont::Heros => Some("tgheros"),
             BuiltinFont::Adventor => Some("tgadventor"),
             BuiltinFont::Cursor => Some("tgcursor"),
+            BuiltinFont::Amiri => None,
         },
         FontChoice::System { .. } => None,
     }
@@ -386,17 +486,10 @@ fn font_line(cmd: &str, choice: &FontChoice) -> Option<String> {
     match choice {
         // fontspec already defaults to Latin Modern.
         FontChoice::Builtin { font: BuiltinFont::LatinModern } => None,
+        // Its own font files come with it (Amiri.fontspec in the TeX distribution).
+        FontChoice::Builtin { font: BuiltinFont::Amiri } => Some(format!("\\{cmd}{{Amiri}}")),
         FontChoice::Builtin { font } => {
-            let file = match font {
-                BuiltinFont::Termes => "texgyretermes",
-                BuiltinFont::Pagella => "texgyrepagella",
-                BuiltinFont::Bonum => "texgyrebonum",
-                BuiltinFont::Schola => "texgyreschola",
-                BuiltinFont::Heros => "texgyreheros",
-                BuiltinFont::Adventor => "texgyreadventor",
-                BuiltinFont::Cursor => "texgyrecursor",
-                BuiltinFont::LatinModern => unreachable!(),
-            };
+            let file = gyre_file(*font)?;
             // Loaded by file name so it works without any fonts installed on the system.
             Some(format!(
                 "\\{cmd}{{{file}}}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]"
@@ -406,8 +499,22 @@ fn font_line(cmd: &str, choice: &FontChoice) -> Option<String> {
     }
 }
 
-fn page_style(name: &str, s: &PageStyle) -> String {
-    let ctx = PlaceholderContext { number: None };
+/// The file name stem of a TeX Gyre font (`texgyretermes`); `None` for the others.
+pub(crate) fn gyre_file(font: BuiltinFont) -> Option<&'static str> {
+    Some(match font {
+        BuiltinFont::Termes => "texgyretermes",
+        BuiltinFont::Pagella => "texgyrepagella",
+        BuiltinFont::Bonum => "texgyrebonum",
+        BuiltinFont::Schola => "texgyreschola",
+        BuiltinFont::Heros => "texgyreheros",
+        BuiltinFont::Adventor => "texgyreadventor",
+        BuiltinFont::Cursor => "texgyrecursor",
+        BuiltinFont::LatinModern | BuiltinFont::Amiri => return None,
+    })
+}
+
+fn page_style(name: &str, s: &PageStyle, langs: &Languages) -> String {
+    let ctx = PlaceholderContext { number: None, langs: Some(langs) };
     let mut body = String::from("\\fancyhf{}");
     for (pos, text) in [("L", &s.header.left), ("C", &s.header.center), ("R", &s.header.right)] {
         if !text.is_empty() {
@@ -442,17 +549,57 @@ fn anchor_name(a: Anchor) -> &'static str {
 }
 
 /// Position relative to the paper's top-left corner.
+/// An item's designed top and bottom (mm from the paper's top edge), with text one
+/// line per line of the item (what a placeholder becomes isn't known here).
+fn item_extent(item: &texloom_core::TitleItem) -> (f32, f32) {
+    let height = match &item.content {
+        TitleContent::Text { text, style, .. } => (text.matches('\n').count() + 1) as f32 * style.size_pt * 1.2 * 25.4 / 72.0,
+        // The aspect ratio isn't known here either.
+        TitleContent::Image { width_mm, .. } => width_mm * 0.6,
+        TitleContent::Rule { thickness_pt, .. } => thickness_pt * 25.4 / 72.0,
+    };
+    let top = match item.anchor {
+        Anchor::TopLeft | Anchor::Top | Anchor::TopRight => item.y_mm,
+        Anchor::Left | Anchor::Center | Anchor::Right => item.y_mm - height / 2.0,
+        Anchor::BottomLeft | Anchor::Bottom | Anchor::BottomRight => item.y_mm - height,
+    };
+    (top, top + height)
+}
+
+/// Title-block items in rows from top to bottom: items side by side (overlapping
+/// in height) share a row.
+fn title_rows(items: &[texloom_core::TitleItem]) -> Vec<Vec<&texloom_core::TitleItem>> {
+    let mut sorted: Vec<&texloom_core::TitleItem> = items.iter().collect();
+    sorted.sort_by(|a, b| item_extent(a).0.total_cmp(&item_extent(b).0));
+    let mut rows: Vec<Vec<&texloom_core::TitleItem>> = Vec::new();
+    let mut row_bottom = f32::MIN;
+    for item in sorted {
+        let (top, bottom) = item_extent(item);
+        match rows.last_mut() {
+            Some(row) if top < row_bottom - 0.5 => row.push(item),
+            _ => rows.push(vec![item]),
+        }
+        row_bottom = if rows.last().is_some_and(|r| r.len() > 1) { row_bottom.max(bottom) } else { bottom };
+    }
+    rows
+}
+
 fn at(x_mm: f32, y_mm: f32) -> String {
     format!("([xshift={}mm,yshift={}mm]current page.north west)", num(x_mm), num(-y_mm))
 }
 
-fn title_item(item: &texloom_core::TitleItem) -> String {
+fn title_item(item: &texloom_core::TitleItem, langs: &Languages, at: &dyn Fn(f32, f32) -> String) -> String {
     let anchor = anchor_name(item.anchor);
     match &item.content {
         TitleContent::Text { text, style, width_mm } => {
-            let mut content = render_placeholders(text, PlaceholderContext { number: None });
+            let mut content = render_placeholders(text, PlaceholderContext { number: None, langs: Some(langs) });
             if style.uppercase {
                 content = format!("\\MakeUppercase{{{content}}}");
+            }
+            if langs.main.rtl() {
+                // TikZ clears \everypar, where bidi starts each paragraph right to
+                // left, so a node's text would run left to right ("عليكم السلام").
+                content = format!("\\RL{{{content}}}");
             }
             let width = width_mm.map(|w| format!(",text width={}mm", num(w))).unwrap_or_default();
             format!(

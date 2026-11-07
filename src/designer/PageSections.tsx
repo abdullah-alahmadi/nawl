@@ -1,32 +1,36 @@
 // Designer panels: template info, page, fonts, structure.
 import type { BuiltinFont } from "../bindings/BuiltinFont";
+import type { Language } from "../bindings/Language";
+import type { LanguageSettings } from "../bindings/LanguageSettings";
 import type { FontChoice } from "../bindings/FontChoice";
 import type { Paper } from "../bindings/Paper";
 import type { LineSpacing } from "../bindings/LineSpacing";
 import type { PageNumberStyle } from "../bindings/PageNumberStyle";
-import { NumberInput, Row, Select, Toggle, issuesAt } from "./controls";
-import type { SectionProps } from "./common";
+import { NumberInput, Row, Segmented, Select, Toggle, issuesAt } from "./controls";
+import { headingLevels, type SectionProps, type Translate } from "./common";
+import { useT, type MessageKey } from "../i18n";
 
 export function InfoSection({ t, edit, issues }: SectionProps) {
+  const tr = useT();
   return (
     <>
-      <Row label="Name" issues={issuesAt(issues, "meta.name")}>
+      <Row label={tr("common.name")} issues={issuesAt(issues, "meta.name")}>
         <input value={t.meta.name} onChange={(e) => edit((d) => void (d.meta.name = e.target.value))} />
       </Row>
-      <Row label="ID" hint="Also the .cls file name" issues={issuesAt(issues, "meta.id")}>
+      <Row label={tr("designer.id")} hint={tr("designer.idHint")} issues={issuesAt(issues, "meta.id")}>
         <input
           className="mono"
           value={t.meta.id}
           onChange={(e) => edit((d) => void (d.meta.id = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-")))}
         />
       </Row>
-      <Row label="Description">
+      <Row label={tr("designer.description")}>
         <textarea rows={3} value={t.meta.description} onChange={(e) => edit((d) => void (d.meta.description = e.target.value))} />
       </Row>
-      <Row label="Version">
+      <Row label={tr("designer.version")}>
         <input value={t.meta.version} onChange={(e) => edit((d) => void (d.meta.version = e.target.value))} />
       </Row>
-      <Row label="Author">
+      <Row label={tr("designer.author")}>
         <input
           value={t.meta.author ?? ""}
           onChange={(e) =>
@@ -41,30 +45,32 @@ export function InfoSection({ t, edit, issues }: SectionProps) {
   );
 }
 
-const PAPERS: { value: Paper["kind"]; label: string }[] = [
+// Paper names and sizes stay as they are in every language.
+const papers = (tr: Translate): { value: Paper["kind"]; label: string }[] => [
   { value: "a4", label: "A4 (210 × 297 mm)" },
   { value: "letter", label: "US Letter (8.5 × 11 in)" },
   { value: "a5", label: "A5 (148 × 210 mm)" },
   { value: "legal", label: "US Legal (8.5 × 14 in)" },
-  { value: "custom", label: "Custom size" },
+  { value: "custom", label: tr("designer.paperCustom") },
 ];
 
-const SPACINGS: { value: LineSpacing["kind"]; label: string }[] = [
-  { value: "single", label: "Single" },
-  { value: "oneHalf", label: "1.5 lines" },
-  { value: "double", label: "Double" },
-  { value: "custom", label: "Custom" },
+const spacings = (tr: Translate): { value: LineSpacing["kind"]; label: string }[] => [
+  { value: "single", label: tr("designer.spacingSingle") },
+  { value: "oneHalf", label: tr("designer.spacingOneHalf") },
+  { value: "double", label: tr("designer.spacingDouble") },
+  { value: "custom", label: tr("designer.custom") },
 ];
 
 export function PageSection({ t, edit, issues }: SectionProps) {
+  const tr = useT();
   const p = t.page;
   const twoSided = p.twoSided;
   return (
     <>
-      <Row label="Paper" issues={issuesAt(issues, "page.paper")}>
+      <Row label={tr("designer.paper")} issues={issuesAt(issues, "page.paper")}>
         <Select
           value={p.paper.kind}
-          options={PAPERS}
+          options={papers(tr)}
           onChange={(kind) =>
             edit((d) => {
               d.page.paper = kind === "custom" ? { kind, widthMm: 210, heightMm: 297 } : ({ kind } as Paper);
@@ -75,50 +81,65 @@ export function PageSection({ t, edit, issues }: SectionProps) {
           <span className="d-inline">
             <NumberInput
               value={p.paper.widthMm}
-              unit="mm wide"
+              unit={tr("designer.mmWide")}
               onChange={(v) => edit((d) => void (d.page.paper.kind === "custom" && (d.page.paper.widthMm = v)))}
             />
             <NumberInput
               value={p.paper.heightMm}
-              unit="mm high"
+              unit={tr("designer.mmHigh")}
               onChange={(v) => edit((d) => void (d.page.paper.kind === "custom" && (d.page.paper.heightMm = v)))}
             />
           </span>
         )}
       </Row>
-      <Row label="Printing">
+      <Row label={tr("designer.printing")}>
         <Toggle
           checked={twoSided}
           onChange={(v) => edit((d) => void (d.page.twoSided = v))}
-          label="Two-sided (margins mirror on even pages)"
+          label={tr("designer.twoSided")}
         />
       </Row>
-      <Row label="Margins" hint="Paper edge to text" issues={issuesAt(issues, "page.margins")}>
+      <Row label={tr("designer.columns")} hint={tr("designer.columnsHint")} issues={issuesAt(issues, "page.columns")}>
+        <Segmented
+          value={String(p.columns ?? 1) as "1" | "2"}
+          options={[
+            { value: "1", label: tr("designer.oneColumn") },
+            { value: "2", label: tr("designer.twoColumns") },
+          ]}
+          onChange={(v) =>
+            edit((d) => {
+              if (v === "2") d.page.columns = 2;
+              else delete d.page.columns;
+            })
+          }
+        />
+      </Row>
+      <Row label={tr("designer.margins")} hint={tr("designer.marginsHint")} issues={issuesAt(issues, "page.margins")}>
         <div className="d-margins">
           <label>
-            Top <NumberInput value={p.margins.topMm} unit="mm" step={0.5} onChange={(v) => edit((d) => void (d.page.margins.topMm = v))} />
+            {tr("common.top")} <NumberInput value={p.margins.topMm} unit="mm" step={0.5} onChange={(v) => edit((d) => void (d.page.margins.topMm = v))} />
           </label>
           <label>
-            Bottom{" "}
+            {tr("common.bottom")}{" "}
             <NumberInput value={p.margins.bottomMm} unit="mm" step={0.5} onChange={(v) => edit((d) => void (d.page.margins.bottomMm = v))} />
           </label>
           <label>
-            {twoSided ? "Inner" : "Left"}{" "}
+            {tr(twoSided ? "designer.inner" : "common.left")}{" "}
             <NumberInput value={p.margins.innerMm} unit="mm" step={0.5} onChange={(v) => edit((d) => void (d.page.margins.innerMm = v))} />
           </label>
           <label>
-            {twoSided ? "Outer" : "Right"}{" "}
+            {tr(twoSided ? "designer.outer" : "common.right")}{" "}
             <NumberInput value={p.margins.outerMm} unit="mm" step={0.5} onChange={(v) => edit((d) => void (d.page.margins.outerMm = v))} />
           </label>
         </div>
       </Row>
-      <Row label="Binding offset" hint="Extra space on the bound edge" issues={issuesAt(issues, "page.bindingOffsetMm")}>
+      <Row label={tr("designer.bindingOffset")} hint={tr("designer.bindingOffsetHint")} issues={issuesAt(issues, "page.bindingOffsetMm")}>
         <NumberInput value={p.bindingOffsetMm} unit="mm" step={0.5} min={0} onChange={(v) => edit((d) => void (d.page.bindingOffsetMm = v))} />
       </Row>
-      <Row label="Line spacing" issues={issuesAt(issues, "page.lineSpacing")}>
+      <Row label={tr("designer.lineSpacing")} issues={issuesAt(issues, "page.lineSpacing")}>
         <Select
           value={p.lineSpacing.kind}
-          options={SPACINGS}
+          options={spacings(tr)}
           onChange={(kind) =>
             edit((d) => {
               d.page.lineSpacing = kind === "custom" ? { kind, stretch: 1.25 } : ({ kind } as LineSpacing);
@@ -128,21 +149,21 @@ export function PageSection({ t, edit, issues }: SectionProps) {
         {p.lineSpacing.kind === "custom" && (
           <NumberInput
             value={p.lineSpacing.stretch}
-            unit="× normal"
+            unit={tr("designer.timesNormal")}
             step={0.05}
             min={0.5}
             onChange={(v) => edit((d) => void (d.page.lineSpacing.kind === "custom" && (d.page.lineSpacing.stretch = v)))}
           />
         )}
       </Row>
-      <Row label="Paragraphs" issues={issuesAt(issues, "page.paragraph")}>
+      <Row label={tr("designer.paragraphs")} issues={issuesAt(issues, "page.paragraph")}>
         <div className="d-margins">
           <label>
-            First-line indent{" "}
+            {tr("designer.firstLineIndent")}{" "}
             <NumberInput value={p.paragraph.indentMm} unit="mm" step={0.5} min={0} onChange={(v) => edit((d) => void (d.page.paragraph.indentMm = v))} />
           </label>
           <label>
-            Space between{" "}
+            {tr("designer.spaceBetween")}{" "}
             <NumberInput value={p.paragraph.spacingPt} unit="pt" min={0} onChange={(v) => edit((d) => void (d.page.paragraph.spacingPt = v))} />
           </label>
         </div>
@@ -151,18 +172,21 @@ export function PageSection({ t, edit, issues }: SectionProps) {
   );
 }
 
-const BUILTIN_FONTS: { value: BuiltinFont; label: string }[] = [
-  { value: "latinModern", label: "Latin Modern (LaTeX default)" },
-  { value: "termes", label: "TeX Gyre Termes (Times-like)" },
-  { value: "pagella", label: "TeX Gyre Pagella (Palatino-like)" },
-  { value: "bonum", label: "TeX Gyre Bonum (Bookman-like)" },
-  { value: "schola", label: "TeX Gyre Schola (Century Schoolbook-like)" },
-  { value: "heros", label: "TeX Gyre Heros (Helvetica-like)" },
-  { value: "adventor", label: "TeX Gyre Adventor (Avant Garde-like)" },
-  { value: "cursor", label: "TeX Gyre Cursor (Courier-like)" },
+// Labels are message keys (the font names stay, the notes after them are translated).
+const BUILTIN_FONTS: { value: BuiltinFont; label: MessageKey }[] = [
+  { value: "latinModern", label: "designer.fontLatinModern" },
+  { value: "termes", label: "designer.fontTermes" },
+  { value: "pagella", label: "designer.fontPagella" },
+  { value: "bonum", label: "designer.fontBonum" },
+  { value: "schola", label: "designer.fontSchola" },
+  { value: "heros", label: "designer.fontHeros" },
+  { value: "adventor", label: "designer.fontAdventor" },
+  { value: "cursor", label: "designer.fontCursor" },
+  { value: "amiri", label: "designer.fontAmiri" },
 ];
 
 function FontPicker({ value, onChange, systemFonts }: { value: FontChoice; onChange: (f: FontChoice) => void; systemFonts: string[] }) {
+  const tr = useT();
   const selectValue = value.kind === "builtin" ? value.font : "__system";
   return (
     <span className="d-inline">
@@ -176,18 +200,18 @@ function FontPicker({ value, onChange, systemFonts }: { value: FontChoice; onCha
           )
         }
       >
-        <optgroup label="Always available">
+        <optgroup label={tr("designer.fontsAlwaysAvailable")}>
           {BUILTIN_FONTS.map((f) => (
             <option key={f.value} value={f.value}>
-              {f.label}
+              {tr(f.label)}
             </option>
           ))}
         </optgroup>
-        <option value="__system">Installed on this computer…</option>
+        <option value="__system">{tr("designer.fontInstalled")}</option>
       </select>
       {value.kind === "system" && (
         <>
-          <input list="system-fonts" value={value.family} placeholder="Font family" onChange={(e) => onChange({ kind: "system", family: e.target.value })} />
+          <input list="system-fonts" value={value.family} placeholder={tr("designer.fontFamily")} onChange={(e) => onChange({ kind: "system", family: e.target.value })} />
           <datalist id="system-fonts">
             {systemFonts.map((f) => (
               <option key={f} value={f} />
@@ -200,31 +224,105 @@ function FontPicker({ value, onChange, systemFonts }: { value: FontChoice; onCha
 }
 
 export function FontsSection({ t, edit, issues, systemFonts }: SectionProps & { systemFonts: string[] }) {
+  const tr = useT();
   const anySystem = [t.fonts.main, t.fonts.sans, t.fonts.mono].some((f) => f.kind === "system");
   return (
     <>
-      <Row label="Body text size" issues={issuesAt(issues, "fonts.baseSizePt")}>
+      <Row label={tr("designer.bodyTextSize")} issues={issuesAt(issues, "fonts.baseSizePt")}>
         <Select
           value={t.fonts.baseSizePt}
           options={[10, 11, 12].map((v) => ({ value: v, label: `${v} pt` }))}
           onChange={(v) => edit((d) => void (d.fonts.baseSizePt = v))}
         />
       </Row>
-      <Row label="Main font" hint="Body text and headings" issues={issuesAt(issues, "fonts.main")}>
+      <Row label={tr("designer.mainFont")} hint={tr("designer.mainFontHint")} issues={issuesAt(issues, "fonts.main")}>
         <FontPicker value={t.fonts.main} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.main = f))} />
       </Row>
-      <Row label="Sans-serif font" issues={issuesAt(issues, "fonts.sans")}>
+      <Row label={tr("designer.sansFont")} issues={issuesAt(issues, "fonts.sans")}>
         <FontPicker value={t.fonts.sans} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.sans = f))} />
       </Row>
-      <Row label="Monospace font" hint="Code" issues={issuesAt(issues, "fonts.mono")}>
+      <Row label={tr("designer.monoFont")} hint={tr("designer.monoFontHint")} issues={issuesAt(issues, "fonts.mono")}>
         <FontPicker value={t.fonts.mono} systemFonts={systemFonts} onChange={(f) => edit((d) => void (d.fonts.mono = f))} />
       </Row>
+      <Row label={tr("designer.arabicFont")} hint={tr("designer.arabicFontHint")} issues={issuesAt(issues, "fonts.arabic")}>
+        <span className="d-inline">
+          <select
+            value={t.fonts.arabic?.kind === "system" ? "__system" : "amiri"}
+            onChange={(e) =>
+              edit((d) => {
+                if (e.target.value === "amiri") delete d.fonts.arabic;
+                else d.fonts.arabic = { kind: "system", family: systemFonts.find((f) => /arab|naskh|majalla|kufi|amiri/i.test(f)) ?? "" };
+              })
+            }
+          >
+            <option value="amiri">{tr("designer.amiriAlways")}</option>
+            <option value="__system">{tr("designer.fontInstalled")}</option>
+          </select>
+          {t.fonts.arabic?.kind === "system" && (
+            <input
+              list="system-fonts-arabic"
+              value={t.fonts.arabic.family}
+              placeholder={tr("designer.arabicFontPlaceholder")}
+              onChange={(e) => edit((d) => void (d.fonts.arabic = { kind: "system", family: e.target.value }))}
+            />
+          )}
+          <datalist id="system-fonts-arabic">
+            {systemFonts.map((f) => (
+              <option key={f} value={f} />
+            ))}
+          </datalist>
+        </span>
+      </Row>
       {anySystem && (
-        <p className="d-note">
-          Fonts installed on this computer may be missing on other machines. The “always available” fonts come with
-          the TeX engine and work everywhere.
-        </p>
+        <p className="d-note">{tr("designer.systemFontsNote")}</p>
       )}
+    </>
+  );
+}
+
+const LANGUAGES: { value: Language; label: MessageKey }[] = [
+  { value: "english", label: "designer.langEnglish" },
+  { value: "arabic", label: "designer.langArabic" },
+];
+
+/** The document's language, a second language for passages in it, and digits. */
+export function LanguageSection({ t, edit }: SectionProps) {
+  const tr = useT();
+  const languages = LANGUAGES.map((l) => ({ value: l.value, label: tr(l.label) }));
+  const lang: LanguageSettings = t.language ?? { main: "english", other: null, digits: "western" };
+  const set = (patch: Partial<LanguageSettings>) =>
+    edit((d) => {
+      const next = { ...lang, ...patch };
+      // English only, the default: no setting at all (as in older templates).
+      if (next.main === "english" && !next.other && next.digits === "western") delete d.language;
+      else d.language = next;
+    });
+  const arabic = lang.main === "arabic" || lang.other === "arabic";
+  return (
+    <>
+      <Row label={tr("designer.language")} hint={tr("designer.languageHint")}>
+        <Select value={lang.main} options={languages} onChange={(v) => set({ main: v, other: lang.other === v ? null : lang.other })} />
+      </Row>
+      <Row label={tr("designer.secondLanguage")} hint={tr("designer.secondLanguageHint")}>
+        <Select
+          value={lang.other ?? ""}
+          options={[{ value: "", label: tr("common.none") }, ...languages.filter((l) => l.value !== lang.main)]}
+          onChange={(v) => set({ other: (v || null) as Language | null })}
+        />
+      </Row>
+      {arabic && (
+        <Row label={tr("designer.digits")} hint={tr("designer.digitsHint")}>
+          <Segmented
+            value={lang.digits}
+            options={[
+              { value: "western", label: "1 2 3" },
+              { value: "arabicIndic", label: "١ ٢ ٣" },
+            ]}
+            onChange={(v) => set({ digits: v })}
+          />
+        </Row>
+      )}
+      <p className="d-note">{tr("designer.languageNote")}</p>
     </>
   );
 }
@@ -236,49 +334,52 @@ const PAGE_NUMBERS: { value: PageNumberStyle; label: string }[] = [
 ];
 
 export function StructureSection({ t, edit, issues }: SectionProps) {
+  const tr = useT();
   const s = t.structure;
-  const depthOptions = (names: string[]) =>
-    [0, 1, 2, 3, 4].map((n) => ({ value: n, label: n === 0 ? "None" : `Down to ${names[n - 1].toLowerCase()}s` }));
-  const names = s.topLevel === "chapter" ? ["Chapter", "Section", "Subsection", "Subsubsection"] : ["Section", "Subsection", "Subsubsection", "Paragraph"];
+  const levels = headingLevels(t);
+  const depthOptions = [0, 1, 2, 3, 4].map((n) => ({
+    value: n,
+    label: n === 0 ? tr("common.none") : tr(`designer.depth${levels[n - 1]}`),
+  }));
   return (
     <>
-      <Row label="Top-level heading" hint="What heading level 1 becomes">
+      <Row label={tr("designer.topLevel")} hint={tr("designer.topLevelHint")}>
         <Select
           value={s.topLevel}
           options={[
-            { value: "chapter", label: "Chapters (each starts a new page)" },
-            { value: "section", label: "Sections (shorter documents)" },
+            { value: "chapter", label: tr("designer.topChapters") },
+            { value: "section", label: tr("designer.topSections") },
           ]}
           onChange={(v) => edit((d) => void (d.structure.topLevel = v))}
         />
       </Row>
-      <Row label="Numbered headings" issues={issuesAt(issues, "structure.numberedDepth")}>
-        <Select value={s.numberedDepth} options={depthOptions(names)} onChange={(v) => edit((d) => void (d.structure.numberedDepth = v))} />
+      <Row label={tr("designer.numberedHeadings")} issues={issuesAt(issues, "structure.numberedDepth")}>
+        <Select value={s.numberedDepth} options={depthOptions} onChange={(v) => edit((d) => void (d.structure.numberedDepth = v))} />
       </Row>
-      <Row label="In table of contents" issues={issuesAt(issues, "structure.tocDepth")}>
-        <Select value={s.tocDepth} options={depthOptions(names)} onChange={(v) => edit((d) => void (d.structure.tocDepth = v))} />
+      <Row label={tr("designer.inToc")} issues={issuesAt(issues, "structure.tocDepth")}>
+        <Select value={s.tocDepth} options={depthOptions} onChange={(v) => edit((d) => void (d.structure.tocDepth = v))} />
       </Row>
-      <Row label="Page numbers" hint="Front matter / main text">
+      <Row label={tr("designer.pageNumbers")} hint={tr("designer.pageNumbersHint")}>
         <span className="d-inline">
           <Select
             value={s.frontMatterPageNumbers}
             options={PAGE_NUMBERS}
             onChange={(v) => edit((d) => void (d.structure.frontMatterPageNumbers = v))}
           />
-          <span className="muted">then</span>
+          <span className="muted">{tr("designer.then")}</span>
           <Select value={s.mainPageNumbers} options={PAGE_NUMBERS} onChange={(v) => edit((d) => void (d.structure.mainPageNumbers = v))} />
         </span>
       </Row>
-      <Row label="Appendix label" hint="{n} is the letter" issues={issuesAt(issues, "structure.appendixLabel")}>
+      <Row label={tr("designer.appendixLabel")} hint={tr("designer.appendixLabelHint")} issues={issuesAt(issues, "structure.appendixLabel")}>
         <input value={s.appendixLabel} onChange={(e) => edit((d) => void (d.structure.appendixLabel = e.target.value))} />
       </Row>
       {s.topLevel === "chapter" && (
-        <Row label="Equations, figures, tables">
+        <Row label={tr("designer.equationsFiguresTables")}>
           <Select
             value={s.perChapterNumbering ? "chapter" : "continuous"}
             options={[
-              { value: "chapter", label: "Numbered per chapter (2.1, 2.2…)" },
-              { value: "continuous", label: "Numbered continuously (1, 2, 3…)" },
+              { value: "chapter", label: tr("designer.perChapter") },
+              { value: "continuous", label: tr("designer.continuous") },
             ]}
             onChange={(v) => edit((d) => void (d.structure.perChapterNumbering = v === "chapter"))}
           />

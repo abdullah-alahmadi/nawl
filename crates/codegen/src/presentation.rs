@@ -81,7 +81,10 @@ pub fn presentation_cls(t: &Template) -> String {
     ));
     o.push_str("\\NeedsTeXFormat{LaTeX2e}\n");
     o.push_str(&format!("\\ProvidesClass{{{}}}\n", t.meta.id));
-    o.push_str(&format!("\\LoadClass[aspectratio={},{}pt]{{beamer}}\n", p.aspect_ratio.beamer_option(), font_size(&p)));
+    // Right-to-left slides: beamer-rl (LuaLaTeX only; XeTeX's bidi no longer supports
+    // beamer, so lists and alignment would stay left to right).
+    let class = if t.lang().main.rtl() { "beamer-rl" } else { "beamer" };
+    o.push_str(&format!("\\LoadClass[aspectratio={},{}pt]{{{class}}}\n", p.aspect_ratio.beamer_option(), font_size(&p)));
     if safe_name(&p.theme) {
         o.push_str(&format!("\\usetheme{{{}}}\n", p.theme));
     }
@@ -136,7 +139,8 @@ pub fn presentation_cls(t: &Template) -> String {
     o.push_str("\\newcommand\\texloombibliography{\\bibliographystyle{plain}\\bibliography{refs}}\n");
     if p.section_slides {
         o.push_str("\n% An outline slide at the start of each section\n");
-        o.push_str("\\AtBeginSection[]{\\begin{frame}{Outline}\\tableofcontents[currentsection]\\end{frame}}\n");
+        let outline = crate::strings::words(t.lang().main).outline;
+        o.push_str(&format!("\\AtBeginSection[]{{\\begin{{frame}}{{{outline}}}\\tableofcontents[currentsection]\\end{{frame}}}}\n"));
     }
     if let Some(raw) = t.raw_preamble.as_deref().filter(|r| !r.trim().is_empty()) {
         o.push_str("\n% Raw preamble from the template\n");
@@ -200,7 +204,8 @@ pub fn title_slides(t: &Template, doc: &Document) -> String {
         o.push_str("\\begin{frame}\n\\titlepage\n\\end{frame}\n\n");
     }
     if p.outline {
-        o.push_str("\\begin{frame}{Outline}\n\\tableofcontents\n\\end{frame}\n\n");
+        let outline = crate::strings::words(t.lang().main).outline;
+        o.push_str(&format!("\\begin{{frame}}{{{outline}}}\n\\tableofcontents\n\\end{{frame}}\n\n"));
     }
     o
 }

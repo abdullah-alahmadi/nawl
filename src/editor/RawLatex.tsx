@@ -2,6 +2,7 @@
 // for anything the editor can't do visually yet (TikZ drawings, special tables…).
 import { useLayoutEffect, useRef } from "react";
 import { Node, mergeAttributes, NodeViewWrapper, ReactNodeViewRenderer, type ReactNodeViewProps } from "@tiptap/react";
+import { useT } from "../i18n";
 
 declare module "@tiptap/react" {
   interface Commands<ReturnType> {
@@ -10,6 +11,7 @@ declare module "@tiptap/react" {
 }
 
 function RawLatexView({ node, updateAttributes, selected, editor, getPos }: ReactNodeViewProps) {
+  const t = useT();
   const area = useRef<HTMLTextAreaElement>(null);
   const latex: string = node.attrs.latex ?? "";
 
@@ -55,7 +57,7 @@ function RawLatexView({ node, updateAttributes, selected, editor, getPos }: Reac
   return (
     <NodeViewWrapper className={`raw-latex${selected ? " is-selected" : ""}`} data-raw-latex="">
       <div className="raw-latex-label" contentEditable={false} data-drag-handle="">
-        LaTeX <span>written into the PDF as typed</span>
+        LaTeX <span>{t("editor.rawLatexNote")}</span>
       </div>
       <textarea
         ref={area}

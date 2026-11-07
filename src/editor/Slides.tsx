@@ -4,6 +4,7 @@
 import { Node, mergeAttributes, NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, type ReactNodeViewProps } from "@tiptap/react";
 import Document from "@tiptap/extension-document";
 import { TextSelection, type EditorState } from "@tiptap/pm/state";
+import { t as tr, useT, type MessageKey } from "../i18n";
 
 declare module "@tiptap/react" {
   interface Commands<ReturnType> {
@@ -220,24 +221,25 @@ export const Column = Node.create({
   renderHTML: ({ HTMLAttributes }) => ["div", mergeAttributes(HTMLAttributes, { "data-column": "", class: "slide-column" }), 0],
 });
 
-const BOX_LABELS: Record<SlideBoxKind, string> = { block: "Block", alert: "Alert", example: "Example" };
+const BOX_LABELS: Record<SlideBoxKind, MessageKey> = { block: "editor.boxBlock", alert: "editor.boxAlert", example: "editor.boxExample" };
 
 function SlideBoxView({ node, updateAttributes }: ReactNodeViewProps) {
+  const t = useT();
   const kind = (node.attrs.kind ?? "block") as SlideBoxKind;
   return (
     <NodeViewWrapper className={`slide-box slide-box-${kind}`} data-slide-box="">
       <div className="slide-box-title" contentEditable={false}>
         <input
           value={node.attrs.title ?? ""}
-          placeholder={`${BOX_LABELS[kind]} title`}
+          placeholder={t("editor.boxTitlePlaceholder", { kind: t(BOX_LABELS[kind]) })}
           onChange={(e) => updateAttributes({ title: e.target.value })}
-          aria-label="Box title"
+          aria-label={t("editor.boxTitle")}
           spellCheck
         />
-        <select value={kind} onChange={(e) => updateAttributes({ kind: e.target.value })} aria-label="Box style" title="Box style">
+        <select value={kind} onChange={(e) => updateAttributes({ kind: e.target.value })} aria-label={t("editor.boxStyle")} title={t("editor.boxStyle")}>
           {(Object.keys(BOX_LABELS) as SlideBoxKind[]).map((k) => (
             <option key={k} value={k}>
-              {BOX_LABELS[k]}
+              {t(BOX_LABELS[k])}
             </option>
           ))}
         </select>
@@ -271,7 +273,8 @@ export const SlidePause = Node.create({
   renderHTML: ({ HTMLAttributes }) => [
     "div",
     mergeAttributes(HTMLAttributes, { "data-slide-pause": "", class: "slide-pause", contenteditable: "false" }),
-    ["span", {}, "Pause: the rest appears on the next click"],
+    // Interface text, not document content.
+    ["span", {}, tr("editor.pauseMarker")],
   ],
 });
 

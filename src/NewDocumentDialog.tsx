@@ -3,42 +3,47 @@
 // category chips (journals, theses, books…), shown as cards or a compact list, with
 // the recently used ones first. Choosing one starts an empty document with it. At
 // startup it is the start window, with Open, recent files and the examples as well.
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { Check, FileInput, FileText, FolderOpen, History, LayoutGrid, List, Presentation, Search, Sparkles, Trash2, X } from "lucide-react";
 import type { BuiltinTemplate, InstalledCategory, InstalledList, InstalledTemplate, UserTemplate } from "./api";
+import { LanguageContext, translate, useT, type MessageKey } from "./i18n";
+
+// Labels below are message keys, translated when shown.
 
 /** Categories, in the order of the chips. */
-type Category = "report" | "presentation" | "journal" | "thesis" | "book" | "general" | "mine";
-const CATEGORIES: { key: Category; label: string }[] = [
-  { key: "report", label: "Reports" },
-  { key: "presentation", label: "Presentations" },
-  { key: "journal", label: "Journals" },
-  { key: "thesis", label: "Theses" },
-  { key: "book", label: "Books" },
-  { key: "general", label: "Articles" },
-  { key: "mine", label: "My templates" },
+type Category = "arabic" | "report" | "presentation" | "journal" | "thesis" | "book" | "general" | "mine";
+const CATEGORIES: { key: Category; label: MessageKey }[] = [
+  { key: "arabic", label: "dialogs.categoryArabic" },
+  { key: "report", label: "dialogs.categoryReports" },
+  { key: "presentation", label: "dialogs.categoryPresentations" },
+  { key: "journal", label: "dialogs.categoryJournals" },
+  { key: "thesis", label: "dialogs.categoryTheses" },
+  { key: "book", label: "dialogs.categoryBooks" },
+  { key: "general", label: "dialogs.categoryArticles" },
+  { key: "mine", label: "dialogs.categoryMine" },
 ];
-const CATEGORY_TITLES: Record<Category, string> = {
-  report: "Reports",
-  presentation: "Presentations",
-  journal: "Journals and conferences",
-  thesis: "Theses and dissertations",
-  book: "Books",
-  general: "Articles and reports",
-  mine: "My templates",
+const CATEGORY_TITLES: Record<Category, MessageKey> = {
+  arabic: "dialogs.categoryTitleArabic",
+  report: "dialogs.categoryReports",
+  presentation: "dialogs.categoryPresentations",
+  journal: "dialogs.categoryTitleJournals",
+  thesis: "dialogs.categoryTitleTheses",
+  book: "dialogs.categoryBooks",
+  general: "dialogs.categoryTitleArticles",
+  mine: "dialogs.categoryMine",
 };
 
 /** Names for the kinds Texloom can't write yet. */
-const WAITING_NAMES: Partial<Record<InstalledCategory, string>> = {
-  letter: "letter",
-  cv: "CV",
-  poster: "poster",
-  exam: "exam and exercise",
-  presentation: "presentation (other than beamer)",
+const WAITING_NAMES: Partial<Record<InstalledCategory, MessageKey>> = {
+  letter: "dialogs.waitingLetter",
+  cv: "dialogs.waitingCv",
+  poster: "dialogs.waitingPoster",
+  exam: "dialogs.waitingExam",
+  presentation: "dialogs.waitingPresentation",
 };
 
 type Source = "builtin" | "tex" | "mine";
-const SOURCE_LABELS: Record<Source, string> = { builtin: "Built in", tex: "TeX installation", mine: "My template" };
+const SOURCE_LABELS: Record<Source, MessageKey> = { builtin: "dialogs.sourceBuiltin", tex: "dialogs.sourceTex", mine: "dialogs.sourceMine" };
 
 /** One template, wherever it comes from. */
 interface Item {
@@ -128,6 +133,8 @@ export function NewDocumentDialog({
   onPrefs?: (p: { galleryView?: "grid" | "list"; galleryCategory?: string }) => void;
   onClose: () => void;
 }) {
+  const t = useT();
+  const lang = useContext(LanguageContext);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -152,12 +159,16 @@ export function NewDocumentDialog({
     const out: Item[] = [];
     const builtinClasses = new Set(builtins.map((b) => b.class).filter(Boolean));
     for (const b of builtins) {
-      const cat: Category = b.kind === "presentation" ? "presentation" : b.class ? "journal" : "report";
+      const cat: Category =
+        b.language === "arabic" ? "arabic" : b.kind === "presentation" ? "presentation" : b.class ? "journal" : b.topLevel === "section" ? "general" : "report";
       if (tex && cat !== "presentation") continue;
       out.push({
         key: `builtin:${b.id}`,
         name: b.name,
-        description: b.kind === "presentation" && installedThemes > 0 ? `${b.description} Your TeX installation adds ${installedThemes} themes to its theme picker.` : b.description,
+        description:
+          b.kind === "presentation" && installedThemes > 0
+            ? `${b.description} ${translate(lang, "dialogs.presentationThemesAdded", { n: installedThemes })}`
+            : b.description,
         cls: b.class ?? (b.kind === "presentation" ? "beamer" : null),
         source: "builtin",
         category: cat,
@@ -179,28 +190,28 @@ export function NewDocumentDialog({
           pick: () => onPickUser(u),
           remove: () => onRemoveUser(u),
         });
-    for (const t of installed) {
-      if (builtinClasses.has(t.class) || !["journal", "thesis", "book", "general"].includes(t.category)) continue;
+    for (const it of installed) {
+      if (builtinClasses.has(it.class) || !["journal", "thesis", "book", "general"].includes(it.category)) continue;
       out.push({
-        key: `tex:${t.class}`,
-        name: t.name,
-        description: t.name === t.description ? `Class ${t.class} (package ${t.package})` : t.description,
-        cls: t.class,
+        key: `tex:${it.class}`,
+        name: it.name,
+        description: it.name === it.description ? translate(lang, "dialogs.classAndPackage", { cls: it.class, pkg: it.package }) : it.description,
+        cls: it.class,
         source: "tex",
-        category: t.category as Category,
-        current: t.class === currentClass,
-        pick: () => onPickInstalled?.(t.class),
+        category: it.category as Category,
+        current: it.class === currentClass,
+        pick: () => onPickInstalled?.(it.class),
       });
     }
     return out;
-  }, [builtins, userTemplates, installed, tex, currentId, currentPath, currentClass, installedThemes, onPick, onPickUser, onRemoveUser, onPickInstalled]);
+  }, [builtins, userTemplates, installed, tex, currentId, currentPath, currentClass, installedThemes, onPick, onPickUser, onRemoveUser, onPickInstalled, lang]);
 
   const recent = recentTemplates.map((k) => items.find((i) => i.key === k)).filter((i): i is Item => !!i);
   const counts = (c: Category) => items.filter((i) => i.category === c).length;
   const chips = [
-    { key: "all", label: "All", count: items.length },
-    ...(recent.length && !tex ? [{ key: "recent", label: "Recently used", count: recent.length }] : []),
-    ...CATEGORIES.filter((c) => !tex || c.key !== "mine").map((c) => ({ key: c.key, label: c.label, count: counts(c.key) })),
+    { key: "all", label: t("dialogs.chipAll"), count: items.length },
+    ...(recent.length && !tex ? [{ key: "recent", label: t("dialogs.recentlyUsed"), count: recent.length }] : []),
+    ...CATEGORIES.filter((c) => !tex || c.key !== "mine").map((c) => ({ key: c.key, label: t(c.label), count: counts(c.key) })),
   ].filter((c) => c.key === "all" || c.key === "mine" || c.count > 0);
   const active = chips.some((c) => c.key === category) ? category : "all";
 
@@ -208,15 +219,15 @@ export function NewDocumentDialog({
   const searching = query.trim() !== "";
   const found = items.filter((i) => matches(query, i.name, i.description, i.cls));
   const sections: { title: string; items: Item[]; key: string }[] = searching
-    ? [{ key: "results", title: `${found.length} matching`, items: found }]
+    ? [{ key: "results", title: t("dialogs.matching", { n: found.length }), items: found }]
     : active === "recent"
-      ? [{ key: "recent", title: "Recently used", items: recent }]
+      ? [{ key: "recent", title: t("dialogs.recentlyUsed"), items: recent }]
       : active === "all"
         ? [
-            ...(recent.length && !tex ? [{ key: "recent", title: "Recently used", items: recent }] : []),
-            ...CATEGORIES.filter((c) => !tex || c.key !== "mine").map((c) => ({ key: c.key, title: CATEGORY_TITLES[c.key], items: items.filter((i) => i.category === c.key) })),
+            ...(recent.length && !tex ? [{ key: "recent", title: t("dialogs.recentlyUsed"), items: recent }] : []),
+            ...CATEGORIES.filter((c) => !tex || c.key !== "mine").map((c) => ({ key: c.key, title: t(CATEGORY_TITLES[c.key]), items: items.filter((i) => i.category === c.key) })),
           ]
-        : [{ key: active, title: CATEGORY_TITLES[active as Category], items: items.filter((i) => i.category === active) }];
+        : [{ key: active, title: t(CATEGORY_TITLES[active as Category]), items: items.filter((i) => i.category === active) }];
 
   // Arrow keys move between templates; Enter (a button's own) picks.
   const body = useRef<HTMLDivElement>(null);
@@ -233,15 +244,15 @@ export function NewDocumentDialog({
 
   const card = (i: Item, showCategory: boolean) => (
     <div key={`${i.key}`} className={`tpl ${shownView === "list" ? "tpl-row" : "gallery-card tpl-card"}${i.current ? " current" : ""}`}>
-      <button className="tpl-pick" onClick={i.pick} title={i.cls ? `${i.description} (class ${i.cls})` : i.description}>
+      <button className="tpl-pick" onClick={i.pick} title={i.cls ? t("dialogs.descriptionWithClass", { description: i.description, cls: i.cls }) : i.description}>
         {shownView === "list" ? (
           <>
             <span className="tpl-row-icon">{i.icon ?? <FileText size={15} aria-hidden="true" />}</span>
             <strong className="tpl-name">{i.name}</strong>
             {i.cls && <code className="tpl-class">{i.cls}</code>}
             <span className="muted tpl-desc">{i.description}</span>
-            <span className={`tpl-source tpl-source-${i.source}`}>{showCategory ? CATEGORY_TITLES[i.category] : SOURCE_LABELS[i.source]}</span>
-            {i.current && <Check size={14} className="tpl-current" aria-label="Current template" />}
+            <span className={`tpl-source tpl-source-${i.source}`}>{t(showCategory ? CATEGORY_TITLES[i.category] : SOURCE_LABELS[i.source])}</span>
+            {i.current && <Check size={14} className="tpl-current" aria-label={t("dialogs.currentTemplate")} />}
           </>
         ) : (
           <>
@@ -251,12 +262,12 @@ export function NewDocumentDialog({
             </span>
             <strong>{i.name}</strong>
             <span className="muted tpl-desc">{i.description}</span>
-            <span className={`tpl-source tpl-source-${i.source}`}>{showCategory ? CATEGORY_TITLES[i.category] : SOURCE_LABELS[i.source]}</span>
+            <span className={`tpl-source tpl-source-${i.source}`}>{t(showCategory ? CATEGORY_TITLES[i.category] : SOURCE_LABELS[i.source])}</span>
           </>
         )}
       </button>
       {i.remove && (
-        <button className="icon-button small tpl-remove" onClick={i.remove} title="Remove from My templates" aria-label={`Remove ${i.name}`}>
+        <button className="icon-button small tpl-remove" onClick={i.remove} title={t("dialogs.removeFromMine")} aria-label={t("dialogs.removeNamed", { name: i.name })}>
           <Trash2 size={13} />
         </button>
       )}
@@ -267,10 +278,8 @@ export function NewDocumentDialog({
     <button className="gallery-import" onClick={onImport}>
       <FileInput size={20} aria-hidden="true" />
       <span>
-        <strong>Import a template for any journal</strong>
-        <span className="muted">
-          Choose the publisher’s LaTeX kit (.zip from the journal’s author guidelines), a template package someone shared, or a Texloom template (.json).
-        </span>
+        <strong>{t("dialogs.importAnyJournal")}</strong>
+        <span className="muted">{t("dialogs.importAnyJournalHint")}</span>
       </span>
     </button>
   );
@@ -281,26 +290,26 @@ export function NewDocumentDialog({
         className={`modal gallery${start ? " start" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-label={start ? "Start" : tex ? "Templates from your TeX installation" : "New from template"}
+        aria-label={start ? t("dialogs.start") : tex ? t("dialogs.templatesFromTex") : t("dialogs.newFromTemplate")}
       >
         {start && (
           <aside className="start-side">
             <div className="start-brand">
               <strong>Texloom</strong>
-              <span className="muted">LaTeX documents, visually</span>
+              <span className="muted">{t("dialogs.tagline")}</span>
             </div>
             <button className="start-action" onClick={() => onOpen?.()}>
-              <FolderOpen size={16} aria-hidden="true" /> Open document…
+              <FolderOpen size={16} aria-hidden="true" /> {t("dialogs.openDocument")}
             </button>
             <button className="start-action" onClick={onExample}>
-              <Sparkles size={16} aria-hidden="true" /> Open the example report
+              <Sparkles size={16} aria-hidden="true" /> {t("dialogs.openExampleReport")}
             </button>
             <button className="start-action" onClick={onExamplePresentation}>
-              <Presentation size={16} aria-hidden="true" /> Open the example presentation
+              <Presentation size={16} aria-hidden="true" /> {t("dialogs.openExamplePresentation")}
             </button>
             {recentFiles.length > 0 && (
               <>
-                <div className="start-heading">Recent</div>
+                <div className="start-heading">{t("dialogs.recent")}</div>
                 {recentFiles.map((f) => (
                   <button key={f} className="start-recent" onClick={() => onOpen?.(f)} title={f}>
                     <History size={14} aria-hidden="true" />
@@ -316,12 +325,12 @@ export function NewDocumentDialog({
         )}
         <div className="gallery-main">
           <div className="gallery-head">
-            <h2>{start ? "Start a new document" : tex ? "From your TeX installation" : "New from template"}</h2>
+            <h2>{start ? t("dialogs.startNewDocument") : tex ? t("dialogs.fromTex") : t("dialogs.newFromTemplate")}</h2>
             <label className="gallery-search">
               <Search size={14} aria-hidden="true" />
               <input
                 type="search"
-                placeholder={`Search ${items.length} templates`}
+                placeholder={t("dialogs.searchCountTemplates", { n: items.length })}
                 autoFocus={tex}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -332,23 +341,23 @@ export function NewDocumentDialog({
                     body.current?.querySelector<HTMLElement>(".tpl-pick")?.focus();
                   }
                 }}
-                aria-label="Search templates"
+                aria-label={t("dialogs.searchTemplates")}
                 spellCheck={false}
               />
             </label>
-            <span className="segmented gallery-view" role="radiogroup" aria-label="View">
-              <button role="radio" aria-checked={shownView === "grid"} className={shownView === "grid" ? "active" : ""} onClick={() => setView("grid")} title="Cards">
+            <span className="segmented gallery-view" role="radiogroup" aria-label={t("dialogs.view")}>
+              <button role="radio" aria-checked={shownView === "grid"} className={shownView === "grid" ? "active" : ""} onClick={() => setView("grid")} title={t("dialogs.viewCards")}>
                 <LayoutGrid size={14} aria-hidden="true" />
               </button>
-              <button role="radio" aria-checked={shownView === "list"} className={shownView === "list" ? "active" : ""} onClick={() => setView("list")} title="List">
+              <button role="radio" aria-checked={shownView === "list"} className={shownView === "list" ? "active" : ""} onClick={() => setView("list")} title={t("dialogs.viewList")}>
                 <List size={14} aria-hidden="true" />
               </button>
             </span>
-            <button className="icon-button" onClick={onClose} aria-label="Close" title={start ? "Start with an empty document (Esc)" : "Close (Esc)"}>
+            <button className="icon-button" onClick={onClose} aria-label={t("common.close")} title={start ? t("dialogs.startEmpty") : t("dialogs.closeEsc")}>
               <X size={17} />
             </button>
           </div>
-          <div className="gallery-chips" role="tablist" aria-label="Categories">
+          <div className="gallery-chips" role="tablist" aria-label={t("dialogs.categories")}>
             {chips.map((c) => (
               <button
                 key={c.key}
@@ -374,14 +383,14 @@ export function NewDocumentDialog({
                 <section key={sec.key}>
                   {(active === "all" || searching) && <h3>{sec.title}</h3>}
                   {sec.key === "presentation" && tex && installedThemes > 0 && (
-                    <p className="muted gallery-note">Beamer themes from your TeX installation are in the theme picker (Theme in the toolbar).</p>
+                    <p className="muted gallery-note">{t("dialogs.beamerThemesNote")}</p>
                   )}
                   {sec.items.length > 0 ? (
                     <div className={shownView === "list" ? "tpl-list" : "gallery-grid tpl-grid"}>{sec.items.map((i) => card(i, showCategory))}</div>
                   ) : searching ? (
-                    <p className="muted gallery-empty">No template matches “{query.trim()}”.</p>
+                    <p className="muted gallery-empty">{t("dialogs.noTemplateMatches", { query: query.trim() })}</p>
                   ) : sec.key === "mine" ? null : (
-                    <p className="muted gallery-empty">No templates in this category.</p>
+                    <p className="muted gallery-empty">{t("dialogs.noTemplatesInCategory")}</p>
                   )}
                   {sec.key === "mine" && !searching && importCard}
                 </section>
@@ -389,23 +398,25 @@ export function NewDocumentDialog({
             })}
             {!searching && (active === "all" || ["journal", "thesis", "book", "general"].includes(active)) && installed.length > 0 && (
               <p className="muted gallery-note tex-waiting">
-                “TeX installation” templates use the classes installed on this computer, with a standard title block you can adjust under Design.
-                {tex && " Choosing one restyles this document; its text stays."}
-                {engine === "tectonic" && " They compile with your installed TeX; picking one offers to switch the engine from Tectonic to pdfLaTeX."}
+                {t("dialogs.texNote")}
+                {tex && t("dialogs.texNoteRestyle")}
+                {engine === "tectonic" && t("dialogs.texNoteTectonic")}
                 {waiting.length > 0 &&
-                  ` Also installed: ${waiting
-                    .filter((w) => WAITING_NAMES[w.category])
-                    .map((w) => `${w.count} ${WAITING_NAMES[w.category]} class${w.count === 1 ? "" : "es"}`)
-                    .join(", ")}; Texloom will offer them once it can write those kinds of documents.`}
+                  t("dialogs.texNoteWaiting", {
+                    list: waiting
+                      .filter((w) => WAITING_NAMES[w.category])
+                      .map((w) => t(w.count === 1 ? "dialogs.waitingItemOne" : "dialogs.waitingItemMany", { n: w.count, kind: t(WAITING_NAMES[w.category]!) }))
+                      .join(t("dialogs.listSeparator")),
+                  })}
               </p>
             )}
           </div>
           {!tex && (
             <div className="gallery-foot">
               <button className="tb-button" onClick={onImport}>
-                <FileInput size={15} aria-hidden="true" /> Import template…
+                <FileInput size={15} aria-hidden="true" /> {t("dialogs.importTemplate")}
               </button>
-              <span className="muted">A publisher’s LaTeX kit, a template package, or a template file. The template can be changed later from the title bar.</span>
+              <span className="muted">{t("dialogs.importTemplateHint")}</span>
             </div>
           )}
         </div>

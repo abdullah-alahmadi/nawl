@@ -4,38 +4,41 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { FileText, Keyboard, Monitor, Moon, Palette, PenLine, Pipette, Sun, X } from "lucide-react";
 import { DEFAULT_SETTINGS, PAGE_COLORS, type Settings } from "./settings";
 import { listEngines, type EngineInfo } from "./api";
+import { useT, type MessageKey } from "./i18n";
 
-const ENGINE_LABELS: Record<string, string> = {
-  tectonic: "Tectonic (built in)",
-  pdflatex: "pdfLaTeX (installed TeX)",
-  xelatex: "XeLaTeX (installed TeX)",
-  lualatex: "LuaLaTeX (installed TeX)",
+const ENGINE_LABELS: Record<string, MessageKey> = {
+  tectonic: "dialogs.engineTectonic",
+  pdflatex: "dialogs.enginePdflatex",
+  xelatex: "dialogs.engineXelatex",
+  lualatex: "dialogs.engineLualatex",
 };
 
 type Section = "editor" | "preview" | "appearance" | "files" | "shortcuts";
 
-const SECTIONS: { key: Section; label: string; icon: ReactNode }[] = [
-  { key: "editor", label: "Editor", icon: <PenLine size={16} /> },
-  { key: "preview", label: "Preview", icon: <FileText size={16} /> },
-  { key: "appearance", label: "Appearance", icon: <Palette size={16} /> },
-  { key: "files", label: "Files", icon: <FileText size={16} /> },
-  { key: "shortcuts", label: "Keyboard shortcuts", icon: <Keyboard size={16} /> },
+// Labels are message keys, translated when shown.
+const SECTIONS: { key: Section; label: MessageKey; icon: ReactNode }[] = [
+  { key: "editor", label: "dialogs.sectionEditor", icon: <PenLine size={16} /> },
+  { key: "preview", label: "dialogs.sectionPreview", icon: <FileText size={16} /> },
+  { key: "appearance", label: "dialogs.sectionAppearance", icon: <Palette size={16} /> },
+  { key: "files", label: "dialogs.sectionFiles", icon: <FileText size={16} /> },
+  { key: "shortcuts", label: "dialogs.sectionShortcuts", icon: <Keyboard size={16} /> },
 ];
 
-const SHORTCUTS: [string, string][] = [
-  ["Ctrl+N", "New empty document"],
-  ["Ctrl+Shift+N", "New from template"],
-  ["Ctrl+O", "Open"],
-  ["Ctrl+S", "Save"],
-  ["Ctrl+Shift+S", "Save as"],
-  ["Ctrl+Shift+E", "Export PDF"],
-  ["Ctrl+Enter", "Compile now"],
-  ["Ctrl+,", "Settings"],
-  ["Ctrl+Z / Ctrl+Shift+Z", "Undo / redo"],
-  ["Ctrl+B / Ctrl+I / Ctrl+E", "Bold / italic / code"],
-  ["Ctrl+M", "Inline math (or type $x^2$)"],
-  ["$$ then Space", "Equation on its own line"],
-  ["Esc", "Leave a formula or LaTeX block"],
+/** The keys (a message key when they include words) and what they do. */
+const SHORTCUTS: [string | { key: MessageKey }, MessageKey][] = [
+  ["Ctrl+N", "dialogs.shortcutNewEmpty"],
+  ["Ctrl+Shift+N", "dialogs.newFromTemplate"],
+  ["Ctrl+O", "common.open"],
+  ["Ctrl+S", "common.save"],
+  ["Ctrl+Shift+S", "dialogs.shortcutSaveAs"],
+  ["Ctrl+Shift+E", "dialogs.shortcutExportPdf"],
+  ["Ctrl+Enter", "dialogs.shortcutCompileNow"],
+  ["Ctrl+,", "dialogs.settings"],
+  ["Ctrl+Z / Ctrl+Shift+Z", "dialogs.shortcutUndoRedo"],
+  ["Ctrl+B / Ctrl+I / Ctrl+E", "dialogs.shortcutBoldItalicCode"],
+  ["Ctrl+M", "dialogs.shortcutInlineMath"],
+  [{ key: "dialogs.shortcutDisplayMathKeys" }, "dialogs.shortcutDisplayMath"],
+  ["Esc", "dialogs.shortcutLeaveFormula"],
 ];
 
 export function SettingsDialog({
@@ -47,6 +50,7 @@ export function SettingsDialog({
   onChange: (patch: Partial<Settings>) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [section, setSection] = useState<Section>("editor");
   const [engines, setEngines] = useState<EngineInfo[] | null>(null);
   useEffect(() => {
@@ -62,6 +66,8 @@ export function SettingsDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const engineLabel = (id: string) => (ENGINE_LABELS[id] ? t(ENGINE_LABELS[id]) : id);
+
   const chooseFolder = async () => {
     const dir = await open({ directory: true, multiple: false, defaultPath: settings.defaultFolder || undefined });
     if (typeof dir === "string") onChange({ defaultFolder: dir });
@@ -69,29 +75,29 @@ export function SettingsDialog({
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal settings" role="dialog" aria-modal="true" aria-label="Settings">
-        <nav className="settings-nav" aria-label="Settings sections">
-          <div className="settings-title">Settings</div>
+      <div className="modal settings" role="dialog" aria-modal="true" aria-label={t("dialogs.settings")}>
+        <nav className="settings-nav" aria-label={t("dialogs.settingsSections")}>
+          <div className="settings-title">{t("dialogs.settings")}</div>
           {SECTIONS.map((s) => (
             <button key={s.key} className={section === s.key ? "active" : ""} onClick={() => setSection(s.key)}>
               {s.icon}
-              {s.label}
+              {t(s.label)}
             </button>
           ))}
         </nav>
         <div className="settings-body">
           <div className="settings-head">
-            <h2>{SECTIONS.find((s) => s.key === section)?.label}</h2>
-            <button className="icon-button" onClick={onClose} aria-label="Close settings" title="Close (Esc)">
+            <h2>{t(SECTIONS.find((s) => s.key === section)!.label)}</h2>
+            <button className="icon-button" onClick={onClose} aria-label={t("dialogs.closeSettings")} title={t("dialogs.closeEsc")}>
               <X size={17} />
             </button>
           </div>
 
           {section === "editor" && (
             <>
-              <Field label="Page zoom" hint="How large the page is drawn while you write.">
+              <Field label={t("dialogs.pageZoom")} hint={t("dialogs.pageZoomHint")}>
                 <select value={settings.pageZoom} onChange={(e) => onChange({ pageZoom: Number(e.target.value) })}>
-                  <option value={0}>Fit to the pane</option>
+                  <option value={0}>{t("dialogs.fitToPane")}</option>
                   {[75, 90, 100, 110, 125, 150].map((z) => (
                     <option key={z} value={z}>
                       {z}%
@@ -99,33 +105,33 @@ export function SettingsDialog({
                   ))}
                 </select>
               </Field>
-              <Field label="Page color" hint="Background of the page you write on. The PDF preview stays white like paper.">
+              <Field label={t("dialogs.pageColor")} hint={t("dialogs.pageColorHint")}>
                 <span className="swatches">
                   {PAGE_COLORS.map((c) => (
                     <button
                       key={c.color}
                       className={`swatch${settings.pageColor.toLowerCase() === c.color ? " active" : ""}`}
                       style={{ background: c.color }}
-                      title={c.name}
-                      aria-label={c.name}
+                      title={t(c.name)}
+                      aria-label={t(c.name)}
                       aria-pressed={settings.pageColor.toLowerCase() === c.color}
                       onClick={() => onChange({ pageColor: c.color })}
                     />
                   ))}
                   <label
                     className={`swatch-custom${PAGE_COLORS.some((c) => c.color === settings.pageColor.toLowerCase()) ? "" : " active"}`}
-                    title="Custom color…"
+                    title={t("dialogs.customColor")}
                     style={PAGE_COLORS.some((c) => c.color === settings.pageColor.toLowerCase()) ? undefined : { background: settings.pageColor }}
                   >
                     <Pipette size={13} aria-hidden="true" />
-                    <input type="color" value={settings.pageColor} onChange={(e) => onChange({ pageColor: e.target.value })} aria-label="Custom page color" />
+                    <input type="color" value={settings.pageColor} onChange={(e) => onChange({ pageColor: e.target.value })} aria-label={t("dialogs.customPageColor")} />
                   </label>
                 </span>
               </Field>
-              <Field label="Spell checking" hint="Underline misspelled words while typing.">
+              <Field label={t("dialogs.spellChecking")} hint={t("dialogs.spellCheckingHint")}>
                 <Switch checked={settings.spellcheck} onChange={(v) => onChange({ spellcheck: v })} />
               </Field>
-              <Field label="Crash recovery" hint="Keep a copy of unsaved changes, offered back if Texloom closes unexpectedly.">
+              <Field label={t("dialogs.crashRecovery")} hint={t("dialogs.crashRecoveryHint")}>
                 <Switch checked={settings.crashRecovery} onChange={(v) => onChange({ crashRecovery: v })} />
               </Field>
             </>
@@ -133,31 +139,28 @@ export function SettingsDialog({
 
           {section === "preview" && (
             <>
-              <Field
-                label="TeX engine"
-                hint="Tectonic needs nothing installed and downloads packages on first use. An installed TeX Live, MiKTeX or MacTeX works offline and runs publisher kits made for pdfLaTeX as they are."
-              >
-                <select value={settings.engine} onChange={(e) => onChange({ engine: e.target.value })} aria-label="TeX engine">
+              <Field label={t("dialogs.texEngine")} hint={t("dialogs.texEngineHint")}>
+                <select value={settings.engine} onChange={(e) => onChange({ engine: e.target.value })} aria-label={t("dialogs.texEngine")}>
                   {(engines ?? [{ id: settings.engine, available: true, detail: null, latexmk: false }]).map((e) => (
                     <option key={e.id} value={e.id} disabled={!e.available && e.id !== settings.engine}>
-                      {ENGINE_LABELS[e.id] ?? e.id}
-                      {e.available ? "" : " — not installed"}
+                      {engineLabel(e.id)}
+                      {e.available ? "" : t("dialogs.notInstalledSuffix")}
                     </option>
                   ))}
                 </select>
               </Field>
               <div className="settings-detail">
                 {engines === null
-                  ? "Looking for installed TeX…"
+                  ? t("dialogs.lookingForTex")
                   : current?.available
-                    ? `${current.detail ?? ""}${current.id !== "tectonic" ? (current.latexmk ? " · runs through latexmk" : " · latexmk not found, running the engine and BibTeX directly") : ""}`
-                    : `${ENGINE_LABELS[settings.engine] ?? settings.engine} isn't installed. Install TeX Live (or MiKTeX/MacTeX), or choose Tectonic.`}
-                {engines && !engines.some((e) => e.id !== "tectonic" && e.available) && " No installed TeX found on this computer."}
+                    ? `${current.detail ?? ""}${current.id !== "tectonic" ? (current.latexmk ? t("dialogs.runsThroughLatexmk") : t("dialogs.latexmkNotFound")) : ""}`
+                    : t("dialogs.engineNotInstalled", { engine: engineLabel(settings.engine) })}
+                {engines && !engines.some((e) => e.id !== "tectonic" && e.available) && t("dialogs.noInstalledTex")}
               </div>
-              <Field label="Compile while typing" hint="Off: the preview updates when you press Compile (Ctrl+Enter).">
+              <Field label={t("dialogs.compileWhileTyping")} hint={t("dialogs.compileWhileTypingHint")}>
                 <Switch checked={settings.autoCompile} onChange={(v) => onChange({ autoCompile: v })} />
               </Field>
-              <Field label="Delay before compiling" hint="A longer pause saves work on slow computers.">
+              <Field label={t("dialogs.compileDelay")} hint={t("dialogs.compileDelayHint")}>
                 <span className="settings-range">
                   <input
                     type="range"
@@ -168,7 +171,7 @@ export function SettingsDialog({
                     disabled={!settings.autoCompile}
                     onChange={(e) => onChange({ compileDelayMs: Number(e.target.value) })}
                   />
-                  <span>{(settings.compileDelayMs / 1000).toFixed(1)} s</span>
+                  <span>{t("dialogs.seconds", { n: (settings.compileDelayMs / 1000).toFixed(1) })}</span>
                 </span>
               </Field>
             </>
@@ -176,13 +179,29 @@ export function SettingsDialog({
 
           {section === "appearance" && (
             <>
-              <Field label="Theme" hint="The page always stays white, like paper.">
+              <Field label={t("dialogs.language")} hint={t("dialogs.languageHint")}>
                 <div className="segmented">
                   {(
                     [
-                      ["system", "System", <Monitor size={15} key="m" />],
-                      ["light", "Light", <Sun size={15} key="s" />],
-                      ["dark", "Dark", <Moon size={15} key="d" />],
+                      // Each language names itself, in either interface language.
+                      ["system", t("dialogs.system")],
+                      ["en", "English"],
+                      ["ar", "العربية"],
+                    ] as const
+                  ).map(([v, label]) => (
+                    <button key={v} className={settings.uiLanguage === v ? "active" : ""} onClick={() => onChange({ uiLanguage: v })}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label={t("dialogs.theme")} hint={t("dialogs.themeHint")}>
+                <div className="segmented">
+                  {(
+                    [
+                      ["system", t("dialogs.system"), <Monitor size={15} key="m" />],
+                      ["light", t("dialogs.themeLight"), <Sun size={15} key="s" />],
+                      ["dark", t("dialogs.themeDark"), <Moon size={15} key="d" />],
                     ] as const
                   ).map(([v, label, icon]) => (
                     <button key={v} className={settings.theme === v ? "active" : ""} onClick={() => onChange({ theme: v })}>
@@ -192,11 +211,11 @@ export function SettingsDialog({
                   ))}
                 </div>
               </Field>
-              <Field label="Density" hint="Compact fits more on small screens.">
+              <Field label={t("dialogs.density")} hint={t("dialogs.densityHint")}>
                 <div className="segmented">
                   {(["comfortable", "compact"] as const).map((v) => (
                     <button key={v} className={settings.density === v ? "active" : ""} onClick={() => onChange({ density: v })}>
-                      {v === "comfortable" ? "Comfortable" : "Compact"}
+                      {v === "comfortable" ? t("dialogs.densityComfortable") : t("dialogs.densityCompact")}
                     </button>
                   ))}
                 </div>
@@ -206,20 +225,20 @@ export function SettingsDialog({
 
           {section === "files" && (
             <>
-              <Field label="Default folder" hint="Where Open and Save start.">
+              <Field label={t("dialogs.defaultFolder")} hint={t("dialogs.defaultFolderHint")}>
                 <span className="settings-folder">
-                  <code title={settings.defaultFolder}>{settings.defaultFolder || "System default"}</code>
+                  <code title={settings.defaultFolder}>{settings.defaultFolder || t("dialogs.systemDefault")}</code>
                   <button className="tb-button" onClick={chooseFolder}>
-                    Choose…
+                    {t("dialogs.choose")}
                   </button>
                   {settings.defaultFolder && (
                     <button className="tb-button" onClick={() => onChange({ defaultFolder: "" })}>
-                      Reset
+                      {t("common.reset")}
                     </button>
                   )}
                 </span>
               </Field>
-              <Field label="Recent files" hint="How many to list in the File menu.">
+              <Field label={t("dialogs.recentFiles")} hint={t("dialogs.recentFilesHint")}>
                 <span className="settings-folder">
                   <input
                     type="number"
@@ -229,7 +248,7 @@ export function SettingsDialog({
                     onChange={(e) => onChange({ recentLimit: Math.min(20, Math.max(0, Number(e.target.value) || 0)) })}
                   />
                   <button className="tb-button" onClick={() => onChange({ recentFiles: [] })} disabled={settings.recentFiles.length === 0}>
-                    Clear list
+                    {t("dialogs.clearList")}
                   </button>
                 </span>
               </Field>
@@ -240,11 +259,11 @@ export function SettingsDialog({
             <table className="shortcuts">
               <tbody>
                 {SHORTCUTS.map(([keys, what]) => (
-                  <tr key={keys}>
+                  <tr key={what}>
                     <td>
-                      <kbd>{keys}</kbd>
+                      <kbd>{typeof keys === "string" ? keys : t(keys.key)}</kbd>
                     </td>
-                    <td>{what}</td>
+                    <td>{t(what)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -263,7 +282,7 @@ export function SettingsDialog({
                   onChange(defaults);
                 }}
               >
-                Restore defaults
+                {t("dialogs.restoreDefaults")}
               </button>
             </div>
           )}

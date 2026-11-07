@@ -1,6 +1,7 @@
 // Small form controls shared by the designer panels.
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { Issue } from "../api";
+import { useT } from "../i18n";
 
 /** Issues at `path` or below it (e.g. "page.margins" matches "page.margins.topMm"). */
 export function issuesAt(issues: Issue[], path: string): Issue[] {
@@ -151,9 +152,10 @@ export function Segmented<T extends string>({
 
 /** Optional colour: unchecked means "default (black)". */
 export function ColorInput({ value, onChange }: { value?: string; onChange: (v: string | undefined) => void }) {
+  const t = useT();
   return (
     <span className="d-color">
-      <Toggle checked={value !== undefined} onChange={(on) => onChange(on ? "#1F3A93" : undefined)} label="Colour" />
+      <Toggle checked={value !== undefined} onChange={(on) => onChange(on ? "#1F3A93" : undefined)} label={t("common.color")} />
       {value !== undefined && <input type="color" value={value} onChange={(e) => onChange(e.target.value.toUpperCase())} />}
     </span>
   );

@@ -108,7 +108,9 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
     // ("Extra \or"), so its tables use plain p columns instead of tabularx.
     if !uses_plain_tables(base) {
         w!(o, "\\RequirePackage{{tabularx}}");
-        w!(o, "\\newcolumntype{{L}}{{>{{\\raggedright\\arraybackslash}}X}}");
+        // Right-to-left text starts at the right.
+        let ragged = if t.lang().main.rtl() { "raggedleft" } else { "raggedright" };
+        w!(o, "\\newcolumntype{{L}}{{>{{\\{ragged}\\arraybackslash}}X}}");
     }
     w!(o, "\\RequirePackage[normalem]{{ulem}}");
     w!(o);
@@ -127,7 +129,9 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
     w!(o, "\\newcommand\\texloomsep{{, }}");
     // Between authors: \and where the class sets authors in a tabular (standard
     // \maketitle), a comma where it doesn't (\and breaks outside a tabular).
-    w!(o, "\\DeclareRobustCommand\\texloomand{{\\ifx\\\\\\@tabularcr\\and\\else\\unskip,\\ \\fi}}");
+    // (An Arabic comma in Arabic documents.)
+    let comma = if t.lang().main.rtl() { "،" } else { "," };
+    w!(o, "\\DeclareRobustCommand\\texloomand{{\\ifx\\\\\\@tabularcr\\and\\else\\unskip{comma}\\ \\fi}}");
     w!(o);
     w!(o, "% Bibliography (refs.bib next to the document) and appendices");
     // Classes that load biblatex themselves get its commands instead of BibTeX's.
@@ -137,9 +141,13 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
         s => format!("\\bibliographystyle{{{s}}}"),
     };
     w!(o, "  {{\\newcommand\\texloombibliography{{{style}\\bibliography{{refs}}}}}}");
+    if crate::refs::style_of(t) == texloom_core::BibStyle::AuthorYear {
+        // Author-year citations ("(Smith, 2021)") on a standard class need natbib.
+        w!(o, "\\@ifpackageloaded{{natbib}}{{}}{{\\RequirePackage[round]{{natbib}}}}");
+    }
     w!(o, "\\newcommand\\texloomappendix{{\\appendix}}");
     // Book classes have no abstract environment: a simple one, like article's.
-    w!(o, "\\@ifundefined{{abstract}}{{\\providecommand\\abstractname{{Abstract}}%");
+    w!(o, "\\@ifundefined{{abstract}}{{\\providecommand\\abstractname{{{}}}%", crate::strings::words(t.lang().main).abstract_name);
     w!(o, "  \\newenvironment{{abstract}}{{\\begin{{center}}\\bfseries\\abstractname\\end{{center}}\\begin{{quote}}}}{{\\end{{quote}}}}}}{{}}");
     w!(o, "% A caption outside a float (figures and tables inside columns)");
     w!(o, "\\newcommand\\texloomcaptionof[2]{{\\def\\@captype{{#1}}\\caption{{#2}}}}");
@@ -172,7 +180,16 @@ pub fn wrapper_cls(t: &Template, base: &ClassBase, engine: Engine) -> String {
 
 // ---------------------------------------------------------------- document data
 
+/// Escapes metadata text, keeping words in another script than the document's
+/// (English words in an Arabic title) in their own direction.
+fn text_escaper(t: &Template, doc: &Document) -> impl Fn(&str) -> String {
+    let langs = crate::language::Languages::of(t, doc);
+    let main = langs.main;
+    move |s: &str| crate::language::text(s, main, &langs)
+}
+
 pub(crate) fn field_text(doc: &Document, t: &Template, id: &str) -> String {
+    let escape = text_escaper(t, doc);
     match doc.metadata.get(id).filter(|v| !v.is_empty()) {
         Some(FieldValue::Text(s)) => escape(s.trim()),
         Some(FieldValue::List(l)) => escape(&l.join(", ")),
@@ -186,9 +203,10 @@ pub(crate) fn field_text(doc: &Document, t: &Template, id: &str) -> String {
 }
 
 fn paragraphs(doc: &Document, t: &Template, id: &str) -> String {
+    let escape = text_escaper(t, doc);
     match doc.metadata.get(id).filter(|v| !v.is_empty()) {
         Some(FieldValue::Text(s)) => {
-            s.split("\n\n").map(str::trim).filter(|p| !p.is_empty()).map(escape).collect::<Vec<_>>().join("\n\n")
+            s.split("\n\n").map(str::trim).filter(|p| !p.is_empty()).map(&escape).collect::<Vec<_>>().join("\n\n")
         }
         Some(FieldValue::List(l)) => l.iter().map(|p| escape(p.trim())).collect::<Vec<_>>().join("\n\n"),
         _ => field_text(doc, t, id),
@@ -278,6 +296,7 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
     let abstract_ = paragraphs(doc, t, "abstract");
     let kw = keywords(doc);
     let mut o = String::new();
+    let escape = text_escaper(t, doc);
     let e = |s: &str| escape(s);
 
     match base.front_matter {
@@ -359,7 +378,7 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
                 w!(o, "\\author{label}{{{}{corr}}}{mail}", e(&a.name));
             }
             if au.corresponding().is_some() {
-                w!(o, "\\cortext[cor1]{{Corresponding author}}");
+                w!(o, "\\cortext[cor1]{{{}}}", crate::strings::words(t.lang().main).corresponding_author);
             }
             for (i, aff) in au.affiliations.iter().enumerate() {
                 w!(o, "\\affiliation[{}]{{organization={{{}}}}}", i + 1, e(aff));
@@ -510,6 +529,7 @@ pub fn front_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
 /// What comes after the body: author biographies (IEEE), `\EOD` (IEEE Access) and
 /// the template's own end block.
 pub fn end_matter(t: &Template, base: &ClassBase, doc: &Document) -> String {
+    let escape = text_escaper(t, doc);
     let mut o = String::new();
     let au = Authors::new(doc);
     if base.biographies {
@@ -580,9 +600,10 @@ impl Scope {
 /// `{photo}`. In `{#affiliations}`: `{n}`, `{name}`, `{emails}`. In `{#keywords}`:
 /// `{keyword}`.
 fn recipe_scope(t: &Template, doc: &Document, au: &Authors) -> Scope {
+    let escape = text_escaper(t, doc);
     let mut s = Scope::default();
     for f in &t.fields {
-        let v = if f.id == "abstract" { paragraphs(doc, t, &f.id) } else { field_text(doc, t, &f.id) };
+        let v = if f.id == "abstract" || f.kind == texloom_core::FieldKind::Paragraphs { paragraphs(doc, t, &f.id) } else { field_text(doc, t, &f.id) };
         s.set(&f.id, v);
     }
     let kw = keywords(doc);

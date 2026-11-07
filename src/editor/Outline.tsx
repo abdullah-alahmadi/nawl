@@ -3,6 +3,7 @@
 import { useEditorState, type Editor } from "@tiptap/react";
 import { TextSelection } from "@tiptap/pm/state";
 import { useNumbering } from "./Academic";
+import { useT } from "../i18n";
 
 interface SlideEntry {
   kind: "section" | "slide";
@@ -11,18 +12,20 @@ interface SlideEntry {
   number: number;
 }
 
-/** Sections and slides of a presentation, in order (empty for other documents). */
+/** Sections and slides of a presentation, in order (empty for other documents).
+ *  Untitled ones have empty text: the outline names them in the interface language. */
 function slideEntries(editor: Editor): SlideEntry[] {
   const out: SlideEntry[] = [];
   let n = 0;
   editor.state.doc.forEach((node, pos) => {
-    if (node.type.name === "slide") out.push({ kind: "slide", text: node.firstChild?.textContent.trim() || "Untitled slide", pos, number: ++n });
-    else if (node.type.name === "heading") out.push({ kind: "section", text: node.textContent.trim() || "Untitled section", pos, number: 0 });
+    if (node.type.name === "slide") out.push({ kind: "slide", text: node.firstChild?.textContent.trim() ?? "", pos, number: ++n });
+    else if (node.type.name === "heading") out.push({ kind: "section", text: node.textContent.trim(), pos, number: 0 });
   });
   return n > 0 ? out : [];
 }
 
 export function Outline({ editor }: { editor: Editor }) {
+  const t = useT();
   const entries = useNumbering(editor).filter((e) => e.kind !== "equation");
   const slides =
     useEditorState({
@@ -42,32 +45,35 @@ export function Outline({ editor }: { editor: Editor }) {
 
   if (slides.length > 0)
     return (
-      <nav className="outline" aria-label="Presentation outline">
-        <div className="outline-title">Slides</div>
-        {slides.map((e) => (
+      <nav className="outline" aria-label={t("editor.presentationOutline")}>
+        <div className="outline-title">{t("editor.slides")}</div>
+        {slides.map((e) => {
+          const text = e.text || t(e.kind === "slide" ? "editor.untitledSlide" : "editor.untitledSection");
+          return (
           <button
             key={e.pos}
             className={`outline-item ${e.kind === "section" ? "outline-heading" : "outline-slide"}`}
-            style={{ paddingLeft: e.kind === "section" ? 8 : 20 }}
+            style={{ paddingInlineStart: e.kind === "section" ? 8 : 20 }}
             onClick={() => jump(e.pos + (e.kind === "slide" ? 1 : 0))}
-            title={e.text}
+            title={text}
           >
             {e.kind === "slide" && <span className="outline-number">{e.number}</span>}
-            <span className="outline-text">{e.text}</span>
+            <span className="outline-text">{text}</span>
           </button>
-        ))}
+          );
+        })}
       </nav>
     );
 
   return (
-    <nav className="outline" aria-label="Document outline">
-      <div className="outline-title">Outline</div>
-      {entries.length === 0 && <p className="muted outline-empty">Headings, figures and tables appear here.</p>}
+    <nav className="outline" aria-label={t("editor.documentOutline")}>
+      <div className="outline-title">{t("editor.outline")}</div>
+      {entries.length === 0 && <p className="muted outline-empty">{t("editor.outlineEmpty")}</p>}
       {entries.map((e, i) => (
         <button
           key={i}
           className={`outline-item outline-${e.kind}${e.appendix && e.kind === "heading" && e.level === 1 ? " outline-appendix" : ""}`}
-          style={{ paddingLeft: 8 + (e.kind === "heading" ? (e.level - 1) * 12 : 36) }}
+          style={{ paddingInlineStart: 8 + (e.kind === "heading" ? (e.level - 1) * 12 : 36) }}
           onClick={() => jump(e.pos)}
           title={e.text}
         >

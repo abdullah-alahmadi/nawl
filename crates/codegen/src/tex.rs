@@ -8,6 +8,8 @@ use texloom_core::{
 };
 
 use crate::cls::heading_commands;
+use crate::language::{self, Languages};
+use texloom_core::Language;
 use crate::latex::{escape, escape_url};
 
 /// Whether the document produces a reference list (it cites something and has entries).
@@ -30,6 +32,9 @@ pub fn document_to_tex_mapped(t: &Template, doc: &Document) -> (String, Vec<u32>
     if has_row_spans(doc) {
         o.push_str("\\usepackage{multirow}\n");
     }
+    let langs = Languages::of(t, doc);
+    o.push_str(&language::preamble(t, &langs));
+    o.push_str(&crate::refs::preamble(t, doc, &langs));
     if has_crops(doc) {
         o.push_str("\\usepackage{adjustbox}\n");
     }
@@ -42,7 +47,7 @@ pub fn document_to_tex_mapped(t: &Template, doc: &Document) -> (String, Vec<u32>
         }
         let value = doc.metadata.get(&f.id).filter(|v| !v.is_empty());
         let rendered = match value {
-            Some(v) => field_value(f.kind, v),
+            Some(v) => field_value(f.kind, v, &langs),
             // Show missing required fields as "[Label]" so the layout is visible.
             None if f.required => escape(&format!("[{}]", f.label)),
             None => continue,
@@ -76,17 +81,21 @@ pub fn document_to_tex_mapped(t: &Template, doc: &Document) -> (String, Vec<u32>
         }
         None => o.push_str("\n\\begin{document}\n\\texloomfrontmatter\n\\texloommainmatter\n\n"),
     }
+    let lang = langs.main;
     let ctx = Ctx {
         commands: heading_commands(t.structure.top_level),
         targets: doc.body.targets(),
         t,
+        langs,
     };
-    let mut w = BodyWriter { out: &mut o, ctx: &ctx, bibliography_pending: has_bibliography(doc), in_slide: false, in_minipage: false };
+    let mut w = BodyWriter { out: &mut o, ctx: &ctx, bibliography_pending: has_bibliography(doc), in_slide: false, in_minipage: false, lang };
     let mut counter = LineCounter::default();
     if presentation {
         w.slides(&doc.body.content, &mut counter, &mut lines);
         if std::mem::take(&mut w.bibliography_pending) {
-            w.out.push_str("\\begin{frame}[allowframebreaks]{References}\n\\texloombibliography\n\\end{frame}\n\n");
+            // The template's title for the reference list ("References", "المراجع").
+            let title = escape(&t.bibliography.title);
+            w.out.push_str(&format!("\\begin{{frame}}[allowframebreaks]{{{title}}}\n\\texloombibliography\n\\end{{frame}}\n\n"));
         }
         o.push_str("\\end{document}\n");
         return (o, lines);
@@ -120,7 +129,9 @@ impl LineCounter {
     }
 }
 
-fn field_value(kind: FieldKind, v: &FieldValue) -> String {
+fn field_value(kind: FieldKind, v: &FieldValue, langs: &Languages) -> String {
+    // Escaped, with words in another script kept in their own direction.
+    let escape = |s: &str| language::text(s, langs.main, langs);
     let items: Vec<&str> = match v {
         FieldValue::Text(s) => vec![s.as_str()],
         FieldValue::List(l) => l.iter().map(String::as_str).collect(),
@@ -152,6 +163,7 @@ struct Ctx<'a> {
     commands: [&'static str; 4],
     targets: HashMap<String, TargetKind>,
     t: &'a Template,
+    langs: Languages,
 }
 
 /// `\label{tl:<id>}` for ids made of safe characters.
@@ -181,14 +193,15 @@ fn heading_word(t: &Template, level: u8, appendix: bool) -> String {
         t.headings.levels.get(idx).map(|h| h.label.as_str()).unwrap_or("")
     };
     let word: String = label.replace("{n}", "").trim_matches(|c: char| !c.is_alphanumeric()).to_string();
+    let words = crate::strings::words(t.lang().main);
     if !word.is_empty() {
         word
     } else if level == 1 && appendix {
-        "Appendix".into()
+        words.appendix.into()
     } else if level == 1 && t.structure.top_level == TopLevel::Chapter {
-        "Chapter".into()
+        words.chapter.into()
     } else {
-        "Section".into()
+        words.section.into()
     }
 }
 
@@ -201,6 +214,8 @@ struct BodyWriter<'a> {
     in_slide: bool,
     /// Inside a minipage (columns in an article): figures and tables can't float.
     in_minipage: bool,
+    /// The language of the text being written (the document's, or a paragraph's own).
+    lang: Language,
 }
 
 impl<'a> BodyWriter<'a> {
@@ -209,7 +224,7 @@ impl<'a> BodyWriter<'a> {
     where
         'a: 'b,
     {
-        BodyWriter { out, ctx: self.ctx, bibliography_pending: false, in_slide: self.in_slide, in_minipage: self.in_minipage }
+        BodyWriter { out, ctx: self.ctx, bibliography_pending: false, in_slide: self.in_slide, in_minipage: self.in_minipage, lang: self.lang }
     }
 
     /// A presentation's body: sections between slides; anything outside a slide is
@@ -263,8 +278,31 @@ impl<'a> BodyWriter<'a> {
     }
 
     fn inlines(&self, content: &[Inline]) -> String {
+        let langs = &self.ctx.langs;
+        if langs.english_only() {
+            return content.iter().map(|i| self.inline(i)).collect();
+        }
+        // Words in another script than the paragraph's are wrapped as one run, also
+        // across bold or italic parts ("deep \textbf{neural} networks").
+        let mut pieces = Vec::new();
+        let mut last = None;
+        for (n, i) in content.iter().enumerate() {
+            match i {
+                Inline::Text { text, .. } => pieces.extend(language::split(n, text, &mut last)),
+                math @ Inline::InlineMath { .. } => pieces.push(language::Piece::neutral(n, self.inline(math))),
+                other => pieces.push(language::Piece::latex(n, self.inline(other))),
+            }
+        }
+        let render = |n: usize, text: &str| match &content[n] {
+            Inline::Text { marks, .. } => apply_marks(escape(text), marks),
+            _ => String::new(),
+        };
+        language::join(&pieces, self.lang, langs, &render)
+    }
+
+    fn inline(&self, i: &Inline) -> String {
         let mut s = String::new();
-        for i in content {
+        {
             match i {
                 Inline::Text { text, marks } => s.push_str(&apply_marks(escape(text), marks)),
                 Inline::HardBreak => s.push_str("\\newline\n"),
@@ -278,7 +316,7 @@ impl<'a> BodyWriter<'a> {
                 Inline::Citation { attrs } => {
                     let keys: Vec<&str> = attrs.keys.iter().map(String::as_str).filter(|k| is_safe_key(k)).collect();
                     if !keys.is_empty() {
-                        let author_year = self.ctx.t.base.is_none() && self.ctx.t.bibliography.style == BibStyle::AuthorYear;
+                        let author_year = crate::refs::style_of(self.ctx.t) == BibStyle::AuthorYear;
                         let cmd = if author_year { "citep" } else { "cite" };
                         s.push_str(&format!("\\{cmd}{{{}}}", keys.join(",")));
                     }
@@ -304,6 +342,14 @@ impl<'a> BodyWriter<'a> {
         }
     }
 
+    /// Runs `f` with the text language set to `lang`.
+    fn in_language<T>(&mut self, lang: Language, f: impl FnOnce(&mut Self) -> T) -> T {
+        let saved = std::mem::replace(&mut self.lang, lang);
+        let r = f(self);
+        self.lang = saved;
+        r
+    }
+
     fn blocks(&mut self, blocks: &[Block]) {
         for b in blocks {
             self.block(b);
@@ -312,11 +358,24 @@ impl<'a> BodyWriter<'a> {
 
     fn block(&mut self, b: &Block) {
         match b {
-            Block::Paragraph { content } => {
-                let text = self.inlines(content);
+            Block::Paragraph { attrs, content } => {
+                let lang = self.ctx.langs.for_dir(attrs.dir, self.lang);
+                let mut text = self.in_language(lang, |w| w.inlines(content));
+                if lang.rtl() && text.starts_with("\\text") {
+                    // A right-to-left paragraph opening with an English word or number:
+                    // start the paragraph first, or it would take the word's direction.
+                    text.insert_str(0, "\\leavevmode ");
+                }
                 if !text.trim().is_empty() {
-                    self.out.push_str(&text);
-                    self.out.push_str("\n\n");
+                    if lang == self.lang {
+                        self.out.push_str(&text);
+                        self.out.push_str("\n\n");
+                    } else {
+                        // A paragraph in the other language (and direction): after a
+                        // paragraph break, so it starts on a line of its own.
+                        let env = lang.environment();
+                        self.out.push_str(&format!("\\begin{{{env}}}\n{text}\n\\end{{{env}}}\n\n"));
+                    }
                 }
             }
             Block::Heading { content, .. } if self.in_slide => {
@@ -364,7 +423,14 @@ impl<'a> BodyWriter<'a> {
             }
             Block::CodeBlock { content } => {
                 let code = plain_text(content).replace("\\end{verbatim}", "\\end {verbatim}");
-                self.out.push_str(&format!("\\begin{{verbatim}}\n{code}\n\\end{{verbatim}}\n\n"));
+                let verbatim = format!("\\begin{{verbatim}}\n{code}\n\\end{{verbatim}}\n");
+                if self.lang.rtl() {
+                    // Code reads left to right, also in an Arabic document.
+                    self.out.push_str(&format!("\\begin{{english}}\n{verbatim}\\end{{english}}\n\n"));
+                } else {
+                    self.out.push_str(&verbatim);
+                    self.out.push('\n');
+                }
             }
             Block::HorizontalRule => self.out.push_str("\\noindent\\rule{\\linewidth}{0.4pt}\n\n"),
             Block::Equation { attrs } => {
@@ -396,8 +462,10 @@ impl<'a> BodyWriter<'a> {
                     }
                 } else {
                     // No image chosen yet: keep the space visible.
+                    let words = crate::strings::words(self.lang);
                     self.out.push_str(&format!(
-                        "\\fbox{{\\parbox[c][4cm][c]{{{width}\\linewidth}}{{\\centering\\textit{{No image}}}}}}\n"
+                        "\\fbox{{\\parbox[c][4cm][c]{{{width}\\linewidth}}{{\\centering\\textit{{{}}}}}}}\n",
+                        words.no_image
                     ));
                 }
                 let caption = if self.in_minipage { "\\texloomcaptionof{figure}" } else { "\\caption" };

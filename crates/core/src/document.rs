@@ -126,6 +126,8 @@ pub struct Body {
 pub enum Block {
     Paragraph {
         #[serde(default)]
+        attrs: TextAttrs,
+        #[serde(default)]
         content: Vec<Inline>,
     },
     Heading {
@@ -391,6 +393,27 @@ pub struct HeadingAttrs {
     /// Unnumbered headings ("Acknowledgment") get no number and can't be referenced.
     #[serde(default = "yes")]
     pub numbered: bool,
+    /// Written in the other direction than the document (an English heading in an
+    /// Arabic document).
+    #[serde(default)]
+    pub dir: Option<TextDir>,
+}
+
+/// A paragraph's own direction, when it differs from the document's.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct TextAttrs {
+    #[serde(default)]
+    pub dir: Option<TextDir>,
+}
+
+/// Left to right or right to left (the editor's `dir` attribute).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TextDir {
+    Ltr,
+    Rtl,
+    /// The editor's "auto": decided by the first strong letter, like the document.
+    Auto,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -445,7 +468,7 @@ pub fn walk_blocks<'a>(blocks: &'a [Block], f: &mut impl FnMut(&'a Block)) {
 pub fn walk_inlines<'a>(blocks: &'a [Block], f: &mut impl FnMut(&'a Inline)) {
     walk_blocks(blocks, &mut |b| {
         let inl: Vec<&'a [Inline]> = match b {
-            Block::Paragraph { content }
+            Block::Paragraph { content, .. }
             | Block::Heading { content, .. }
             | Block::CodeBlock { content }
             | Block::SlideTitle { content } => vec![content],
@@ -666,7 +689,7 @@ mod tests {
         .unwrap();
         assert_eq!(body.content.len(), 6);
         assert!(matches!(&body.content[0], Block::Heading { attrs, .. } if attrs.level == 2));
-        let Block::Paragraph { content } = &body.content[1] else { panic!() };
+        let Block::Paragraph { content, .. } = &body.content[1] else { panic!() };
         assert!(matches!(&content[0], Inline::Text { marks, .. } if marks == &vec![Mark::Bold, Mark::Unknown]));
         assert_eq!(content[1], Inline::Unknown);
         assert!(matches!(&body.content[3], Block::OrderedList { attrs, .. } if attrs.start == 3));

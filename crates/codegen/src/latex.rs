@@ -103,11 +103,26 @@ pub fn num(v: f32) -> String {
 pub struct PlaceholderContext<'a> {
     /// LaTeX for `{n}`, e.g. `\thechapter`.
     pub number: Option<&'a str>,
+    /// The template's languages: words in another script are kept in their own
+    /// direction ("Page {page} of {pages}" in an Arabic document). `None`: as is.
+    pub langs: Option<&'a crate::language::Languages>,
 }
 
 /// Renders template text: literals are escaped, placeholders become macros.
 /// Must be used inside the `.cls` (relies on `@` being a letter).
 pub fn render_placeholders(text: &str, ctx: PlaceholderContext<'_>) -> String {
+    if let Some(langs) = ctx.langs.filter(|l| !l.english_only()) {
+        // One run of English words can go across placeholders ("Page \thepage of …").
+        let mut pieces = Vec::new();
+        let mut last = None;
+        for (i, piece) in placeholder::parse(text).into_iter().enumerate() {
+            match piece {
+                Piece::Literal(l) => pieces.extend(crate::language::split(i, &l, &mut last)),
+                name => pieces.push(crate::language::Piece::latex(i, render_one(name, ctx))),
+            }
+        }
+        return crate::language::join(&pieces, langs.main, langs, &|_, t| escape(t));
+    }
     let mut out = String::new();
     for piece in placeholder::parse(text) {
         match piece {
@@ -121,6 +136,19 @@ pub fn render_placeholders(text: &str, ctx: PlaceholderContext<'_>) -> String {
         }
     }
     out
+}
+
+/// One placeholder as LaTeX.
+fn render_one(piece: Piece, ctx: PlaceholderContext<'_>) -> String {
+    match piece {
+        Piece::Literal(l) => escape(&l),
+        Piece::Name("page") => "\\thepage{}".into(),
+        Piece::Name("pages") => "\\pageref*{LastPage}".into(),
+        Piece::Name("chapter") => "\\leftmark{}".into(),
+        Piece::Name("section") => "\\rightmark{}".into(),
+        Piece::Name("n") => ctx.number.unwrap_or("").into(),
+        Piece::Name(field) => format!("\\tl@f{{{field}}}"),
+    }
 }
 
 /// Font switches for a text style: size, weight, shape and colour (not alignment).
@@ -180,7 +208,7 @@ mod tests {
 
     #[test]
     fn renders_placeholders_safely() {
-        let ctx = PlaceholderContext { number: Some("\\thechapter") };
+        let ctx = PlaceholderContext { number: Some("\\thechapter"), langs: None };
         assert_eq!(render_placeholders("Chapter {n}", ctx), "Chapter \\thechapter");
         assert_eq!(
             render_placeholders("{title} — p. {page}/{pages} 100%", ctx),

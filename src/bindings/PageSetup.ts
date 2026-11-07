@@ -12,4 +12,8 @@ twoSided: boolean,
 /**
  * Extra space on the inner edge for binding.
  */
-bindingOffsetMm: number, lineSpacing: LineSpacing, paragraph: ParagraphStyle, };
+bindingOffsetMm: number, lineSpacing: LineSpacing, paragraph: ParagraphStyle, 
+/**
+ * Text columns: 1, or 2 for a two-column journal or conference layout.
+ */
+columns?: number, };
