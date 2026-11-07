@@ -109,6 +109,8 @@ pub struct Rp {
     /// Size in half-points.
     pub size: Option<i64>,
     pub underline: bool,
+    /// Raised and smaller (an author's affiliation number).
+    pub superscript: bool,
     pub rtl: bool,
 }
 
@@ -154,6 +156,9 @@ impl Rp {
         }
         if self.underline {
             o.push_str("<w:u w:val=\"single\"/>");
+        }
+        if self.superscript {
+            o.push_str("<w:vertAlign w:val=\"superscript\"/>");
         }
         if self.rtl {
             o.push_str("<w:rtl/>");

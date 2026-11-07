@@ -360,3 +360,16 @@ fn university_report_has_cover_pages_and_logo() {
     // The logo the author picked (an image field) is on the cover.
     assert!(parts.keys().any(|k| k.starts_with("word/media/")), "no logo picture");
 }
+
+#[test]
+fn authors_with_different_affiliations_are_numbered() {
+    // The sample's two authors are at different universities.
+    let parts = unzip(&write(&Input { template: &template("arabic-article"), doc: &example("arabic-load-forecasting.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
+    assert_well_formed(&parts);
+    let body = &parts["word/document.xml"];
+    let sup = "<w:vertAlign w:val=\"superscript\"/>";
+    // Two Arabic names, two Arabic affiliations, two English names.
+    assert!(body.matches(sup).count() >= 6, "{}", body.matches(sup).count());
+    assert!(body.contains(&format!("{sup}<w:rtl/></w:rPr><w:t xml:space=\"preserve\">١</w:t>")) || body.contains("١</w:t>"));
+    assert!(!body.contains('\u{E000}') && !body.contains('\u{E001}'), "markers left in the text");
+}

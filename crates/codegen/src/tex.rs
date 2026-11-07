@@ -60,6 +60,11 @@ pub fn document_to_tex_mapped(t: &Template, doc: &Document) -> (String, Vec<u32>
         }
         let value = doc.metadata.get(&f.id).filter(|v| !v.is_empty());
         let rendered = match value {
+            // Names with their affiliations' numbers, when the authors' affiliations differ.
+            Some(v) if f.kind == FieldKind::Authors && matches!(v, FieldValue::Authors(_)) => {
+                let authors = texloom_core::AuthorInfo::from_field(Some(v));
+                author_list(&texloom_core::author_entries(&authors, ""), false, false, &langs)
+            }
             Some(v) => field_value(f.kind, v, &langs),
             // Show missing required fields as "[Label]" so the layout is visible.
             None if f.required => escape(&format!("[{}]", f.label)),
@@ -77,18 +82,13 @@ pub fn document_to_tex_mapped(t: &Template, doc: &Document) -> (String, Vec<u32>
         if f.kind == FieldKind::Authors {
             let authors = texloom_core::AuthorInfo::from_field(value);
             for suffix in texloom_core::AUTHOR_SUFFIXES {
-                let values = texloom_core::author_values(&authors, suffix);
-                if values.is_empty() {
+                let entries = texloom_core::author_entries(&authors, suffix);
+                if entries.is_empty() {
                     continue;
                 }
-                let text = if suffix == "_affiliations" {
-                    values.iter().map(|v| language::text(v, langs.main, &langs)).collect::<Vec<_>>().join("\\texloomsep ")
-                } else {
-                    // English names, affiliations, an e-mail: one English run, so a
-                    // right-to-left document keeps their order.
-                    let joined = values.iter().map(|v| escape(v)).collect::<Vec<_>>().join("\\texloomsepen ");
-                    if langs.main.rtl() { format!("\\textenglish{{{joined}}}") } else { joined }
-                };
+                // English names, affiliations, an e-mail: one English run, so a
+                // right-to-left document keeps their order.
+                let text = author_list(&entries, suffix != "_affiliations", suffix.starts_with("_affiliations"), &langs);
                 o.push_str(&format!("\\texloomfield{{{}{suffix}}}{{{text}}}\n", f.id));
             }
         }
@@ -195,6 +195,37 @@ fn field_value(kind: FieldKind, v: &FieldValue, langs: &Languages) -> String {
             .map(escape)
             .collect::<Vec<_>>()
             .join("\\texloomsep "),
+    }
+}
+
+/// Authors' names or affiliations as a list, with the numbers that pair them as
+/// superscripts: after a name ("Name¹"), before an affiliation ("¹Affiliation").
+/// `english` lists (an Arabic document's English names) are one English run, with
+/// Western digits.
+fn author_list(entries: &[(String, Option<Vec<usize>>)], english: bool, affiliations: bool, langs: &Languages) -> String {
+    let arabic = !english && langs.main == Language::Arabic;
+    let mark = |n: &[usize]| {
+        let joined = n.iter().map(usize::to_string).collect::<Vec<_>>().join(if arabic { "،" } else { "," });
+        format!("\\textsuperscript{{{}}}", if arabic { langs.local_digits(&joined) } else { joined })
+    };
+    let items: Vec<String> = entries
+        .iter()
+        .map(|(text, n)| {
+            let text = if english { escape(text) } else { language::text(text, langs.main, langs) };
+            match n {
+                Some(n) if affiliations => format!("{}{text}", mark(n)),
+                Some(n) => format!("{text}{}", mark(n)),
+                None => text,
+            }
+        })
+        .collect();
+    // Numbered affiliations go one per line: each one has commas of its own.
+    let numbered = affiliations && entries.iter().any(|(_, n)| n.is_some());
+    if english {
+        let joined = items.join(if numbered { "\\\\ " } else { "\\texloomsepen " });
+        if langs.main.rtl() { format!("\\textenglish{{{joined}}}") } else { joined }
+    } else {
+        items.join(if numbered { "\\\\ " } else { "\\texloomsep " })
     }
 }
 

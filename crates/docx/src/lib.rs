@@ -109,6 +109,10 @@ enum Front {
     FirstPageSpanning,
 }
 
+/// Around superscript text inside field values (private-use characters, never typed).
+const SUP_START: char = '\u{E000}';
+const SUP_END: char = '\u{E001}';
+
 fn local_digits(s: &str, digits: Digits) -> String {
     if digits != Digits::ArabicIndic {
         return s.to_string();
@@ -326,6 +330,14 @@ impl<'a> Writer<'a> {
     /// Text as runs: Arabic stretches are right to left (`w:rtl`), each run with
     /// the properties `rp`.
     fn text_runs(&self, text: &str, rp: &Rp) -> String {
+        // Superscripts marked in field text (authors' affiliation numbers).
+        if text.contains(SUP_START) {
+            let mut out = String::new();
+            for (i, part) in text.split([SUP_START, SUP_END]).enumerate() {
+                out.push_str(&self.text_runs(part, &Rp { superscript: i % 2 == 1, ..rp.clone() }));
+            }
+            return out;
+        }
         let mut out = String::new();
         let mut current = String::new();
         let mut current_rtl: Option<bool> = None;
@@ -796,7 +808,7 @@ impl<'a> Writer<'a> {
             && self.t.field(base).is_some_and(|f| f.kind == FieldKind::Authors)
         {
             let authors = texloom_core::AuthorInfo::from_field(self.input.doc.metadata.get(base));
-            let values = texloom_core::author_values(&authors, suffix);
+            let values = self.numbered(&texloom_core::author_entries(&authors, suffix), suffix != "_affiliations", suffix.starts_with("_affiliations"));
             return (!values.is_empty()).then_some(values);
         }
         if let Some(base) = id.strip_suffix(texloom_core::date::HIJRI_SUFFIX)
@@ -811,8 +823,24 @@ impl<'a> Writer<'a> {
         Some(match v {
             FieldValue::Text(s) => vec![s.clone()],
             FieldValue::List(l) => l.clone(),
-            FieldValue::Authors(a) => a.iter().map(|a| a.name.clone()).collect(),
+            FieldValue::Authors(a) => self.numbered(&texloom_core::author_entries(a, ""), false, false),
         })
+    }
+
+    /// Authors' names or affiliations with their numbers marked as superscripts:
+    /// after a name, before an affiliation (as in the PDF).
+    fn numbered(&self, entries: &[(String, Option<Vec<usize>>)], english: bool, affiliations: bool) -> Vec<String> {
+        let arabic = !english && self.langs.main == texloom_core::Language::Arabic;
+        entries
+            .iter()
+            .map(|(text, n)| {
+                let Some(n) = n else { return text.clone() };
+                let joined = n.iter().map(usize::to_string).collect::<Vec<_>>().join(if arabic { "،" } else { "," });
+                let joined = if arabic { local_digits(&joined, self.langs.digits) } else { joined };
+                let mark = format!("{SUP_START}{joined}{SUP_END}");
+                if affiliations { format!("{mark}{text}") } else { format!("{text}{mark}") }
+            })
+            .collect()
     }
 
     /// Template text with its placeholders filled ("Advisor: {advisor}").
@@ -828,7 +856,10 @@ impl<'a> Writer<'a> {
                     // English comma where entries share a line.
                     let english = texloom_core::split_author_placeholder(n).is_some_and(|(_, s)| s != "_affiliations");
                     let sep = if english && sep != "\n" { ", " } else { sep };
-                    out.push_str(&self.field(n).map(|v| v.join(sep)).unwrap_or_default())
+                    let values = self.field(n).unwrap_or_default();
+                    // Numbered affiliations go one per line, as in the PDF.
+                    let numbered = n.contains("_affiliations") && values.iter().any(|v| v.starts_with(SUP_START));
+                    out.push_str(&values.join(if numbered { "\n" } else { sep }))
                 }
             }
         }

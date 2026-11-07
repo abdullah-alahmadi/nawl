@@ -99,6 +99,17 @@ function resolveText(text: string, metadata: api.Metadata): string {
     .replace(/\u0001/g, "}");
 }
 
+/** When authors don't share one set of affiliations: the affiliations without repeats
+ * and each author's numbers in that list (as `author_entries` in the backend). */
+function affiliationNumbers(authors: AuthorInfo[]) {
+  const unique: string[] = [];
+  for (const a of authors) for (const f of a.affiliations ?? []) if (f.trim() && !unique.includes(f.trim())) unique.push(f.trim());
+  const marks = (a: AuthorInfo) => [...new Set((a.affiliations ?? []).map((f) => unique.indexOf(f.trim()) + 1).filter((n) => n > 0))];
+  const first = authors[0] ? marks(authors[0]).join() : "";
+  const differ = unique.length > 1 && authors.some((a) => marks(a).join() !== first);
+  return differ ? { unique, marks } : null;
+}
+
 /** A title-page image that shows a document's image field (`{logo}`). */
 const isFieldImage = (asset: string) => /^\{[a-z][a-z0-9_]*\}$/.test(asset);
 
@@ -258,6 +269,20 @@ export function TitlePageCanvas({
           _affiliations_en: unique(authors.flatMap((a) => a.affiliationsEn ?? [])),
           _email: email ? [email.email] : [],
         };
+        // Authors with different affiliations: numbers pair names and affiliations
+        // (raised in the PDF; superscript digits here).
+        const numbered = affiliationNumbers(authors);
+        if (numbered) {
+          const sup = (n: number[]) => n.join(",").replace(/\d/g, (d) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(d)]);
+          const names = authors.filter((a) => a.name.trim());
+          if (names.length) shown[f.id] = names.map((a) => a.name.trim() + sup(numbered.marks(a)));
+          derived._en = authors.filter((a) => a.nameEn?.trim()).map((a) => a.nameEn!.trim() + sup(numbered.marks(a)));
+          derived._affiliations = numbered.unique.map((u, i) => sup([i + 1]) + u);
+          derived._affiliations_en = numbered.unique.flatMap((u, i) => {
+            const en = authors.map((a) => a.affiliationsEn?.[(a.affiliations ?? []).findIndex((x) => x.trim() === u)]?.trim()).find(Boolean);
+            return en ? [sup([i + 1]) + en] : [];
+          });
+        }
         for (const [suffix, key] of AUTHOR_SUFFIXES) {
           const v = derived[suffix];
           shown[f.id + suffix] = v.length ? v : `[${translate(t.language?.main === "arabic" ? "ar" : "en", key, { label: f.label })}]`;

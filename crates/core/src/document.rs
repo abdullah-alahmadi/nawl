@@ -127,6 +127,50 @@ pub fn author_values(authors: &[AuthorInfo], suffix: &str) -> Vec<String> {
     out
 }
 
+/// Authors' names and affiliations with the numbers that tie them together, as
+/// journals print them when the authors don't all share one affiliation:
+/// "Name¹, Name²" over "¹Affiliation", "²Affiliation". Each entry is its text and its
+/// number(s) ("1", "1,2"); the numbers are `None` everywhere when they aren't needed
+/// (one affiliation, or every author has the same ones). `suffix` is `""` for the
+/// names or one of [`AUTHOR_SUFFIXES`].
+pub fn author_entries(authors: &[AuthorInfo], suffix: &str) -> Vec<(String, Option<Vec<usize>>)> {
+    // The affiliations without repeats, in order of appearance.
+    let mut unique: Vec<&str> = Vec::new();
+    for a in authors {
+        for f in a.affiliations.iter().map(|f| f.trim()).filter(|f| !f.is_empty()) {
+            if !unique.contains(&f) {
+                unique.push(f);
+            }
+        }
+    }
+    let numbers = |a: &AuthorInfo| -> Vec<usize> {
+        let mut n: Vec<usize> = a.affiliations.iter().filter_map(|f| unique.iter().position(|u| *u == f.trim()).map(|i| i + 1)).collect();
+        n.dedup();
+        n
+    };
+    let first = authors.first().map(numbers);
+    let numbered = unique.len() > 1 && authors.iter().any(|a| Some(numbers(a)) != first);
+    let mark = |a: &AuthorInfo| numbered.then(|| numbers(a)).filter(|n| !n.is_empty());
+    match suffix {
+        "" => authors.iter().filter(|a| !a.name.trim().is_empty()).map(|a| (a.name.trim().to_string(), mark(a))).collect(),
+        "_en" if numbered => authors.iter().filter(|a| !a.name_en.trim().is_empty()).map(|a| (a.name_en.trim().to_string(), mark(a))).collect(),
+        "_affiliations" if numbered => unique.iter().enumerate().map(|(i, f)| (f.to_string(), Some(vec![i + 1]))).collect(),
+        // Each numbered affiliation's English form (from the first author who gives one).
+        "_affiliations_en" if numbered => unique
+            .iter()
+            .enumerate()
+            .filter_map(|(i, f)| {
+                let english = authors.iter().find_map(|a| {
+                    let k = a.affiliations.iter().position(|x| x.trim() == *f)?;
+                    a.affiliations_en.get(k).map(|e| e.trim()).filter(|e| !e.is_empty())
+                })?;
+                Some((english.to_string(), Some(vec![i + 1])))
+            })
+            .collect(),
+        _ => author_values(authors, suffix).into_iter().map(|v| (v, None)).collect(),
+    }
+}
+
 /// An authors field and the derived value a placeholder names (`authors_en` →
 /// ("authors", "_en")).
 pub fn split_author_placeholder(name: &str) -> Option<(&str, &'static str)> {
