@@ -68,6 +68,8 @@ fn arabic_report_tex() {
     assert!(!texloom_core::has_errors(&t.validate()), "{:?}", t.validate());
     let tex = texloom_codegen::document_to_tex(&t, &arabic_document());
     assert!(tex.contains("\\setdefaultlanguage[numerals=mashriq]{arabic}"), "{tex}");
+    // Equation numbers at the end of the line: the left.
+    assert!(tex.contains("\\PassOptionsToPackage{leqno}{amsmath}\n\\documentclass"), "{tex}");
     assert!(tex.contains("استخدام \\textenglish{deep neural networks} في"));
     assert!(tex.contains("نظام \\textenglish{Windows 11} لعام 2024"));
     // One run across italic and bold parts, so the English words keep their order.
@@ -88,6 +90,7 @@ fn english_document_with_arabic_words_gets_arabic() {
     let mut doc: texloom_core::DocumentFile = serde_json::from_str(include_str!("../../../examples/senior-design-report.loom")).unwrap();
     let plain = texloom_codegen::document_to_tex(&t, &doc.document);
     assert!(!plain.contains("polyglossia"), "English documents stay as they were");
+    assert!(!plain.contains("leqno"), "English equation numbers stay on the right");
     doc.document.body.content.push(
         serde_json::from_value(serde_json::json!({"type": "paragraph", "content": [{"type": "text", "text": "The Arabic word كتاب means book."}]})).unwrap(),
     );

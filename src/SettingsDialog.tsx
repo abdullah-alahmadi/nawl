@@ -131,6 +131,9 @@ export function SettingsDialog({
               <Field label={t("dialogs.spellChecking")} hint={t("dialogs.spellCheckingHint")}>
                 <Switch checked={settings.spellcheck} onChange={(v) => onChange({ spellcheck: v })} />
               </Field>
+              <Field label={t("dialogs.arabicPunctuation")} hint={t("dialogs.arabicPunctuationHint")}>
+                <Switch checked={settings.arabicPunctuation} onChange={(v) => onChange({ arabicPunctuation: v })} />
+              </Field>
               <Field label={t("dialogs.crashRecovery")} hint={t("dialogs.crashRecoveryHint")}>
                 <Switch checked={settings.crashRecovery} onChange={(v) => onChange({ crashRecovery: v })} />
               </Field>

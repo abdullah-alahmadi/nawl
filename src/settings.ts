@@ -15,6 +15,8 @@ export interface Settings {
   /** Page zoom in percent; 0 fits the page to the pane. */
   pageZoom: number;
   spellcheck: boolean;
+  /** In Arabic text, type ؟ ، ؛ and «» for ? , ; and ". */
+  arabicPunctuation: boolean;
   /** Background of the editor page (#rrggbb). The PDF preview keeps real white paper. */
   pageColor: string;
   /** TeX engine: the bundled "tectonic", or an installed "pdflatex", "xelatex" or "lualatex". */
@@ -44,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   density: "comfortable",
   pageZoom: 0,
   spellcheck: true,
+  arabicPunctuation: true,
   pageColor: "#f4efe6",
   engine: "tectonic",
   autoCompile: true,

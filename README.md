@@ -174,6 +174,11 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   document's language ("١٤ مايو ٢٠٢٦"), and `{field_hijri}` gives the same day in the
   Hijri calendar (Umm al-Qura: "٢٧ ذو القعدة ١٤٤٧هـ"). The Arabic thesis prints the
   defence date in both calendars on its title and approval pages.
+- **Punctuation:** in Arabic text, typing `?` `,` `;` and `"` gives ؟ ، ؛ and «»;
+  English and numbers keep their own marks ("ok?", "3,5"). Settings → Editor turns it off.
+- **Numbering:** appendices and second-level lists use abjad letters (الملحق ب، (ج)),
+  in the editor, the PDF and Word; equation numbers sit on the left, at the end of the
+  line.
 - **Find and replace** ignores Arabic diacritics and tatweel and treats أ إ آ ا, ة/ه and
   ى/ي as the same letter, so "محمد" finds "مُحَمَّدٌ"; **Match exactly** turns that off.
 - **Engines:** Arabic needs XeLaTeX or LuaLaTeX; the built-in Tectonic is XeLaTeX.

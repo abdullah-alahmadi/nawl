@@ -97,6 +97,25 @@ fn has_arabic(doc: &Document) -> bool {
         })
 }
 
+/// Abjad numerals, as polyglossia prints LaTeX's letter counters (\alph, \Alph) in
+/// Arabic: ا ب ج د ه و ز ح ط ي, then يا (11), ك (20)…
+pub fn abjad(n: usize) -> String {
+    const VALUES: [(usize, char); 28] = [
+        (1000, 'غ'), (900, 'ظ'), (800, 'ض'), (700, 'ذ'), (600, 'خ'), (500, 'ث'), (400, 'ت'), (300, 'ش'), (200, 'ر'), (100, 'ق'),
+        (90, 'ص'), (80, 'ف'), (70, 'ع'), (60, 'س'), (50, 'ن'), (40, 'م'), (30, 'ل'), (20, 'ك'), (10, 'ي'),
+        (9, 'ط'), (8, 'ح'), (7, 'ز'), (6, 'و'), (5, 'ه'), (4, 'د'), (3, 'ج'), (2, 'ب'), (1, 'ا'),
+    ];
+    let mut rest = n;
+    let mut out = String::new();
+    for (value, letter) in VALUES {
+        while rest >= value {
+            out.push(letter);
+            rest -= value;
+        }
+    }
+    out
+}
+
 pub fn is_arabic(c: char) -> bool {
     matches!(c, '\u{0600}'..='\u{06FF}' | '\u{0750}'..='\u{077F}' | '\u{08A0}'..='\u{08FF}' | '\u{FB50}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFF}')
 }
@@ -383,6 +402,15 @@ fn latin_spec(choice: &FontChoice, role: Role) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn abjad_numerals() {
+        let first: Vec<String> = (1..=10).map(abjad).collect();
+        assert_eq!(first.join(" "), "ا ب ج د ه و ز ح ط ي");
+        assert_eq!(abjad(11), "يا");
+        assert_eq!(abjad(20), "ك");
+        assert_eq!(abjad(1447), "غتمز");
+    }
 
     fn arabic_doc() -> Languages {
         Languages { main: Language::Arabic, others: vec![Language::English], digits: Digits::ArabicIndic }

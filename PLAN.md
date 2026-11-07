@@ -241,10 +241,11 @@ Word is an export target only; Texloom never imports Word files.
 - [x] Separate Arabic and foreign reference lists; Arabic sorting without ال
 - [x] Date fields with Hijri dates (Umm al-Qura) for {field_hijri}
 - [x] Find and replace ignoring Arabic diacritics and letter variants
-- [ ] Arabic letters for list and appendix numbering (أ، ب، ج); kashida justification;
-      Arabic punctuation as you type; bilingual author names
+- [x] Abjad letters for appendices and sub-lists (editor, PDF, Word); Arabic punctuation
+      as you type; equation numbers on the left in RTL
+- [ ] Kashida justification; bilingual author names; backend messages in Arabic
 - [ ] Exact house styles of particular Arabic journals and universities
-- [ ] Equation numbers on the left in RTL; Arabic-Indic page numbers in Word (Word
+- [ ] Arabic-Indic page numbers in Word (Word
       shows them only with its own "Hindi digits" option)
 - [ ] More languages on the same model (Persian, Urdu, Hebrew)
 

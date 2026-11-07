@@ -4,7 +4,7 @@
 import type { Template } from "../api";
 import type { FontChoice } from "../bindings/FontChoice";
 import type { TextStyle } from "../bindings/TextStyle";
-import { ARABIC_FALLBACKS, docLanguage } from "./language";
+import { ABJAD_COUNTER_STYLE, ARABIC_FALLBACKS, docLanguage } from "./language";
 
 /** Width of the on-screen page in CSS pixels. */
 export const PAGE_WIDTH_PX = 800;
@@ -304,10 +304,20 @@ function articleCss(t: Template, scope: string): string {
   if (chapters) rules.push(`${scope} h1:not(:first-child){margin-top:${px(t.headings.levels[0]?.spaceBeforePt + 36)}}`);
 
   // Appendices: the marker restarts top-level numbering, shown as letters.
+  // Abjad letters in Arabic (ا ب ج), as polyglossia prints \Alph.
+  const letters = docLanguage(t).main === "arabic" ? "tl-abjad" : "upper-alpha";
   const appendixLabel = (i: number) => {
-    const expr = Array.from({ length: i + 1 }, (_, j) => (j === 0 ? "counter(tl-h1, upper-alpha)" : `counter(tl-h${j + 1})`)).join(' "." ');
+    const expr = Array.from({ length: i + 1 }, (_, j) => (j === 0 ? `counter(tl-h1, ${letters})` : `counter(tl-h${j + 1})`)).join(' "." ');
     return expr;
   };
+  // Numbered lists as LaTeX's enumerate: 1. (a) i. A.; abjad letters in Arabic.
+  rules.push(
+    `@counter-style tl-abjad{${ABJAD_COUNTER_STYLE}}`,
+    `@counter-style tl-sublist{system:extends ${docLanguage(t).main === "arabic" ? "tl-abjad" : "lower-alpha"};prefix:"(";suffix:") "}`,
+    `${scope} ol ol{list-style-type:tl-sublist}`,
+    `${scope} ol ol ol{list-style-type:lower-roman}`,
+    `${scope} ol ol ol ol{list-style-type:upper-alpha}`,
+  );
   rules.push(`${scope} .appendix-divider{counter-set:tl-h1 0 tl-h2 0 tl-h3 0 tl-h4 0}`);
   const top = t.headings.levels[0];
   if (top) {
@@ -332,7 +342,7 @@ function articleCss(t: Template, scope: string): string {
     }
   });
   if (perChapter) {
-    const prefixA = 'counter(tl-h1, upper-alpha) "." ';
+    const prefixA = `counter(tl-h1, ${letters}) "." `;
     rules.push(
       `${scope} .appendix-divider ~ .node-figure figure.figure figcaption::before{content:${q(t.captions.figureLabel + " ")} ${prefixA}counter(tl-figure) ${q(sep)}}`,
       `${scope} .appendix-divider ~ .table-figure figcaption::before{content:${q(t.captions.tableLabel + " ")} ${prefixA}counter(tl-table) ${q(sep)}}`,

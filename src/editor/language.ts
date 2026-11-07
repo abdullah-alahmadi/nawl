@@ -19,6 +19,28 @@ export function docLanguage(t: Template | null | undefined): DocLanguage {
   return { main, digits: t?.language?.digits ?? "western", rtl: main === "arabic", tag: main === "arabic" ? "ar" : "en" };
 }
 
+const ABJAD: [number, string][] = [
+  [1000, "غ"], [900, "ظ"], [800, "ض"], [700, "ذ"], [600, "خ"], [500, "ث"], [400, "ت"], [300, "ش"], [200, "ر"], [100, "ق"],
+  [90, "ص"], [80, "ف"], [70, "ع"], [60, "س"], [50, "ن"], [40, "م"], [30, "ل"], [20, "ك"], [10, "ي"],
+  [9, "ط"], [8, "ح"], [7, "ز"], [6, "و"], [5, "ه"], [4, "د"], [3, "ج"], [2, "ب"], [1, "ا"],
+];
+
+/** Abjad numerals, as polyglossia prints LaTeX's letter counters in Arabic:
+ *  ا ب ج د ه و ز ح ط ي, then يا (11), ك (20)… */
+export function abjad(n: number): string {
+  let out = "";
+  for (const [value, letter] of ABJAD) {
+    while (n >= value) {
+      out += letter;
+      n -= value;
+    }
+  }
+  return out;
+}
+
+/** The same as a CSS counter style, for list markers and appendix labels. */
+export const ABJAD_COUNTER_STYLE = `system:additive;additive-symbols:${ABJAD.map(([v, l]) => `${v} "${l}"`).join(",")}`;
+
 /** Western digits written the document's way (٣٫١ stays ASCII-punctuated: "٣.١"). */
 export function localDigits(s: string, digits: Digits): string {
   if (digits !== "arabicIndic") return s;

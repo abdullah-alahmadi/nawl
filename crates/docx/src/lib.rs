@@ -135,7 +135,13 @@ fn number_document(t: &Template, doc: &Document) -> Numbers {
     let mut appendix = false;
     let chapters = t.structure.top_level == TopLevel::Chapter;
     let per_chapter = chapters && t.structure.per_chapter_numbering;
-    let top = |appendix: bool, c: usize| if appendix { letters(c) } else { c.to_string() };
+    // Appendices are lettered: abjad letters in Arabic, as polyglossia prints them.
+    let arabic = texloom_codegen::language::Languages::of(t, doc).main == Language::Arabic;
+    let top = |appendix: bool, c: usize| match (appendix, arabic) {
+        (false, _) => c.to_string(),
+        (true, true) => texloom_codegen::language::abjad(c),
+        (true, false) => letters(c),
+    };
     texloom_core::walk_blocks(&doc.body.content, &mut |b| match b {
         Block::AppendixStart => {
             appendix = true;
@@ -1093,7 +1099,16 @@ impl<'a> Writer<'a> {
             format!("<w:lvl w:ilvl=\"{i}\"><w:start w:val=\"1\"/><w:numFmt w:val=\"{fmt}\"/><w:lvlText w:val=\"{text}\"/><w:lvlJc w:val=\"start\"/><w:pPr><w:ind w:start=\"{indent}\" w:hanging=\"360\"/></w:pPr></w:lvl>")
         };
         let bullets: String = (0..9).map(|i| level(i, "bullet", ["•", "◦", "▪"][i % 3])).collect();
-        let numbers: String = (0..9).map(|i| level(i, "decimal", &format!("%{}.", i + 1))).collect();
+        // As LaTeX's enumerate: 1. (a) i. A., with abjad letters in Arabic (ا ب ج).
+        let numbers: String = (0..9)
+            .map(|i| match i {
+                1 if self.rtl => level(i, "arabicAbjad", "(%2)"),
+                1 => level(i, "lowerLetter", "(%2)"),
+                2 => level(i, "lowerRoman", "%3."),
+                3 => level(i, "upperLetter", "%4."),
+                _ => level(i, "decimal", &format!("%{}.", i + 1)),
+            })
+            .collect();
         let mut o = format!(
             r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>{bullets}</w:abstractNum><w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>{numbers}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>"#
         );

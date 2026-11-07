@@ -21,6 +21,7 @@ import { DeckDocument, SLIDE_EXTENSIONS } from "./editor/Slides";
 import { Spaces } from "./editor/Spaces";
 import { Search } from "./editor/Search";
 import { Direction } from "./editor/Direction";
+import { ArabicPunctuation } from "./editor/ArabicPunctuation";
 import { docLanguage } from "./editor/language";
 import { formulasAsMathMl } from "./editor/wordExport";
 import { LanguageContext, resolveUiLanguage, translate, useT, t as tNow, type MessageKey } from "./i18n";
@@ -282,6 +283,7 @@ export default function App() {
       Search,
       Flash,
       Direction,
+      ArabicPunctuation,
       Spaces,
       Caption,
       Figure,
@@ -933,6 +935,10 @@ export default function App() {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.engine]);
+
+  useEffect(() => {
+    if (editor) editor.storage.arabicPunctuation.enabled = settings.arabicPunctuation;
+  }, [editor, settings.arabicPunctuation]);
 
   // Spell checking follows the setting.
   useEffect(() => {

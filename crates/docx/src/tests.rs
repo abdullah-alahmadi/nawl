@@ -160,6 +160,8 @@ fn thesis_dates_and_reference_lists() {
     assert!(arabic < foreign);
     let ahmadi = d.find("الأحمدي").map(|_| d.rfind("الأحمدي").unwrap()).unwrap();
     assert!(arabic < ahmadi && ahmadi < foreign, "the Arabic entry is in the Arabic list");
+    // Sub-lists in abjad letters, as polyglossia prints them: (ا) (ب) (ج).
+    assert!(parts["word/numbering.xml"].contains("<w:numFmt w:val=\"arabicAbjad\"/><w:lvlText w:val=\"(%2)\"/>"));
 }
 
 #[test]

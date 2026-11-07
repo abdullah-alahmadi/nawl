@@ -2,7 +2,7 @@
 // outline, the cross-reference picker and references in the text agree with it.
 import type { Node as PMNode } from "@tiptap/pm/model";
 import type { Template } from "../api";
-import { docLanguage, localDigits, words } from "./language";
+import { docLanguage, localDigits, words, abjad } from "./language";
 
 export type TargetKind = "heading" | "figure" | "table" | "equation";
 
@@ -54,7 +54,9 @@ function computeWesternNumbering(doc: PMNode, t: Template): NumberedItem[] {
   let appendix = false;
   const chapters = t.structure.topLevel === "chapter";
   const perChapter = chapters && t.structure.perChapterNumbering;
-  const top = () => (appendix ? letter(counters[0]) : String(counters[0]));
+  // Appendix letters: abjad letters in Arabic documents, as polyglossia prints them.
+  const arabic = docLanguage(t).main === "arabic";
+  const top = () => (appendix ? (arabic ? abjad(counters[0]) : letter(counters[0])) : String(counters[0]));
   const prefixed = (n: number) => (perChapter ? `${top()}.${n}` : String(n));
 
   doc.descendants((node, pos) => {
