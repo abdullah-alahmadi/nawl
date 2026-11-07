@@ -1,39 +1,386 @@
 {
   "format": "texloom",
   "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-article",
+      "name": "بحث لمجلة عربية",
+      "description": "بحث علمي بالعربية: عنوان ومستخلص وكلمات مفتاحية بالعربية والإنجليزية، ومراجع بنظام APA. Arabic journal article with Arabic and English titles, abstracts and keywords.",
+      "version": "2.0.0"
+    },
+    "page": {
+      "paper": {
+        "kind": "a4"
+      },
+      "margins": {
+        "topMm": 25,
+        "bottomMm": 25,
+        "innerMm": 25,
+        "outerMm": 25
+      },
+      "twoSided": false,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "custom",
+        "stretch": 1.15
+      },
+      "paragraph": {
+        "indentMm": 4,
+        "spacingPt": 0
+      }
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "latinModern"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "section",
+      "numberedDepth": 3,
+      "tocDepth": 2,
+      "frontMatterPageNumbers": "arabic",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": false,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 14,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 14,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 4
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 8,
+          "spaceAfterPt": 3
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": false,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 6,
+          "spaceAfterPt": 3
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "main": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "chapterOpening": {
+        "footer": {
+          "center": "{page}"
+        }
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "footnote",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "authorYear",
+      "title": "المراجع",
+      "inToc": false
+    },
+    "skeleton": [
+      {
+        "title": "المقدمة",
+        "required": true
+      },
+      {
+        "title": "الدراسات السابقة",
+        "required": false
+      },
+      {
+        "title": "منهجية الدراسة",
+        "required": false
+      },
+      {
+        "title": "النتائج",
+        "required": false
+      },
+      {
+        "title": "المناقشة",
+        "required": false
+      },
+      {
+        "title": "الخاتمة",
+        "required": false
+      }
+    ],
+    "titlePage": {
+      "items": [
+        {
+          "xMm": 105,
+          "yMm": 25,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 18,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 37,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 12,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 43.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_affiliations}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 10,
+              "bold": false,
+              "italic": true,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 48.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_email}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 9.5,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 56,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title_en}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 14,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 64,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_en}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 11,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        }
+      ],
+      "blockHeightMm": 74
+    },
+    "fields": [
+      {
+        "id": "title",
+        "label": "عنوان البحث",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "authors",
+        "label": "المؤلفون",
+        "kind": "authors",
+        "required": true
+      },
+      {
+        "id": "abstract",
+        "label": "المستخلص",
+        "kind": "paragraphs",
+        "required": true
+      },
+      {
+        "id": "keywords",
+        "label": "الكلمات المفتاحية",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "title_en",
+        "label": "عنوان البحث بالإنجليزية",
+        "kind": "text"
+      },
+      {
+        "id": "abstract_en",
+        "label": "المستخلص بالإنجليزية (Abstract)",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "keywords_en",
+        "label": "الكلمات المفتاحية بالإنجليزية (Keywords)",
+        "kind": "paragraphs"
+      }
+    ],
+    "frontMatter": [
+      {
+        "type": "titlePage"
+      },
+      {
+        "type": "fieldPage",
+        "title": "المستخلص",
+        "field": "abstract",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "الكلمات المفتاحية",
+        "field": "keywords",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "Abstract",
+        "field": "abstract_en",
+        "inToc": false,
+        "inline": true,
+        "language": "english"
+      },
+      {
+        "type": "fieldPage",
+        "title": "Keywords",
+        "field": "keywords_en",
+        "inToc": false,
+        "inline": true,
+        "language": "english"
+      }
+    ],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic"
+    }
+  },
+  "templatePath": null,
   "metadata": {
-    "title": "أثر التغذية الراجعة الفورية في بيئات التعلم الإلكتروني على تحصيل طلاب الجامعة",
+    "title": "نظام ري ذكي منخفض التكلفة قائم على إنترنت الأشياء للمزارع الصغيرة في منطقة القصيم",
     "authors": [
       {
         "name": "عبدالله الأحمدي",
         "affiliations": [
-          "قسم تقنيات التعليم، جامعة الملك عبدالعزيز، جدة"
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
         ],
-        "email": "author@example.edu.sa",
-        "corresponding": true,
         "nameEn": "Abdullah Al-Ahmadi",
         "affiliationsEn": [
-          "Department of Educational Technology, King Abdulaziz University, Jeddah"
-        ]
+          "Department of Electrical Engineering, College of Engineering, Qassim University, Buraydah"
+        ],
+        "email": "author@example.edu.sa",
+        "corresponding": true
       },
       {
         "name": "سارة القحطاني",
         "affiliations": [
-          "قسم تقنيات التعليم، جامعة الملك عبدالعزيز، جدة"
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
         ],
         "nameEn": "Sarah Al-Qahtani",
         "affiliationsEn": [
-          "Department of Educational Technology, King Abdulaziz University, Jeddah"
+          "Department of Electrical Engineering, College of Engineering, Qassim University, Buraydah"
         ]
       }
     ],
-    "abstract": "هدفت الدراسة إلى قياس أثر التغذية الراجعة الفورية في بيئات التعلم الإلكتروني على تحصيل طلاب الجامعة. استخدمت الدراسة المنهج شبه التجريبي، وأظهرت النتائج تفوق المجموعة التجريبية.",
-    "keywords": "التعلم الإلكتروني، التغذية الراجعة، التحصيل الدراسي",
-    "title_en": "The Effect of Immediate Feedback in E-Learning Environments on University Students' Achievement",
-    "abstract_en": "This study measured the effect of immediate feedback in e-learning environments on university students' achievement. A quasi-experimental design was used, and the experimental group outperformed the control group.",
-    "keywords_en": "e-learning, feedback, achievement"
+    "abstract": "تستهلك الزراعة الجزء الأكبر من المياه الجوفية في المملكة العربية السعودية، وما زالت معظم المزارع الصغيرة تروي بمؤقتات زمنية ثابتة لا تراعي حاجة التربة الفعلية. تقترح هذه الدراسة نظام ري ذكيًا منخفض التكلفة يقيس رطوبة التربة على ثلاثة أعماق ويرسل القراءات لاسلكيًا عبر شبكة LoRa إلى وحدة تحكم تقرر موعد الري وكميته. جُرّب النظام أربعة أسابيع في مزرعة نخيل وخضار بمنطقة القصيم، وقورن بالري بالمؤقت في قطعة مجاورة. وأظهرت النتائج انخفاض استهلاك المياه بنسبة ٣٧٪ تقريبًا دون أثر يُذكر في الإنتاج، بتكلفة لا تتجاوز ٢٢٠ ريالًا للمنطقة الواحدة.",
+    "keywords": "الري الذكي، إنترنت الأشياء، رطوبة التربة، LoRa، ترشيد المياه",
+    "title_en": "A Low-Cost IoT Smart Irrigation System for Small Farms in the Qassim Region",
+    "abstract_en": "Agriculture consumes most of Saudi Arabia's groundwater, yet most small farms still irrigate on fixed timers that ignore what the soil actually needs. This study proposes a low-cost smart irrigation system that measures soil moisture at three depths and sends the readings over LoRa to a controller that decides when and how much to water. The system was tested for four weeks on a date palm and vegetable farm in the Qassim region and compared with timer irrigation on a neighbouring plot. Water use fell by about 37% with no noticeable effect on yield, at a cost of under 220 SAR per zone.",
+    "keywords_en": "smart irrigation, Internet of Things, soil moisture, LoRa, water saving"
   },
-  "bibliography": "@article{alahmadi2022,\n  author = {الأحمدي, عبدالله and العتيبي, محمد},\n  title = {واقع استخدام أنظمة إدارة التعلم في الجامعات السعودية},\n  journal = {المجلة العربية للتربية},\n  volume = {14},\n  number = {3},\n  pages = {45--70},\n  year = {2022}\n}\n\n@article{siemens2013,\n  author = {Siemens, George},\n  title = {Learning Analytics: The Emergence of a Discipline},\n  journal = {American Behavioral Scientist},\n  volume = {57},\n  number = {10},\n  pages = {1380--1400},\n  year = {2013},\n  doi = {10.1177/0002764213498851}\n}\n",
+  "bibliography": "@article{alahmadi2021,\n  author = {الأحمدي, عبدالله and الحربي, فيصل},\n  title = {كفاءة استخدام المياه في المزارع الصغيرة بمنطقة القصيم},\n  journal = {المجلة السعودية للعلوم الزراعية},\n  volume = {18},\n  number = {2},\n  pages = {33--52},\n  year = {2021}\n}\n\n@book{aldosari2019,\n  author = {الدوسري, منى},\n  title = {أساسيات الري بالتنقيط وتصميم شبكاته},\n  publisher = {دار النشر العلمي},\n  address = {الرياض},\n  year = {2019}\n}\n\n@inproceedings{alsubaie2022,\n  author = {السبيعي, خالد and العنزي, نوف and الشهري, ريم},\n  title = {الاستشعار اللاسلكي لرطوبة التربة في البيئات الصحراوية},\n  booktitle = {وقائع المؤتمر السعودي للهندسة الزراعية},\n  pages = {88--97},\n  year = {2022}\n}\n\n@book{allen1998,\n  author = {Allen, Richard G. and Pereira, Luis S. and Raes, Dirk and Smith, Martin},\n  title = {Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements},\n  series = {FAO Irrigation and Drainage Paper 56},\n  publisher = {FAO},\n  address = {Rome},\n  year = {1998}\n}\n\n@article{hargreaves1985,\n  author = {Hargreaves, George H. and Samani, Zohrab A.},\n  title = {Reference Crop Evapotranspiration from Temperature},\n  journal = {Applied Engineering in Agriculture},\n  volume = {1},\n  number = {2},\n  pages = {96--99},\n  year = {1985}\n}\n\n@article{goap2018,\n  author = {Goap, Amarendra and Sharma, Deepak and Shukla, A. K. and Krishna, C. Rama},\n  title = {An IoT Based Smart Irrigation Management System Using Machine Learning and Open Source Technologies},\n  journal = {Computers and Electronics in Agriculture},\n  volume = {155},\n  pages = {41--49},\n  year = {2018},\n  doi = {10.1016/j.compag.2018.09.040}\n}\n\n@article{augustin2016,\n  author = {Augustin, Aloÿs and Yi, Jiazi and Clausen, Thomas and Townsley, William Mark},\n  title = {A Study of LoRa: Long Range \\& Low Power Networks for the Internet of Things},\n  journal = {Sensors},\n  volume = {16},\n  number = {9},\n  pages = {1466},\n  year = {2016},\n  doi = {10.3390/s16091466}\n}\n",
   "doc": {
     "type": "doc",
     "content": [
@@ -41,7 +388,7 @@
         "type": "heading",
         "attrs": {
           "level": 1,
-          "id": "h-intro",
+          "id": "sec-intro",
           "numbered": true
         },
         "content": [
@@ -56,11 +403,32 @@
         "content": [
           {
             "type": "text",
-            "text": "شهد التعليم الإلكتروني نموًا متسارعًا في العقد الأخير، وأصبحت تقنيات "
+            "text": "تواجه المملكة العربية السعودية تحديًا مائيًا متزايدًا؛ إذ تعتمد الزراعة اعتمادًا شبه كامل على المياه الجوفية غير المتجددة، وتستهلك نسبة كبيرة من إجمالي المياه المستخدمة في البلاد "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alahmadi2021"
+              ]
+            }
           },
           {
             "type": "text",
-            "text": "machine learning",
+            "text": ". وفي منطقة القصيم، وهي من أهم المناطق الزراعية، تنتشر المزارع الصغيرة التي تروي محاصيلها بالتنقيط وفق جداول زمنية ثابتة يضبطها المزارع يدويًا."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ولا يراعي الري بالمؤقت الزمني تغيّر حاجة النبات خلال اليوم والموسم؛ فيُروى الحقل بالكمية نفسها في يوم حار جاف وفي يوم معتدل غائم، ويضيع جزء كبير من الماء بالتبخر والتسرب العميق. وقد أصبحت تقنيات "
+          },
+          {
+            "type": "text",
+            "text": "Internet of Things",
             "marks": [
               {
                 "type": "italic"
@@ -69,30 +437,13 @@
           },
           {
             "type": "text",
-            "text": " جزءًا أساسيًا من أنظمة إدارة التعلم مثل "
-          },
-          {
-            "type": "text",
-            "text": "Moodle"
-          },
-          {
-            "type": "text",
-            "text": " و"
-          },
-          {
-            "type": "text",
-            "text": "Blackboard"
-          },
-          {
-            "type": "text",
-            "text": " "
+            "text": " اليوم رخيصة بما يكفي لقياس رطوبة التربة مباشرة واتخاذ قرار الري بناءً عليها "
           },
           {
             "type": "citation",
             "attrs": {
               "keys": [
-                "alahmadi2022",
-                "siemens2013"
+                "goap2018"
               ]
             }
           },
@@ -107,12 +458,170 @@
         "content": [
           {
             "type": "text",
-            "text": "تهدف هذه الدراسة إلى قياس أثر التغذية الراجعة الفورية على تحصيل الطلاب، كما يوضح "
+            "text": "تقترح هذه الدراسة نظامًا متكاملًا منخفض التكلفة يناسب المزارع الصغيرة، ويوضح "
           },
           {
             "type": "ref",
             "attrs": {
-              "target": "fig-model"
+              "target": "fig-system"
+            }
+          },
+          {
+            "type": "text",
+            "text": " مكوناته الرئيسة. وتتلخص إسهامات الدراسة فيما يأتي:"
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تصميم عقدة استشعار تعمل بالطاقة الشمسية وتقيس رطوبة التربة على ثلاثة أعماق، بتكلفة منخفضة."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "خوارزمية تحكم تجمع بين قراءات الرطوبة وتقدير الاحتياج المائي من بيانات الطقس."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تجربة ميدانية لمدة أربعة أسابيع تقارن النظام بالري التقليدي في الظروف نفسها."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/irrigation-system.png",
+          "widthPercent": 90,
+          "id": "fig-system"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "مكونات نظام الري المقترح وتدفق البيانات من الحساسات إلى صمام الري"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-related",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الدراسات السابقة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تناولت دراسات عديدة تقدير الاحتياج المائي للمحاصيل، وأشهرها دليل منظمة الأغذية والزراعة الذي يعتمد معادلة بنمان-مونتيث مرجعًا لحساب البخر-نتح "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "allen1998"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". غير أن هذه المعادلة تحتاج إلى قياسات للإشعاع والرطوبة وسرعة الرياح قلّما تتوافر في المزارع الصغيرة، ولذلك يُلجأ إلى معادلة هارغريفز التي تكتفي بدرجات الحرارة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "hargreaves1985"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وفي جانب الاتصال، أثبتت تقنية LoRa ملاءمتها للحقول الزراعية بفضل مداها الطويل واستهلاكها المنخفض للطاقة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "augustin2016"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". أما محليًا، فقد دُرس أداء الحساسات اللاسلكية في التربة الرملية وتبيّن أنها تحتاج إلى معايرة خاصة بنوع التربة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alsubaie2022"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "، كما أن ضبط كمية الري بالتنقيط وفق رطوبة التربة يرفع كفاءة استخدام المياه رفعًا كبيرًا "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "aldosari2019"
+              ]
             }
           },
           {
@@ -125,7 +634,7 @@
         "type": "heading",
         "attrs": {
           "level": 1,
-          "id": "h-method",
+          "id": "sec-method",
           "numbered": true
         },
         "content": [
@@ -136,16 +645,63 @@
         ]
       },
       {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-design",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "تصميم النظام"
+          }
+        ]
+      },
+      {
         "type": "paragraph",
         "content": [
           {
             "type": "text",
-            "text": "اعتمدت الدراسة المنهج شبه التجريبي على عينة من 120 طالبًا، وقيس التحصيل بالمعادلة "
+            "text": "يتكون النظام من عقد استشعار موزعة في الحقل، وكل عقدة مزودة بثلاثة حساسات سعوية لرطوبة التربة على أعماق ١٠ و٣٠ و٥٠ سم، ومتحكم دقيق مع وحدة راديو LoRa، ولوح شمسي صغير وبطارية. وترسل كل عقدة قراءاتها كل عشر دقائق إلى وحدة التحكم في المزرعة، التي تشغّل صمام الري الكهربائي عند الحاجة."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-demand",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "تقدير الاحتياج المائي"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يُقدَّر البخر-نتح المرجعي اليومي "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ET_o"
+            }
+          },
+          {
+            "type": "text",
+            "text": " (مم/يوم) بمعادلة هارغريفز كما في "
           },
           {
             "type": "ref",
             "attrs": {
-              "target": "eq-gain"
+              "target": "eq-et0"
             }
           },
           {
@@ -157,25 +713,255 @@
       {
         "type": "equation",
         "attrs": {
-          "latex": "g = \\frac{post - pre}{100 - pre}",
+          "latex": "ET_o = 0.0023\\, R_a \\left(T_{mean} + 17.8\\right) \\sqrt{T_{max} - T_{min}}",
           "numbered": true,
-          "id": "eq-gain"
+          "id": "eq-et0"
         }
       },
       {
-        "type": "figure",
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "حيث "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "R_a"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الإشعاع الشمسي خارج الغلاف الجوي مقدَّرًا بمكافئه من التبخر، و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "T_{max}"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "T_{min}"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "T_{mean}"
+            }
+          },
+          {
+            "type": "text",
+            "text": " درجات الحرارة العظمى والصغرى والمتوسطة. ثم تُحسب كمية الري اللازمة لإعادة التربة إلى السعة الحقلية بالمعادلة "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-irrigation"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
         "attrs": {
-          "src": "figures/system-diagram.png",
-          "widthPercent": 70,
-          "id": "fig-model"
+          "latex": "I = \\frac{\\left(\\theta_{fc} - \\theta\\right) D}{\\eta}",
+          "numbered": true,
+          "id": "eq-irrigation"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "حيث "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\theta_{fc}"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الرطوبة عند السعة الحقلية، و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\theta"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الرطوبة المقيسة، و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "D"
+            }
+          },
+          {
+            "type": "text",
+            "text": " عمق منطقة الجذور، و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\eta"
+            }
+          },
+          {
+            "type": "text",
+            "text": " كفاءة شبكة التنقيط."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-control",
+          "numbered": true
         },
         "content": [
           {
-            "type": "caption",
+            "type": "text",
+            "text": "خوارزمية التحكم"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تعمل وحدة التحكم وفق الخطوات الآتية في كل دورة:"
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
             "content": [
               {
-                "type": "text",
-                "text": "نموذج الدراسة المقترح"
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "قراءة متوسط الرطوبة في منطقة الجذور من آخر ثلاث قراءات لكل حساس."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "مقارنة الرطوبة بحدّين يُضبطان حسب نوع المحصول:"
+                  }
+                ]
+              },
+              {
+                "type": "orderedList",
+                "attrs": {
+                  "start": 1
+                },
+                "content": [
+                  {
+                    "type": "listItem",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "إذا انخفضت الرطوبة عن الحد الأدنى بدأ الري فورًا."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "listItem",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "إذا كانت بين الحدين أُجّل القرار إلى الدورة التالية."
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "حساب كمية الري من "
+                  },
+                  {
+                    "type": "ref",
+                    "attrs": {
+                      "target": "eq-irrigation"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "text": " وتشغيل الصمام للمدة المقابلة."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تسجيل القرار وإرسال ملخص يومي إلى هاتف المزارع."
+                  }
+                ]
               }
             ]
           }
@@ -185,7 +971,7 @@
         "type": "heading",
         "attrs": {
           "level": 1,
-          "id": "h-results",
+          "id": "sec-results",
           "numbered": true
         },
         "content": [
@@ -200,7 +986,7 @@
         "content": [
           {
             "type": "text",
-            "text": "يلخص "
+            "text": "قورن النظام بالري بالمؤقت الزمني في قطعتين متجاورتين متماثلتين في المحصول ونوع التربة. ويلخص "
           },
           {
             "type": "ref",
@@ -210,17 +996,17 @@
           },
           {
             "type": "text",
-            "text": " نتائج المجموعتين، إذ تفوقت المجموعة التجريبية بفارق دال إحصائيًا "
+            "text": " النتائج الأسبوعية، ويبين "
           },
           {
-            "type": "inlineMath",
+            "type": "ref",
             "attrs": {
-              "latex": "p < 0.05"
+              "target": "fig-water"
             }
           },
           {
             "type": "text",
-            "text": "."
+            "text": " استهلاك المياه في القطعتين."
           }
         ]
       },
@@ -235,7 +1021,7 @@
             "content": [
               {
                 "type": "text",
-                "text": "متوسط درجات التحصيل"
+                "text": "استهلاك المياه الأسبوعي (م³ لكل دونم) في القطعتين"
               }
             ]
           },
@@ -258,7 +1044,7 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "المجموعة"
+                            "text": "الأسبوع"
                           }
                         ]
                       }
@@ -277,7 +1063,7 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "القبلي"
+                            "text": "الري بالمؤقت"
                           }
                         ]
                       }
@@ -296,7 +1082,26 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "البعدي"
+                            "text": "النظام المقترح"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "نسبة التوفير"
                           }
                         ]
                       }
@@ -320,7 +1125,7 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "التجريبية"
+                            "text": "الأول"
                           }
                         ]
                       }
@@ -339,7 +1144,7 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "54.2"
+                            "text": "٤١٫٠"
                           }
                         ]
                       }
@@ -358,7 +1163,26 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "81.6"
+                            "text": "٢٧٫٣"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٣٫٤٪"
                           }
                         ]
                       }
@@ -382,7 +1206,7 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "الضابطة"
+                            "text": "الثاني"
                           }
                         ]
                       }
@@ -401,7 +1225,7 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "53.8"
+                            "text": "٤٣٫٥"
                           }
                         ]
                       }
@@ -420,7 +1244,188 @@
                         "content": [
                           {
                             "type": "text",
-                            "text": "66.1"
+                            "text": "٢٦٫١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٠٫٠٪"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الثالث"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٤٫٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٨٫٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٥٫٧٪"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الرابع"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٦٫٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٩٫٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٨٫٠٪"
                           }
                         ]
                       }
@@ -433,11 +1438,84 @@
         ]
       },
       {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/irrigation-water.png",
+          "widthPercent": 85,
+          "id": "fig-water"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "استهلاك المياه الأسبوعي في قطعة المؤقت الزمني وقطعة النظام المقترح"
+              }
+            ]
+          }
+        ]
+      },
+      {
         "type": "paragraph",
         "content": [
           {
             "type": "text",
-            "text": "As Siemens notes, learning analytics should serve learners first, not institutions."
+            "text": "وقد بلغ متوسط التوفير نحو ٣٧٪، وكان الفرق في وزن المحصول بين القطعتين أقل من ٣٪، وهو فرق غير دال إحصائيًا "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "p > 0.05"
+            }
+          },
+          {
+            "type": "text",
+            "text": ". ولم تتوقف أي عقدة عن العمل خلال مدة التجربة رغم ارتفاع درجات الحرارة نهارًا إلى ٤٤ درجة مئوية."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-discussion",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المناقشة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يرجع معظم التوفير إلى إلغاء الريات غير الضرورية في الأيام المعتدلة، وإلى تقليل مدة الري في الصباح الباكر حين تكون رطوبة التربة مرتفعة أصلًا. ويتفق ذلك مع ما توصلت إليه دراسات سابقة من أن الري المبني على قياس الرطوبة يقلل الهدر أكثر من أي جدولة زمنية مهما أُحكمت "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "goap2018"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "In short, the controller watered only when the soil needed it, and the farm used about a third less water without losing yield."
           }
         ],
         "attrs": {
@@ -445,10 +1523,19 @@
         }
       },
       {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ومن حدود الدراسة قصر مدة التجربة واقتصارها على مزرعة واحدة في فصل الصيف، ولذلك يحتاج تعميم النتائج إلى تجارب أطول تشمل فصولًا ومحاصيل مختلفة."
+          }
+        ]
+      },
+      {
         "type": "heading",
         "attrs": {
           "level": 1,
-          "id": "h-conclusion",
+          "id": "sec-conclusion",
           "numbered": true
         },
         "content": [
@@ -463,13 +1550,32 @@
         "content": [
           {
             "type": "text",
-            "text": "توصي الدراسة بإدماج التغذية الراجعة الفورية في المقررات الإلكترونية، ودراسة أثرها على المدى الطويل."
+            "text": "قدّمت هذه الدراسة نظام ري ذكيًا منخفض التكلفة للمزارع الصغيرة، وأثبتت التجربة الميدانية قدرته على خفض استهلاك المياه بنحو الثلث دون التأثير في الإنتاج. وتوصي الدراسة بتجربة النظام على نطاق أوسع، وبدراسة ربطه بتوقعات الطقس لتأجيل الري قبل الأمطار."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": false
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "شكر وتقدير"
           }
         ]
       },
       {
         "type": "paragraph",
-        "content": []
+        "content": [
+          {
+            "type": "text",
+            "text": "يشكر الباحثان المزارع الذي أتاح موقع التجربة، وعمادة البحث العلمي بجامعة القصيم على دعمها."
+          }
+        ]
       }
     ]
   }

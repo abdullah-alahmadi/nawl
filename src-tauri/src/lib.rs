@@ -34,9 +34,15 @@ use templates::{ActiveTemplate, TemplateInfo, TemplateStore};
 const SAMPLE_DOCUMENT: &str = include_str!("../../examples/senior-design-report.loom");
 /// The example presentation (same image as the report).
 const SAMPLE_PRESENTATION: &str = include_str!("../../examples/presentation.loom");
-/// Images the sample document uses (written to its temporary folder at startup).
-const SAMPLE_FILES: &[(&str, &[u8])] =
-    &[("figures/system-diagram.png", include_bytes!("../../examples/figures/system-diagram.png"))];
+/// The Arabic examples, offered when the interface is in Arabic.
+const SAMPLE_ARABIC_ARTICLE: &str = include_str!("../../examples/arabic-article.loom");
+const SAMPLE_ARABIC_PRESENTATION: &str = include_str!("../../examples/arabic-presentation.loom");
+/// Images the sample documents use (written to their temporary folder).
+const SAMPLE_FILES: &[(&str, &[u8])] = &[
+    ("figures/system-diagram.png", include_bytes!("../../examples/figures/system-diagram.png")),
+    ("figures/irrigation-system.png", include_bytes!("../../examples/figures/irrigation-system.png")),
+    ("figures/irrigation-water.png", include_bytes!("../../examples/figures/irrigation-water.png")),
+];
 
 pub struct AppState {
     /// The bundled Tectonic (or why it wasn't found).
@@ -649,7 +655,12 @@ fn sample_document(state: State<'_, AppState>, name: Option<String>) -> Result<O
 }
 
 fn sample(name: Option<&str>) -> Result<OpenedDocument, AppError> {
-    let text = if name == Some("presentation") { SAMPLE_PRESENTATION } else { SAMPLE_DOCUMENT };
+    let text = match name {
+        Some("presentation") => SAMPLE_PRESENTATION,
+        Some("arabic-article") => SAMPLE_ARABIC_ARTICLE,
+        Some("arabic-presentation") => SAMPLE_ARABIC_PRESENTATION,
+        _ => SAMPLE_DOCUMENT,
+    };
     serde_json::from_str(text).map_err(AppError::other)
 }
 
@@ -1389,12 +1400,15 @@ mod tests {
     #[test]
     fn sample_document_figures_are_available() {
         let folder = files::DocumentFolder::new(SAMPLE_FILES).unwrap();
-        let sample = sample(None).unwrap();
-        let doc = to_document(sample.doc, sample.metadata, Some(sample.bibliography)).unwrap();
-        let figures = doc.body.figure_sources();
-        assert!(!figures.is_empty());
-        let loaded = folder.load(&figures).unwrap();
-        assert!(loaded[0].1.starts_with(b"\x89PNG"));
+        // Every example's images are there, the Arabic ones' too.
+        for name in [None, Some("presentation"), Some("arabic-article"), Some("arabic-presentation")] {
+            let sample = sample(name).unwrap();
+            let doc = to_document(sample.doc, sample.metadata, Some(sample.bibliography)).unwrap();
+            let figures = doc.body.figure_sources();
+            assert!(!figures.is_empty(), "{name:?}");
+            let loaded = folder.load(&figures).unwrap_or_else(|e| panic!("{name:?}: {e:?}"));
+            assert!(loaded.iter().all(|(_, bytes)| bytes.starts_with(b"\x89PNG")), "{name:?}");
+        }
         assert!(folder.load(&["../etc/passwd".into()]).is_err());
     }
 

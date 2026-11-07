@@ -99,6 +99,52 @@ function resolveText(text: string, metadata: api.Metadata): string {
     .replace(/\u0001/g, "}");
 }
 
+/** An item's top and bottom as designed (mm), estimated as the PDF does (`item_extent`
+ * in codegen's cls.rs): text lines × 1.2 × the font size. */
+function designedExtent(it: TitleItem): [number, number] {
+  const c = it.content;
+  const height =
+    c.type === "text" ? c.text.split("\n").length * c.style.sizePt * 1.2 * (25.4 / 72) : c.type === "image" ? c.widthMm * 0.6 : c.thicknessPt * (25.4 / 72);
+  const top = it.yMm - anchorShift(it.anchor)[1] * height;
+  return [top, top + height];
+}
+
+/** How far each title-block item is drawn below its designed place. In the PDF a title
+ * or author list longer than designed doesn't run into what follows: the items go in
+ * rows (side by side when they overlap in height), and each row sits below the real
+ * bottom of the rows above at the designed gap (`title_rows` in codegen's cls.rs). */
+function flowOffsets(items: TitleItem[], sizes: Map<number, { w: number; h: number }>, top: number, height: number): { offsets: number[]; textStart: number } {
+  const order = items.map((_, i) => i).sort((a, b) => designedExtent(items[a])[0] - designedExtent(items[b])[0]);
+  const rows: number[][] = [];
+  let rowBottom = -Infinity;
+  for (const i of order) {
+    const [itemTop, itemBottom] = designedExtent(items[i]);
+    const row = rows[rows.length - 1];
+    if (row && itemTop < rowBottom - 0.5) row.push(i);
+    else rows.push([i]);
+    rowBottom = rows[rows.length - 1].length > 1 ? Math.max(rowBottom, itemBottom) : itemBottom;
+  }
+  const offsets = items.map(() => 0);
+  let designed = top;
+  let actual = top;
+  for (const row of rows) {
+    const offset = actual - designed;
+    let reached = actual;
+    for (const i of row) {
+      offsets[i] = offset;
+      const it = items[i];
+      const extent = designedExtent(it);
+      const h = it.content.type === "rule" ? extent[1] - extent[0] : (sizes.get(i)?.h ?? extent[1] - extent[0]);
+      const shownTop = it.yMm + offset - anchorShift(it.anchor)[1] * h;
+      reached = Math.max(reached, shownTop + h);
+      designed = Math.max(designed, extent[1]);
+    }
+    actual = reached;
+  }
+  // The text starts the designed gap below the block's real bottom (2 mm at least).
+  return { offsets, textStart: actual + Math.max(height - designed, 2) };
+}
+
 /** When authors don't share one set of affiliations: the affiliations without repeats
  * and each author's numbers in that list (as `author_entries` in the backend). */
 function affiliationNumbers(authors: AuthorInfo[]) {
@@ -251,6 +297,8 @@ export function TitlePageCanvas({
   }[paper.kind];
   const scale = Math.min(width, 560) / pageW; // px per mm
   const fixedPage = page >= 0 && t.frontMatter[page]?.type === "fixedPage" ? t.frontMatter[page] : null;
+  /** An article's title block (at the top of the first page), not a page of its own. */
+  const inTitleBlock = !fixedPage && t.titlePage.blockHeightMm !== undefined && t.titlePage.blockHeightMm !== null;
   /** The document's values as they print (dates written out, Hijri forms added). */
   const shownMetadata = useMemo(() => {
     const shown = withDates(t, metadata);
@@ -295,13 +343,32 @@ export function TitlePageCanvas({
         if (f.kind === "date") shown[`${f.id}_hijri`] = `[${f.label}]`;
       }
     }
+    // An article's title block runs lists on in a line ("Name, Name"), as the PDF
+    // does; numbered affiliations still go one per line. Title pages stack them.
+    if (inTitleBlock) {
+      const sep = t.language?.main === "arabic" ? "، " : ", ";
+      for (const [key, v] of Object.entries(shown)) {
+        if (!Array.isArray(v)) continue;
+        const entries = v.map((x) => (typeof x === "string" ? x : x.name)).filter((s) => s.trim());
+        const numbered = entries.some((s) => /^[⁰¹²³⁴⁵⁶⁷⁸⁹]/.test(s));
+        shown[key] = entries.join(numbered ? "\n" : key.endsWith("_en") ? ", " : sep);
+      }
+    }
     return shown;
-  }, [t, metadata]);
+  }, [t, metadata, inTitleBlock]);
   /** An article's title block: where the text starts below it (mm); undefined for a title page. */
   const textStart = t.titlePage.blockHeightMm;
   const items = pageItems(t, fixedPage ? page : -1);
   const itemsOf = (d: Template) => pageItems(d, fixedPage ? page : -1);
   const pathPrefix = fixedPage ? `frontMatter[${page}].items` : "titlePage.items";
+  // Title-block rows drawn where the PDF puts them (below a title that wraps, say);
+  // the items keep their designed places, which dragging changes.
+  const [flow, setFlow] = useState<{ offsets: number[]; textStart: number }>({ offsets: [], textStart: 0 });
+  useLayoutEffect(() => {
+    const next = inTitleBlock && textStart !== undefined ? flowOffsets(items, sizes.current, t.page.margins.topMm, textStart) : { offsets: [], textStart: 0 };
+    const same = next.offsets.length === flow.offsets.length && next.offsets.every((d, i) => Math.abs(d - flow.offsets[i]) < 0.05) && Math.abs(next.textStart - flow.textStart) < 0.05;
+    if (!same) setFlow(next);
+  });
   const item = selected !== null ? items[selected] : undefined;
   const margins = t.page.margins;
   const marginBox = { left: margins.innerMm + t.page.bindingOffsetMm, right: pageW - margins.outerMm, top: margins.topMm, bottom: pageH - margins.bottomMm };
@@ -722,7 +789,7 @@ export function TitlePageCanvas({
             }}
           >
             {!fixedPage && textStart !== undefined && (
-              <div className="tp-text-start" style={{ top: textStart * scale }}>
+              <div className="tp-text-start" style={{ top: (flow.offsets.length ? flow.textStart : textStart) * scale }}>
                 <span>{tr("designerContent.textStartsHere")}</span>
               </div>
             )}
@@ -747,6 +814,7 @@ export function TitlePageCanvas({
                 selected={selection.includes(i)}
                 hasError={issuesAt(issues, `${pathPrefix}[${i}]`).length > 0}
                 metadata={shownMetadata}
+                dy={flow.offsets[i] ?? 0}
                 stretch={lineStretch(t)}
                 onMeasure={(el) => {
                   if (el) sizes.current.set(i, { w: el.offsetWidth / scale, h: el.offsetHeight / scale });
@@ -869,6 +937,7 @@ function CanvasItem({
   selected,
   hasError,
   metadata,
+  dy,
   stretch,
   imageUrl,
   imageLabel,
@@ -877,6 +946,8 @@ function CanvasItem({
 }: {
   item: TitleItem;
   stretch: number;
+  /** Drawn this far (mm) below its designed place (title-block rows that flow down). */
+  dy: number;
   onMeasure: (el: HTMLDivElement | null) => void;
   scale: number;
   selected: boolean;
@@ -892,7 +963,7 @@ function CanvasItem({
   const c = item.content;
   const base: React.CSSProperties = {
     left: item.xMm * scale,
-    top: item.yMm * scale,
+    top: (item.yMm + dy) * scale,
     transform: `translate(${-h * 100}%, ${-v * 100}%)`,
   };
   let body: React.ReactNode;
@@ -932,7 +1003,7 @@ function CanvasItem({
     const thickness = Math.max(1, c.thicknessPt * MM_PER_PT * scale);
     style = {
       left: item.xMm * scale,
-      top: item.yMm * scale,
+      top: (item.yMm + dy) * scale,
       width: c.lengthMm * scale,
       transform: `translate(${-h * 100}%, -50%)`,
       padding: "4px 0",

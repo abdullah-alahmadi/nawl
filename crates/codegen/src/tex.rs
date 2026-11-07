@@ -493,8 +493,13 @@ impl<'a> BodyWriter<'a> {
                 self.out.push_str("\\end{quote}\n\n");
             }
             Block::CodeBlock { content } => {
-                let code = plain_text(content).replace("\\end{verbatim}", "\\end {verbatim}");
-                let verbatim = format!("\\begin{{verbatim}}\n{code}\n\\end{{verbatim}}\n");
+                let text = plain_text(content);
+                let verbatim = if text.chars().any(language::is_arabic) && !self.ctx.langs.english_only() {
+                    code_with_arabic(&text, &self.ctx.langs)
+                } else {
+                    let code = text.replace("\\end{verbatim}", "\\end {verbatim}");
+                    format!("\\begin{{verbatim}}\n{code}\n\\end{{verbatim}}\n")
+                };
                 if self.lang.rtl() {
                     // Code reads left to right, also in an Arabic document.
                     self.out.push_str(&format!("\\begin{{english}}\n{verbatim}\\end{{english}}\n\n"));
@@ -688,8 +693,11 @@ impl<'a> BodyWriter<'a> {
         } else {
             self.out.push_str(&format!("\\begin{{tabularx}}{{\\linewidth}}{{|{}}}\n\\hline\n", "L|".repeat(columns)));
         }
-        // A spanned cell's column spec: the left rule only in the first column.
-        let multicolumn = |col: usize, span: usize, text: &str| format!("\\multicolumn{{{span}}}{{{}l|}}{{{text}}}", if col == 0 { "|" } else { "" });
+        // A spanned cell's column spec: the left rule only in the first column. Its text
+        // starts where the other cells' does: on the right in right-to-left tables (`l`
+        // stays on the left there).
+        let align = if self.lang.rtl() { "r" } else { "l" };
+        let multicolumn = |col: usize, span: usize, text: &str| format!("\\multicolumn{{{span}}}{{{}{align}|}}{{{text}}}", if col == 0 { "|" } else { "" });
         for r in 0..rows.len() {
             let mut cells = Vec::new();
             let mut col = 0;
@@ -851,6 +859,25 @@ fn has_row_spans(doc: &Document) -> bool {
         }
     });
     found
+}
+
+/// A code block with Arabic in it (strings, comments). In `verbatim` the Arabic
+/// letters would fall to the Latin code font, which has none, and come out blank;
+/// here each line is set in the code font with its spaces kept, and Arabic runs
+/// switch to the Arabic font and direction.
+fn code_with_arabic(code: &str, langs: &Languages) -> String {
+    let lines: Vec<String> = code
+        .lines()
+        .map(|line| {
+            let line = line.replace('\t', "    ");
+            if line.trim().is_empty() {
+                return "\\mbox{}".to_string();
+            }
+            // Every space is kept, at the code font's width (indentation matters).
+            language::text(&line, Language::English, langs).replace(' ', "~")
+        })
+        .collect();
+    format!("\\begin{{trivlist}}\\item\\relax{{\\ttfamily\\raggedright\\parindent=0pt\\parskip=0pt\\hyphenpenalty=10000\n{}\\par}}\\end{{trivlist}}\n", lines.join("\\par\n"))
 }
 
 fn needs_fragile(blocks: &[Block]) -> bool {

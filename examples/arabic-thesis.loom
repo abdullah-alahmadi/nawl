@@ -1,0 +1,2624 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-thesis",
+      "name": "رسالة جامعية (ماجستير أو دكتوراه)",
+      "description": "رسالة علمية بالعربية: صفحة عنوان، إجازة، إهداء، مستخلص عربي وإنجليزي، فصول ومراجع. Arabic master's or PhD thesis with Arabic and English abstracts.",
+      "version": "1.0.0"
+    },
+    "page": {
+      "paper": {
+        "kind": "a4"
+      },
+      "margins": {
+        "topMm": 25,
+        "bottomMm": 25,
+        "innerMm": 35,
+        "outerMm": 25
+      },
+      "twoSided": false,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "oneHalf"
+      },
+      "paragraph": {
+        "indentMm": 0,
+        "spacingPt": 6
+      }
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "termes"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "chapter",
+      "numberedDepth": 3,
+      "tocDepth": 2,
+      "frontMatterPageNumbers": "lowerRoman",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": true,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 20,
+            "bold": true,
+            "align": "center"
+          },
+          "layout": "display",
+          "label": "الفصل {n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 0,
+          "spaceAfterPt": 24
+        },
+        {
+          "text": {
+            "sizePt": 16,
+            "bold": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 18,
+          "spaceAfterPt": 8
+        },
+        {
+          "text": {
+            "sizePt": 14,
+            "bold": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 14,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 12,
+          "spaceAfterPt": 4
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "main": {
+        "header": {
+          "right": "{chapter}"
+        },
+        "footer": {
+          "center": "{page}"
+        },
+        "headerRulePt": 0.4
+      },
+      "chapterOpening": {
+        "footer": {
+          "center": "{page}"
+        }
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "small",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "authorYear",
+      "title": "المراجع",
+      "inToc": true,
+      "splitByLanguage": true
+    },
+    "skeleton": [
+      {
+        "title": "مقدمة الدراسة",
+        "required": true
+      },
+      {
+        "title": "الإطار النظري والدراسات السابقة",
+        "required": true
+      },
+      {
+        "title": "منهجية الدراسة",
+        "required": true
+      },
+      {
+        "title": "النتائج ومناقشتها",
+        "required": true
+      },
+      {
+        "title": "الخاتمة والتوصيات",
+        "required": true
+      }
+    ],
+    "titlePage": {
+      "items": [
+        {
+          "xMm": 105,
+          "yMm": 28,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{university}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 18,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 39,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{college}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 15,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 48,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{department}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 15,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 60,
+          "anchor": "top",
+          "content": {
+            "type": "rule",
+            "lengthMm": 120,
+            "thicknessPt": 0.8
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 80,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 22,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 112,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title_en}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 14,
+              "align": "center",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 140,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "رسالة مقدمة لنيل درجة {degree}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 14,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 168,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "إعداد",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 13,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 177,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{author}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 16,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 205,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "إشراف",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 13,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 214,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{supervisor}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 16,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 258,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{date_hijri} الموافق {date}م",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 14,
+              "align": "center"
+            }
+          }
+        }
+      ]
+    },
+    "fields": [
+      {
+        "id": "title",
+        "label": "عنوان الرسالة",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "title_en",
+        "label": "عنوان الرسالة بالإنجليزية",
+        "kind": "text"
+      },
+      {
+        "id": "author",
+        "label": "اسم الباحث",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "supervisor",
+        "label": "المشرف",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "university",
+        "label": "الجامعة",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "college",
+        "label": "الكلية",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "department",
+        "label": "القسم",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "degree",
+        "label": "الدرجة العلمية",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "date",
+        "label": "تاريخ المناقشة",
+        "kind": "date",
+        "required": true
+      },
+      {
+        "id": "abstract",
+        "label": "المستخلص",
+        "kind": "paragraphs",
+        "required": true
+      },
+      {
+        "id": "abstract_en",
+        "label": "المستخلص بالإنجليزية (Abstract)",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "dedication",
+        "label": "الإهداء",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "acknowledgements",
+        "label": "الشكر والتقدير",
+        "kind": "paragraphs"
+      }
+    ],
+    "frontMatter": [
+      {
+        "type": "titlePage"
+      },
+      {
+        "type": "fixedPage",
+        "title": "إجازة الرسالة",
+        "items": [
+          {
+            "xMm": 105,
+            "yMm": 35,
+            "anchor": "top",
+            "content": {
+              "type": "text",
+              "text": "إجازة الرسالة",
+              "widthMm": 160,
+              "style": {
+                "sizePt": 18,
+                "align": "center",
+                "bold": true
+              }
+            }
+          },
+          {
+            "xMm": 105,
+            "yMm": 55,
+            "anchor": "top",
+            "content": {
+              "type": "text",
+              "text": "نوقشت هذه الرسالة «{title}» وأجيزت بتاريخ {date_hijri} الموافق {date}م، وتتكون لجنة المناقشة من:",
+              "widthMm": 160,
+              "style": {
+                "sizePt": 14,
+                "align": "center"
+              }
+            }
+          },
+          {
+            "xMm": 105,
+            "yMm": 110,
+            "anchor": "top",
+            "content": {
+              "type": "rule",
+              "lengthMm": 90,
+              "thicknessPt": 0.6
+            }
+          },
+          {
+            "xMm": 105,
+            "yMm": 113,
+            "anchor": "top",
+            "content": {
+              "type": "text",
+              "text": "المشرف",
+              "widthMm": 160,
+              "style": {
+                "sizePt": 13,
+                "align": "center"
+              }
+            }
+          },
+          {
+            "xMm": 105,
+            "yMm": 155,
+            "anchor": "top",
+            "content": {
+              "type": "rule",
+              "lengthMm": 90,
+              "thicknessPt": 0.6
+            }
+          },
+          {
+            "xMm": 105,
+            "yMm": 158,
+            "anchor": "top",
+            "content": {
+              "type": "text",
+              "text": "المناقش الداخلي",
+              "widthMm": 160,
+              "style": {
+                "sizePt": 13,
+                "align": "center"
+              }
+            }
+          },
+          {
+            "xMm": 105,
+            "yMm": 200,
+            "anchor": "top",
+            "content": {
+              "type": "rule",
+              "lengthMm": 90,
+              "thicknessPt": 0.6
+            }
+          },
+          {
+            "xMm": 105,
+            "yMm": 203,
+            "anchor": "top",
+            "content": {
+              "type": "text",
+              "text": "المناقش الخارجي",
+              "widthMm": 160,
+              "style": {
+                "sizePt": 13,
+                "align": "center"
+              }
+            }
+          }
+        ],
+        "inToc": false
+      },
+      {
+        "type": "fieldPage",
+        "title": "الإهداء",
+        "field": "dedication",
+        "inToc": false
+      },
+      {
+        "type": "fieldPage",
+        "title": "الشكر والتقدير",
+        "field": "acknowledgements",
+        "inToc": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "المستخلص",
+        "field": "abstract",
+        "inToc": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "Abstract",
+        "field": "abstract_en",
+        "inToc": true,
+        "language": "english"
+      },
+      {
+        "type": "tableOfContents",
+        "title": "المحتويات"
+      },
+      {
+        "type": "listOfFigures",
+        "title": "قائمة الأشكال"
+      },
+      {
+        "type": "listOfTables",
+        "title": "قائمة الجداول"
+      }
+    ],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic"
+    }
+  },
+  "templatePath": null,
+  "metadata": {
+    "title": "تحليل المشاعر في التغريدات العربية باستخدام نماذج المحوّلات المدرّبة مسبقًا",
+    "title_en": "Sentiment Analysis of Arabic Tweets Using Pre-trained Transformer Models",
+    "author": "سارة بنت محمد القحطاني",
+    "supervisor": "أ.د. عبدالله الأحمدي",
+    "university": "جامعة الملك عبدالعزيز",
+    "college": "كلية الحاسبات وتقنية المعلومات",
+    "department": "قسم علوم الحاسب",
+    "degree": "الماجستير في علوم الحاسب",
+    "date": "2026-05-14",
+    "abstract": "تهدف هذه الرسالة إلى بناء نموذج دقيق لتصنيف المشاعر في التغريدات العربية إلى ثلاث فئات: إيجابية وسلبية ومحايدة، مع التركيز على النصوص المكتوبة باللهجات الخليجية. جُمعت مدونة من ١٢٠٠٠ تغريدة وصُنّفت يدويًا، ثم قورن أداء ثلاثة نماذج: الانحدار اللوجستي مع تمثيل TF-IDF، وشبكة BiLSTM، ونموذج AraBERT بعد ضبطه على بيانات الدراسة.\n\nأظهرت النتائج تفوق نموذج AraBERT على النموذجين الآخرين بمتوسط F1 بلغ ٨٤٫٧٪، وأن معظم أخطائه تقع في التغريدات الساخرة وفي التمييز بين الفئة المحايدة والإيجابية. وتوصي الرسالة ببناء مدونات أكبر للهجات العربية، وبمعالجة السخرية معالجة خاصة.",
+    "abstract_en": "This thesis builds an accurate model for classifying the sentiment of Arabic tweets as positive, negative or neutral, with a focus on Gulf dialects. A corpus of 12,000 tweets was collected and annotated by hand, and three models were compared: logistic regression on TF-IDF features, a BiLSTM network, and AraBERT fine-tuned on the study data.\n\nAraBERT outperformed the other two models with a macro F1 of 84.7%, and most of its errors involved sarcastic tweets and the boundary between neutral and positive. The thesis recommends larger dialect corpora and dedicated handling of sarcasm.",
+    "dedication": "إلى والديّ الكريمين، اللذين علّماني أن طلب العلم عبادة.\n\nوإلى زوجي وأبنائي، شركائي في هذه الرحلة.",
+    "acknowledgements": "الحمد لله الذي بنعمته تتم الصالحات. أتقدم بالشكر الجزيل لسعادة الأستاذ الدكتور عبدالله الأحمدي على إشرافه وتوجيهاته القيّمة طوال مدة البحث.\n\nكما أشكر أعضاء لجنة المناقشة على ملاحظاتهم، وزملائي في المختبر الذين شاركوا في تصنيف بيانات الدراسة."
+  },
+  "bibliography": "@article{alotaibi2023,\n  author = {العتيبي, نورة and الزهراني, فهد},\n  title = {تحليل المشاعر في النصوص العربية العامية: مراجعة منهجية},\n  journal = {المجلة العربية لعلوم الحاسب},\n  volume = {11},\n  number = {1},\n  pages = {1--24},\n  year = {2023}\n}\n\n@book{alahmadi2020,\n  author = {الأحمدي, عبدالله},\n  title = {معالجة اللغة العربية حاسوبيًا: المفاهيم والأدوات},\n  publisher = {دار المعرفة},\n  address = {جدة},\n  year = {2020}\n}\n\n@inproceedings{devlin2019,\n  author = {Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},\n  title = {BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding},\n  booktitle = {Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics},\n  pages = {4171--4186},\n  year = {2019}\n}\n\n@inproceedings{vaswani2017,\n  author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Łukasz and Polosukhin, Illia},\n  title = {Attention Is All You Need},\n  booktitle = {Advances in Neural Information Processing Systems 30},\n  pages = {5998--6008},\n  year = {2017}\n}\n\n@inproceedings{antoun2020,\n  author = {Antoun, Wissam and Baly, Fady and Hajj, Hazem},\n  title = {AraBERT: Transformer-based Model for Arabic Language Understanding},\n  booktitle = {Proceedings of the 4th Workshop on Open-Source Arabic Corpora and Processing Tools},\n  pages = {9--15},\n  year = {2020}\n}\n\n@inproceedings{abdulmageed2021,\n  author = {Abdul-Mageed, Muhammad and Elmadany, AbdelRahim and Nagoudi, El Moatez Billah},\n  title = {ARBERT \\& MARBERT: Deep Bidirectional Transformers for Arabic},\n  booktitle = {Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics},\n  pages = {7088--7105},\n  year = {2021}\n}\n\n@article{hochreiter1997,\n  author = {Hochreiter, Sepp and Schmidhuber, Jürgen},\n  title = {Long Short-Term Memory},\n  journal = {Neural Computation},\n  volume = {9},\n  number = {8},\n  pages = {1735--1780},\n  year = {1997},\n  doi = {10.1162/neco.1997.9.8.1735}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "ch-intro",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "مقدمة الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "أصبحت منصات التواصل الاجتماعي مصدرًا رئيسًا لمعرفة آراء الناس في المنتجات والخدمات والقضايا العامة، ويكتب ملايين المستخدمين العرب تغريداتهم يوميًا بالفصحى واللهجات المحلية. ويُعنى تحليل المشاعر باستخراج الموقف العاطفي من هذه النصوص آليًا، وهو مجال تطبيقي واسع يخدم الجهات الحكومية والشركات على حد سواء "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alotaibi2023"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-problem",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "مشكلة الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تواجه معالجة النصوص العربية في وسائل التواصل صعوبات خاصة، منها: تعدد اللهجات وغياب قواعد إملائية موحدة لها، وكثرة الاختصارات والرموز التعبيرية، والغنى الصرفي للغة العربية الذي يولّد صيغًا كثيرة للكلمة الواحدة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alahmadi2020"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". ولذلك تتراجع دقة النماذج المدرّبة على الفصحى عند تطبيقها على التغريدات العامية."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-questions",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "أسئلة الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تسعى الدراسة إلى الإجابة عن الأسئلة الآتية:"
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "ما مدى دقة نماذج المحوّلات المدرّبة مسبقًا على العربية في تصنيف مشاعر التغريدات الخليجية؟"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "كيف يقارَن أداؤها بالأساليب التقليدية وبالشبكات التكرارية؟"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "ما أنواع التغريدات التي تخطئ فيها النماذج أكثر من غيرها؟"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-importance",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "أهمية الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تكمن أهمية الدراسة في توفير مدونة مصنّفة يدويًا للهجات الخليجية، وفي تقديم مقارنة منهجية بين ثلاثة أجيال من نماذج التصنيف على البيانات نفسها، مما يساعد الباحثين والمطورين على اختيار النموذج المناسب لتطبيقاتهم."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "ch-background",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الإطار النظري والدراسات السابقة"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-rnn",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الشبكات العصبية التكرارية"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "عالجت الشبكات التكرارية النصوص كلمةً بعد كلمة، واحتفظت بحالة داخلية تلخص ما سبق. وحلّت شبكات الذاكرة الطويلة قصيرة المدى مشكلة تلاشي التدرج التي حدّت من قدرة الشبكات التكرارية البسيطة على تعلم الاعتماديات البعيدة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "hochreiter1997"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-transformers",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "نماذج المحوّلات"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "استبدلت معمارية المحوّل آلية الانتباه الذاتي بالتكرار، فأصبح كل موضع في الجملة ينتبه إلى جميع المواضع الأخرى في خطوة واحدة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "vaswani2017"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". وتُحسب أوزان الانتباه كما في "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-attention"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\mathrm{Attention}(Q, K, V) = \\mathrm{softmax}\\!\\left(\\frac{Q K^{\\top}}{\\sqrt{d_k}}\\right) V",
+          "numbered": true,
+          "id": "eq-attention"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "حيث "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "Q"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "K"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "V"
+            }
+          },
+          {
+            "type": "text",
+            "text": " مصفوفات الاستعلام والمفتاح والقيمة، و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "d_k"
+            }
+          },
+          {
+            "type": "text",
+            "text": " بُعد المفتاح. ثم جاء نموذج BERT الذي يُدرَّب مسبقًا على نصوص ضخمة بإخفاء بعض الكلمات والتنبؤ بها، ثم يُضبط على المهمة المطلوبة ببيانات قليلة نسبيًا "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "devlin2019"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-arabic-models",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النماذج العربية المدرّبة مسبقًا"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "دُرّب نموذج AraBERT على نحو ٢٤ جيجابايت من النصوص العربية، وحقق نتائج متقدمة في مهام تحليل المشاعر والتعرف على الكيانات "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "antoun2020"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". ثم ظهر نموذجا ARBERT وMARBERT، ودُرّب الثاني على مليار تغريدة عربية، مما جعله أنسب للنصوص العامية "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "abdulmageed2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Transformer models pre-trained on Arabic text have become the default starting point for Arabic classification tasks."
+          }
+        ],
+        "attrs": {
+          "dir": "ltr"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "ch-method",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "منهجية الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "اتبعت الدراسة المنهج التجريبي، ويوضح "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-pipeline"
+            }
+          },
+          {
+            "type": "text",
+            "text": " مراحل العمل من جمع التغريدات إلى تصنيفها."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/thesis-pipeline.png",
+          "widthPercent": 95,
+          "id": "fig-pipeline"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "مراحل بناء نموذج تصنيف المشاعر"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-data",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "بيانات الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "جُمعت التغريدات خلال ستة أشهر باستخدام كلمات مفتاحية تتعلق بالخدمات العامة والتسوق والرياضة، ثم صنّفها ثلاثة محكّمين مستقلين، واعتُمد تصنيف الأغلبية. ويبين "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-data"
+            }
+          },
+          {
+            "type": "text",
+            "text": " توزيع التغريدات على الفئات."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-data"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "توزيع تغريدات مدونة الدراسة على فئات المشاعر"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الفئة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التدريب"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التحقق"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الاختبار"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المجموع"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "إيجابية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٣٦٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٢٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٢٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٢٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "سلبية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٨٤٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٨٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٨٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٨٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "محايدة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٤٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٠٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المجموع"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٩٦٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٢٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٢٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٢٠٠٠"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-preprocessing",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المعالجة المسبقة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "طُبّقت على التغريدات خطوات التطبيع الآتية قبل التدريب:"
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "حذف الروابط وأسماء المستخدمين وعلامات المرور الزائدة."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "توحيد أشكال الألف والياء والتاء المربوطة، وحذف التشكيل والتطويل."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تقليص الحروف المكررة، مثل «جمييييل» إلى «جميل»."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "الإبقاء على الرموز التعبيرية لأنها تحمل دلالة عاطفية مهمة."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-finetuning",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "ضبط النموذج"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "أُضيفت فوق نموذج AraBERT طبقة تصنيف تحسب احتمال كل فئة بدالة softmax، ودُرّب النموذج بتقليل دالة الإنتروبيا المتقاطعة في "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-loss"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\mathcal{L} = -\\frac{1}{N} \\sum_{i=1}^{N} \\sum_{c=1}^{3} y_{i,c} \\log \\hat{y}_{i,c}",
+          "numbered": true,
+          "id": "eq-loss"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وقيس الأداء بمقياس F1 لكل فئة، وهو المتوسط التوافقي للدقة والاستدعاء كما في "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-f1"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "F_1 = \\frac{2 \\cdot P \\cdot R}{P + R}",
+          "numbered": true,
+          "id": "eq-f1"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "ch-results",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النتائج ومناقشتها"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-results"
+            }
+          },
+          {
+            "type": "text",
+            "text": " أداء النماذج الثلاثة على بيانات الاختبار، ويقارن "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-f1"
+            }
+          },
+          {
+            "type": "text",
+            "text": " قيم F1 لكل فئة."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-results"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "أداء النماذج على بيانات الاختبار (٪)"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "النموذج"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الدقة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الاستدعاء"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "متوسط F1"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الانحدار اللوجستي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٧٠٫٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٦٨٫٩"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٦٩٫٥"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "BiLSTM"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٧٨٫١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٧٥٫٦"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٧٦٫١"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "AraBERT"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٨٥٫٣"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٨٤٫٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٨٤٫٧"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/thesis-f1.png",
+          "widthPercent": 85,
+          "id": "fig-f1"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "قيم F1 لكل فئة في النماذج الثلاثة"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تفوق نموذج AraBERT في الفئات الثلاث، وكان الفارق أكبر في الفئة المحايدة التي يصعب تمييزها بالكلمات المفردة. وبتحليل أخطاء النموذج تبيّن أن ٤١٪ منها في تغريدات ساخرة، مثل وصف خدمة سيئة بعبارات مديح ظاهري، و٣٣٪ في تغريدات تجمع رأيين متعارضين."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "ch-conclusion",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الخاتمة والتوصيات"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-summary",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الخلاصة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "بنت الدراسة مدونة من ١٢٠٠٠ تغريدة خليجية مصنفة يدويًا، وقارنت ثلاثة نماذج لتصنيف المشاعر، وأثبتت تفوق نماذج المحوّلات المدرّبة مسبقًا على العربية بفارق واضح."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-recommendations",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "التوصيات"
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "بناء مدونات أكبر تغطي اللهجات العربية المختلفة وإتاحتها للباحثين."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تطوير أساليب خاصة لاكتشاف السخرية في النصوص العربية."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تجربة نماذج مدربة على التغريدات مثل MARBERT ومقارنتها بنتائج هذه الدراسة."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "appendixStart"
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "app-examples",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "أمثلة من بيانات الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-examples"
+            }
+          },
+          {
+            "type": "text",
+            "text": " أمثلة من تغريدات المدونة مع تصنيفها اليدوي وتصنيف نموذج AraBERT."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-examples"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "أمثلة من تغريدات المدونة وتصنيفها"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التغريدة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التصنيف اليدوي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "تصنيف النموذج"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الخدمة اليوم ممتازة والموظف تعامله راقي"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "إيجابية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "إيجابية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ثلاث ساعات انتظار وبالأخير قالوا تعال بكرة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "سلبية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "سلبية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "يا سلام على السرعة، أسبوعين والطلب ما وصل"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "سلبية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "إيجابية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المباراة الساعة تسع الليلة على الملعب الجديد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "محايدة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "محايدة"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -113,6 +113,8 @@ button.link { padding: 0; color: var(--accent-text); text-decoration: underline;
 }
 .toolbar .sep { width: 1px; height: 18px; background: var(--border-strong); margin: 0 6px; flex: none; }
 .tool { height: var(--tool); min-width: var(--tool); padding: 0; justify-content: center; color: var(--muted); flex: none; }
+/* "Merge down": the merge icon turned to point along the column. */
+.tool svg.rotate-90 { transform: rotate(90deg); }
 .tool:hover { color: var(--text); }
 .tool.with-label { padding: 0 8px; font-size: 12px; }
 .tool.on { background: var(--accent-soft); color: var(--accent-text); }

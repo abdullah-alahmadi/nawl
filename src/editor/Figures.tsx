@@ -10,7 +10,8 @@ import {
   type Editor,
   type ReactNodeViewProps,
 } from "@tiptap/react";
-import { TextSelection } from "@tiptap/pm/state";
+import { EditorState, Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
+import { CellSelection, TableMap, cellAround, mergeCells } from "@tiptap/pm/tables";
 import * as api from "../api";
 import { t as tr, useT } from "../i18n";
 
@@ -20,6 +21,9 @@ declare module "@tiptap/react" {
       insertFigure: (src: string) => ReturnType;
       insertCaptionedTable: (rows?: number, cols?: number) => ReturnType;
       deleteCaptionedTable: () => ReturnType;
+      /** Merges the cell at the cursor with the next one in its row (the one after it
+       *  in reading order: on the left in right-to-left text) or the one below it. */
+      mergeWithNeighbour: (towards: "next" | "below") => ReturnType;
     };
   }
 }
@@ -318,6 +322,36 @@ export const CaptionedTable = Node.create({
               { type: "table", content: [row(true), ...Array.from({ length: rows - 1 }, () => row(false))] },
             ],
           });
+        },
+      mergeWithNeighbour:
+        (towards) =>
+        ({ tr, dispatch }) => {
+          const $cell = cellAround(tr.selection.$head);
+          if (!$cell) return false;
+          const start = $cell.start(-1);
+          const map = TableMap.get($cell.node(-1));
+          const rect = map.findCell($cell.pos - start);
+          // The neighbour along the whole side of the cell (it may span rows or columns).
+          let other: number;
+          if (towards === "next") {
+            if (rect.right >= map.width) return false;
+            other = map.map[(rect.bottom - 1) * map.width + rect.right];
+          } else {
+            if (rect.bottom >= map.height) return false;
+            other = map.map[rect.bottom * map.width + rect.right - 1];
+          }
+          // Merge the two as a dragged selection of both would (refused when they don't
+          // make a rectangle). Commands nested in a TipTap command still see the old
+          // selection, so the merge runs on a state of its own and its steps are copied.
+          const doc = tr.doc;
+          const both = EditorState.create({ doc, selection: new CellSelection(doc.resolve($cell.pos), doc.resolve(start + other)) });
+          let merged: Transaction | undefined;
+          if (!mergeCells(both, (t) => void (merged = t))) return false;
+          if (dispatch && merged) {
+            for (const step of merged.steps) tr.step(step);
+            tr.setSelection(Selection.fromJSON(tr.doc, merged.selection.toJSON()));
+          }
+          return true;
         },
       deleteCaptionedTable:
         () =>

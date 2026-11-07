@@ -160,7 +160,7 @@ export interface LibraryFont {
 export const listLibraryFonts = () => invoke<LibraryFont[]>("list_library_fonts");
 export const readLibraryFont = (id: string, bold: boolean) => invoke<ArrayBuffer>("read_library_font", { id, bold });
 /** An example document: the senior design report, or "presentation". */
-export const sampleDocument = (name?: "presentation") => invoke<OpenedDocument>("sample_document", { name: name ?? null });
+export const sampleDocument = (name?: "presentation" | "arabic-article" | "arabic-presentation") => invoke<OpenedDocument>("sample_document", { name: name ?? null });
 /** Everything about the open document that the backend needs to generate it. */
 export interface DocState {
   doc: JSONContent;

@@ -215,7 +215,7 @@ export const ar: Record<keyof typeof en, string> = {
   "dialogs.newFromTemplate": "جديد من قالب",
   "dialogs.tagline": "مستندات LaTeX بشكل مرئي",
   "dialogs.openDocument": "فتح مستند…",
-  "dialogs.openExampleReport": "فتح التقرير النموذجي",
+  "dialogs.openExampleReport": "فتح البحث النموذجي",
   "dialogs.openExamplePresentation": "فتح العرض التقديمي النموذجي",
   "dialogs.recent": "الأخيرة",
   "dialogs.startNewDocument": "بدء مستند جديد",

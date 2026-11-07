@@ -814,17 +814,19 @@ export default function App() {
     setShowGallery(true);
   };
 
-  /** The example senior design report, with its template. */
+  /** An example document with its template: in Arabic when the interface is (the
+   *  Arabic journal article and slides), else the senior design report and slides. */
   const openExample = async (which: "report" | "presentation" = "report") => {
     if (!editor) return;
     if (dirty && !(await ask(tr("app.discardAndExample"), { title: tr("app.exampleTitle"), kind: "warning" }))) return;
     setShowGallery(false);
     try {
       const deck = which === "presentation";
-      const [t, sample] = await Promise.all([
-        api.switchToBuiltinTemplate(deck ? "beamer-presentation" : "senior-design"),
-        api.sampleDocument(deck ? "presentation" : undefined),
-      ]);
+      const arabic = uiLang === "ar";
+      const [templateId, sampleName] = arabic
+        ? deck ? (["arabic-presentation", "arabic-presentation"] as const) : (["arabic-article", "arabic-article"] as const)
+        : deck ? (["beamer-presentation", "presentation"] as const) : (["senior-design", undefined] as const);
+      const [t, sample] = await Promise.all([api.switchToBuiltinTemplate(templateId), api.sampleDocument(sampleName)]);
       loadDocument(editor, sample.doc);
       focusStart(editor, editorScroll.current);
       setBibliography(sample.bibliography ?? "");
@@ -1578,6 +1580,8 @@ function FormatBar({
       quote: editor.isActive("blockquote"),
       inTable: editor.isActive("table"),
       canMerge: editor.can().mergeCells(),
+      canMergeNext: editor.can().mergeWithNeighbour("next"),
+      canMergeBelow: editor.can().mergeWithNeighbour("below"),
       canSplit: editor.can().splitCell(),
       headingNumbered: editor.getAttributes("heading").numbered !== false,
       // The paragraph or heading at the cursor runs the other way than the document.
@@ -1684,6 +1688,8 @@ function FormatBar({
           <T icon={<Rows3 size={15} />} label={t("app.deleteRow")} title={t("app.deleteRowTitle")} run={() => c().deleteRow().run()} />
           <T icon={<Columns3 size={15} />} label={t("app.deleteCol")} title={t("app.deleteColTitle")} run={() => c().deleteColumn().run()} />
           <T icon={<Table size={15} />} label={t("app.header")} title={t("app.headerTitle")} run={() => c().toggleHeaderRow().run()} />
+          <T icon={<TableCellsMerge size={15} />} label={t("app.mergeNext")} title={t("app.mergeNextTitle")} run={() => c().mergeWithNeighbour("next").run()} disabled={!s.canMergeNext} />
+          <T icon={<TableCellsMerge size={15} className="rotate-90" />} label={t("app.mergeBelow")} title={t("app.mergeBelowTitle")} run={() => c().mergeWithNeighbour("below").run()} disabled={!s.canMergeBelow} />
           <T icon={<TableCellsMerge size={15} />} label={t("app.merge")} title={t("app.mergeTitle")} run={() => c().mergeCells().run()} disabled={!s.canMerge} />
           <T icon={<TableCellsSplit size={15} />} label={t("app.split")} title={t("app.splitTitle")} run={() => c().splitCell().run()} disabled={!s.canSplit} />
           <T icon={<Trash2 size={15} />} title={t("app.deleteTable")} run={() => c().deleteCaptionedTable().run()} />

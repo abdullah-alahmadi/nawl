@@ -316,10 +316,132 @@ fn arabic_templates_compile() {
 
 #[test]
 fn decimal_numbers_stay_left_to_right() {
-    let (_, t, doc) = arabic_samples().into_iter().find(|(n, _, _)| *n == "arabic-article").unwrap();
-    let tex = texloom_codegen::document_to_tex(&t, &doc);
+    let p = |text: &str| serde_json::json!({"type": "paragraph", "content": [{"type": "text", "text": text}]});
+    let body = serde_json::json!({"type": "doc", "content": [
+        p("بلغ الفرق 3.5 درجة في المجموعة التجريبية."),
+        {"type": "tableFigure", "attrs": {"id": "t-1"}, "content": [
+            {"type": "caption", "content": [{"type": "text", "text": "المتوسطات"}]},
+            {"type": "table", "content": [
+                {"type": "tableRow", "content": [{"type": "tableHeader", "content": [p("المتوسط")]}]},
+                {"type": "tableRow", "content": [{"type": "tableCell", "content": [p("54.2")]}]}
+            ]}
+        ]}
+    ]});
+    let doc = Document { metadata: Default::default(), body: serde_json::from_value(body).unwrap(), bibliography: String::new() };
+    let tex = texloom_codegen::document_to_tex(&builtin("arabic-article"), &doc);
     let line = tex.lines().find(|l| l.contains("54")).unwrap_or("");
     // A cell (paragraph) starting with the number: the paragraph starts first.
     assert!(line.contains(r"\leavevmode \textenglish{54.2}"), "{line}");
-    assert!(tex.contains("\\textenglish{54.2}"), "{line}");
+    assert!(tex.contains("بلغ الفرق \\textenglish{3.5} درجة"), "{tex}");
+}
+
+/// The Arabic example documents and the built-in template each is written for.
+const EXAMPLES: [(&str, &str); 7] = [
+    ("arabic-article.loom", "arabic-article"),
+    ("arabic-load-forecasting.loom", "arabic-article"),
+    ("arabic-article-two-column.loom", "arabic-article-two-column"),
+    ("arabic-article-two-column-arabic-only.loom", "arabic-article-two-column-arabic-only"),
+    ("arabic-thesis.loom", "arabic-thesis"),
+    ("arabic-book.loom", "arabic-book"),
+    ("arabic-presentation.loom", "arabic-presentation"),
+];
+
+fn example_file(name: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples").join(name)).unwrap()
+}
+
+/// Each example carries a copy of its template, as a document saved by the app does,
+/// so opening it switches to that template (without it, the active template stays:
+/// English headings and labels). The copy must match the built-in template.
+#[test]
+fn arabic_examples_carry_their_templates() {
+    for (file, id) in EXAMPLES {
+        let value: serde_json::Value = serde_json::from_str(&example_file(file)).unwrap();
+        let builtin_json: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../templates/{id}/template.json"))).unwrap()).unwrap();
+        assert_eq!(value["template"], builtin_json, "{file}: its template differs from templates/{id}; run node scripts/embed-example-templates.mjs");
+        // Complete for its template: required fields and sections, citations, references.
+        let doc: texloom_core::DocumentFile = serde_json::from_str(&example_file(file)).unwrap();
+        let t = builtin(id);
+        let keys = texloom_core::bib::keys(&doc.document.bibliography);
+        let issues = t.check_document(&doc.document, keys.as_ref());
+        assert!(issues.is_empty(), "{file}: {issues:?}");
+        // Arabic headings throughout.
+        for title in doc.document.body.top_level_titles() {
+            assert!(title.chars().any(texloom_codegen::language::is_arabic), "{file}: heading {title:?}");
+        }
+    }
+}
+
+/// The Arabic-only two-column article has nothing in English: no English title,
+/// names, abstract or keywords in the template, and nothing English in the output
+/// but the contact e-mail.
+#[test]
+fn arabic_only_article_has_no_english() {
+    let t = builtin("arabic-article-two-column-arabic-only");
+    assert!(t.fields.iter().all(|f| !f.id.ends_with("_en")), "{:?}", t.fields);
+    let doc: texloom_core::DocumentFile = serde_json::from_str(&example_file("arabic-article-two-column-arabic-only.loom")).unwrap();
+    let g = texloom_codegen::generate(&t, &doc.document);
+    let english: Vec<&str> = g.tex.lines().filter(|l| l.contains("\\textenglish") || l.contains("\\begin{english}")).collect();
+    assert_eq!(english, ["\\texloomfield{authors_email}{\\textenglish{author@example.edu.sa}}"]);
+    for word in ["Abstract", "Keywords", "References", "Figure", "Table"] {
+        assert!(!g.cls.contains(word) && !g.tex.contains(word), "{word}");
+    }
+}
+
+/// Merged cells in a right-to-left table: rows span with \multirow, and a cell
+/// spanning columns starts on the right like the others (`l` would put it on the left).
+#[test]
+fn merged_cells_in_right_to_left_tables() {
+    let doc: texloom_core::DocumentFile = serde_json::from_str(&example_file("arabic-article-two-column-arabic-only.loom")).unwrap();
+    let tex = texloom_codegen::document_to_tex(&builtin("arabic-article-two-column-arabic-only"), &doc.document);
+    assert!(tex.contains(r"\multirow{2}{=}{الجنس} & ذكر"), "{tex}");
+    assert!(tex.contains(r"\multirow{3}{=}{العمر}"), "{tex}");
+    assert!(tex.contains(r"\multicolumn{2}{|r|}{المجموع} & ٤٢٠"), "{tex}");
+}
+
+/// Arabic in a code block (strings, comments) is set in the Arabic font and direction:
+/// in `verbatim`, the Latin code font would leave it blank.
+#[test]
+fn code_blocks_with_arabic() {
+    let doc: texloom_core::DocumentFile = serde_json::from_str(&example_file("arabic-book.loom")).unwrap();
+    let tex = texloom_codegen::document_to_tex(&builtin("arabic-book"), &doc.document);
+    assert!(tex.contains(r#"name~=~input("\textarabic{ما~اسمك؟}~")\par"#), "{tex}");
+    assert!(tex.contains(r"principal~=~10000~~~~~~\#~\textarabic{المبلغ~بالريال}\par"), "indentation and comments: {tex}");
+    assert!(tex.contains("\\mbox{}\\par\n"), "blank lines stay");
+    // Code without Arabic stays verbatim.
+    assert!(tex.contains("\\begin{verbatim}\nfor i in range(1, 11):\n    print(7, \"×\", i, \"=\", 7 * i)\n\\end{verbatim}"), "{tex}");
+}
+
+/// Run with: TEXLOOM_TECTONIC=… cargo test -p texloom-codegen --test arabic -- --ignored
+#[test]
+#[ignore]
+fn arabic_examples_compile() {
+    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    for (file, id) in EXAMPLES {
+        let doc: texloom_core::DocumentFile = serde_json::from_str(&example_file(file)).unwrap();
+        let t = builtin(id);
+        let presentation = t.kind == texloom_core::DocumentKind::Presentation;
+        let g = if presentation { texloom_codegen::generate_for(&t, &doc.document, texloom_codegen::Engine::Lua) } else { texloom_codegen::generate(&t, &doc.document) };
+        let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
+        let support = g.support_files();
+        let files: Vec<texloom_compile::Asset> = support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+        let out = if presentation {
+            // Right-to-left slides need LuaLaTeX (beamer-rl): the installed one, if any.
+            let Some(lua) = texloom_compile::SystemLatex::find(texloom_compile::LatexProgram::LuaLatex) else {
+                eprintln!("{file}: no LuaLaTeX installed, skipped");
+                continue;
+            };
+            lua.compile(&g.tex, &files)
+        } else {
+            compiler.compile(&g.tex, &files)
+        }
+        .unwrap_or_else(|e| panic!("{file}: {e:?}"));
+        if let Ok(dir) = std::env::var("TEXLOOM_ARABIC_OUT") {
+            std::fs::write(std::path::Path::new(&dir).join(file.replace(".loom", ".pdf")), &out.pdf).unwrap();
+        }
+        let missing: Vec<&str> = out.log.lines().filter(|l| l.contains("Missing character")).collect();
+        assert!(missing.is_empty(), "{file}: characters the fonts can't show: {missing:#?}");
+    }
 }

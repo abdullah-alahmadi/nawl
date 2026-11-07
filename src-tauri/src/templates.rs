@@ -32,6 +32,8 @@ pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("aps-physical-review", include_str!("../../templates/aps-physical-review/template.json")),
     ("beamer-presentation", include_str!("../../templates/beamer-presentation/template.json")),
     ("arabic-article", include_str!("../../templates/arabic-article/template.json")),
+    ("arabic-article-two-column", include_str!("../../templates/arabic-article-two-column/template.json")),
+    ("arabic-article-two-column-arabic-only", include_str!("../../templates/arabic-article-two-column-arabic-only/template.json")),
     ("arabic-thesis", include_str!("../../templates/arabic-thesis/template.json")),
     ("arabic-book", include_str!("../../templates/arabic-book/template.json")),
     ("arabic-presentation", include_str!("../../templates/arabic-presentation/template.json")),

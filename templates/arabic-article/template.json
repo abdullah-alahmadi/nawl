@@ -48,7 +48,7 @@
     "frontMatterPageNumbers": "arabic",
     "mainPageNumbers": "arabic",
     "perChapterNumbering": false,
-    "appendixLabel": "Appendix {n}"
+    "appendixLabel": "الملحق {n}"
   },
   "headings": {
     "levels": [
@@ -138,28 +138,28 @@
   },
   "skeleton": [
     {
-      "title": "Introduction",
+      "title": "المقدمة",
       "required": true
     },
     {
-      "title": "Related Work",
+      "title": "الدراسات السابقة",
       "required": false
     },
     {
-      "title": "Methods",
-      "required": true
-    },
-    {
-      "title": "Results",
-      "required": true
-    },
-    {
-      "title": "Discussion",
+      "title": "منهجية الدراسة",
       "required": false
     },
     {
-      "title": "Conclusion",
-      "required": true
+      "title": "النتائج",
+      "required": false
+    },
+    {
+      "title": "المناقشة",
+      "required": false
+    },
+    {
+      "title": "الخاتمة",
+      "required": false
     }
   ],
   "titlePage": {

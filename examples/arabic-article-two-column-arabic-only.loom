@@ -1,0 +1,1858 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-article-two-column-arabic-only",
+      "name": "بحث عربي بعمودين (بالعربية فقط)",
+      "description": "بحث علمي بالعربية في عمودين، بلا عنوان أو مستخلص أو كلمات مفتاحية بالإنجليزية: العنوان والمؤلفون والمستخلص بعرض الصفحة، ثم النص في عمودين، ومراجع بنظام APA. Two-column Arabic journal article with no English title, abstract or keywords.",
+      "version": "1.0.0"
+    },
+    "page": {
+      "paper": {
+        "kind": "a4"
+      },
+      "margins": {
+        "topMm": 22,
+        "bottomMm": 22,
+        "innerMm": 18,
+        "outerMm": 18
+      },
+      "twoSided": false,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "custom",
+        "stretch": 1.1
+      },
+      "paragraph": {
+        "indentMm": 3,
+        "spacingPt": 0
+      },
+      "columns": 2
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "latinModern"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "section",
+      "numberedDepth": 3,
+      "tocDepth": 2,
+      "frontMatterPageNumbers": "arabic",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": false,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 4
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": true,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 8,
+          "spaceAfterPt": 3
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": false,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 6,
+          "spaceAfterPt": 3
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "main": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "chapterOpening": {
+        "footer": {
+          "center": "{page}"
+        }
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "footnote",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "authorYear",
+      "title": "المراجع",
+      "inToc": false
+    },
+    "skeleton": [
+      {
+        "title": "المقدمة",
+        "required": true
+      },
+      {
+        "title": "الدراسات السابقة",
+        "required": false
+      },
+      {
+        "title": "منهجية الدراسة",
+        "required": false
+      },
+      {
+        "title": "النتائج",
+        "required": false
+      },
+      {
+        "title": "المناقشة",
+        "required": false
+      },
+      {
+        "title": "الخاتمة",
+        "required": false
+      }
+    ],
+    "titlePage": {
+      "items": [
+        {
+          "xMm": 105,
+          "yMm": 25,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 18,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 37,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 12,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 43.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_affiliations}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 10,
+              "bold": false,
+              "italic": true,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 48.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_email}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 9.5,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        }
+      ],
+      "blockHeightMm": 60
+    },
+    "fields": [
+      {
+        "id": "title",
+        "label": "عنوان البحث",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "authors",
+        "label": "المؤلفون",
+        "kind": "authors",
+        "required": true
+      },
+      {
+        "id": "abstract",
+        "label": "المستخلص",
+        "kind": "paragraphs",
+        "required": true
+      },
+      {
+        "id": "keywords",
+        "label": "الكلمات المفتاحية",
+        "kind": "paragraphs"
+      }
+    ],
+    "frontMatter": [
+      {
+        "type": "titlePage"
+      },
+      {
+        "type": "fieldPage",
+        "title": "المستخلص",
+        "field": "abstract",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "الكلمات المفتاحية",
+        "field": "keywords",
+        "inToc": false,
+        "inline": true
+      }
+    ],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic"
+    }
+  },
+  "templatePath": null,
+  "metadata": {
+    "title": "رضا المستفيدين عن خدمات المواعيد الصحية الرقمية في مدينة جدة: دراسة ميدانية",
+    "authors": [
+      {
+        "name": "هند الغامدي",
+        "affiliations": [
+          "قسم الإدارة الصحية، كلية الاقتصاد والإدارة، جامعة الملك عبدالعزيز، جدة"
+        ],
+        "email": "author@example.edu.sa",
+        "corresponding": true
+      },
+      {
+        "name": "خالد العمري",
+        "affiliations": [
+          "قسم الإدارة الصحية، كلية الاقتصاد والإدارة، جامعة الملك عبدالعزيز، جدة"
+        ]
+      }
+    ],
+    "abstract": "هدفت الدراسة إلى قياس رضا المستفيدين عن خدمات حجز المواعيد والاستشارات الصحية عبر التطبيقات الرقمية في مدينة جدة، والتعرف على العوامل المؤثرة فيه. اتبعت الدراسة المنهج الوصفي المسحي، وطُبّقت استبانة على عينة من ٤٢٠ مستفيدًا. وأظهرت النتائج أن مستوى الرضا العام مرتفع بمتوسط ٣٫٩٤ من ٥، وأن سهولة الاستخدام وسرعة الحصول على الموعد أكثر العوامل تأثيرًا، في حين جاء التواصل مع الطبيب في المرتبة الأخيرة. وأوصت الدراسة بتحسين قنوات التواصل بعد الاستشارة، وتبسيط التطبيقات لكبار السن.",
+    "keywords": "الصحة الرقمية، رضا المستفيدين، المواعيد الطبية، الاستشارات عن بعد، جدة"
+  },
+  "bibliography": "@article{alqahtani2021,\n  author = {القحطاني, منيرة and الشهري, عبدالرحمن},\n  title = {جودة الخدمات الصحية الرقمية من وجهة نظر المستفيدين في المملكة العربية السعودية},\n  journal = {المجلة العربية للإدارة الصحية},\n  volume = {7},\n  number = {2},\n  pages = {41--66},\n  year = {2021}\n}\n\n@book{aldossary2018,\n  author = {الدوسري, سعد},\n  title = {مناهج البحث في العلوم الصحية والاجتماعية},\n  publisher = {مكتبة الرشد العلمية},\n  address = {الرياض},\n  year = {2018}\n}\n\n@article{alharbi2023,\n  author = {الحربي, نوال and العمري, خالد and الغامدي, هند},\n  title = {تجربة المرضى مع مواعيد الاستشارات الطبية عن بعد بعد الجائحة},\n  journal = {مجلة الدراسات الصحية والاجتماعية},\n  volume = {12},\n  number = {4},\n  pages = {203--228},\n  year = {2023}\n}\n\n@phdthesis{alzahrani2020,\n  author = {الزهراني, أمل},\n  title = {العوامل المؤثرة في تقبّل كبار السن للتطبيقات الصحية الرقمية},\n  school = {جامعة الملك عبدالعزيز},\n  address = {جدة},\n  year = {2020}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-intro",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المقدمة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "شهدت المملكة العربية السعودية تحولًا واسعًا نحو الخدمات الصحية الرقمية، فأصبح بإمكان المستفيد حجز موعده، والاطلاع على نتائج فحوصاته، والتحدث إلى الطبيب عن بعد من خلال هاتفه. وقد تسارع هذا التحول بعد الجائحة، حين أصبحت الاستشارة عن بعد ضرورة لا خيارًا "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alharbi2023"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ويُعد رضا المستفيدين مؤشرًا رئيسًا على جودة هذه الخدمات ونجاحها؛ إذ يرتبط بمدى استمرار المستفيد في استخدامها والتزامه بخطة العلاج "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alqahtani2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". ومن هنا جاءت هذه الدراسة لقياس مستوى الرضا في مدينة جدة، والكشف عن العوامل التي تؤثر فيه."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-questions",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "أسئلة الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "ما مستوى رضا المستفيدين عن خدمات المواعيد الصحية الرقمية؟"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "ما أكثر أبعاد الخدمة تأثيرًا في الرضا العام؟"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "هل تختلف درجة الرضا باختلاف العمر والمستوى التعليمي؟"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-related",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الدراسات السابقة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تناولت دراسات محلية عدة جودة الخدمات الصحية الرقمية، وأشارت إلى أن سهولة الاستخدام وموثوقية النظام أهم ما يبحث عنه المستفيد "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alqahtani2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". كما بيّنت دراسة أخرى أن كبار السن يواجهون صعوبات في استخدام التطبيقات، وأن مساعدة أحد أفراد الأسرة ترفع تقبّلهم لها "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alzahrani2020"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". ولاحظت دراسة حديثة أن رضا المرضى عن الاستشارة عن بعد يتراجع حين يصعب عليهم التواصل مع الطبيب بعدها "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alharbi2023"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-method",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "منهجية الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-sample",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "مجتمع الدراسة وعينتها"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تكوّن مجتمع الدراسة من المستفيدين الذين استخدموا تطبيقات المواعيد الصحية في مدينة جدة خلال الأشهر الستة السابقة للدراسة، واختيرت عينة عشوائية بلغت ٤٢٠ مستفيدًا، يوضح "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-sample"
+            }
+          },
+          {
+            "type": "text",
+            "text": " خصائصها."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-sample"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "خصائص عينة الدراسة"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المتغير"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الفئة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "العدد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "النسبة"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 2,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الجنس"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "ذكر"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٩٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٧٫١٪"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "أنثى"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٢٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٥٢٫٩٪"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 3,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "العمر"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "أقل من ٣٠ سنة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٣٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣١٫٩٪"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "من ٣٠ إلى ٥٠ سنة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٠٧"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٩٫٣٪"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "أكثر من ٥٠ سنة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٧٩"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٨٫٨٪"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 2,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المجموع"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٢٠"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١٠٠٪"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-tool",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "أداة الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "أُعدّت استبانة من ٢٤ عبارة موزعة على أربعة أبعاد: سهولة الاستخدام، وسرعة الحصول على الموعد، وجودة الاستشارة، والتواصل بعدها، وتُقاس كل عبارة بمقياس خماسي متدرج "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "aldossary2018"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". وتُحقّق من ثبات الأداة بمعامل ألفا كرونباخ في "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-alpha"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\alpha = \\frac{k}{k-1}\\left(1 - \\frac{\\sum_{i=1}^{k} \\sigma_i^2}{\\sigma_t^2}\\right)",
+          "numbered": true,
+          "id": "eq-alpha"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "حيث "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "k"
+            }
+          },
+          {
+            "type": "text",
+            "text": " عدد العبارات، و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\sigma_i^2"
+            }
+          },
+          {
+            "type": "text",
+            "text": " تباين العبارة، و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\sigma_t^2"
+            }
+          },
+          {
+            "type": "text",
+            "text": " تباين الدرجة الكلية. وبلغت قيمة المعامل للأداة كاملة ٠٫٩١، وهي قيمة مرتفعة تدل على ثبات الأداة."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-results",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النتائج"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يعرض "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-results"
+            }
+          },
+          {
+            "type": "text",
+            "text": " المتوسطات الحسابية والانحرافات المعيارية لأبعاد الرضا مرتبة تنازليًا."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-results"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "متوسطات أبعاد الرضا وانحرافاتها المعيارية"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "البعد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المتوسط"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الانحراف"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المستوى"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "سهولة الاستخدام"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٫٢١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٦٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مرتفع جدًا"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "سرعة الحصول على الموعد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤٫٠٧"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٧٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مرتفع"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "جودة الاستشارة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٫٨٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٨١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مرتفع"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "التواصل بعد الاستشارة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٫٥٩"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٩٣"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مرتفع"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الرضا العام"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣٫٩٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٧٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مرتفع"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وكشف تحليل التباين عن فروق دالة إحصائيًا في درجة الرضا تُعزى إلى العمر لصالح الفئة الأصغر سنًا، في حين لم تظهر فروق دالة تُعزى إلى الجنس."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-discussion",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المناقشة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يمكن تفسير ارتفاع الرضا عن سهولة الاستخدام بالتطور الكبير الذي شهدته التطبيقات الحكومية في السنوات الأخيرة، وهو ما يتفق مع نتائج الدراسات المحلية السابقة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alqahtani2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". أما تراجع الرضا عن التواصل بعد الاستشارة، فيعكس غياب قناة واضحة لمتابعة المريض وطرح أسئلته بعد انتهاء الموعد "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alharbi2023"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ويتفق انخفاض الرضا لدى الفئة الأكبر سنًا مع ما توصلت إليه دراسة سابقة من أن هذه الفئة تحتاج إلى واجهات أبسط ودعم مباشر عند الاستخدام "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alzahrani2020"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-conclusion",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الخاتمة والتوصيات"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "خلصت الدراسة إلى أن المستفيدين في مدينة جدة راضون بدرجة مرتفعة عن خدمات المواعيد الصحية الرقمية، مع وجود فرص للتحسين. وتوصي الدراسة بما يأتي:"
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "إضافة قناة مراسلة آمنة بين المريض والطبيب لمدة محددة بعد الاستشارة."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تصميم واجهة مبسطة لكبار السن بخط أكبر وخطوات أقل."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "إجراء دراسات مماثلة في مدن أخرى للمقارنة بين المناطق."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": false
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "شكر وتقدير"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يشكر الباحثان جميع المستفيدين الذين شاركوا في الإجابة عن الاستبانة."
+          }
+        ]
+      }
+    ]
+  }
+}

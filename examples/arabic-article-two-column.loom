@@ -1,0 +1,1529 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-article-two-column",
+      "name": "بحث لمجلة عربية بعمودين",
+      "description": "بحث علمي بالعربية في عمودين: العنوان والمؤلفون والمستخلصان بعرض الصفحة، ثم النص في عمودين، ومراجع بنظام APA. Two-column Arabic journal article with Arabic and English titles and abstracts across the top.",
+      "version": "1.0.0"
+    },
+    "page": {
+      "paper": {
+        "kind": "a4"
+      },
+      "margins": {
+        "topMm": 22,
+        "bottomMm": 22,
+        "innerMm": 18,
+        "outerMm": 18
+      },
+      "twoSided": false,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "custom",
+        "stretch": 1.1
+      },
+      "paragraph": {
+        "indentMm": 3,
+        "spacingPt": 0
+      },
+      "columns": 2
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "latinModern"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "section",
+      "numberedDepth": 3,
+      "tocDepth": 2,
+      "frontMatterPageNumbers": "arabic",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": false,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 4
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": true,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 8,
+          "spaceAfterPt": 3
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": false,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 6,
+          "spaceAfterPt": 3
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "main": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "chapterOpening": {
+        "footer": {
+          "center": "{page}"
+        }
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "footnote",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "authorYear",
+      "title": "المراجع",
+      "inToc": false
+    },
+    "skeleton": [
+      {
+        "title": "المقدمة",
+        "required": true
+      },
+      {
+        "title": "الدراسات السابقة",
+        "required": false
+      },
+      {
+        "title": "منهجية الدراسة",
+        "required": false
+      },
+      {
+        "title": "النتائج",
+        "required": false
+      },
+      {
+        "title": "المناقشة",
+        "required": false
+      },
+      {
+        "title": "الخاتمة",
+        "required": false
+      }
+    ],
+    "titlePage": {
+      "items": [
+        {
+          "xMm": 105,
+          "yMm": 25,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 18,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 37,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 12,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 43.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_affiliations}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 10,
+              "bold": false,
+              "italic": true,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 48.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_email}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 9.5,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 56,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title_en}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 14,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 64,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_en}",
+            "widthMm": 174,
+            "style": {
+              "sizePt": 11,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        }
+      ],
+      "blockHeightMm": 74
+    },
+    "fields": [
+      {
+        "id": "title",
+        "label": "عنوان البحث",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "authors",
+        "label": "المؤلفون",
+        "kind": "authors",
+        "required": true
+      },
+      {
+        "id": "abstract",
+        "label": "المستخلص",
+        "kind": "paragraphs",
+        "required": true
+      },
+      {
+        "id": "keywords",
+        "label": "الكلمات المفتاحية",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "title_en",
+        "label": "عنوان البحث بالإنجليزية",
+        "kind": "text"
+      },
+      {
+        "id": "abstract_en",
+        "label": "المستخلص بالإنجليزية (Abstract)",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "keywords_en",
+        "label": "الكلمات المفتاحية بالإنجليزية (Keywords)",
+        "kind": "paragraphs"
+      }
+    ],
+    "frontMatter": [
+      {
+        "type": "titlePage"
+      },
+      {
+        "type": "fieldPage",
+        "title": "المستخلص",
+        "field": "abstract",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "الكلمات المفتاحية",
+        "field": "keywords",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "Abstract",
+        "field": "abstract_en",
+        "inToc": false,
+        "inline": true,
+        "language": "english"
+      },
+      {
+        "type": "fieldPage",
+        "title": "Keywords",
+        "field": "keywords_en",
+        "inToc": false,
+        "inline": true,
+        "language": "english"
+      }
+    ],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic"
+    }
+  },
+  "templatePath": null,
+  "metadata": {
+    "title": "معايرة حساسات جودة الهواء منخفضة التكلفة في مدينة الرياض باستخدام الانحدار الخطي المتعدد",
+    "authors": [
+      {
+        "name": "ريم العتيبي",
+        "affiliations": [
+          "قسم الهندسة البيئية، كلية الهندسة، جامعة الملك سعود، الرياض"
+        ],
+        "nameEn": "Reem Al-Otaibi",
+        "affiliationsEn": [
+          "Department of Environmental Engineering, College of Engineering, King Saud University, Riyadh"
+        ],
+        "email": "author@example.edu.sa",
+        "corresponding": true
+      },
+      {
+        "name": "عبدالله الأحمدي",
+        "affiliations": [
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+        ],
+        "nameEn": "Abdullah Al-Ahmadi",
+        "affiliationsEn": [
+          "Department of Electrical Engineering, College of Engineering, Qassim University, Buraydah"
+        ]
+      },
+      {
+        "name": "فهد الزهراني",
+        "affiliations": [
+          "قسم الهندسة البيئية، كلية الهندسة، جامعة الملك سعود، الرياض"
+        ],
+        "nameEn": "Fahad Al-Zahrani",
+        "affiliationsEn": [
+          "Department of Environmental Engineering, College of Engineering, King Saud University, Riyadh"
+        ]
+      }
+    ],
+    "abstract": "تتيح حساسات جودة الهواء منخفضة التكلفة شبكات رصد كثيفة تغطي الأحياء التي تخلو من المحطات المرجعية، لكن قراءاتها تتأثر بالرطوبة ودرجة الحرارة والغبار. تقترح هذه الدراسة نموذج معايرة بالانحدار الخطي المتعدد يصحّح قراءات الجسيمات الدقيقة PM2.5 باستخدام الرطوبة النسبية ودرجة الحرارة. ركّبت ست عقد قرب محطة مرجعية في الرياض لمدة ثلاثة أشهر، ودُرّب النموذج على شهرين واختُبر على الثالث. وانخفض جذر متوسط مربع الخطأ من ٢٧٫٤ إلى ٥٫٨ ميكروغرام لكل متر مكعب، وارتفع معامل التحديد إلى ٠٫٩٣.",
+    "keywords": "جودة الهواء، الحساسات منخفضة التكلفة، الجسيمات الدقيقة، المعايرة، الانحدار الخطي",
+    "title_en": "Calibrating Low-Cost Air Quality Sensors in Riyadh Using Multiple Linear Regression",
+    "abstract_en": "Low-cost air quality sensors make dense monitoring networks possible in districts without reference stations, but their readings are affected by humidity, temperature and dust. This study proposes a multiple linear regression model that corrects PM2.5 readings using relative humidity and temperature. Six nodes were installed next to a reference station in Riyadh for three months; the model was trained on two months and tested on the third. The root mean square error fell from 27.4 to 5.8 µg/m³ and the coefficient of determination rose to 0.93.",
+    "keywords_en": "air quality, low-cost sensors, PM2.5, calibration, linear regression"
+  },
+  "bibliography": "@article{alzahrani2022,\n  author = {الزهراني, فهد and العتيبي, ريم},\n  title = {تقييم مستويات الجسيمات الدقيقة في مدينة الرياض خلال مواسم الغبار},\n  journal = {مجلة العلوم البيئية},\n  volume = {9},\n  number = {3},\n  pages = {115--134},\n  year = {2022}\n}\n\n@article{almutairi2023,\n  author = {المطيري, سلمان},\n  title = {شبكات رصد جودة الهواء في المدن السعودية: الواقع والتحديات},\n  journal = {المجلة العربية للدراسات البيئية},\n  volume = {5},\n  number = {1},\n  pages = {22--41},\n  year = {2023}\n}\n\n@article{castell2017,\n  author = {Castell, Nuria and Dauge, Franck R. and Schneider, Philipp and Vogt, Matthias and Lerner, Uri and Fishbain, Barak and Broday, David and Bartonova, Alena},\n  title = {Can Commercial Low-Cost Sensor Platforms Contribute to Air Quality Monitoring and Exposure Estimates?},\n  journal = {Environment International},\n  volume = {99},\n  pages = {293--302},\n  year = {2017},\n  doi = {10.1016/j.envint.2016.12.007}\n}\n\n@article{morawska2018,\n  author = {Morawska, Lidia and Thai, Phong K. and Liu, Xiaoting and Asumadu-Sakyi, Akwasi and Ayoko, Godwin and Bartonova, Alena and others},\n  title = {Applications of Low-Cost Sensing Technologies for Air Quality Monitoring and Exposure Assessment: How Far Have They Gone?},\n  journal = {Environment International},\n  volume = {116},\n  pages = {286--299},\n  year = {2018},\n  doi = {10.1016/j.envint.2018.04.018}\n}\n\n@article{barkjohn2021,\n  author = {Barkjohn, Karoline K. and Gantt, Brett and Clements, Andrea L.},\n  title = {Development and Application of a United States-Wide Correction for PM2.5 Data Collected with the PurpleAir Sensor},\n  journal = {Atmospheric Measurement Techniques},\n  volume = {14},\n  number = {6},\n  pages = {4617--4637},\n  year = {2021},\n  doi = {10.5194/amt-14-4617-2021}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-intro",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المقدمة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تُعد الجسيمات الدقيقة التي يقل قطرها عن ٢٫٥ ميكرومتر (PM2.5) من أخطر ملوثات الهواء على الصحة، إذ تنفذ إلى عمق الرئتين ومجرى الدم. وتتعرض مدن المملكة لموجات غبار متكررة ترفع تراكيزها إلى مستويات تفوق الحدود الموصى بها بأضعاف "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "alzahrani2022"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وتعتمد الجهات المختصة على محطات رصد مرجعية عالية الدقة، غير أن تكلفتها المرتفعة تحدّ من عددها، فلا تغطي إلا جزءًا صغيرًا من مساحة المدن الكبيرة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "almutairi2023"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". وقد ظهرت في السنوات الأخيرة حساسات بصرية رخيصة تتيح شبكات رصد كثيفة، لكن دقتها تتراجع كثيرًا في الظروف الحارة والرطبة والمغبرة "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "morawska2018"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تهدف هذه الدراسة إلى بناء نموذج معايرة بسيط يمكن تشغيله على المتحكم الدقيق نفسه، ويصحّح قراءات الحساس في الزمن الحقيقي باستخدام قياسات الحرارة والرطوبة المتوفرة في العقدة."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-related",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الدراسات السابقة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "قيّمت دراسات أوروبية عدة منصات تجارية منخفضة التكلفة، وخلصت إلى أن قراءاتها الخام لا تصلح للمقارنة بالمعايير التنظيمية قبل معايرتها محليًا "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "castell2017"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". وطُوّر في الولايات المتحدة تصحيح موحّد لحساسات PurpleAir يعتمد على الرطوبة النسبية، وطُبّق على آلاف الحساسات "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "barkjohn2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". أما في البيئة الصحراوية، فما زالت الدراسات قليلة، ولا يُعرف مدى صلاحية معاملات التصحيح المطورة في مناخات أخرى."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-method",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "منهجية الدراسة"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-node",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "عقدة الاستشعار"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تتكون كل عقدة من حساس بصري للجسيمات الدقيقة، وحساس للحرارة والرطوبة، ومتحكم دقيق يطبّق نموذج المعايرة ثم يرسل القراءات المصححة كل خمس دقائق، كما يبين "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-node"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/air-node.png",
+          "widthPercent": 100,
+          "id": "fig-node"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "مكونات عقدة الاستشعار وتدفق القراءات"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-data",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "البيانات"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ركّبت ست عقد على سطح محطة الرصد المرجعية في حي الملز بالرياض من أول مارس إلى نهاية مايو، وجُمعت المتوسطات الساعية للعقد وللمحطة. واستُبعدت الساعات التي توقفت فيها المحطة للصيانة، فبقي ٢١٢٠ ساعة صالحة للتحليل."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-model",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "نموذج المعايرة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يقدّر النموذج التركيز المصحح "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\hat{C}"
+            }
+          },
+          {
+            "type": "text",
+            "text": " من القراءة الخام "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "C_r"
+            }
+          },
+          {
+            "type": "text",
+            "text": " والرطوبة النسبية "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "H"
+            }
+          },
+          {
+            "type": "text",
+            "text": " ودرجة الحرارة "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "T"
+            }
+          },
+          {
+            "type": "text",
+            "text": " كما في "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-model"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\hat{C} = a + b_1 C_r + b_2 H + b_3 T",
+          "numbered": true,
+          "id": "eq-model"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وتُقدَّر المعاملات "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "a"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "b_1"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "b_2"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "b_3"
+            }
+          },
+          {
+            "type": "text",
+            "text": " بطريقة المربعات الصغرى على بيانات شهري مارس وأبريل، ثم يقاس الخطأ على بيانات مايو بجذر متوسط مربع الخطأ في "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-rmse"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\mathrm{RMSE} = \\sqrt{\\frac{1}{n} \\sum_{i=1}^{n} \\left(\\hat{C}_i - C_i\\right)^2}",
+          "numbered": true,
+          "id": "eq-rmse"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-results",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النتائج"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يقارن "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-pm25"
+            }
+          },
+          {
+            "type": "text",
+            "text": " قراءات إحدى العقد قبل المعايرة وبعدها بقراءات المحطة المرجعية خلال أسبوعين من شهر الاختبار، ويلخص "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-results"
+            }
+          },
+          {
+            "type": "text",
+            "text": " أداء النموذج في العقد الست."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/air-pm25.png",
+          "widthPercent": 100,
+          "id": "fig-pm25"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "المتوسط اليومي لتركيز PM2.5 في المحطة المرجعية وفي إحدى العقد قبل المعايرة وبعدها"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-results"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "أداء العقد قبل المعايرة وبعدها على بيانات الاختبار"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "العقدة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "RMSE قبل"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "RMSE بعد"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "inlineMath",
+                            "attrs": {
+                              "latex": "R^2"
+                            }
+                          },
+                          {
+                            "type": "text",
+                            "text": " بعد"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٥٫٩"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٥٫٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٩٤"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٨٫٣"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٦٫١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٩٢"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٣"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٦٫٧"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٥٫٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٩٤"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٩٫١"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٦٫٤"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٩١"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٥"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٧٫٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٥٫٩"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٩٣"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٦"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٢٧٫٢"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٥٫٨"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "٠٫٩٣"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وكانت القراءات الخام أعلى من المرجعية بنحو ٤٠٪ في المتوسط، وتضاعف الفرق في الساعات التي تجاوزت فيها الرطوبة ٦٠٪، وهو ما يفسر أهمية إدراج الرطوبة في النموذج. وبعد المعايرة لم يتجاوز الخطأ المطلق ١٠ ميكروغرام لكل متر مكعب في ٩٥٪ من الساعات."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-discussion",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المناقشة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تتفق النتائج مع ما توصلت إليه الدراسات السابقة من أن الرطوبة هي العامل الأهم في انحراف الحساسات البصرية "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "barkjohn2021"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". غير أن معاملات النموذج في الرياض اختلفت عن المعاملات الأمريكية، إذ كان أثر درجة الحرارة أوضح بسبب الفرق الكبير بين حرارة النهار والليل."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The calibrated nodes tracked the reference station closely, even during dust events."
+          }
+        ],
+        "attrs": {
+          "dir": "ltr"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ومن حدود الدراسة أن المعايرة جرت في موقع واحد وموسم واحد، ولذلك توصي الدراسة بإعادة المعايرة دوريًا، وباختبار النموذج في فصل الصيف حين ترتفع الحرارة فوق ٤٥ درجة."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-conclusion",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الخاتمة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "أظهرت الدراسة أن نموذج انحدار خطي بسيط يكفي لتحويل حساسات منخفضة التكلفة إلى أداة رصد موثوقة في البيئة الصحراوية، وأن النموذج يعمل على المتحكم الدقيق دون حاجة إلى خادم خارجي. وتمهد هذه النتائج لبناء شبكة رصد كثيفة تغطي أحياء الرياض كلها."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": false
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "شكر وتقدير"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يشكر الباحثون الجهة المشغلة لمحطة الرصد المرجعية على إتاحة بياناتها."
+          }
+        ]
+      }
+    ]
+  }
+}

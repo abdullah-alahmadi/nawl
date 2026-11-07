@@ -1,0 +1,870 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-presentation",
+      "name": "عرض تقديمي بالعربية",
+      "description": "شرائح عرض بالعربية (Beamer) من اليمين إلى اليسار: شريحة عنوان، أقسام، أعمدة، ومراجع. Arabic slides, right to left.",
+      "version": "1.0.0"
+    },
+    "kind": "presentation",
+    "presentation": {
+      "theme": "Madrid",
+      "colorTheme": "",
+      "fontTheme": "",
+      "aspectRatio": "16:9",
+      "fontSizePt": 11,
+      "outline": false,
+      "sectionSlides": false,
+      "navigationSymbols": false,
+      "logo": "everySlide",
+      "footer": {
+        "style": "theme",
+        "left": "{author}",
+        "center": "{title}",
+        "right": "{page} / {pages}"
+      }
+    },
+    "page": {
+      "paper": {
+        "kind": "a4"
+      },
+      "margins": {
+        "topMm": 25,
+        "bottomMm": 25,
+        "innerMm": 25,
+        "outerMm": 25
+      },
+      "twoSided": false,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "single"
+      },
+      "paragraph": {
+        "indentMm": 4,
+        "spacingPt": 0
+      }
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "latinModern"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "section",
+      "numberedDepth": 3,
+      "tocDepth": 2,
+      "frontMatterPageNumbers": "arabic",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": false,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 14,
+            "bold": true,
+            "italic": false,
+            "smallCaps": false,
+            "uppercase": false,
+            "align": "left"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 14,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": false,
+            "smallCaps": false,
+            "uppercase": false,
+            "align": "left"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 4
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": true,
+            "smallCaps": false,
+            "uppercase": false,
+            "align": "left"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 8,
+          "spaceAfterPt": 3
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": false,
+            "italic": true,
+            "smallCaps": false,
+            "uppercase": false,
+            "align": "left"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 6,
+          "spaceAfterPt": 3
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "header": {
+          "left": "",
+          "center": "",
+          "right": ""
+        },
+        "footer": {
+          "left": "",
+          "center": "",
+          "right": ""
+        },
+        "headerRulePt": 0,
+        "footerRulePt": 0
+      },
+      "main": {
+        "header": {
+          "left": "",
+          "center": "",
+          "right": ""
+        },
+        "footer": {
+          "left": "",
+          "center": "",
+          "right": ""
+        },
+        "headerRulePt": 0,
+        "footerRulePt": 0
+      },
+      "chapterOpening": {
+        "header": {
+          "left": "",
+          "center": "",
+          "right": ""
+        },
+        "footer": {
+          "left": "",
+          "center": "",
+          "right": ""
+        },
+        "headerRulePt": 0,
+        "footerRulePt": 0
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "footnote",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "ieee",
+      "title": "المراجع",
+      "inToc": false
+    },
+    "skeleton": [],
+    "titlePage": {
+      "items": []
+    },
+    "fields": [
+      {
+        "id": "title",
+        "label": "العنوان",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "subtitle",
+        "label": "العنوان الفرعي",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "id": "short_title",
+        "label": "عنوان مختصر (للتذييل)",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "id": "authors",
+        "label": "المقدّمون",
+        "kind": "authors",
+        "required": false
+      },
+      {
+        "id": "institute",
+        "label": "الجهة",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "id": "date",
+        "label": "التاريخ أو المناسبة (فارغ: تاريخ اليوم)",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "id": "logo",
+        "label": "الشعار",
+        "kind": "image",
+        "required": false
+      }
+    ],
+    "frontMatter": [],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic"
+    }
+  },
+  "templatePath": null,
+  "metadata": {
+    "title": "نظام ري ذكي منخفض التكلفة للمزارع الصغيرة",
+    "subtitle": "نتائج التجربة الميدانية في منطقة القصيم",
+    "short_title": "الري الذكي",
+    "authors": [
+      {
+        "name": "عبدالله الأحمدي",
+        "affiliations": [
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+        ],
+        "email": "author@example.edu.sa"
+      },
+      {
+        "name": "سارة القحطاني",
+        "affiliations": [
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+        ]
+      }
+    ],
+    "institute": "جامعة القصيم",
+    "date": "جمادى الأولى ١٤٤٧هـ"
+  },
+  "bibliography": "@article{alahmadi2021,\n  author = {الأحمدي, عبدالله and الحربي, فيصل},\n  title = {كفاءة استخدام المياه في المزارع الصغيرة بمنطقة القصيم},\n  journal = {المجلة السعودية للعلوم الزراعية},\n  volume = {18},\n  number = {2},\n  pages = {33--52},\n  year = {2021}\n}\n\n@book{aldosari2019,\n  author = {الدوسري, منى},\n  title = {أساسيات الري بالتنقيط وتصميم شبكاته},\n  publisher = {دار النشر العلمي},\n  address = {الرياض},\n  year = {2019}\n}\n\n@inproceedings{alsubaie2022,\n  author = {السبيعي, خالد and العنزي, نوف and الشهري, ريم},\n  title = {الاستشعار اللاسلكي لرطوبة التربة في البيئات الصحراوية},\n  booktitle = {وقائع المؤتمر السعودي للهندسة الزراعية},\n  pages = {88--97},\n  year = {2022}\n}\n\n@book{allen1998,\n  author = {Allen, Richard G. and Pereira, Luis S. and Raes, Dirk and Smith, Martin},\n  title = {Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements},\n  series = {FAO Irrigation and Drainage Paper 56},\n  publisher = {FAO},\n  address = {Rome},\n  year = {1998}\n}\n\n@article{hargreaves1985,\n  author = {Hargreaves, George H. and Samani, Zohrab A.},\n  title = {Reference Crop Evapotranspiration from Temperature},\n  journal = {Applied Engineering in Agriculture},\n  volume = {1},\n  number = {2},\n  pages = {96--99},\n  year = {1985}\n}\n\n@article{goap2018,\n  author = {Goap, Amarendra and Sharma, Deepak and Shukla, A. K. and Krishna, C. Rama},\n  title = {An IoT Based Smart Irrigation Management System Using Machine Learning and Open Source Technologies},\n  journal = {Computers and Electronics in Agriculture},\n  volume = {155},\n  pages = {41--49},\n  year = {2018},\n  doi = {10.1016/j.compag.2018.09.040}\n}\n\n@article{augustin2016,\n  author = {Augustin, Aloÿs and Yi, Jiazi and Clausen, Thomas and Townsley, William Mark},\n  title = {A Study of LoRa: Long Range \\& Low Power Networks for the Internet of Things},\n  journal = {Sensors},\n  volume = {16},\n  number = {9},\n  pages = {1466},\n  year = {2016},\n  doi = {10.3390/s16091466}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-motivation",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الدافع"
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "لماذا الري الذكي؟"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "الزراعة تستهلك معظم المياه الجوفية في المملكة "
+                      },
+                      {
+                        "type": "citation",
+                        "attrs": {
+                          "keys": [
+                            "alahmadi2021"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "المؤقتات الزمنية تروي حسب الجدول لا حسب الحاجة"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "الأنظمة التجارية "
+                      },
+                      {
+                        "type": "text",
+                        "text": "مكلفة",
+                        "marks": [
+                          {
+                            "type": "bold"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "text": " على المزارع الصغيرة"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "slidePause"
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "الهدف: الري عند حاجة التربة فقط، بتكلفة لا تتجاوز ٢٢٠ ريالًا للمنطقة."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-system",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النظام المقترح"
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "مكونات النظام"
+              }
+            ]
+          },
+          {
+            "type": "columns",
+            "content": [
+              {
+                "type": "column",
+                "attrs": {
+                  "widthPercent": 55
+                },
+                "content": [
+                  {
+                    "type": "figure",
+                    "attrs": {
+                      "src": "figures/irrigation-system.png",
+                      "widthPercent": 100,
+                      "id": "fig-system"
+                    },
+                    "content": [
+                      {
+                        "type": "caption",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "من الحساسات إلى صمام الري"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "column",
+                "attrs": {
+                  "widthPercent": 45
+                },
+                "content": [
+                  {
+                    "type": "bulletList",
+                    "content": [
+                      {
+                        "type": "listItem",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "حساسات رطوبة على ثلاثة أعماق"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "listItem",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "اتصال LoRa بمدى ٢ كم "
+                              },
+                              {
+                                "type": "citation",
+                                "attrs": {
+                                  "keys": [
+                                    "augustin2016"
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "listItem",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "طاقة شمسية بالكامل"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "slideBox",
+                    "attrs": {
+                      "kind": "alert",
+                      "title": "الفكرة الأساسية"
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "القرار يُتخذ في المزرعة، والتقرير يصل إلى الهاتف."
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "تقدير الاحتياج المائي"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "معادلة هارغريفز تكتفي بدرجات الحرارة "
+              },
+              {
+                "type": "citation",
+                "attrs": {
+                  "keys": [
+                    "hargreaves1985"
+                  ]
+                }
+              },
+              {
+                "type": "text",
+                "text": ":"
+              }
+            ]
+          },
+          {
+            "type": "equation",
+            "attrs": {
+              "latex": "ET_o = 0.0023\\, R_a \\left(T_{mean} + 17.8\\right) \\sqrt{T_{max} - T_{min}}",
+              "numbered": false,
+              "id": null
+            }
+          },
+          {
+            "type": "slidePause"
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "ثم تُحسب كمية الري اللازمة لإعادة التربة إلى السعة الحقلية:"
+              }
+            ]
+          },
+          {
+            "type": "equation",
+            "attrs": {
+              "latex": "I = \\frac{\\left(\\theta_{fc} - \\theta\\right) D}{\\eta}",
+              "numbered": false,
+              "id": null
+            }
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-results",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النتائج"
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "استهلاك المياه خلال أربعة أسابيع"
+              }
+            ]
+          },
+          {
+            "type": "figure",
+            "attrs": {
+              "src": "figures/irrigation-water.png",
+              "widthPercent": 80,
+              "id": "fig-water"
+            },
+            "content": [
+              {
+                "type": "caption",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "م³ لكل دونم أسبوعيًا"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "أبرز النتائج"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "توفير في المياه بنحو "
+                      },
+                      {
+                        "type": "text",
+                        "text": "٣٧٪",
+                        "marks": [
+                          {
+                            "type": "bold"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "text": " مقارنة بالمؤقت"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "فرق في المحصول أقل من ٣٪ (غير دال إحصائيًا)"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "لم تتوقف أي عقدة رغم حرارة ٤٤ درجة"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "slideBox",
+            "attrs": {
+              "kind": "example",
+              "title": "مقارنة بالدراسات السابقة"
+            },
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "نتائج قريبة من الأنظمة التجارية بتكلفة أقل بكثير "
+                  },
+                  {
+                    "type": "citation",
+                    "attrs": {
+                      "keys": [
+                        "goap2018"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "text": "."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "sec-conclusion",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الخاتمة"
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "الخلاصة والخطوات القادمة"
+              }
+            ]
+          },
+          {
+            "type": "orderedList",
+            "attrs": {
+              "start": 1
+            },
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "النظام عملي ومنخفض التكلفة للمزارع الصغيرة"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "تجربة أطول تشمل فصل الشتاء ومحاصيل أخرى"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "ربط القرار بتوقعات الطقس لتأجيل الري قبل الأمطار"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "slide",
+        "attrs": {
+          "id": null,
+          "plain": false
+        },
+        "content": [
+          {
+            "type": "slideTitle",
+            "content": [
+              {
+                "type": "text",
+                "text": "شكرًا لكم"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "نسعد بأسئلتكم وملاحظاتكم"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

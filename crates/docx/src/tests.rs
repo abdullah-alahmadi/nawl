@@ -52,8 +52,8 @@ fn arabic_article_exports() {
     let t = template("arabic-article");
     let doc = example("arabic-article.loom");
     let mathml: HashMap<String, String> = [(
-        "g = \\frac{post - pre}{100 - pre}".to_string(),
-        "<math><mi>g</mi><mo>=</mo><mfrac><mrow><mi>post</mi><mo>-</mo><mi>pre</mi></mrow><mrow><mn>100</mn><mo>-</mo><mi>pre</mi></mrow></mfrac></math>".to_string(),
+        "I = \\frac{\\left(\\theta_{fc} - \\theta\\right) D}{\\eta}".to_string(),
+        "<math><mi>I</mi><mo>=</mo><mfrac><mrow><mo>(</mo><msub><mi>θ</mi><mi>fc</mi></msub><mo>-</mo><mi>θ</mi><mo>)</mo><mi>D</mi></mrow><mi>η</mi></mfrac></math>".to_string(),
     )]
     .into();
     let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml, font: &|_| None }).unwrap();
@@ -66,9 +66,9 @@ fn arabic_article_exports() {
     let d = &parts["word/document.xml"];
     // Right to left: the section, Arabic paragraphs and runs; the English paragraph not.
     assert!(d.contains("<w:bidi/>") && d.contains("<w:rtl/>"));
-    assert!(d.contains("<w:bidi w:val=\"0\"/></w:pPr><w:r><w:rPr></w:rPr><w:t xml:space=\"preserve\">As Siemens notes"), "the English paragraph is left to right");
+    assert!(d.contains("<w:bidi w:val=\"0\"/></w:pPr><w:r><w:rPr></w:rPr><w:t xml:space=\"preserve\">In short, the controller watered"), "the English paragraph is left to right");
     // The title block, the equation as a Word equation, the figure, the table.
-    assert!(d.contains("أثر التغذية الراجعة الفورية"));
+    assert!(d.contains("نظام ري ذكي منخفض التكلفة"));
     assert!(d.contains("<m:oMath><m:r>") && d.contains("<m:f><m:num>"));
     assert!(d.contains("<a:blip r:embed=\"rIdImage1\"/>"));
     assert!(d.contains("<w:tbl><w:tblPr><w:tblStyle w:val=\"TableGrid\"/><w:bidiVisual/>"));
@@ -77,7 +77,7 @@ fn arabic_article_exports() {
     assert!(d.contains("جدول ١: "), "table caption");
     // Citations and the reference list (author-year, Arabic punctuation).
     assert!(d.contains("(عبدالله الأحمدي") || d.contains("(الأحمدي"), "author-year citation");
-    assert!(d.contains("Siemens, G. (2013)."));
+    assert!(d.contains("Goap, A., Sharma, D."));
     assert!(parts["word/styles.xml"].contains("w:cs=\"Traditional Arabic\""));
     assert!(parts["word/settings.xml"].contains("w:bidi=\"ar-SA\""));
 }

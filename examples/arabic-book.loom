@@ -1,0 +1,2082 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-book",
+      "name": "كتاب عربي",
+      "description": "كتاب بالعربية: صفحات متقابلة، فصول، ترويسة باسم الفصل، فهرس. An Arabic book: two-sided pages, chapters, running headers.",
+      "version": "1.0.0"
+    },
+    "page": {
+      "paper": {
+        "kind": "custom",
+        "widthMm": 170,
+        "heightMm": 240
+      },
+      "margins": {
+        "topMm": 22,
+        "bottomMm": 22,
+        "innerMm": 24,
+        "outerMm": 18
+      },
+      "twoSided": true,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "custom",
+        "stretch": 1.15
+      },
+      "paragraph": {
+        "indentMm": 5,
+        "spacingPt": 0
+      }
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "termes"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "chapter",
+      "numberedDepth": 3,
+      "tocDepth": 2,
+      "frontMatterPageNumbers": "lowerRoman",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": true,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 20,
+            "bold": true,
+            "align": "center"
+          },
+          "layout": "display",
+          "label": "الفصل {n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 0,
+          "spaceAfterPt": 24
+        },
+        {
+          "text": {
+            "sizePt": 16,
+            "bold": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 18,
+          "spaceAfterPt": 8
+        },
+        {
+          "text": {
+            "sizePt": 14,
+            "bold": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 14,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 12,
+          "spaceAfterPt": 4
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "main": {
+        "header": {
+          "center": "{chapter}"
+        },
+        "footer": {
+          "center": "{page}"
+        },
+        "headerRulePt": 0.4
+      },
+      "chapterOpening": {
+        "footer": {
+          "center": "{page}"
+        }
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "small",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "authorYear",
+      "title": "المراجع",
+      "inToc": true,
+      "splitByLanguage": true
+    },
+    "skeleton": [],
+    "titlePage": {
+      "items": [
+        {
+          "xMm": 85,
+          "yMm": 60,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title}",
+            "widthMm": 140,
+            "style": {
+              "sizePt": 26,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 85,
+          "yMm": 92,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{subtitle}",
+            "widthMm": 140,
+            "style": {
+              "sizePt": 16,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 85,
+          "yMm": 120,
+          "anchor": "top",
+          "content": {
+            "type": "rule",
+            "lengthMm": 60,
+            "thicknessPt": 0.8
+          }
+        },
+        {
+          "xMm": 85,
+          "yMm": 140,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{author}",
+            "widthMm": 140,
+            "style": {
+              "sizePt": 17,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 85,
+          "yMm": 205,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{publisher}",
+            "widthMm": 140,
+            "style": {
+              "sizePt": 14,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 85,
+          "yMm": 214,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{place} {year}",
+            "widthMm": 140,
+            "style": {
+              "sizePt": 13,
+              "align": "center"
+            }
+          }
+        }
+      ]
+    },
+    "fields": [
+      {
+        "id": "title",
+        "label": "عنوان الكتاب",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "subtitle",
+        "label": "العنوان الفرعي",
+        "kind": "text"
+      },
+      {
+        "id": "author",
+        "label": "المؤلف",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "publisher",
+        "label": "الناشر",
+        "kind": "text"
+      },
+      {
+        "id": "place",
+        "label": "مكان النشر",
+        "kind": "text"
+      },
+      {
+        "id": "year",
+        "label": "سنة النشر",
+        "kind": "text"
+      },
+      {
+        "id": "preface",
+        "label": "المقدمة",
+        "kind": "paragraphs"
+      }
+    ],
+    "frontMatter": [
+      {
+        "type": "titlePage"
+      },
+      {
+        "type": "fieldPage",
+        "title": "المقدمة",
+        "field": "preface",
+        "inToc": true
+      },
+      {
+        "type": "tableOfContents",
+        "title": "المحتويات"
+      }
+    ],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic"
+    }
+  },
+  "templatePath": null,
+  "metadata": {
+    "title": "مبادئ البرمجة بلغة بايثون",
+    "subtitle": "مدخل عملي للمبتدئين",
+    "author": "عبدالله الأحمدي",
+    "publisher": "دار المعرفة",
+    "place": "الرياض",
+    "year": "١٤٤٧هـ / ٢٠٢٦م",
+    "preface": "الحمد لله والصلاة والسلام على رسول الله، أما بعد: فهذا كتاب موجّه لمن يخطو خطواته الأولى في عالم البرمجة، ولا يفترض معرفة سابقة بالحاسب سوى استخدامه اليومي. اخترنا لغة بايثون لأنها قريبة من اللغة الطبيعية، وتُستخدم اليوم في مجالات واسعة من تحليل البيانات إلى الذكاء الاصطناعي.\n\nيتدرج الكتاب من كتابة البرنامج الأول إلى الجمل الشرطية والتكرار، ويختم كل فصل بتمارين تطبيقية. وننصح القارئ بأن يكتب الأمثلة بنفسه ويجرّب تعديلها، فالبرمجة مهارة تُكتسب بالممارسة قبل القراءة."
+  },
+  "bibliography": "@book{alharbi2022,\n  author = {الحربي, ماجد},\n  title = {البرمجة للجميع: خطوات أولى في التفكير الحاسوبي},\n  publisher = {دار المعرفة},\n  address = {الرياض},\n  year = {2022}\n}\n\n@book{downey2015,\n  author = {Downey, Allen B.},\n  title = {Think Python: How to Think Like a Computer Scientist},\n  edition = {2nd},\n  publisher = {O'Reilly Media},\n  address = {Sebastopol, CA},\n  year = {2015}\n}\n\n@book{lutz2013,\n  author = {Lutz, Mark},\n  title = {Learning Python},\n  edition = {5th},\n  publisher = {O'Reilly Media},\n  address = {Sebastopol, CA},\n  year = {2013}\n}\n\n@misc{pythondocs,\n  author = {{Python Software Foundation}},\n  title = {The Python Tutorial},\n  howpublished = {Python 3 documentation},\n  year = {2025},\n  url = {https://docs.python.org/3/tutorial/}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "ch-start",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "البداية مع بايثون"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تعلّم البرمجة يشبه تعلّم لغة جديدة: تبدأ بالمفردات والقواعد البسيطة، ثم تكتب جملًا قصيرة، ثم نصوصًا كاملة. وفي هذا الفصل نتعرف على لغة بايثون، ونثبّتها، ونكتب برنامجنا الأول."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-why",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "لماذا بايثون؟"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "صمّم غيدو فان روسم لغة بايثون لتكون سهلة القراءة، فجاءت تعليماتها قريبة من الإنجليزية المكتوبة، وهي اليوم من أكثر لغات البرمجة استخدامًا في العالم "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "downey2015"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". ومن مزاياها:"
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "قواعد بسيطة تسمح للمبتدئ بالتركيز على حل المشكلة لا على تفاصيل اللغة."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "مكتبات جاهزة لكل مجال تقريبًا: الرياضيات، والرسوم، والشبكات، والذكاء الاصطناعي."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "مجتمع كبير من المبرمجين ومصادر تعليمية وفيرة بالعربية والإنجليزية "
+                  },
+                  {
+                    "type": "citation",
+                    "attrs": {
+                      "keys": [
+                        "alharbi2022"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "text": "."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-first",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "برنامجك الأول"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "جرت العادة أن يكون البرنامج الأول في أي لغة هو طباعة عبارة ترحيبية. اكتب السطرين الآتيين في ملف باسم "
+          },
+          {
+            "type": "text",
+            "text": "hello.py",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " ثم شغّله:"
+          }
+        ]
+      },
+      {
+        "type": "codeBlock",
+        "attrs": {
+          "language": null
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "name = input(\"ما اسمك؟ \")\nprint(\"مرحبًا يا\", name, \"، أهلًا بك في عالم البرمجة!\")"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تطلب الدالة "
+          },
+          {
+            "type": "text",
+            "text": "input",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " من المستخدم كتابة نص وتعيده، وتطبع الدالة "
+          },
+          {
+            "type": "text",
+            "text": "print",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " ما يُعطى لها على الشاشة. لاحظ أن النصوص العربية تُكتب بين علامتي تنصيص كأي نص آخر."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "ch-variables",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المتغيرات والعمليات"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "المتغير اسم نطلقه على قيمة لنستخدمها لاحقًا، ويحدد نوع القيمة العمليات التي يمكن إجراؤها عليها. ويلخص "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-types"
+            }
+          },
+          {
+            "type": "text",
+            "text": " الأنواع الأساسية في بايثون."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-types"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "أنواع البيانات الأساسية في بايثون"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "النوع"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الاسم في بايثون"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مثال"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "عدد صحيح"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "int"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "42"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "عدد عشري"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "float"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "3.75"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "نص"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "str"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "\"الرياض\""
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "قيمة منطقية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "bool"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "True"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-arithmetic",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "العمليات الحسابية"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تدعم بايثون العمليات الحسابية المعروفة، إضافة إلى القسمة الصحيحة وباقي القسمة والأس، كما في "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-operators"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-operators"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "العمليات الحسابية في بايثون"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "العملية"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الرمز"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "مثال"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "النتيجة"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الجمع"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "+"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "7 + 2"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "9"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "القسمة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "/"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "7 / 2"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "3.5"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "القسمة الصحيحة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "//"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "7 // 2"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "3"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "باقي القسمة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "%"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "7 % 2"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "1"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الأس"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "",
+                            "marks": [
+                              {
+                                "type": "bold"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "7 ** 2"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "49"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-savings",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "مثال تطبيقي: الادخار الشهري"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "إذا ادّخر شخص مبلغًا "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "P"
+            }
+          },
+          {
+            "type": "text",
+            "text": " بربح مركب نسبته السنوية "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "r"
+            }
+          },
+          {
+            "type": "text",
+            "text": " مدة "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "n"
+            }
+          },
+          {
+            "type": "text",
+            "text": " سنة، فإن رصيده يصبح كما في "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-compound"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "A = P \\left(1 + \\frac{r}{100}\\right)^{n}",
+          "numbered": true,
+          "id": "eq-compound"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ويمكن حساب ذلك ببضعة أسطر:"
+          }
+        ]
+      },
+      {
+        "type": "codeBlock",
+        "attrs": {
+          "language": null
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "principal = 10000      # المبلغ بالريال\nrate = 5               # النسبة السنوية\nyears = 3\n\namount = principal * (1 + rate / 100) ** years\nprint(\"الرصيد بعد\", years, \"سنوات:\", round(amount, 2), \"ريال\")"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "ch-control",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الجمل الشرطية والتكرار"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "لا تسير البرامج عادةً في خط مستقيم، بل تتخذ قرارات وتكرر خطوات. وفي هذا الفصل نتعرف على الجملة الشرطية "
+          },
+          {
+            "type": "text",
+            "text": "if",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " وحلقتي "
+          },
+          {
+            "type": "text",
+            "text": "for",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "text",
+            "text": "while",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "lutz2013"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-if",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الجملة الشرطية"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تنفّذ الجملة الشرطية جزءًا من البرنامج إذا تحقق شرط معين. لاحظ أن بايثون تعتمد على المسافة البادئة لتحديد الأسطر التابعة للشرط:"
+          }
+        ]
+      },
+      {
+        "type": "codeBlock",
+        "attrs": {
+          "language": null
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "grade = int(input(\"أدخل الدرجة: \"))\n\nif grade >= 90:\n    print(\"ممتاز\")\nelif grade >= 75:\n    print(\"جيد جدًا\")\nelse:\n    print(\"واصل الاجتهاد\")"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-for",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "حلقة التكرار"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تكرر حلقة "
+          },
+          {
+            "type": "text",
+            "text": "for",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " مجموعة من التعليمات لكل عنصر في سلسلة. فالبرنامج الآتي يطبع جدول الضرب للعدد ٧:"
+          }
+        ]
+      },
+      {
+        "type": "codeBlock",
+        "attrs": {
+          "language": null
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "for i in range(1, 11):\n    print(7, \"×\", i, \"=\", 7 * i)"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": "sec-exercises",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "تمارين"
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "اكتب برنامجًا يطلب من المستخدم درجة الحرارة بالمئوية ويحوّلها إلى فهرنهايت."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "اكتب برنامجًا يطبع الأعداد الزوجية من ٢ إلى ٥٠."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "عدّل برنامج الدرجات بحيث:"
+                  }
+                ]
+              },
+              {
+                "type": "bulletList",
+                "content": [
+                  {
+                    "type": "listItem",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "يرفض الدرجات السالبة أو الأكبر من ١٠٠."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "listItem",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "يكرر السؤال حتى يُدخل المستخدم درجة صحيحة."
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "appendixStart"
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": "app-keywords",
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "الكلمات المحجوزة في بايثون"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "الكلمات الآتية محجوزة في بايثون، فلا يجوز استخدامها أسماءً للمتغيرات "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "pythondocs"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-keywords"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "أشهر الكلمات المحجوزة ومعانيها"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الكلمة"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "المعنى"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "if / elif / else"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "الجمل الشرطية"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "for / while"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "حلقات التكرار"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "def / return"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "تعريف الدوال وإرجاع القيم"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "import"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "استيراد المكتبات"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "True / False / None"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "القيم المنطقية والقيمة الفارغة"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

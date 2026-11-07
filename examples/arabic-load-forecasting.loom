@@ -1,6 +1,353 @@
 {
   "format": "texloom",
   "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-article",
+      "name": "بحث لمجلة عربية",
+      "description": "بحث علمي بالعربية: عنوان ومستخلص وكلمات مفتاحية بالعربية والإنجليزية، ومراجع بنظام APA. Arabic journal article with Arabic and English titles, abstracts and keywords.",
+      "version": "2.0.0"
+    },
+    "page": {
+      "paper": {
+        "kind": "a4"
+      },
+      "margins": {
+        "topMm": 25,
+        "bottomMm": 25,
+        "innerMm": 25,
+        "outerMm": 25
+      },
+      "twoSided": false,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "custom",
+        "stretch": 1.15
+      },
+      "paragraph": {
+        "indentMm": 4,
+        "spacingPt": 0
+      }
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "latinModern"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "section",
+      "numberedDepth": 3,
+      "tocDepth": 2,
+      "frontMatterPageNumbers": "arabic",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": false,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 14,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 14,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 4
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 8,
+          "spaceAfterPt": 3
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": false,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 6,
+          "spaceAfterPt": 3
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "main": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "chapterOpening": {
+        "footer": {
+          "center": "{page}"
+        }
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "footnote",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "authorYear",
+      "title": "المراجع",
+      "inToc": false
+    },
+    "skeleton": [
+      {
+        "title": "المقدمة",
+        "required": true
+      },
+      {
+        "title": "الدراسات السابقة",
+        "required": false
+      },
+      {
+        "title": "منهجية الدراسة",
+        "required": false
+      },
+      {
+        "title": "النتائج",
+        "required": false
+      },
+      {
+        "title": "المناقشة",
+        "required": false
+      },
+      {
+        "title": "الخاتمة",
+        "required": false
+      }
+    ],
+    "titlePage": {
+      "items": [
+        {
+          "xMm": 105,
+          "yMm": 25,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 18,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 37,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 12,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 43.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_affiliations}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 10,
+              "bold": false,
+              "italic": true,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 48.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_email}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 9.5,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 56,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title_en}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 14,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 64,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_en}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 11,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        }
+      ],
+      "blockHeightMm": 74
+    },
+    "fields": [
+      {
+        "id": "title",
+        "label": "عنوان البحث",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "authors",
+        "label": "المؤلفون",
+        "kind": "authors",
+        "required": true
+      },
+      {
+        "id": "abstract",
+        "label": "المستخلص",
+        "kind": "paragraphs",
+        "required": true
+      },
+      {
+        "id": "keywords",
+        "label": "الكلمات المفتاحية",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "title_en",
+        "label": "عنوان البحث بالإنجليزية",
+        "kind": "text"
+      },
+      {
+        "id": "abstract_en",
+        "label": "المستخلص بالإنجليزية (Abstract)",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "keywords_en",
+        "label": "الكلمات المفتاحية بالإنجليزية (Keywords)",
+        "kind": "paragraphs"
+      }
+    ],
+    "frontMatter": [
+      {
+        "type": "titlePage"
+      },
+      {
+        "type": "fieldPage",
+        "title": "المستخلص",
+        "field": "abstract",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "الكلمات المفتاحية",
+        "field": "keywords",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "Abstract",
+        "field": "abstract_en",
+        "inToc": false,
+        "inline": true,
+        "language": "english"
+      },
+      {
+        "type": "fieldPage",
+        "title": "Keywords",
+        "field": "keywords_en",
+        "inToc": false,
+        "inline": true,
+        "language": "english"
+      }
+    ],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic"
+    }
+  },
+  "templatePath": null,
   "metadata": {
     "title": "التنبؤ قصير المدى بالأحمال الكهربائية باستخدام شبكات الذاكرة الطويلة قصيرة المدى وآلية الانتباه: دراسة تطبيقية على مدينة جدة",
     "authors": [
