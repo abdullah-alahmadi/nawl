@@ -79,14 +79,16 @@ impl Languages {
 /// right to left.
 fn has_arabic(doc: &Document) -> bool {
     let mut found = false;
-    walk_inlines(&doc.body.content, &mut |i| {
-        if let Inline::Text { text, .. } = i {
-            found |= text.chars().any(is_arabic);
-        }
+    walk_inlines(&doc.body.content, &mut |i| match i {
+        Inline::Text { text, .. } => found |= text.chars().any(is_arabic),
+        // Arabic in a formula needs the Arabic font too.
+        Inline::InlineMath { attrs } => found |= attrs.latex.chars().any(is_arabic),
+        _ => {}
     });
     texloom_core::walk_blocks(&doc.body.content, &mut |b| match b {
         texloom_core::Block::Paragraph { attrs, .. } => found |= attrs.dir == Some(TextDir::Rtl),
         texloom_core::Block::Heading { attrs, .. } => found |= attrs.dir == Some(TextDir::Rtl),
+        texloom_core::Block::Equation { attrs } => found |= attrs.latex.chars().any(is_arabic),
         _ => {}
     });
     found
@@ -95,6 +97,125 @@ fn has_arabic(doc: &Document) -> bool {
             FieldValue::List(l) => l.iter().any(|s| s.chars().any(is_arabic)),
             FieldValue::Authors(a) => a.iter().any(|a| a.name.chars().any(is_arabic) || a.affiliations.iter().any(|s| s.chars().any(is_arabic))),
         })
+}
+
+/// A formula's LaTeX made ready for Arabic: the math fonts have no Arabic letters
+/// (TeX drops them with only a warning), so Arabic runs in math are set as text in
+/// the Arabic font and direction (`\text{\textarabic{…}}`). With Arabic-Indic digits,
+/// numbers in math are written with them too (`3.5` → `٣٫٥`), as the document's own
+/// numbers are. Text already in `\text{…}`, and arguments that are lengths, labels or
+/// names (`\hspace{2pt}`, `\label{…}`, `\begin{array}`), are left alone.
+pub fn math(latex: &str, langs: &Languages) -> String {
+    const TEXT: [&str; 10] = ["text", "textrm", "textbf", "textit", "textsf", "texttt", "textnormal", "mbox", "textarabic", "textenglish"];
+    const RAW: [&str; 16] = [
+        "hspace", "vspace", "kern", "mkern", "hskip", "mskip", "rule", "raisebox", "label", "ref", "eqref", "begin", "end", "color", "mathcolor", "tag",
+    ];
+    #[derive(Clone, Copy, PartialEq)]
+    enum Group {
+        Math,
+        Text,
+        Raw,
+    }
+    let indic = langs.digits == texloom_core::Digits::ArabicIndic && langs.main == Language::Arabic;
+    let chars: Vec<char> = latex.chars().collect();
+    let mut out = String::with_capacity(latex.len());
+    let mut stack = vec![Group::Math];
+    // The kind of group the next `{` opens (after \text, \hspace…).
+    let mut next = Group::Math;
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        let here = *stack.last().unwrap_or(&Group::Math);
+        match c {
+            '\\' => {
+                // A command: \name, or a control symbol (\{, \\).
+                let start = i;
+                i += 1;
+                while i < chars.len() && chars[i].is_ascii_alphabetic() {
+                    i += 1;
+                }
+                if i == start + 1 && i < chars.len() {
+                    i += 1;
+                }
+                let name: String = chars[start + 1..i].iter().collect();
+                out.extend(&chars[start..i]);
+                next = if TEXT.contains(&name.as_str()) {
+                    Group::Text
+                } else if RAW.contains(&name.as_str()) {
+                    Group::Raw
+                } else {
+                    Group::Math
+                };
+                // \\[2pt]: the optional length.
+                if name == "\\" && chars.get(i) == Some(&'[') {
+                    while i < chars.len() && chars[i] != ']' {
+                        out.push(chars[i]);
+                        i += 1;
+                    }
+                }
+                continue;
+            }
+            '{' => {
+                stack.push(if here == Group::Math { next } else { here });
+                next = Group::Math;
+                out.push(c);
+            }
+            '}' => {
+                if stack.len() > 1 {
+                    stack.pop();
+                }
+                out.push(c);
+            }
+            c if here == Group::Math && is_arabic(c) => {
+                // The whole run, spaces between Arabic words included.
+                let start = i;
+                while i < chars.len() && (is_arabic(chars[i]) || (chars[i] == ' ' && chars.get(i + 1).is_some_and(|n| is_arabic(*n)))) {
+                    i += 1;
+                }
+                let run: String = chars[start..i].iter().collect();
+                // A word (not a one-letter variable) gets spaces, which math ignores when typed.
+                if run.chars().filter(|c| is_arabic(*c)).count() > 1 {
+                    out.push_str(&format!("\\text{{ \\textarabic{{{run}}} }}"));
+                } else {
+                    out.push_str(&format!("\\text{{\\textarabic{{{run}}}}}"));
+                }
+                next = Group::Math;
+                continue;
+            }
+            // Arabic in \text{…} of a document whose font has no Arabic: the Arabic font.
+            c if here == Group::Text && langs.main != Language::Arabic && is_arabic(c) => {
+                let start = i;
+                while i < chars.len() && (is_arabic(chars[i]) || (chars[i] == ' ' && chars.get(i + 1).is_some_and(|n| is_arabic(*n)))) {
+                    i += 1;
+                }
+                let run: String = chars[start..i].iter().collect();
+                out.push_str(&format!("\\textarabic{{{run}}}"));
+                continue;
+            }
+            c if here == Group::Math && indic && c.is_ascii_digit() => {
+                let start = i;
+                while i < chars.len() && (chars[i].is_ascii_digit() || (chars[i] == '.' && chars.get(i + 1).is_some_and(char::is_ascii_digit))) {
+                    i += 1;
+                }
+                let digits: String = chars[start..i]
+                    .iter()
+                    .map(|&d| if d == '.' { '\u{066B}' } else { char::from_u32(0x0660 + d.to_digit(10).unwrap_or(0)).unwrap_or(d) })
+                    .collect();
+                // Braced, so it stays one argument (x^2, \frac{1}{2}).
+                out.push_str(&format!("{{\\text{{{digits}}}}}"));
+                next = Group::Math;
+                continue;
+            }
+            c => {
+                if !c.is_whitespace() {
+                    next = Group::Math;
+                }
+                out.push(c);
+            }
+        }
+        i += 1;
+    }
+    out
 }
 
 /// Abjad numerals, as polyglossia prints LaTeX's letter counters (\alph, \Alph) in
@@ -402,6 +523,26 @@ fn latin_spec(choice: &FontChoice, role: Role) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn arabic_and_digits_in_math() {
+        let indic = Languages { main: Language::Arabic, others: vec![Language::English], digits: texloom_core::Digits::ArabicIndic };
+        let western = Languages { digits: texloom_core::Digits::Western, ..indic.clone() };
+        // Arabic letters become text in the Arabic font; words stay together.
+        assert_eq!(math("س + ص = ع", &western), "\\text{\\textarabic{س}} + \\text{\\textarabic{ص}} = \\text{\\textarabic{ع}}");
+        assert_eq!(math("x > 0 إذا كان", &western), "x > 0 \\text{ \\textarabic{إذا كان} }");
+        // Already text: left alone in an Arabic document; given the Arabic font in an English one.
+        assert_eq!(math("\\text{حيث} x", &western), "\\text{حيث} x");
+        let mixed = Languages { main: Language::English, others: vec![Language::Arabic], digits: Default::default() };
+        assert_eq!(math("\\text{حيث} x", &mixed), "\\text{\\textarabic{حيث}} x");
+        // Digits: Arabic-Indic, braced so they stay one argument; lengths and labels untouched.
+        assert_eq!(math("x^2 + 3.5", &indic), "x^{\\text{٢}} + {\\text{٣٫٥}}");
+        assert_eq!(math("\\frac{1}{2}\\hspace{2pt}\\label{e1}", &indic), "\\frac{{\\text{١}}}{{\\text{٢}}}\\hspace{2pt}\\label{e1}");
+        assert_eq!(math("a \\\\[4pt] b_{10}", &indic), "a \\\\[4pt] b_{{\\text{١٠}}}");
+        assert_eq!(math("x^2 + 3.5", &western), "x^2 + 3.5", "Western digits: unchanged");
+        let english = Languages { main: Language::English, others: vec![], digits: Default::default() };
+        assert_eq!(math("\\int_0^1 f(x)\\,dx", &english), "\\int_0^1 f(x)\\,dx");
+    }
 
     #[test]
     fn abjad_numerals() {

@@ -245,6 +245,10 @@ Word is an export target only; Texloom never imports Word files.
       as you type; equation numbers on the left in RTL
 - [x] Authors' English names and affiliations; backend messages (errors, validation) in
       Arabic (`texloom_core::tr!`)
+- [x] Arabic letters and words in formulas (Arabic font, PDF and Word); Arabic-Indic
+      digits in formulas
+- [ ] Arabic school notation: Arabic variables and function names (جا، جتا، نها) in the
+      editor; fully right-to-left mirrored formulas (LuaLaTeX only)
 - [ ] Kashida justification (LuaLaTeX only)
 - [ ] Exact house styles of particular Arabic journals and universities
 - [ ] Arabic-Indic page numbers in Word (Word

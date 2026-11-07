@@ -383,7 +383,9 @@ impl<'a> Writer<'a> {
         if latex.is_empty() {
             return String::new();
         }
-        self.input.mathml.get(latex).and_then(|m| math::omml(m)).unwrap_or_else(|| math::fallback(latex))
+        // Numbers in formulas follow an Arabic document's Arabic-Indic digits, as in the PDF.
+        let indic = self.langs.main == Language::Arabic && self.langs.digits == Digits::ArabicIndic;
+        self.input.mathml.get(latex).and_then(|m| math::omml_with(m, indic)).unwrap_or_else(|| math::fallback(latex))
     }
 
     /// A paragraph; plain ones take the surrounding style (quote, table cell).

@@ -320,7 +320,7 @@ impl<'a> BodyWriter<'a> {
                 Inline::Text { text, marks } => s.push_str(&apply_marks(escape(text), marks)),
                 Inline::HardBreak => s.push_str("\\newline\n"),
                 Inline::InlineMath { attrs } => {
-                    let latex = clean_math(&attrs.latex);
+                    let latex = language::math(&clean_math(&attrs.latex), &self.ctx.langs);
                     if !latex.is_empty() {
                         s.push_str(&format!("${latex}$"));
                     }
@@ -447,7 +447,7 @@ impl<'a> BodyWriter<'a> {
             }
             Block::HorizontalRule => self.out.push_str("\\noindent\\rule{\\linewidth}{0.4pt}\n\n"),
             Block::Equation { attrs } => {
-                let latex = clean_math(&attrs.latex);
+                let latex = language::math(&clean_math(&attrs.latex), &self.ctx.langs);
                 let latex = latex.as_str();
                 if !latex.is_empty() {
                     // Multi-line equations arrive as an `aligned` block from the editor; inside

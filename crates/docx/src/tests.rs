@@ -272,5 +272,9 @@ fn write_samples() {
         let t = template("senior-design");
         let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml }).unwrap();
         std::fs::write(out.join("formulas.docx"), bytes).unwrap();
+        // The same formulas in an Arabic document with Arabic-Indic digits.
+        let t = template("arabic-thesis");
+        let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml }).unwrap();
+        std::fs::write(out.join("formulas-ar.docx"), bytes).unwrap();
     }
 }

@@ -176,6 +176,10 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   defence date in both calendars on its title and approval pages.
 - **Punctuation:** in Arabic text, typing `?` `,` `;` and `"` gives ؟ ، ؛ and «»;
   English and numbers keep their own marks ("ok?", "3,5"). Settings → Editor turns it off.
+- **Formulas:** Arabic letters and words typed into a formula (س + ص = ع, "حيث") are set
+  in the Arabic font, in the PDF and in Word; with Arabic-Indic digits, numbers in
+  formulas use them too (٣٫٥). Formulas still run left to right, and the editor shows
+  their digits as typed. Fully right-to-left notation (mirrored ∑ and √) isn't supported.
 - **Numbering:** appendices and second-level lists use abjad letters (الملحق ب، (ج)),
   in the editor, the PDF and Word; equation numbers sit on the left, at the end of the
   line.

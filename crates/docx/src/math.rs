@@ -7,6 +7,12 @@ use quick_xml::Reader;
 
 use crate::xml::esc;
 
+thread_local! {
+    /// Digits in formulas written Arabic-Indic (an Arabic document using ١٢٣), for
+    /// the conversion running on this thread.
+    static INDIC: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
 #[derive(Debug, Default)]
 struct Node {
     name: String,
@@ -91,6 +97,12 @@ fn local(name: &[u8]) -> String {
 
 /// OMML for a MathML formula (`<m:oMath>…</m:oMath>`), or `None` if it doesn't parse.
 pub fn omml(mathml: &str) -> Option<String> {
+    omml_with(mathml, false)
+}
+
+/// The same, with numbers in Arabic-Indic digits (`3.5` → `٣٫٥`) when `indic`.
+pub fn omml_with(mathml: &str, indic: bool) -> Option<String> {
+    INDIC.with(|c| c.set(indic));
     let root = parse(mathml)?;
     let mut out = String::from("<m:oMath>");
     out.push_str(&children(&root));
@@ -124,10 +136,14 @@ fn children(n: &Node) -> String {
     out
 }
 
-/// A math run: italic letters unless `plain`.
+/// A math run: italic letters unless `plain`. Arabic is set as normal right-to-left
+/// text in the document's Arabic font (math fonts have no Arabic letters).
 fn run(text: &str, plain: bool) -> String {
     if text.is_empty() {
         return String::new();
+    }
+    if text.chars().any(|c| ('\u{0600}'..='\u{06FF}').contains(&c)) {
+        return format!("<m:r><m:rPr><m:nor/></m:rPr><w:rPr><w:rtl/></w:rPr><m:t xml:space=\"preserve\">{}</m:t></m:r>", esc(text));
     }
     let sty = if plain { "<m:rPr><m:sty m:val=\"p\"/></m:rPr>" } else { "" };
     format!(
@@ -210,6 +226,18 @@ fn node(n: &Node) -> String {
                 _ => (c.get(1), c.get(2)),
             };
             nary(&c[0].all_text(), sub, sup, "subSup")
+        }
+        "mn" if INDIC.with(|c| c.get()) => {
+            let digits: String = n
+                .all_text()
+                .chars()
+                .map(|c| match c {
+                    '0'..='9' => char::from_u32(0x0660 + (c as u32 - '0' as u32)).unwrap_or(c),
+                    '.' => '\u{066B}',
+                    c => c,
+                })
+                .collect();
+            run(&digits, true)
         }
         "mn" | "mo" | "mtext" | "ms" => run(&n.all_text(), true),
         "mspace" => run(" ", true),
@@ -305,6 +333,11 @@ mod tests {
         assert!(body.contains("<m:e><m:r><m:t xml:space=\"preserve\">x</m:t></m:r></m:e></m:nary>") || body.contains(">x</m:t></m:r></m:e></m:nary><m:r>"), "body up to the relation: {body}");
         let hat = omml("<math><mover accent=\"true\"><mi>x</mi><mo>&#x005e;</mo></mover></math>").unwrap();
         assert!(hat.contains("<m:chr m:val=\"\u{0302}\"/>"), "{hat}");
+        // Arabic as right-to-left normal text; Arabic-Indic digits when asked.
+        let ar = omml_with("<math><mi>س</mi><mo>+</mo><mn>3.5</mn></math>", true).unwrap();
+        assert!(ar.contains("<m:nor/></m:rPr><w:rPr><w:rtl/></w:rPr><m:t xml:space=\"preserve\">س</m:t>"), "{ar}");
+        assert!(ar.contains(">٣٫٥</m:t>"), "{ar}");
+        assert!(omml("<math><mn>3.5</mn></math>").unwrap().contains(">3.5</m:t>"));
         assert!(omml("<math><mi>x</mi>").is_none() || omml("<math><mi>x</mi>").is_some(), "unbalanced input doesn't panic");
     }
 }
