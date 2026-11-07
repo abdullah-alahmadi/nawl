@@ -14,7 +14,7 @@ import type { Template } from "../bindings/Template";
 import type { FontChoice } from "../bindings/FontChoice";
 import type { TitleItem } from "../bindings/TitleItem";
 import type { AuthorInfo } from "../bindings/AuthorInfo";
-import { NumberInput, PlaceholderInput, Row, Toggle, issuesAt } from "./controls";
+import { NumberInput, PlaceholderInput, Row, Select, Toggle, issuesAt } from "./controls";
 import { AUTHOR_SUFFIXES, fieldPlaceholders, fieldUses, placeholderNames, type SectionProps } from "./common";
 import { TextStyleControls } from "./StyleSections";
 import { translate, useT, type MessageKey } from "../i18n";
@@ -98,6 +98,12 @@ function resolveText(text: string, metadata: api.Metadata): string {
     .replace(/\u0000/g, "{")
     .replace(/\u0001/g, "}");
 }
+
+/** A title-page image that shows a document's image field (`{logo}`). */
+const isFieldImage = (asset: string) => /^\{[a-z][a-z0-9_]*\}$/.test(asset);
+
+/** The field's label in brackets, as the designer shows empty fields. */
+const fieldImageLabel = (t: Template, asset: string) => `[${t.fields.find((f) => `{${f.id}}` === asset)?.label ?? asset}]`;
 
 /** Loads template images as object URLs (PDF images can't be shown; they get a box). */
 function useAssetUrls(assets: string[], templatePath: string | null) {
@@ -300,7 +306,8 @@ export function TitlePageCanvas({
   };
 
   const assets = useMemo(
-    () => items.flatMap((i) => (i.content.type === "image" ? [i.content.asset] : [])),
+    // An image field's picture is the document's, not a template file.
+    () => items.flatMap((i) => (i.content.type === "image" && !isFieldImage(i.content.asset) ? [i.content.asset] : [])),
     [items],
   );
 
@@ -720,6 +727,7 @@ export function TitlePageCanvas({
                   if (el) sizes.current.set(i, { w: el.offsetWidth / scale, h: el.offsetHeight / scale });
                 }}
                 imageUrl={it.content.type === "image" ? assetUrls[it.content.asset] : undefined}
+                imageLabel={it.content.type === "image" && isFieldImage(it.content.asset) ? fieldImageLabel(t, it.content.asset) : undefined}
                 onPointerDown={(e, mode) => onPointerDown(e, i, mode)}
               />
             ))}
@@ -838,6 +846,7 @@ function CanvasItem({
   metadata,
   stretch,
   imageUrl,
+  imageLabel,
   onPointerDown,
   onMeasure,
 }: {
@@ -849,6 +858,8 @@ function CanvasItem({
   hasError: boolean;
   metadata: api.Metadata;
   imageUrl?: string;
+  /** For an image field: what the box shows ("[University logo]"). */
+  imageLabel?: string;
   onPointerDown: (e: React.PointerEvent, mode: "move" | "resize") => void;
 }) {
   const tr = useT();
@@ -888,7 +899,7 @@ function CanvasItem({
       <img src={imageUrl} alt={c.asset} draggable={false} style={{ width: "100%", display: "block" }} />
     ) : (
       <div className="tp-image-missing" style={{ height: c.widthMm * scale * 0.6 }}>
-        {c.asset}
+        {imageLabel ?? c.asset}
       </div>
     );
   } else {
@@ -961,6 +972,7 @@ function ItemProperties({
 }) {
   const tr = useT();
   const c = item.content;
+  const imageFields = t.fields.filter((f) => f.kind === "image");
   const kind = tr(c.type === "text" ? "designerContent.kindText" : c.type === "image" ? "designerContent.kindImage" : "designerContent.kindLine");
   const centre = () =>
     set((it) => {
@@ -1027,6 +1039,18 @@ function ItemProperties({
 
       {c.type === "image" && (
         <>
+          {imageFields.length > 0 && (
+            <Row label={tr("designerContent.imageSource")} hint={tr("designerContent.imageSourceHint")}>
+              <Select
+                value={isFieldImage(c.asset) ? c.asset : "file"}
+                options={[
+                  { value: "file", label: tr("designerContent.imageFile") },
+                  ...imageFields.map((f) => ({ value: `{${f.id}}`, label: f.label })),
+                ]}
+                onChange={(v) => (v === "file" ? onReplaceImage() : set((it) => void (it.content.type === "image" && (it.content.asset = v))))}
+              />
+            </Row>
+          )}
           <Row label={tr("designerContent.kindImage")} issues={issuesAt(issues, `${path}.content.asset`)}>
             <span className="d-inline">
               <code>{c.asset}</code>

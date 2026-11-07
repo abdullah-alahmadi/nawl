@@ -386,6 +386,12 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
         w!(o, "  {new_page}\\pagenumbering{{{}}}\\let\\ps@plain\\ps@texloomchapter\\pagestyle{{texloommain}}\\tl@marks}}", page_numbers(t.structure.main_page_numbers));
     }
     w!(o, "\\AtBeginDocument{{\\pagestyle{{texloommain}}\\tl@marks}}");
+    let covers = chapters && t.structure.cover_pages;
+    if covers {
+        // From the main text on, chapters (and the unnumbered reference list) open on
+        // a cover page; the front matter's pages keep their plain headings.
+        w!(o, "\\g@addto@macro\\texloommainmatter{{{}}}", cover_format(&t.headings.levels[0], cmds[0], &t.headings.levels[0].label, &langs));
+    }
     w!(o);
 
     // ---- bibliography (BibTeX, run automatically by the TeX engine)
@@ -416,7 +422,23 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     // ---- appendices: lettered, with their own label ("Appendix A")
     w!(o, "% Appendices");
     let top_style = &t.headings.levels[0];
-    w!(o, "\\newcommand\\texloomappendix{{{new_page}\\appendix{}}}", title_format(top_style, cmds[0], &t.structure.appendix_label, &langs));
+    if covers {
+        // A cover page for the appendices as a whole, then each appendix on its own cover.
+        let title = match langs.main {
+            texloom_core::Language::Arabic => "الملاحق",
+            texloom_core::Language::English => "Appendices",
+        };
+        w!(
+            o,
+            "\\newcommand\\texloomappendix{{{new_page}\\appendix\\thispagestyle{{texloomchapter}}\\vspace*{{\\fill}}{{\\normalfont{}\\centering {}\\par}}\\vspace*{{\\fill}}\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}{new_page}{}}}",
+            font_commands(&top_style.text),
+            if top_style.text.uppercase { format!("\\MakeUppercase{{{}}}", tx(title)) } else { tx(title) },
+            tx(title),
+            cover_format(top_style, cmds[0], &t.structure.appendix_label, &langs)
+        );
+    } else {
+        w!(o, "\\newcommand\\texloomappendix{{{new_page}\\appendix{}}}", title_format(top_style, cmds[0], &t.structure.appendix_label, &langs));
+    }
     w!(o);
 
     // hyperref goes last, as it patches many of the packages above.
@@ -466,6 +488,14 @@ fn title_format(style: &texloom_core::HeadingStyle, cmd: &str, label_template: &
         "\\titleformat{{\\{cmd}}}[{shape}]{{\\normalfont{font}{fill}}}{{{label}}}{{{}pt}}{{{before}}}\n\\titleformat{{name=\\{cmd},numberless}}[block]{{\\normalfont{font}{fill}}}{{}}{{0pt}}{{{before}}}",
         num(style.label_gap_pt)
     )
+}
+
+/// `\titleformat` for chapters that open on a cover page: the heading centred on a
+/// page of its own, the text starting on the next one.
+fn cover_format(style: &texloom_core::HeadingStyle, cmd: &str, label_template: &str, langs: &Languages) -> String {
+    let (numbered, numberless) = title_format(style, cmd, label_template, langs).split_once('\n').map(|(a, b)| (a.to_string(), b.to_string())).unwrap_or_default();
+    let cover = |f: String| f.replacen("{\\normalfont", "{\\vspace*{\\fill}\\normalfont", 1) + "[\\vspace*{\\fill}\\clearpage]";
+    format!("{}{}", cover(numbered), cover(numberless))
 }
 
 /// The pdfLaTeX package for a TeX Gyre font (each sets only its own family).
@@ -666,6 +696,12 @@ fn title_item(item: &texloom_core::TitleItem, langs: &Languages, at: &dyn Fn(f32
                 at(item.x_mm, item.y_mm)
             )
         }
+        // A document's image field (a logo): drawn when the author has picked one.
+        TitleContent::Image { asset, width_mm } if let Some(id) = texloom_core::image_field(asset) => format!(
+            "\\ifcsname tl@f@{id}\\endcsname\\node[anchor={anchor},inner sep=0pt] at {} {{\\includegraphics[width={}mm]{{\\csname tl@f@{id}\\endcsname}}}};\\fi",
+            at(item.x_mm, item.y_mm),
+            num(*width_mm)
+        ),
         TitleContent::Image { asset, width_mm } => format!(
             "\\node[anchor={anchor},inner sep=0pt] at {} {{\\includegraphics[width={}mm]{{{asset}}}}};",
             at(item.x_mm, item.y_mm),

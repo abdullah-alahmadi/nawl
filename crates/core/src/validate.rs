@@ -257,6 +257,15 @@ impl Template {
                 }
                 TitleContent::Image { asset, width_mm } => {
                     c.positive(&format!("{p}.content.widthMm"), *width_mm);
+                    if let Some(id) = crate::template::image_field(asset) {
+                        if !t.field(id).is_some_and(|f| f.kind == FieldKind::Image) {
+                            c.error(format!("{p}.content.asset"), crate::tr!(
+                                "{{{id}}} is not an image field of this template",
+                                "{{{id}}} ليس حقل صورة في هذا القالب"
+                            ));
+                        }
+                        continue;
+                    }
                     let safe = !asset.is_empty()
                         && !asset.starts_with('/')
                         && !asset.contains('\\')

@@ -109,7 +109,10 @@ pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Gene
         .placed_items()
         .into_iter()
         .filter_map(|(_, i)| match &i.content {
-            TitleContent::Image { asset, .. } if template.base.is_none() && template.kind == DocumentKind::Article => {
+            // An image field's picture comes from the document folder (in `figures`).
+            TitleContent::Image { asset, .. }
+                if template.base.is_none() && template.kind == DocumentKind::Article && texloom_core::image_field(asset).is_none() =>
+            {
                 Some(asset.clone())
             }
             _ => None,

@@ -1,0 +1,1170 @@
+{
+  "meta": {
+    "id": "majmaah-engineering",
+    "name": "Majmaah University Engineering Report",
+    "description": "Graduation project report of the College of Engineering, Majmaah University (Senior Design Committee requirements, October 2025): cover and committee pages, English and Arabic abstracts, chapter cover pages, APA 7 references.",
+    "version": "1.0.0"
+  },
+  "language": {
+    "main": "english",
+    "other": "arabic",
+    "digits": "western"
+  },
+  "page": {
+    "paper": {
+      "kind": "a4"
+    },
+    "margins": {
+      "topMm": 25,
+      "bottomMm": 25,
+      "innerMm": 30,
+      "outerMm": 20
+    },
+    "twoSided": false,
+    "bindingOffsetMm": 0,
+    "lineSpacing": {
+      "kind": "oneHalf"
+    },
+    "paragraph": {
+      "indentMm": 0,
+      "spacingPt": 6
+    }
+  },
+  "fonts": {
+    "baseSizePt": 12,
+    "main": {
+      "kind": "builtin",
+      "font": "termes"
+    },
+    "sans": {
+      "kind": "builtin",
+      "font": "heros"
+    },
+    "mono": {
+      "kind": "builtin",
+      "font": "latinModern"
+    }
+  },
+  "structure": {
+    "topLevel": "chapter",
+    "numberedDepth": 3,
+    "tocDepth": 3,
+    "frontMatterPageNumbers": "upperRoman",
+    "mainPageNumbers": "arabic",
+    "perChapterNumbering": true,
+    "appendixLabel": "Appendix {n}",
+    "coverPages": true
+  },
+  "headings": {
+    "levels": [
+      {
+        "text": {
+          "sizePt": 14,
+          "bold": true,
+          "align": "center"
+        },
+        "layout": "display",
+        "label": "Chapter {n}",
+        "labelGapPt": 12,
+        "spaceBeforePt": 0,
+        "spaceAfterPt": 0
+      },
+      {
+        "text": {
+          "sizePt": 14,
+          "bold": true
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 18,
+        "spaceAfterPt": 8
+      },
+      {
+        "text": {
+          "sizePt": 12,
+          "bold": true
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 14,
+        "spaceAfterPt": 6
+      },
+      {
+        "text": {
+          "sizePt": 12,
+          "bold": true,
+          "italic": true
+        },
+        "layout": "inline",
+        "label": "{n}",
+        "labelGapPt": 10,
+        "spaceBeforePt": 12,
+        "spaceAfterPt": 4
+      }
+    ]
+  },
+  "headerFooter": {
+    "frontMatter": {
+      "footer": {
+        "center": "{page}"
+      }
+    },
+    "main": {
+      "footer": {
+        "center": "{page}"
+      }
+    },
+    "chapterOpening": {
+      "footer": {
+        "center": "{page}"
+      }
+    }
+  },
+  "captions": {
+    "figureLabel": "Figure",
+    "tableLabel": "Table",
+    "separator": "colon",
+    "labelBold": true,
+    "size": "footnote",
+    "align": "center"
+  },
+  "bibliography": {
+    "style": "authorYear",
+    "title": "References",
+    "inToc": true
+  },
+  "skeleton": [
+    {
+      "title": "Introduction",
+      "required": true
+    },
+    {
+      "title": "Case Study Analysis",
+      "required": true
+    },
+    {
+      "title": "Standards and Guidelines",
+      "required": true
+    },
+    {
+      "title": "Site Analysis and Conceptual Design",
+      "required": true
+    },
+    {
+      "title": "Conclusion and Recommendations",
+      "required": true
+    }
+  ],
+  "titlePage": {
+    "items": [
+      {
+        "xMm": 110,
+        "yMm": 18,
+        "anchor": "top",
+        "content": {
+          "type": "image",
+          "asset": "{logo}",
+          "widthMm": 32
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 55,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "Majmaah University",
+          "widthMm": 170,
+          "style": {
+            "sizePt": 18,
+            "align": "center",
+            "bold": true
+          }
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 64,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "College of Engineering",
+          "widthMm": 170,
+          "style": {
+            "sizePt": 15,
+            "align": "center",
+            "bold": true
+          }
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 72,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{department}",
+          "widthMm": 170,
+          "style": {
+            "sizePt": 14,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 84,
+        "anchor": "top",
+        "content": {
+          "type": "rule",
+          "lengthMm": 120,
+          "thicknessPt": 0.8
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 94,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{title}",
+          "widthMm": 160,
+          "style": {
+            "sizePt": 20,
+            "align": "center",
+            "bold": true
+          }
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 126,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "Graduation Project Report",
+          "widthMm": 170,
+          "style": {
+            "sizePt": 14,
+            "align": "center",
+            "italic": true
+          }
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 134,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{course}",
+          "widthMm": 170,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 150,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "Prepared by",
+          "widthMm": 170,
+          "style": {
+            "sizePt": 12,
+            "align": "center",
+            "italic": true
+          }
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 158,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{students}",
+          "widthMm": 170,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 65,
+        "yMm": 205,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "Supervisor",
+          "widthMm": 80,
+          "style": {
+            "sizePt": 12,
+            "align": "center",
+            "italic": true
+          }
+        }
+      },
+      {
+        "xMm": 65,
+        "yMm": 212,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{supervisor}",
+          "widthMm": 80,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 155,
+        "yMm": 205,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "Examiners",
+          "widthMm": 80,
+          "style": {
+            "sizePt": 12,
+            "align": "center",
+            "italic": true
+          }
+        }
+      },
+      {
+        "xMm": 155,
+        "yMm": 212,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{examiner_1}",
+          "widthMm": 80,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 155,
+        "yMm": 218.5,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{examiner_2}",
+          "widthMm": 80,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      },
+      {
+        "xMm": 110,
+        "yMm": 255,
+        "anchor": "top",
+        "content": {
+          "type": "text",
+          "text": "{semester}",
+          "widthMm": 170,
+          "style": {
+            "sizePt": 13,
+            "align": "center"
+          }
+        }
+      }
+    ]
+  },
+  "fields": [
+    {
+      "id": "title",
+      "label": "Project title",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "department",
+      "label": "Department (e.g. Department of Architecture)",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "course",
+      "label": "Course (e.g. ARC 499 – Senior Design 2)",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "semester",
+      "label": "Semester and academic year",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "students",
+      "label": "Students (name – ID, one per line)",
+      "kind": "list",
+      "required": true
+    },
+    {
+      "id": "supervisor",
+      "label": "Supervisor",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "co_supervisor",
+      "label": "Co-supervisor",
+      "kind": "text"
+    },
+    {
+      "id": "examiner_1",
+      "label": "First examiner",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "examiner_2",
+      "label": "Second examiner",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "head_of_department",
+      "label": "Head of department",
+      "kind": "text"
+    },
+    {
+      "id": "logo",
+      "label": "University logo",
+      "kind": "image"
+    },
+    {
+      "id": "abstract",
+      "label": "Abstract (250–300 words, then the keywords)",
+      "kind": "paragraphs",
+      "required": true
+    },
+    {
+      "id": "abstract_ar",
+      "label": "Arabic abstract (250–300 words, then the keywords)",
+      "kind": "paragraphs",
+      "required": true
+    },
+    {
+      "id": "acknowledgements",
+      "label": "Acknowledgements",
+      "kind": "paragraphs"
+    },
+    {
+      "id": "abbreviations",
+      "label": "Abbreviations and symbols (one per line)",
+      "kind": "paragraphs"
+    }
+  ],
+  "frontMatter": [
+    {
+      "type": "titlePage"
+    },
+    {
+      "type": "fixedPage",
+      "title": "Examiners Committee",
+      "items": [
+        {
+          "xMm": 110,
+          "yMm": 30,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "Examiners Committee",
+            "widthMm": 170,
+            "style": {
+              "sizePt": 16,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 110,
+          "yMm": 45,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "This graduation project report, entitled “{title}”, was examined and approved by the committee below in partial fulfilment of the requirements of {course}, {department}, College of Engineering, Majmaah University.",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 12,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 85,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Supervisor",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 11,
+              "align": "left",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 91,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "{supervisor}",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 12,
+              "align": "left",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 91,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Signature:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 96,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 100,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Date:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 105,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 120,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Examiner",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 11,
+              "align": "left",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 126,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "{examiner_1}",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 12,
+              "align": "left",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 126,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Signature:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 131,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 135,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Date:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 140,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 155,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Examiner",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 11,
+              "align": "left",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 161,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "{examiner_2}",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 12,
+              "align": "left",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 161,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Signature:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 166,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 170,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Date:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 175,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 205,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Head of Department",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 11,
+              "align": "left",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 211,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "{head_of_department}",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 12,
+              "align": "left",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 211,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Signature:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 216,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 220,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Date:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 225,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        }
+      ],
+      "inToc": true
+    },
+    {
+      "type": "fixedPage",
+      "title": "Supervisors Committee",
+      "items": [
+        {
+          "xMm": 110,
+          "yMm": 30,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "Supervisors Committee",
+            "widthMm": 170,
+            "style": {
+              "sizePt": 16,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 110,
+          "yMm": 45,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "This graduation project was carried out under the supervision of the committee below.",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 12,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 75,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Supervisor",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 11,
+              "align": "left",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 81,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "{supervisor}",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 12,
+              "align": "left",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 81,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Signature:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 86,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 90,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Date:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 95,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 110,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Co-supervisor",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 11,
+              "align": "left",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 116,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "{co_supervisor}",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 12,
+              "align": "left",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 116,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Signature:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 121,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 125,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Date:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 143,
+          "yMm": 130,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 47,
+            "thicknessPt": 0.4
+          }
+        }
+      ],
+      "inToc": true
+    },
+    {
+      "type": "fieldPage",
+      "title": "Abstract",
+      "field": "abstract",
+      "inToc": true
+    },
+    {
+      "type": "fieldPage",
+      "title": "المستخلص",
+      "field": "abstract_ar",
+      "inToc": true,
+      "language": "arabic"
+    },
+    {
+      "type": "fieldPage",
+      "title": "Acknowledgements",
+      "field": "acknowledgements",
+      "inToc": true
+    },
+    {
+      "type": "fixedPage",
+      "title": "Declaration of Originality",
+      "items": [
+        {
+          "xMm": 110,
+          "yMm": 30,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "Declaration of Originality and Academic Integrity",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 16,
+              "align": "center",
+              "bold": true
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 48,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "We, the undersigned, declare that this report, entitled “{title}”, is our own work and has not been submitted, in whole or in part, for any other course or degree. Every source we used is acknowledged and cited in APA 7th style, figures and tables taken or adapted from other works state their source, and any use of generative AI tools is disclosed. We understand that a breach of academic integrity is dealt with under Majmaah University's regulations.",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 12,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 112,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Student",
+            "widthMm": 80,
+            "style": {
+              "sizePt": 11,
+              "align": "left",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 120,
+          "yMm": 112,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Signature",
+            "widthMm": 70,
+            "style": {
+              "sizePt": 11,
+              "align": "left",
+              "italic": true
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 119,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 160,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 123,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "{students}",
+            "widthMm": 85,
+            "style": {
+              "sizePt": 12,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 30,
+          "yMm": 200,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "Date:",
+            "widthMm": 25,
+            "style": {
+              "sizePt": 11,
+              "align": "left"
+            }
+          }
+        },
+        {
+          "xMm": 45,
+          "yMm": 205,
+          "anchor": "topLeft",
+          "content": {
+            "type": "rule",
+            "lengthMm": 50,
+            "thicknessPt": 0.4
+          }
+        }
+      ],
+      "inToc": true
+    },
+    {
+      "type": "tableOfContents",
+      "title": "Table of Contents"
+    },
+    {
+      "type": "listOfFigures",
+      "title": "List of Figures"
+    },
+    {
+      "type": "listOfTables",
+      "title": "List of Tables"
+    },
+    {
+      "type": "fieldPage",
+      "title": "List of Abbreviations and Symbols",
+      "field": "abbreviations",
+      "inToc": true
+    }
+  ]
+}

@@ -114,19 +114,36 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
     let style = style_of(t);
     let split = t.bibliography.split_by_language;
     let refs = references(doc, style, langs.main, split);
+    // Numbers in citations follow the document's digits. LaTeX writes a cited
+    // entry's number to the .aux in Western digits whatever the language, so with
+    // Arabic-Indic digits each entry gets its number as its label.
+    let indic = langs.local_digits("0") != "0";
     let item = |r: &Reference| {
-        // natbib reads "Author(Year)"; the authors keep their direction in the text
-        // the citation appears in (the document's language).
-        let label = r
-            .label
-            .as_ref()
-            .map(|l| {
+        let label = match &r.label {
+            // natbib reads "Author(Year)".
+            Some(l) => {
                 let (who, year) = l.rsplit_once('(').map(|(w, y)| (w, format!("({y}"))).unwrap_or((l.as_str(), String::new()));
-                format!("[{}{}]", language::text(who, langs.main, langs), crate::latex::escape(&year))
-            })
-            .unwrap_or_default();
+                let who = if r.lang == langs.main {
+                    language::text(who, langs.main, langs)
+                } else {
+                    // Authors in the other language are one run in it, from the
+                    // first letter to the end ("Box et al." with its period).
+                    format!("\\text{}{{{}}}", r.lang.polyglossia(), language::text(who, r.lang, langs))
+                };
+                format!("[{who}{}]", crate::latex::escape(&langs.local_digits(&year)))
+            }
+            None if indic => {
+                let n = refs.iter().position(|x| x.key == r.key).unwrap_or(0) + 1;
+                format!("[{}]", langs.local_digits(&n.to_string()))
+            }
+            None => String::new(),
+        };
         let body = if r.lang == langs.main {
             r.latex.clone()
+        } else if langs.main.rtl() && !r.lang.rtl() {
+            // A left-to-right entry in a right-to-left list: its own paragraph
+            // direction, so its lines start on the left with the hanging indent.
+            format!("\\begin{{{}}}\\tl@ltrentry {}\\par\\end{{{}}}", r.lang.polyglossia(), r.latex, r.lang.polyglossia())
         } else {
             // An entry in the other language keeps its own direction.
             format!("\\text{}{{{}}}", r.lang.polyglossia(), r.latex)
@@ -134,6 +151,13 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
         format!("\\bibitem{label}{{{}}} {body}\n", r.key)
     };
     let mut o = String::from("% Reference list written by Texloom: BibTeX can't set entries in two directions\n\\makeatletter\n");
+    if langs.main.rtl() {
+        // bidi (XeTeX) keeps a right-to-left list's indents mirrored in a
+        // left-to-right paragraph: the hang would be on the right and the first line
+        // would stick out on the left. Shifting the lines by the list's margins puts
+        // them back. (LuaTeX's paragraph directions place the lines themselves.)
+        o.push_str("\\def\\tl@ltrentry{\\ifdefined\\XeTeXrevision\\leftskip\\dimexpr\\leftmargin-\\rightmargin\\relax\\rightskip-\\leftskip\\fi}\n");
+    }
     let (own, other) = split_by_language(&refs, langs.main);
     if split && !own.is_empty() && !other.is_empty() {
         // Under the list's heading, a list for each language with its own heading;
@@ -578,8 +602,64 @@ mod tests {
         let t: Template = serde_json::from_str(include_str!("../../../templates/senior-design/template.json")).unwrap();
         let arabic = Languages { main: Language::Arabic, others: vec![Language::English], digits: Default::default() };
         let p = preamble(&t, &doc(), &arabic);
-        assert!(p.contains("\\bibitem{smith2021} \\textenglish{J. Smith"), "{p}");
+        assert!(p.contains("\\bibitem{smith2021} \\begin{english}\\tl@ltrentry J. Smith"), "{p}");
         assert!(p.contains("\\bibitem{ahmadi2020} عبدالله الأحمدي"));
         assert!(p.contains("\\renewcommand\\bibliography[1]{\\tl@reflist}"));
+    }
+
+    fn indic() -> Languages {
+        Languages { main: Language::Arabic, others: vec![Language::English], digits: texloom_core::Digits::ArabicIndic }
+    }
+
+    #[test]
+    fn author_year_labels_in_the_document_digits_with_whole_english_authors() {
+        let t: Template = serde_json::from_str(include_str!("../../../templates/arabic-article/template.json")).unwrap();
+        let p = preamble(&t, &doc(), &indic());
+        // The year in Arabic-Indic digits; "et al." with its period inside the English run.
+        assert!(p.contains("\\bibitem[\\textenglish{Smith et al.}(٢٠٢١)]{smith2021}"), "{p}");
+        assert!(p.contains("\\bibitem[الأحمدي وعلي(٢٠٢٠)]{ahmadi2020}"), "{p}");
+        // Western digits: years as written.
+        let western = Languages { digits: texloom_core::Digits::Western, ..indic() };
+        assert!(preamble(&t, &doc(), &western).contains("\\bibitem[\\textenglish{Smith et al.}(2021)]{smith2021}"));
+    }
+
+    #[test]
+    fn english_entries_in_a_right_to_left_list_are_left_to_right_paragraphs() {
+        let t: Template = serde_json::from_str(include_str!("../../../templates/arabic-article/template.json")).unwrap();
+        let p = preamble(&t, &doc(), &indic());
+        assert!(p.contains("{smith2021} \\begin{english}\\tl@ltrentry Smith, J., Lee, M.-A., \\& Brown, T. (2021)."), "{p}");
+        assert!(p.contains("\\url{https://doi.org/10.1109/x.2021}\\par\\end{english}\n"), "the paragraph ends inside the environment: {p}");
+        assert!(p.contains("\\def\\tl@ltrentry{\\ifdefined\\XeTeXrevision\\leftskip\\dimexpr\\leftmargin-\\rightmargin"));
+        // Arabic entries stay as they are.
+        assert!(p.contains("{ahmadi2020} عبدالله الأحمدي"), "{p}");
+        // An English document's list is left to right: Arabic entries are runs in it.
+        let mixed = Languages { main: Language::English, others: vec![Language::Arabic], digits: Default::default() };
+        let p = preamble(&t, &doc(), &mixed);
+        assert!(p.contains("{ahmadi2020} \\textarabic{"), "{p}");
+        assert!(!p.contains("tl@ltrentry"), "{p}");
+    }
+
+    #[test]
+    fn numbered_citations_in_the_document_digits() {
+        let t: Template = serde_json::from_str(include_str!("../../../templates/senior-design/template.json")).unwrap();
+        let p = preamble(&t, &doc(), &indic());
+        // Each entry's number as its label, so \cite writes it in Arabic-Indic digits.
+        assert!(p.contains("\\bibitem[١]{smith2021} \\begin{english}\\tl@ltrentry J. Smith"), "{p}");
+        assert!(p.contains("\\bibitem[٢]{ahmadi2020} عبدالله"), "{p}");
+        assert!(p.contains("\\bibitem[٣]{lora2019}"), "{p}");
+        // Western digits: LaTeX numbers them itself.
+        let western = Languages { digits: texloom_core::Digits::Western, ..indic() };
+        assert!(preamble(&t, &doc(), &western).contains("\\bibitem{smith2021} "));
+    }
+
+    #[test]
+    fn split_lists_number_on_in_the_document_digits() {
+        let mut t: Template = serde_json::from_str(include_str!("../../../templates/senior-design/template.json")).unwrap();
+        t.bibliography.split_by_language = true;
+        let p = preamble(&t, &doc(), &indic());
+        // Arabic entries first, then the others; numbers run on.
+        assert!(p.contains("\\bibitem[١]{ahmadi2020}"), "{p}");
+        assert!(p.contains("\\bibitem[٢]{smith2021}"), "{p}");
+        assert!(p.contains("\\bibitem[٣]{lora2019}"), "{p}");
     }
 }

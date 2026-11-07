@@ -83,6 +83,21 @@ fn arabic_article_exports() {
 }
 
 #[test]
+fn author_year_citations_in_arabic() {
+    let t = template("arabic-article");
+    let doc = example("arabic-load-forecasting.loom");
+    let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap();
+    let d = &unzip(&bytes)["word/document.xml"];
+    // Years in the document's Arabic-Indic digits, as the numbered styles' numbers.
+    assert!(d.contains("، ٢٠١٦)"), "Hong and Fan, 2016");
+    assert!(!d.contains("، 2016)"));
+    // A left-to-right mark keeps the period of "et al." after "al".
+    assert!(d.contains("(Box et al.\u{200E}"), "Box et al.");
+    // English entries are left-to-right paragraphs.
+    assert!(d.contains("<w:bidi w:val=\"0\"/></w:pPr><w:r><w:rPr></w:rPr><w:t xml:space=\"preserve\">Hochreiter, S."), "Hochreiter");
+}
+
+#[test]
 fn english_report_with_merged_cells_and_crop() {
     let t = template("senior-design");
     let mut doc = example("senior-design-report.loom");
@@ -328,4 +343,20 @@ fn write_samples() {
         let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml, font: &|_| None }).unwrap();
         std::fs::write(out.join("formulas-ar.docx"), bytes).unwrap();
     }
+}
+
+#[test]
+fn university_report_has_cover_pages_and_logo() {
+    let t = template("majmaah-engineering");
+    let doc = example("majmaah-report.loom");
+    let parts = unzip(&write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
+    assert_well_formed(&parts);
+    let body = &parts["word/document.xml"];
+    // Five chapters, the references and the appendices each open on a cover: the
+    // heading lower down the page, then a page break.
+    let cover = format!("<w:spacing w:before=\"{}\"/><w:jc w:val=\"center\"/>", xml::twips(85.0));
+    assert_eq!(body.matches(&cover).count(), 8, "covers");
+    assert!(body.contains("Appendices"));
+    // The logo the author picked (an image field) is on the cover.
+    assert!(parts.keys().any(|k| k.starts_with("word/media/")), "no logo picture");
 }

@@ -46,6 +46,16 @@ impl Languages {
         self.main == Language::Arabic || self.others.contains(&Language::Arabic)
     }
 
+    /// A number Texloom writes as text (a citation's year or number) in the
+    /// document's digits: Arabic-Indic in an Arabic document that uses them, as
+    /// polyglossia writes page and heading numbers ("2016" → "٢٠١٦").
+    pub fn local_digits(&self, s: &str) -> String {
+        if self.main != Language::Arabic || self.digits != Digits::ArabicIndic {
+            return s.to_string();
+        }
+        s.chars().map(|c| c.to_digit(10).filter(|_| c.is_ascii_digit()).and_then(|n| char::from_u32(0x0660 + n)).unwrap_or(c)).collect()
+    }
+
     /// English only: nothing to set up, the output stays as it always was.
     pub fn english_only(&self) -> bool {
         self.main == Language::English && self.others.is_empty()
@@ -551,6 +561,15 @@ mod tests {
         assert_eq!(math("x^2 + 3.5", &western), "x^2 + 3.5", "Western digits: unchanged");
         let english = Languages { main: Language::English, others: vec![], digits: Default::default() };
         assert_eq!(math("\\int_0^1 f(x)\\,dx", &english), "\\int_0^1 f(x)\\,dx");
+    }
+
+    #[test]
+    fn numbers_in_the_document_digits() {
+        assert_eq!(arabic_doc().local_digits("(2016a)"), "(٢٠١٦a)");
+        let western = Languages { digits: Digits::Western, ..arabic_doc() };
+        assert_eq!(western.local_digits("2016"), "2016");
+        let english = Languages { main: Language::English, others: vec![Language::Arabic], digits: Digits::ArabicIndic };
+        assert_eq!(english.local_digits("2016"), "2016", "English documents keep Western digits");
     }
 
     #[test]

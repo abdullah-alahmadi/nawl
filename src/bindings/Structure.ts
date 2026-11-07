@@ -23,4 +23,10 @@ perChapterNumbering: boolean,
 /**
  * Label for appendix chapters (or top-level sections); `{n}` is the letter.
  */
-appendixLabel: string, };
+appendixLabel: string, 
+/**
+ * With chapters: each chapter opens on a cover page of its own (its number and
+ * title, centred), and so do the reference list and the appendices, as some
+ * university reports require.
+ */
+coverPages?: boolean, };

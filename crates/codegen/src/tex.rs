@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use texloom_core::{
     walk_blocks, BibStyle, Block, Caption, DocumentKind, Document, FieldKind, FieldValue, Inline, ListItem, Mark,
-    SlideBoxKind, TableFigurePart, TableRow, TargetKind, Template, TopLevel,
+    SlideBoxKind, TableFigurePart, TableRow, TargetKind, Template, TitleContent, TopLevel,
 };
 
 use crate::cls::heading_commands;
@@ -46,8 +46,16 @@ pub fn document_to_tex_mapped(t: &Template, doc: &Document) -> (String, Vec<u32>
     o.push('\n');
 
     for f in &t.fields {
-        // Images (a logo) are used by path, not written as text.
+        // Images (a logo) are used by path, not written as text: the path, for a
+        // title-page image that shows the field.
         if f.kind == FieldKind::Image {
+            let shown = t.placed_items().iter().any(|(_, i)| matches!(&i.content, TitleContent::Image { asset, .. } if texloom_core::image_field(asset) == Some(f.id.as_str())));
+            if let Some(FieldValue::Text(p)) = doc.metadata.get(&f.id)
+                && shown
+                && crate::publisher::is_safe_path(p.trim())
+            {
+                o.push_str(&format!("\\texloomfield{{{}}}{{{}}}\n", f.id, p.trim()));
+            }
             continue;
         }
         let value = doc.metadata.get(&f.id).filter(|v| !v.is_empty());

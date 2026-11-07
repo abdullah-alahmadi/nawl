@@ -270,7 +270,11 @@ impl<'a> Writer<'a> {
                 (Some(l), BibStyle::AuthorYear) => {
                     let (who, year) = l.rsplit_once('(').map(|(w, y)| (w.to_string(), y.trim_end_matches(')').to_string())).unwrap_or((l.clone(), String::new()));
                     let sep = if langs.main.rtl() { "، " } else { ", " };
-                    format!("{who}{sep}{year}")
+                    // Left-to-right authors in right-to-left text end with a
+                    // left-to-right mark, so the period of "et al." stays after "al"
+                    // (between "al" and the Arabic comma, bidi would put it before "Box").
+                    let mark = if langs.main.rtl() && !r.lang.rtl() { "\u{200E}" } else { "" };
+                    format!("{who}{mark}{sep}{}", local_digits(&year, langs.digits))
                 }
                 _ => local_digits(&(i + 1).to_string(), langs.digits),
             };
@@ -429,6 +433,18 @@ impl<'a> Writer<'a> {
         "<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>".into()
     }
 
+    /// Chapters open on cover pages (`structure.coverPages`).
+    fn covers(&self) -> bool {
+        self.t.structure.cover_pages && self.t.structure.top_level == TopLevel::Chapter
+    }
+
+    /// A heading on a cover page of its own: about a third down the page, the text
+    /// starting on the next page.
+    fn cover(&self, style: &str, rtl: bool, runs: &str) -> String {
+        let pp = Pp { style: Some(style.to_string()), bidi: self.bidi(rtl), before: Some(twips(85.0)), jc: Some("center"), ..Default::default() };
+        format!("{}{}", self.para(pp, runs), self.page_break())
+    }
+
     /// The direction of text: that of its first letter.
     fn text_is_rtl(&self, s: &str) -> bool {
         s.chars().find(|c| c.is_alphabetic()).map_or(self.rtl, is_arabic)
@@ -468,7 +484,12 @@ impl<'a> Writer<'a> {
         self.bibliography_done = true;
         let title = self.t.bibliography.title.clone();
         let style = if self.t.bibliography.in_toc { "Heading1" } else { "FrontHeading" };
-        o.push_str(&self.para_dir(Some(style), self.text_is_rtl(&title), &self.text_runs(&title, &Rp::default())));
+        let title_runs = self.text_runs(&title, &Rp::default());
+        if self.covers() {
+            o.push_str(&self.cover(style, self.text_is_rtl(&title), &title_runs));
+        } else {
+            o.push_str(&self.para_dir(Some(style), self.text_is_rtl(&title), &title_runs));
+        }
         let numbered = refs::style_of(self.t) != BibStyle::AuthorYear;
         let references = self.references.clone();
         // Two lists (Arabic theses): entries in the document's language, then the
@@ -521,7 +542,12 @@ impl<'a> Writer<'a> {
                     Some(l) => format!("{}{text}", self.text_runs(&format!("{l}  "), &Rp::default())),
                     None => text,
                 };
-                o.push_str(&self.para_dir(Some(&format!("Heading{level}")), Self::para_rtl(attrs.dir, rtl), &runs));
+                let style = format!("Heading{level}");
+                if level == 1 && self.covers() {
+                    o.push_str(&self.cover(&style, Self::para_rtl(attrs.dir, rtl), &runs));
+                } else {
+                    o.push_str(&self.para_dir(Some(&style), Self::para_rtl(attrs.dir, rtl), &runs));
+                }
             }
             Block::BulletList { content } => self.list(content, None, o, rtl, depth),
             Block::OrderedList { attrs, content } => self.list(content, Some(attrs.start), o, rtl, depth),
@@ -590,7 +616,14 @@ impl<'a> Writer<'a> {
             Block::AppendixStart => {
                 // The reference list comes before the appendices, as in the PDF.
                 self.bibliography(o);
-                o.push_str(&self.page_break());
+                if self.covers() {
+                    // A cover page for the appendices as a whole, as in the PDF.
+                    let title = if self.langs.main == texloom_core::Language::Arabic { "الملاحق" } else { "Appendices" };
+                    let runs = self.text_runs(title, &Rp::default());
+                    o.push_str(&self.cover("Heading1", self.rtl, &runs));
+                } else {
+                    o.push_str(&self.page_break());
+                }
             }
             Block::RawLatex { attrs } => {
                 let gray = Rp { color: Some("888888".into()), ..Default::default() };
@@ -913,7 +946,15 @@ impl<'a> Writer<'a> {
                     y = item.y_mm + lines * style.size_pt * 1.25 * 25.4 / 72.0;
                 }
                 TitleContent::Image { asset, width_mm } => {
-                    if let Some(pic) = (self.input.asset)(asset).and_then(|b| self.picture(asset, b, *width_mm, None)) {
+                    // An image field (a logo the author picked) comes from the document folder.
+                    let file = match texloom_core::image_field(asset) {
+                        Some(id) => match self.input.doc.metadata.get(id) {
+                            Some(FieldValue::Text(p)) if !p.trim().is_empty() => (self.input.image)(p.trim()).map(|b| (p.trim().to_string(), b)),
+                            _ => None,
+                        },
+                        None => (self.input.asset)(asset).map(|b| (asset.clone(), b)),
+                    };
+                    if let Some(pic) = file.and_then(|(name, b)| self.picture(&name, b, *width_mm, None)) {
                         let pp = Pp { before: Some(before), after: Some(0), ind: Some("w:firstLine=\"0\"".into()), jc: Some("center"), ..Default::default() };
                         o.push_str(&self.para(pp, &pic));
                         y = item.y_mm + width_mm * 0.6;

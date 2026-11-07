@@ -100,6 +100,7 @@ bar switches the open document to another template. Texloom's own templates:
 | Template | Built on |
 |---|---|
 | Senior Design Report | Texloom's own layout (fully editable in the designer) |
+| Majmaah University Engineering Report | Texloom's own layout, following the College of Engineering's graduation project rules (October 2025): cover, committee and declaration pages, English and Arabic abstracts, chapter cover pages, APA 7. The student picks the university logo (an image field) |
 | Article | Texloom's own layout: one column, A4, title block with abstract and keywords on page 1 |
 | Two-column Article | Texloom's own layout: journal style, title and abstract across both columns, running head |
 | Short Paper | Texloom's own layout: compact one-column paper on US Letter for workshops and letters |

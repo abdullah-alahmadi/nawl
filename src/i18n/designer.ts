@@ -190,6 +190,9 @@ export const en = {
   "designer.equationsFiguresTables": "Equations, figures, tables",
   "designer.perChapter": "Numbered per chapter (2.1, 2.2…)",
   "designer.continuous": "Numbered continuously (1, 2, 3…)",
+  "designer.coverPages": "Cover pages",
+  "designer.coverPagesLabel": "Chapters, references and appendices open on a cover page",
+  "designer.coverPagesHint": "The chapter's number and title alone on a page, the text starting on the next one, as some university reports require.",
 
   // Text styles and headings
   "designer.headingPreview": "Heading preview",
@@ -468,6 +471,9 @@ export const ar: Record<keyof typeof en, string> = {
   "designer.equationsFiguresTables": "المعادلات والأشكال والجداول",
   "designer.perChapter": "ترقيم لكل فصل (2.1، 2.2…)",
   "designer.continuous": "ترقيم متصل (1، 2، 3…)",
+  "designer.coverPages": "صفحات الغلاف",
+  "designer.coverPagesLabel": "يبدأ كل فصل والمراجع والملاحق بصفحة غلاف",
+  "designer.coverPagesHint": "رقم الفصل وعنوانه وحدهما في صفحة، ويبدأ النص في الصفحة التالية، كما تشترط بعض تقارير الجامعات.",
 
   // Text styles and headings
   "designer.headingPreview": "معاينة العنوان",

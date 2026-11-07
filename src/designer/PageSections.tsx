@@ -502,6 +502,15 @@ export function StructureSection({ t, edit, issues }: SectionProps) {
           />
         </Row>
       )}
+      {s.topLevel === "chapter" && (
+        <Row label={tr("designer.coverPages")} hint={tr("designer.coverPagesHint")}>
+          <Toggle
+            checked={!!s.coverPages}
+            onChange={(on) => edit((d) => void (on ? (d.structure.coverPages = true) : delete d.structure.coverPages))}
+            label={tr("designer.coverPagesLabel")}
+          />
+        </Row>
+      )}
     </>
   );
 }

@@ -568,6 +568,12 @@ pub struct Structure {
     /// Label for appendix chapters (or top-level sections); `{n}` is the letter.
     #[serde(default = "default_appendix_label")]
     pub appendix_label: String,
+    /// With chapters: each chapter opens on a cover page of its own (its number and
+    /// title, centred), and so do the reference list and the appendices, as some
+    /// university reports require.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<bool>", optional)]
+    pub cover_pages: bool,
 }
 
 fn default_appendix_label() -> String {
@@ -866,7 +872,9 @@ pub enum TitleContent {
         #[ts(optional)]
         width_mm: Option<f32>,
     },
-    /// An image file from the template's assets, e.g. `"assets/logo.png"`.
+    /// An image file from the template's assets, e.g. `"assets/logo.png"`, or an
+    /// image field of the document, e.g. `"{logo}"` (a university's logo the author
+    /// picks, which a built-in template can't ship).
     #[serde(rename_all = "camelCase")]
     Image { asset: String, width_mm: f32 },
     /// A horizontal line.
@@ -961,6 +969,11 @@ pub enum FrontMatterItem {
         #[serde(default)]
         in_toc: bool,
     },
+}
+
+/// The image field a title-page image shows (`"{logo}"` → `logo`), if it names one.
+pub fn image_field(asset: &str) -> Option<&str> {
+    asset.strip_prefix('{')?.strip_suffix('}')
 }
 
 impl Template {

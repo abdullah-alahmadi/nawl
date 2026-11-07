@@ -20,6 +20,7 @@ pub const BUILTIN_TEMPLATE: &str = include_str!("../../templates/senior-design/t
 /// Templates that ship with Texloom, by id (the first is the default).
 pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("senior-design", BUILTIN_TEMPLATE),
+    ("majmaah-engineering", include_str!("../../templates/majmaah-engineering/template.json")),
     ("general-article", include_str!("../../templates/general-article/template.json")),
     ("article-two-column", include_str!("../../templates/article-two-column/template.json")),
     ("short-paper", include_str!("../../templates/short-paper/template.json")),

@@ -1,0 +1,702 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "metadata": {
+    "title": "A Climate-Responsive Community Centre in Al-Majmaah",
+    "department": "Department of Architecture",
+    "course": "ARC 499 – Senior Design 1",
+    "semester": "Fall Semester 2025/2026 (1447–1448 H)",
+    "students": [
+      "Student One – ID 441000001",
+      "Student Two – ID 441000002",
+      "Student Three – ID 441000003"
+    ],
+    "supervisor": "Dr. Supervisor Name",
+    "co_supervisor": "Dr. Co-supervisor Name",
+    "examiner_1": "Dr. First Examiner",
+    "examiner_2": "Dr. Second Examiner",
+    "head_of_department": "Dr. Head of Department",
+    "logo": "figures/logo-placeholder.png",
+    "abstract": "This report presents the conceptual design of a climate-responsive community centre in Al-Majmaah. It analyses two case studies, reviews the applicable standards and develops a concept that lowers the cooling load through orientation, shading and thermal mass.\n\nKeywords: passive design, hot arid climate, community centre, shading",
+    "abstract_ar": "يعرض هذا التقرير التصميم المبدئي لمركز مجتمعي متجاوب مع المناخ في محافظة المجمعة، ويحلل حالتين دراسيتين، ويراجع المعايير المعتمدة، ويقترح فكرة تصميمية تخفض حمل التبريد بالتوجيه والتظليل والكتلة الحرارية.\n\nالكلمات المفتاحية: التصميم السلبي، المناخ الحار الجاف، المراكز المجتمعية، التظليل",
+    "acknowledgements": "We thank our supervisor and the Department of Architecture for their guidance.",
+    "abbreviations": "SBC – Saudi Building Code\n\nSHGC – Solar heat gain coefficient"
+  },
+  "bibliography": "@book{givoni1998,\n  author = {Givoni, Baruch},\n  title = {Climate Considerations in Building and Urban Design},\n  publisher = {Van Nostrand Reinhold},\n  address = {New York},\n  year = {1998}\n}\n\n@book{olgyay2015,\n  author = {Olgyay, Victor},\n  title = {Design with Climate: Bioclimatic Approach to Architectural Regionalism},\n  edition = {New and expanded},\n  publisher = {Princeton University Press},\n  address = {Princeton, NJ},\n  year = {2015}\n}\n\n@article{hong2016,\n  author = {Hong, Tao and Fan, Shu},\n  title = {Probabilistic Electric Load Forecasting: A Tutorial Review},\n  journal = {International Journal of Forecasting},\n  volume = {32},\n  number = {3},\n  pages = {914--938},\n  year = {2016}\n}\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "ch-intro"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Introduction"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Overview and Background"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Hot and arid regions such as Al-Majmaah place heavy demands on building cooling. This project designs a community centre that responds to the climate through orientation, shading and thermal mass "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "givoni1998",
+                "olgyay2015"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Problem Statement"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Cooling accounts for most of the electricity used by buildings in the region, and its peak drives the peak of the grid "
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "keys": [
+                "hong2016"
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "text": ". The project asks how far passive design can lower that peak."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Aims and Objectives"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The project aims to reduce the cooling load of the centre by a third against a conventional design while meeting the program and the standards reviewed in "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "ch-standards"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "ch-cases"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Case Study Analysis"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Two built projects in comparable climates were analysed; "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "tab-cases"
+            }
+          },
+          {
+            "type": "text",
+            "text": " compares them."
+          }
+        ]
+      },
+      {
+        "type": "tableFigure",
+        "attrs": {
+          "id": "tab-cases"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "Comparison of the two case studies (adopted from the projects' published data)"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "content": [
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Criterion"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Case study A"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableHeader",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Case study B"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Climate zone"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Hot desert (BWh)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Hot desert (BWh)"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Floor area (m²)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "4,200"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "3,650"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Shading strategy"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Courtyard and mashrabiya"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Double roof"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableRow",
+                "content": [
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Measured cooling saving"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "28%"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tableCell",
+                    "attrs": {
+                      "colspan": 1,
+                      "rowspan": 1,
+                      "colwidth": null
+                    },
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "35%"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "ch-standards"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Standards and Guidelines"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The design follows the Saudi Building Code for energy conservation and the program distribution shown in "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "fig-program"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "figure",
+        "attrs": {
+          "src": "figures/system-diagram.png",
+          "widthPercent": 75,
+          "id": "fig-program"
+        },
+        "content": [
+          {
+            "type": "caption",
+            "content": [
+              {
+                "type": "text",
+                "text": "Program distribution and adjacency diagram (prepared by the authors)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "ch-site"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Site Analysis and Conceptual Design"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The solar heat gain through a window of area "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "A"
+            }
+          },
+          {
+            "type": "text",
+            "text": " and solar heat gain coefficient "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "g"
+            }
+          },
+          {
+            "type": "text",
+            "text": " under irradiance "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "I"
+            }
+          },
+          {
+            "type": "text",
+            "text": " is given by equation "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-gain"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "Q_{\\mathrm{solar}} = g \\, A \\, I",
+          "numbered": true,
+          "id": "eq-gain"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Shading the west facade reduces "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "I"
+            }
+          },
+          {
+            "type": "text",
+            "text": " on the glazing by about 70% in the afternoon peak."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "ch-conclusion"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Conclusion and Recommendations"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The concept combines a shaded courtyard, a double roof and deep west fins. Detailed simulation in Senior Design 2 will verify the expected reduction in the cooling load."
+          }
+        ]
+      },
+      {
+        "type": "appendixStart"
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "numbered": true,
+          "id": "app-climate"
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Site Climate Data"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Monthly mean maximum temperatures for Al-Majmaah, used in the site analysis."
+          }
+        ]
+      }
+    ]
+  }
+}
