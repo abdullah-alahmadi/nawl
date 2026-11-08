@@ -5,7 +5,7 @@ import type { Editor } from "@tiptap/react";
 import { open } from "@tauri-apps/plugin-dialog";
 import * as api from "../api";
 import type { BibEntry, BibInfo } from "../api";
-import { useNumbering } from "./Academic";
+import { useReferenceTargets } from "./Academic";
 import { ReferenceDialog } from "./ReferenceDialog";
 import { appendEntry, replaceEntry } from "./bibtex";
 import { useT } from "../i18n";
@@ -76,7 +76,8 @@ function Popover<T>({
 
 export function RefPicker({ editor, onClose }: { editor: Editor; onClose: () => void }) {
   const t = useT();
-  const items = useNumbering(editor).filter((i) => i.id && (i.kind !== "heading" || i.number));
+  // In a project, the other chapters' targets come after this chapter's.
+  const items = useReferenceTargets(editor).filter((i) => i.id && (i.kind !== "heading" || i.number));
   return (
     <Popover
       title={t("editor.insertCrossRef")}

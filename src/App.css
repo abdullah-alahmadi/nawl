@@ -223,6 +223,27 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .outline-kind { flex: none; }
 .outline-appendix .outline-number { color: var(--accent-text); }
 
+/* Chapters panel (projects) */
+.chapters-panel { display: flex; flex-direction: column; gap: 10px; }
+.chapter-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.chapter-row, .chapter-part { display: flex; align-items: center; gap: 2px; border-radius: 5px; }
+.chapter-row:hover, .chapter-part:hover { background: var(--hover, var(--chrome)); }
+.chapter-row.in-part { margin-inline-start: 16px; }
+.chapter-row.open { background: var(--accent-soft, var(--chrome)); }
+.chapter-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 6px; border: none; background: transparent; text-align: start; font-size: 12.5px; color: var(--text); }
+.chapter-row.open .chapter-open { font-weight: 600; }
+.chapter-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chapter-no { color: var(--muted); font-variant-numeric: tabular-nums; }
+.chapter-words { flex: none; color: var(--muted); font-size: 11px; }
+.chapter-tools { display: flex; flex: none; opacity: 0; }
+.chapter-row:hover .chapter-tools, .chapter-part:hover .chapter-tools, .chapter-tools:focus-within { opacity: 1; }
+.chapter-part { margin-top: 6px; }
+.part-label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 12.5px; font-weight: 600; color: var(--text); cursor: default; }
+.chapters-panel input.part-title { flex: 1; min-width: 0; padding: 3px 6px; font-size: 12.5px; }
+.chapter-group { margin: 10px 6px 2px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.chapter-add { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 4px; }
+.doc-chapter { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .metadata-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 0 6px; }
 .metadata-form p { margin: 0; }
 .metadata-help { font-size: 12px; }

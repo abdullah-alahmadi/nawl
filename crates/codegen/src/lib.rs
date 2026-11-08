@@ -10,13 +10,15 @@ pub mod refs;
 pub mod strings;
 mod latex;
 mod presentation;
+mod project;
 mod publisher;
 mod tex;
 
 pub use cls::{template_to_cls, template_to_cls_for};
 pub use latex::escape;
+pub use project::{chapter_tex_path, generate_project_for};
 pub use publisher::{check_recipe, kit_override, xetex_override, Authors};
-pub use tex::{document_to_tex, document_to_tex_mapped, has_bibliography};
+pub use tex::{document_to_tex, document_to_tex_mapped, has_bibliography, ChapterTex};
 
 use texloom_core::{Document, DocumentKind, Template, TitleContent};
 
@@ -59,6 +61,8 @@ pub struct Generated {
     /// Files of the template's library fonts (`fonts/cairo-Regular.ttf`…), relative
     /// to the font library; they go into the build folder at the same paths.
     pub fonts: Vec<String>,
+    /// For a project: each chapter's `.tex`, `\include`d by `tex` (empty otherwise).
+    pub chapters: Vec<ChapterTex>,
 }
 
 /// The files of a template's library fonts (see [`texloom_core::fonts`]).
@@ -88,11 +92,15 @@ impl Generated {
         format!("{}.cls", self.class_name)
     }
 
-    /// Generated support files (class, bibliography) as (path, contents) pairs.
+    /// Generated support files (class, bibliography, a project's chapter files) as
+    /// (path, contents) pairs.
     pub fn support_files(&self) -> Vec<(String, Vec<u8>)> {
         let mut files = vec![(self.cls_file_name(), self.cls.as_bytes().to_vec())];
         if let Some(bib) = &self.bibliography {
             files.push(("refs.bib".into(), bib.as_bytes().to_vec()));
+        }
+        for c in &self.chapters {
+            files.push((format!("{}.tex", c.path), c.tex.as_bytes().to_vec()));
         }
         files
     }
@@ -105,10 +113,10 @@ pub fn generate(template: &Template, doc: &Document) -> Generated {
 
 /// Like [`generate`], for a particular engine.
 pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Generated {
-    language::with_lr_numbers(engine == Engine::Lua, || generate_with(template, doc, engine))
+    language::with_lr_numbers(engine == Engine::Lua, || generate_with(template, doc, engine, None))
 }
 
-fn generate_with(template: &Template, doc: &Document, engine: Engine) -> Generated {
+fn generate_with(template: &Template, doc: &Document, engine: Engine, layout: Option<&tex::Layout>) -> Generated {
     let assets: Vec<String> = template
         .placed_items()
         .into_iter()
@@ -122,7 +130,7 @@ fn generate_with(template: &Template, doc: &Document, engine: Engine) -> Generat
             _ => None,
         })
         .collect();
-    let (tex, block_lines) = document_to_tex_mapped(template, doc);
+    let (tex, block_lines, chapters) = tex::write_tex(template, doc, layout);
     Generated {
         class_name: template.meta.id.clone(),
         cls: template_to_cls_for(template, engine),
@@ -142,5 +150,6 @@ fn generate_with(template: &Template, doc: &Document, engine: Engine) -> Generat
         bibliography: has_bibliography(doc).then(|| doc.bibliography.clone()),
         block_lines,
         fonts: library_font_files(template),
+        chapters,
     }
 }

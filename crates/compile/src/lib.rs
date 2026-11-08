@@ -175,7 +175,18 @@ impl SystemLatex {
     /// Compiles like [`Compiler::compile`]. Blocking.
     pub fn compile(&self, tex: &str, assets: &[Asset<'_>]) -> Result<CompileOutput, CompileError> {
         let dir = prepare_build_dir(tex, assets)?;
-        let root = dir.path();
+        self.run_in(dir.path())
+    }
+
+    /// Like [`Self::compile`], in a build folder that is kept between compiles (a
+    /// project's: one-chapter compiles need the other chapters' `.aux` files, and
+    /// latexmk reruns only what changed).
+    pub fn compile_in(&self, dir: &Path, tex: &str, assets: &[Asset<'_>]) -> Result<CompileOutput, CompileError> {
+        update_build_dir(dir, tex, assets)?;
+        self.run_in(dir)
+    }
+
+    fn run_in(&self, root: &Path) -> Result<CompileOutput, CompileError> {
         // Never shell escape: documents and templates may be shared. Stop at the first
         // error instead of waiting for input.
         let tex_args = ["-interaction=nonstopmode", "-halt-on-error", "-no-shell-escape", "-synctex=1"];
@@ -281,6 +292,28 @@ fn prepare_build_dir(tex: &str, assets: &[Asset<'_>]) -> Result<tempfile::TempDi
     Ok(dir)
 }
 
+/// Brings a kept build folder up to date: writes the main file and the assets that
+/// differ from what's there (unchanged files keep their dates, so latexmk sees what
+/// changed), and leaves TeX's own files (`.aux`, `.toc`…) alone.
+fn update_build_dir(root: &Path, tex: &str, assets: &[Asset<'_>]) -> Result<(), CompileError> {
+    std::fs::create_dir_all(root)?;
+    let write_if_changed = |dest: &Path, bytes: &[u8]| -> std::io::Result<()> {
+        let same = std::fs::metadata(dest).is_ok_and(|m| m.len() == bytes.len() as u64) && std::fs::read(dest).is_ok_and(|old| old == bytes);
+        if same {
+            return Ok(());
+        }
+        if let Some(parent) = dest.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(dest, bytes)
+    };
+    write_if_changed(&root.join(format!("{MAIN}.tex")), tex.as_bytes())?;
+    for asset in assets {
+        write_if_changed(&root.join(safe_relative(asset.path)?), asset.bytes)?;
+    }
+    Ok(())
+}
+
 /// The PDF, or the errors from the log (else from the program's output).
 fn finish(root: &Path, ok: bool, output: &str) -> Result<CompileOutput, CompileError> {
     let log = std::fs::read_to_string(root.join(format!("{MAIN}.log"))).unwrap_or_default();
@@ -340,8 +373,18 @@ impl Compiler {
     /// Blocking: call from a worker thread in async contexts.
     pub fn compile(&self, tex: &str, assets: &[Asset<'_>]) -> Result<CompileOutput, CompileError> {
         let dir = prepare_build_dir(tex, assets)?;
-        let root = dir.path();
+        self.run_in(dir.path(), false)
+    }
 
+    /// Like [`Self::compile`], in a build folder that is kept between compiles, with
+    /// Tectonic keeping its intermediate files there: a project's one-chapter compile
+    /// (`\includeonly`) reads the other chapters' `.aux` files from the last full one.
+    pub fn compile_in(&self, dir: &Path, tex: &str, assets: &[Asset<'_>]) -> Result<CompileOutput, CompileError> {
+        update_build_dir(dir, tex, assets)?;
+        self.run_in(dir, true)
+    }
+
+    fn run_in(&self, root: &Path, keep: bool) -> Result<CompileOutput, CompileError> {
         // Tectonic runs share one per-user cache (downloaded packages, format files).
         // Two runs filling it at once fail on Windows: one can't replace a file the
         // other holds open ("cannot write format file … Access is denied"), which
@@ -351,6 +394,9 @@ impl Compiler {
         let mut cmd = tool(&self.tectonic);
         if let Some(cache) = CACHE_DIR.get() {
             cmd.env("TECTONIC_CACHE_DIR", cache);
+        }
+        if keep {
+            cmd.arg("--keep-intermediates");
         }
         let output = cmd
             .current_dir(root)

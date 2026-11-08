@@ -11,3 +11,4 @@ texloom-core = { path = "../core" }
 serde_json.workspace = true
 insta = "1"
 texloom-compile = { path = "../compile" }
+tempfile.workspace = true

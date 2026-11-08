@@ -325,6 +325,9 @@ function articleCss(t: Template, scope: string): string {
     `${scope} ol ol ol ol{list-style-type:upper-alpha}`,
   );
   rules.push(`${scope} .appendix-divider{counter-set:tl-h1 0 tl-h2 0 tl-h3 0 tl-h4 0}`);
+  // After the appendix marker, or anywhere on a page that is an appendix chapter of
+  // a project (class appendix-chapter: its file has no marker).
+  const inAppendix = (sel: string) => `${scope} .appendix-divider ~ ${sel}, ${scope}.appendix-chapter ${sel}`;
   const top = t.headings.levels[0];
   if (top) {
     const label = t.structure.appendixLabel
@@ -333,7 +336,7 @@ function articleCss(t: Template, scope: string): string {
       .map((p) => (p === "{n}" ? appendixLabel(0) : q(p)))
       .join(" ");
     rules.push(
-      `${scope} .appendix-divider ~ h1::before{content:${label || '""'};${top.layout === "display" ? `display:block;margin-bottom:${px(top.labelGapPt)}` : `margin-right:${px(top.labelGapPt)}`}}`,
+      `${inAppendix("h1::before")}{content:${label || '""'};${top.layout === "display" ? `display:block;margin-bottom:${px(top.labelGapPt)}` : `margin-right:${px(top.labelGapPt)}`}}`,
     );
   }
   t.headings.levels.slice(1, 4).forEach((h, k) => {
@@ -344,15 +347,15 @@ function articleCss(t: Template, scope: string): string {
         .filter((p) => p !== "")
         .map((p) => (p === "{n}" ? appendixLabel(i) : q(p)))
         .join(" ");
-      rules.push(`${scope} .appendix-divider ~ h${i + 1}::before{content:${content}}`);
+      rules.push(`${inAppendix(`h${i + 1}::before`)}{content:${content}}`);
     }
   });
   if (perChapter) {
     const prefixA = `counter(tl-h1, ${letters}) "." `;
     rules.push(
-      `${scope} .appendix-divider ~ .node-figure figure.figure figcaption::before{content:${q(t.captions.figureLabel + " ")} ${prefixA}counter(tl-figure) ${q(sep)}}`,
-      `${scope} .appendix-divider ~ .table-figure figcaption::before{content:${q(t.captions.tableLabel + " ")} ${prefixA}counter(tl-table) ${q(sep)}}`,
-      `${scope} .appendix-divider ~ .node-equation .equation-number::after{content:"(" ${prefixA}counter(tl-equation) ")"}`,
+      `${inAppendix(".node-figure figure.figure figcaption::before")}{content:${q(t.captions.figureLabel + " ")} ${prefixA}counter(tl-figure) ${q(sep)}}`,
+      `${inAppendix(".table-figure figcaption::before")}{content:${q(t.captions.tableLabel + " ")} ${prefixA}counter(tl-table) ${q(sep)}}`,
+      `${inAppendix(".node-equation .equation-number::after")}{content:"(" ${prefixA}counter(tl-equation) ")"}`,
     );
   }
 

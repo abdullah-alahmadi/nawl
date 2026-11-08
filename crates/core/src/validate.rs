@@ -172,6 +172,9 @@ impl Template {
         for (i, h) in t.headings.levels.iter().enumerate() {
             styled.push((format!("headings.levels[{i}].text.font"), h.text.font.as_ref()));
         }
+        if let Some(part) = &t.headings.part {
+            styled.push(("headings.part.text.font".into(), part.text.font.as_ref()));
+        }
         for (path, item) in t.placed_items() {
             if let crate::TitleContent::Text { style, .. } = &item.content {
                 styled.push((format!("{path}.content.style.font"), style.font.as_ref()));
@@ -214,6 +217,11 @@ impl Template {
             c.text_style(&format!("{p}.text"), &h.text);
             c.placeholders(&format!("{p}.label"), &h.label, true);
             c.non_negative(&format!("{p}.labelGapPt"), h.label_gap_pt);
+        }
+        if let Some(part) = &t.headings.part {
+            c.text_style("headings.part.text", &part.text);
+            c.placeholders("headings.part.label", &part.label, true);
+            c.non_negative("headings.part.labelGapPt", part.label_gap_pt);
         }
 
         let hf = &t.header_footer;

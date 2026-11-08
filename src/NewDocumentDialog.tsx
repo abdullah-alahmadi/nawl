@@ -4,7 +4,7 @@
 // the recently used ones first. Choosing one starts an empty document with it. At
 // startup it is the start window, with Open, recent files and the examples as well.
 import { useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { Check, FileInput, FileText, FolderOpen, History, LayoutGrid, List, Presentation, Search, Sparkles, Trash2, X } from "lucide-react";
+import { Check, FileInput, FileText, Files, FolderOpen, History, LayoutGrid, List, Presentation, Search, Sparkles, Trash2, X } from "lucide-react";
 import type { BuiltinTemplate, InstalledCategory, InstalledList, InstalledTemplate, UserTemplate } from "./api";
 import { LanguageContext, translate, useT, type MessageKey } from "./i18n";
 
@@ -83,8 +83,10 @@ export function NewDocumentDialog({
   engine = "tectonic",
   only,
   start = false,
+  forProject = false,
   recentFiles = [],
   onOpen,
+  onNewProject,
   onExample,
   onExamplePresentation,
   view = "grid",
@@ -119,9 +121,13 @@ export function NewDocumentDialog({
   only?: "installed";
   /** Shown at startup: adds Open, recent files and the example report. */
   start?: boolean;
+  /** Choosing the template of a new project (no presentations). */
+  forProject?: boolean;
   recentFiles?: string[];
   /** Opens a document: the dialog without a path, else that recent file. */
   onOpen?: (path?: string) => void;
+  /** A new project (one file per chapter): the template window then chooses its template. */
+  onNewProject?: () => void;
   onExample?: () => void;
   onExamplePresentation?: () => void;
   /** Cards or a compact list (remembered in the settings). */
@@ -162,6 +168,7 @@ export function NewDocumentDialog({
       const cat: Category =
         b.language === "arabic" ? "arabic" : b.kind === "presentation" ? "presentation" : b.class ? "journal" : b.topLevel === "section" ? "general" : "report";
       if (tex && cat !== "presentation") continue;
+      if (forProject && cat === "presentation") continue;
       out.push({
         key: `builtin:${b.id}`,
         name: b.name,
@@ -204,7 +211,7 @@ export function NewDocumentDialog({
       });
     }
     return out;
-  }, [builtins, userTemplates, installed, tex, currentId, currentPath, currentClass, installedThemes, onPick, onPickUser, onRemoveUser, onPickInstalled, lang]);
+  }, [builtins, userTemplates, installed, tex, forProject, currentId, currentPath, currentClass, installedThemes, onPick, onPickUser, onRemoveUser, onPickInstalled, lang]);
 
   const recent = recentTemplates.map((k) => items.find((i) => i.key === k)).filter((i): i is Item => !!i);
   const counts = (c: Category) => items.filter((i) => i.category === c).length;
@@ -290,7 +297,7 @@ export function NewDocumentDialog({
         className={`modal gallery${start ? " start" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-label={start ? t("dialogs.start") : tex ? t("dialogs.templatesFromTex") : t("dialogs.newFromTemplate")}
+        aria-label={forProject ? t("project.chooseTemplate") : start ? t("dialogs.start") : tex ? t("dialogs.templatesFromTex") : t("dialogs.newFromTemplate")}
       >
         {start && (
           <aside className="start-side">
@@ -301,6 +308,11 @@ export function NewDocumentDialog({
             <button className="start-action" onClick={() => onOpen?.()}>
               <FolderOpen size={16} aria-hidden="true" /> {t("dialogs.openDocument")}
             </button>
+            {onNewProject && (
+              <button className="start-action" onClick={onNewProject} title={t("project.newProjectTitle")}>
+                <Files size={16} aria-hidden="true" /> {t("project.newProject")}
+              </button>
+            )}
             <button className="start-action" onClick={onExample}>
               <Sparkles size={16} aria-hidden="true" /> {t("dialogs.openExampleReport")}
             </button>
@@ -325,7 +337,7 @@ export function NewDocumentDialog({
         )}
         <div className="gallery-main">
           <div className="gallery-head">
-            <h2>{start ? t("dialogs.startNewDocument") : tex ? t("dialogs.fromTex") : t("dialogs.newFromTemplate")}</h2>
+            <h2>{forProject ? t("project.chooseTemplate") : start ? t("dialogs.startNewDocument") : tex ? t("dialogs.fromTex") : t("dialogs.newFromTemplate")}</h2>
             <label className="gallery-search">
               <Search size={14} aria-hidden="true" />
               <input

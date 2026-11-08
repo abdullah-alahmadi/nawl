@@ -605,6 +605,42 @@ pub enum PageNumberStyle {
 pub struct Headings {
     /// Styles for editor heading levels 1–4, in order. Must have exactly 4 entries.
     pub levels: Vec<HeadingStyle>,
+    /// How parts look ("الباب الأول", "Part One"): groups of chapters in a project.
+    /// The base class's plain `\part` when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub part: Option<PartStyle>,
+}
+
+/// A part's heading (projects group chapters into parts).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PartStyle {
+    pub text: TextStyle,
+    /// Number label; `{n}` is the number. E.g. `"الباب {n}"` or `"Part {n}"`.
+    pub label: String,
+    /// The number in words: Arabic ordinals ("الباب الأول") in Arabic documents,
+    /// English numbers ("Part One") in English ones. Digits otherwise.
+    #[serde(default)]
+    pub number_words: bool,
+    /// The part's heading has a page of its own (centred), as in books.
+    #[serde(default = "yes")]
+    pub own_page: bool,
+    /// The part is listed in the table of contents.
+    #[serde(default = "yes")]
+    pub in_toc: bool,
+    /// Space between the label line and the title.
+    #[serde(default = "default_part_gap")]
+    pub label_gap_pt: f32,
+}
+
+fn yes() -> bool {
+    true
+}
+
+fn default_part_gap() -> f32 {
+    12.0
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -665,6 +701,7 @@ impl Template {
         let mut out: Vec<&FontChoice> = vec![&f.main, &f.sans, &f.mono];
         out.extend(f.arabic.as_ref());
         out.extend(self.headings.levels.iter().filter_map(|h| h.text.font.as_ref()));
+        out.extend(self.headings.part.as_ref().and_then(|p| p.text.font.as_ref()));
         for (_, item) in self.placed_items() {
             if let TitleContent::Text { style, .. } = &item.content {
                 out.extend(style.font.as_ref());

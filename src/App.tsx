@@ -12,6 +12,8 @@ import { EmptyLines } from "./editor/EmptyLines";
 import { MetadataForm } from "./editor/MetadataForm";
 import { Caption, CaptionedTable, Figure, pickFigureImage } from "./editor/Figures";
 import { Outline } from "./editor/Outline";
+import { ChaptersPanel } from "./editor/ChaptersPanel";
+import { bookNumbering } from "./editor/numbering";
 import { AppendixStart, Citation, CrossRef, TexloomIds, setTexloomContext } from "./editor/Academic";
 import { CitePicker, ReferencesPanel, RefPicker } from "./editor/Pickers";
 import { PAGE_WIDTH_PX, templateCss, type DeckInfo } from "./editor/templateStyle";
@@ -46,7 +48,7 @@ import {
   BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
   LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Palette, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
-  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit, ArrowRightLeft,
+  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit, ArrowRightLeft, Files, Split, Merge,
 } from "lucide-react";
 import "./App.css";
 
@@ -56,6 +58,8 @@ const TEMPLATE_DEBOUNCE_MS = 400;
 const RECOVERY_DELAY_MS = 3000;
 // Functions, not constants: the filter names follow the interface language.
 const docFilter = () => [{ name: tNow("app.filterDocument"), extensions: ["loom"] }];
+/** Opening: documents and projects. */
+const openFilter = () => [{ name: tNow("project.filterAll"), extensions: ["loom", "loomproj"] }];
 const templateFilter = () => [{ name: tNow("app.filterTemplate"), extensions: ["json"] }];
 
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
@@ -101,7 +105,27 @@ const inFolder = (folder: string, name: string) => (folder ? `${folder.replace(/
 
 const countWords = (text: string) => (text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) ?? []).length;
 
-type SidePanel = "outline" | "info" | "refs" | "checks";
+type SidePanel = "chapters" | "outline" | "info" | "refs" | "checks";
+
+/** The open project (a book as one file per chapter), when one is open. */
+interface OpenProject {
+  /** The .loomproj file. */
+  path: string;
+  entries: api.ProjectEntry[];
+  index: api.ProjectIndex;
+  /** The chapter open in the editor. */
+  chapter: string;
+  /** Problems found when the project was opened (unreadable chapters…). */
+  issues: api.Issue[];
+}
+
+/** `file` (absolute) relative to `folder`, with forward slashes, if it's inside. */
+function relativeTo(folder: string, file: string): string | null {
+  const norm = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "");
+  const f = norm(folder);
+  const p = norm(file);
+  return p.toLowerCase().startsWith(f.toLowerCase() + "/") ? p.slice(f.length + 1) : null;
+}
 
 type Status = { state: "idle" | "compiling" | "ok" } | { state: "error"; error: AppError };
 
@@ -109,6 +133,16 @@ export default function App() {
   const [pdf, setPdf] = useState<ArrayBuffer | null>(null);
   const [status, setStatus] = useState<Status>({ state: "idle" });
   const [path, setPath] = useState<string | null>(null);
+  /** The open project; null while a single document is open. */
+  const [project, setProjectState] = useState<OpenProject | null>(null);
+  const projectRef = useRef<OpenProject | null>(null);
+  const setProject = (p: OpenProject | null) => {
+    projectRef.current = p;
+    setProjectState(p);
+  };
+  /** Compile the whole book instead of just the open chapter. */
+  const [wholeBook, setWholeBookState] = useState(false);
+  const wholeBookRef = useRef(false);
   const [dirty, setDirty] = useState(false);
   const [showLatex, setShowLatex] = useState(false);
   /** The find bar: closed, or open (with the replace row when asked for with Ctrl+H). */
@@ -122,6 +156,8 @@ export default function App() {
   const togglePanel = (p: SidePanel) => setPanel((cur) => (cur === p ? null : p));
   const [showSettings, setShowSettings] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  // The template window is choosing the template of a new project.
+  const [projectPick, setProjectPick] = useState(false);
   // The gallery as the start window: also offers Open, recent files and the example.
   const [startWindow, setStartWindow] = useState(false);
   const { settings, loaded: settingsLoaded, update: updateSettings, addRecent, removeRecent, latest: settingsRef } = useSettings();
@@ -193,9 +229,29 @@ export default function App() {
     setStatus({ state: "compiling" });
     const t0 = performance.now();
     const state: api.DocState = { doc: editor.getJSON(), metadata: metadataRef.current, bibliography: bibRef.current };
-    api.checkDocument(state).then(setIssues, () => setIssues([]));
+    const p = projectRef.current;
+    api.checkDocument(state).then(
+      (found) =>
+        setIssues(
+          p
+            ? // A chapter alone: references to other chapters aren't broken, and the
+              // template's required chapters are elsewhere in the book.
+              [...p.issues, ...found.filter((i) => i.path !== "document.refs" && i.path !== "document.skeleton")]
+            : found,
+        ),
+      () => setIssues([]),
+    );
     try {
-      const bytes = await api.renderPdf(state);
+      let bytes: ArrayBuffer;
+      if (p) {
+        const s: api.ProjectState = { file: p.chapter, ...state };
+        // The index follows the open chapter's live content (numbers in later chapters).
+        api.projectIndex(p.chapter, state.doc).then((index) => {
+          const cur = projectRef.current;
+          if (cur && cur.chapter === p.chapter) setProject({ ...cur, index });
+        }, () => {});
+        bytes = await api.renderProject(s, !wholeBookRef.current);
+      } else bytes = await api.renderPdf(state);
       if (id !== requestId.current) return; // a newer compile superseded this one
       setPdf(bytes);
       setStatus({ state: "ok" });
@@ -235,7 +291,9 @@ export default function App() {
     dirtyRef.current = true;
     window.clearTimeout(recoveryTimer.current);
     recoveryTimer.current = window.setTimeout(() => {
-      if (dirtyRef.current && settingsRef.current.crashRecovery) queueRecovery(() => api.writeRecovery(pathRef.current, docState()));
+      // In a project: the open chapter (switching chapters saves), with the project's
+      // metadata and bibliography; restored into the project.
+      if (dirtyRef.current && settingsRef.current.crashRecovery) queueRecovery(() => api.writeRecovery(pathRef.current, docState(), projectRef.current?.chapter));
     }, RECOVERY_DELAY_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -345,6 +403,22 @@ export default function App() {
       await markClean();
       return false;
     }
+    if (info.chapter && info.originalPath) {
+      // A chapter of a project: open the project there, then put the changes back.
+      await openProject(info.originalPath, info.chapter, true);
+      const p = projectRef.current;
+      if (!p || p.chapter !== info.chapter) return true; // the project couldn't open; its error shows
+      const r = await api.restoreRecovery();
+      editor.storage.texloom.project = null; // see openChapter
+      loadDocument(editor, r.doc);
+      setProject({ ...p });
+      setBibliography(r.bibliography ?? "");
+      setMetadata(r.metadata);
+      setDirty(true);
+      dirtyRef.current = true;
+      compile();
+      return true;
+    }
     const r = await api.restoreRecovery();
     loadDocument(editor, r.doc);
     focusStart(editor, editorScroll.current);
@@ -405,6 +479,8 @@ export default function App() {
 
   // Presentations: slides stacked down the page like the rest of the app.
   const isDeck = template?.kind === "presentation";
+  const templateNowRef = useRef(template);
+  templateNowRef.current = template;
 
   // Node views (references, citations) read the template from the editor.
   const activeTemplate = templateInfo?.template ?? null;
@@ -415,6 +491,31 @@ export default function App() {
       setTexloomContext(editor, { template: activeTemplate });
     }
   }, [editor, activeTemplate]);
+
+  // A chapter of a project: numbering continues from the chapters before it,
+  // references to other chapters show their numbers, citations count in book order.
+  const openTargetRef = useRef<(chapter: string, id: string) => void>(() => {});
+  const projectIndexData = project?.index;
+  const projectChapter = project?.chapter;
+  useEffect(() => {
+    if (!editor || !activeTemplate) return;
+    if (!projectIndexData || !projectChapter) {
+      if (editor.storage.texloom.project) setTexloomContext(editor, { project: null });
+      return;
+    }
+    const chapters = projectIndexData.chapters;
+    const at = chapters.findIndex((c) => c.file === projectChapter);
+    const { start, others } = bookNumbering(chapters, projectChapter, activeTemplate);
+    setTexloomContext(editor, {
+      project: {
+        start,
+        others,
+        citationsBefore: chapters.slice(0, Math.max(at, 0)).flatMap((c) => c.citations),
+        citationsAfter: at < 0 ? [] : chapters.slice(at + 1).flatMap((c) => c.citations),
+        openTarget: (chapter, id) => openTargetRef.current(chapter, id),
+      },
+    });
+  }, [editor, activeTemplate, projectIndexData, projectChapter]);
   // Fonts from the font library the page uses (the designer's draft included).
   useEffect(() => {
     for (const t of [template, draft]) {
@@ -703,6 +804,8 @@ export default function App() {
 
   const saveAs = useCallback(async () => {
     if (!editor) return;
+    // A project's chapters are saved in place (Join makes a single document).
+    if (projectRef.current) return saveProjectFiles().then(compileAfterSave, report);
     const target = await save({ filters: docFilter(), defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom") });
     if (!target) return;
     await api.saveDocument(target, docState()).then(() => {
@@ -732,6 +835,7 @@ export default function App() {
 
   const saveDoc = useCallback(async () => {
     if (!editor) return;
+    if (projectRef.current) return saveProjectFiles().then(compileAfterSave, report);
     if (!path) return saveAs();
     await api.saveDocument(path, docState()).then(() => {
       markClean();
@@ -739,17 +843,231 @@ export default function App() {
     }, report);
   }, [editor, path, saveAs, markClean, compileAfterSave]);
 
-  /** Opens a document from the dialog, or `target` (a recent file). */
+  // ---------------------------------------------------------------- projects
+
+  /** Saves the open chapter and the project file (metadata, bibliography, chapter list). */
+  const saveProjectFiles = async () => {
+    const p = projectRef.current;
+    const ed = editorRef.current;
+    if (!p || !ed) return;
+    await api.saveChapter(p.chapter, ed.getJSON());
+    const index = await api.saveProject(metadataRef.current, bibRef.current, p.entries);
+    const cur = projectRef.current;
+    if (cur) setProject({ ...cur, index });
+    await markClean();
+  };
+
+  /** Leaves project mode (a single document is opened or created instead). */
+  const leaveProject = () => {
+    if (!projectRef.current) return;
+    setProject(null);
+    api.closeProject().catch(() => {});
+  };
+
+  /** Puts the cursor on the target with `id` in the editor's document and marks it. */
+  const goToTarget = (id: string) => {
+    if (!editor) return;
+    let found = -1;
+    let atom = false;
+    editor.state.doc.descendants((node, pos) => {
+      if (found >= 0) return false;
+      if (node.attrs?.id === id) {
+        found = pos;
+        atom = node.isAtom;
+      }
+      return true;
+    });
+    if (found < 0) return;
+    // An equation is one unit: select it; elsewhere put the cursor inside.
+    const chain = editor.chain().focus();
+    (atom ? chain.setNodeSelection(found) : chain.setTextSelection(Math.min(found + 1, editor.state.doc.content.size))).scrollIntoView().run();
+    flashBlock(editor, found);
+  };
+
+  /** Opens chapter `file` in the editor (saving the open one first), then optionally
+   *  goes to a target in it or to a top-level block. */
+  const openChapter = async (file: string, then?: { target?: string; block?: number }) => {
+    const p = projectRef.current;
+    if (!p || !editor) return;
+    try {
+      if (file !== p.chapter) {
+        if (dirtyRef.current) await saveProjectFiles();
+        const doc = await api.readChapter(file);
+        // The context still describes the previous chapter, whose "other chapters"
+        // include this one: its ids would look like duplicates and be renamed. The
+        // effect sets the new chapter's context once the state below is applied.
+        editor.storage.texloom.project = null;
+        loadDocument(editor, doc);
+        setProject({ ...(projectRef.current ?? p), chapter: file });
+        if (!then) focusStart(editor, editorScroll.current);
+        compile();
+      }
+      if (then?.target) window.setTimeout(() => goToTarget(then.target!), 0);
+      if (then?.block != null) window.setTimeout(() => jumpToBlock(then.block!), 0);
+    } catch (e) {
+      report(e);
+    }
+  };
+  openTargetRef.current = (chapter, id) => void openChapter(chapter, { target: id });
+
+  /** Opens a project, at `chapter` (relative to the project folder) or its first one.
+   *  `keepRecovery`: restoring a crash's changes into it (the copy must stay). */
+  const openProject = async (target: string, chapter?: string, keepRecovery = false) => {
+    if (!editor) return;
+    try {
+      const opened = await api.openProject(target);
+      const files = opened.chapters.flatMap((e) => ("file" in e ? [e.file] : []));
+      const first = chapter && files.includes(chapter) ? chapter : files.find((f) => !opened.issues.some((i) => i.path === `chapters.${f}`)) ?? files[0];
+      const doc = first ? await api.readChapter(first) : EMPTY_DOC;
+      addRecent(target);
+      editor.storage.texloom.project = null; // see openChapter
+      loadDocument(editor, doc);
+      focusStart(editor, editorScroll.current);
+      setBibliography(opened.bibliography ?? "");
+      metadataRef.current = opened.metadata;
+      setPath(target);
+      setProject({ path: target, entries: opened.chapters, index: opened.index, chapter: first ?? "", issues: opened.issues });
+      if (keepRecovery) {
+        setDirty(false);
+        dirtyRef.current = false;
+      } else markClean();
+      setPanel("chapters");
+      if (opened.template) applyTemplate(opened.template);
+      else {
+        setMetadata(opened.metadata);
+        compile();
+      }
+    } catch (e) {
+      if (settings.recentFiles.includes(target)) removeRecent(target);
+      report(e);
+    }
+  };
+
+  /** A changed chapter list (reordered, parts, appendices, removed): saved at once. */
+  const changeEntries = async (entries: api.ProjectEntry[]) => {
+    const p = projectRef.current;
+    if (!p) return;
+    try {
+      const index = await api.saveProject(metadataRef.current, bibRef.current, entries);
+      const next = { ...(projectRef.current ?? p), entries, index };
+      setProject(next);
+      const files = entries.flatMap((e) => ("file" in e ? [e.file] : []));
+      // The open chapter was removed: open the first one (without saving it back).
+      if (!files.includes(next.chapter) && files[0]) {
+        markClean();
+        await openChapter(files[0]);
+      } else compile();
+    } catch (e) {
+      report(e);
+    }
+  };
+
+  /** Adds a new chapter (or appendix) at the end and opens it. */
+  const addChapter = async (appendix: boolean) => {
+    const p = projectRef.current;
+    if (!p) return;
+    try {
+      const file = await api.newChapter(tr(appendix ? "project.newAppendixTitle" : "project.newChapterTitle"), appendix);
+      const boundary = p.entries.findIndex((e) => "file" in e && e.appendix);
+      const entry: api.ProjectEntry = appendix ? { file, appendix: true } : { file };
+      const entries = appendix || boundary < 0 ? [...p.entries, entry] : [...p.entries.slice(0, boundary), entry, ...p.entries.slice(boundary)];
+      const index = await api.saveProject(metadataRef.current, bibRef.current, entries);
+      setProject({ ...(projectRef.current ?? p), entries, index });
+      await openChapter(file);
+    } catch (e) {
+      report(e);
+    }
+  };
+
+  /** What compiles and exports of the project send: the open chapter, live. */
+  const projectState = (): api.ProjectState => ({ file: projectRef.current?.chapter ?? null, ...docState() });
+
+  /** Turns the open document into a project in a folder the user picks, and opens it. */
+  const splitIntoProject = async () => {
+    if (!editor) return;
+    const folder = await open({ directory: true, multiple: false, title: tr("project.splitFolderTitle"), defaultPath: settings.defaultFolder || undefined });
+    if (!folder) return;
+    const name = path ? fileNameOf(path).replace(/\.loom$/, "") : folder.split(/[\\/]/).filter(Boolean).pop() ?? "book";
+    try {
+      const projectPath = await api.splitIntoProject(folder, name, docState());
+      // Its content is in the project now; the document itself is left as it was.
+      await markClean();
+      await openProject(projectPath);
+    } catch (e) {
+      report(e);
+    }
+  };
+
+  /** A new project with the current template: one chapter, in a folder the user
+   *  picks (the folder's name names the project). */
+  const newProject = async () => {
+    if (!editor) return;
+    if (dirty && !(await ask(tr("app.discardAndNew"), { title: tr("app.newDocumentTitle"), kind: "warning" }))) return;
+    // The template window chooses the project's template; then the folder.
+    setStartWindow(false);
+    setProjectPick(true);
+    setShowGallery(true);
+  };
+
+  /** The project's template was picked in the template window: asks for the folder
+   *  and creates the project (its first chapter) with that template. */
+  const createProject = async (choose: () => Promise<boolean>, recentKey?: string) => {
+    setShowGallery(false);
+    setProjectPick(false);
+    if (!(await choose())) return;
+    if (recentKey) updateSettings((s) => ({ recentTemplates: [recentKey, ...s.recentTemplates.filter((k) => k !== recentKey)].slice(0, 5) }));
+    const folder = await open({ directory: true, multiple: false, title: tr("project.newProjectFolderTitle"), defaultPath: settings.defaultFolder || undefined });
+    if (!folder) {
+      // No folder: an empty document with the chosen template, as from the gallery.
+      await newDoc(true);
+      return;
+    }
+    const name = folder.split(/[\\/]/).filter(Boolean).pop() ?? "book";
+    // The (new) template's language decides the first chapter's title. The folder
+    // dialog let React render, so the ref holds the chosen template.
+    const first = translate(docLanguage(templateNowRef.current).main === "arabic" ? "ar" : "en", "project.firstChapterTitle");
+    const doc: JSONContent = { type: "doc", content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: first }] }, { type: "paragraph" }] };
+    try {
+      const projectPath = await api.splitIntoProject(folder, name, { doc, metadata: {}, bibliography: "" });
+      await markClean();
+      await openProject(projectPath);
+    } catch (e) {
+      report(e);
+    }
+  };
+
+  /** Writes the whole project as one document and opens it. */
+  const joinProject = async () => {
+    const p = projectRef.current;
+    if (!p) return;
+    const target = await save({ filters: docFilter(), defaultPath: p.path.replace(/\.loomproj$/, ".loom") });
+    if (!target) return;
+    try {
+      await api.joinProject(target, projectState());
+      await openDoc(target);
+    } catch (e) {
+      report(e);
+    }
+  };
+
+  /** Opens a document from the dialog, or `target` (a recent file); projects too. */
   const openDoc = async (target?: string) => {
     if (!editor) return;
     if (dirty && !(await ask(tr("app.discardAndOpen"), { title: tr("app.openDocumentTitle"), kind: "warning" }))) return;
     if (!target) {
-      const picked = await open({ filters: docFilter(), multiple: false, directory: false, defaultPath: settings.defaultFolder || undefined });
+      const picked = await open({ filters: openFilter(), multiple: false, directory: false, defaultPath: settings.defaultFolder || undefined });
       if (!picked) return;
       target = picked;
     }
+    if (target.toLowerCase().endsWith(".loomproj")) return openProject(target);
     try {
       const opened = await api.openDocument(target);
+      if (opened.project) {
+        // A chapter of a project: open the project at that chapter.
+        const folder = opened.project.replace(/[\\/][^\\/]*$/, "");
+        return openProject(opened.project, relativeTo(folder, target) ?? undefined);
+      }
+      leaveProject();
       addRecent(target);
       loadDocument(editor, opened.doc);
       focusStart(editor, editorScroll.current);
@@ -771,23 +1089,36 @@ export default function App() {
 
   const exportPdfFile = async () => {
     if (!editor) return;
-    const name = (path ? fileNameOf(path).replace(/\.loom$/, "") : "report") + ".pdf";
+    const name = (path ? fileNameOf(path).replace(/\.loom(proj)?$/, "") : "report") + ".pdf";
     const target = await save({ filters: [{ name: "PDF", extensions: ["pdf"] }], defaultPath: path ? name : inFolder(settings.defaultFolder, name) });
-    if (target) await api.exportPdf(target, docState()).catch(report);
+    if (target) await (projectRef.current ? api.exportProjectPdf(target, projectState()) : api.exportPdf(target, docState())).catch(report);
   };
 
   const exportLatex = async () => {
     if (!editor) return;
     const target = await save({ filters: [{ name: "LaTeX", extensions: ["tex"] }], defaultPath: inFolder(settings.defaultFolder, "report.tex") });
-    if (target) await api.exportTex(target, docState()).catch(report);
+    if (target) await (projectRef.current ? api.exportProjectTex(target, projectState()) : api.exportTex(target, docState())).catch(report);
   };
 
   const exportWord = async () => {
     if (!editor) return;
-    const name = (path ? fileNameOf(path).replace(/\.loom$/, "") : "report") + ".docx";
+    const name = (path ? fileNameOf(path).replace(/\.loom(proj)?$/, "") : "report") + ".docx";
     const target = await save({ filters: [{ name: "Word", extensions: ["docx"] }], defaultPath: path ? name : inFolder(settings.defaultFolder, name) });
     if (!target) return;
     const state = docState();
+    const p = projectRef.current;
+    if (p) {
+      // Formulas of every chapter: the open one live, the others as saved.
+      const files = p.entries.flatMap((e) => ("file" in e ? [e.file] : []));
+      try {
+        const docs = await Promise.all(files.map((f) => (f === p.chapter ? Promise.resolve(state.doc) : api.readChapter(f))));
+        const mathml = Object.assign({}, ...docs.map((d) => formulasAsMathMl(d)));
+        await api.exportProjectDocx(target, projectState(), mathml);
+      } catch (e) {
+        report(e);
+      }
+      return;
+    }
     await api.exportDocx(target, state, formulasAsMathMl(state.doc)).catch(report);
   };
 
@@ -796,6 +1127,7 @@ export default function App() {
     if (!skipAsk && dirty && !(await ask(tr("app.discardAndNew"), { title: tr("app.newDocumentTitle"), kind: "warning" }))) return;
     try {
       const fresh = await api.newDocument();
+      leaveProject();
       loadDocument(editor, fresh.doc);
       focusStart(editor, editorScroll.current);
       setMetadata({});
@@ -827,6 +1159,7 @@ export default function App() {
         ? deck ? (["arabic-presentation", "arabic-presentation"] as const) : (["arabic-article", "arabic-article"] as const)
         : deck ? (["beamer-presentation", "presentation"] as const) : (["senior-design", undefined] as const);
       const [t, sample] = await Promise.all([api.switchToBuiltinTemplate(templateId), api.sampleDocument(sampleName)]);
+      leaveProject();
       loadDocument(editor, sample.doc);
       focusStart(editor, editorScroll.current);
       setBibliography(sample.bibliography ?? "");
@@ -851,8 +1184,21 @@ export default function App() {
 
   /** SyncTeX, PDF → editor: puts the cursor in the block behind a double-clicked spot. */
   const jumpFromPdf = async (page: number, x: number, y: number) => {
+    const p = projectRef.current;
+    if (p) {
+      const spot = await api.projectPdfToBlock(page, x, y).catch(() => null);
+      if (spot) await openChapter(spot.file, { block: spot.block });
+      return;
+    }
     const index = await api.pdfToBlock(page, x, y).catch(() => null);
     if (index != null) jumpToBlock(index);
+  };
+
+  /** From the error list: a block of the open chapter, or of another chapter. */
+  const jumpToError = (block: number, chapter?: string) => {
+    const p = projectRef.current;
+    if (p && chapter && chapter !== p.chapter) void openChapter(chapter, { block });
+    else jumpToBlock(block);
   };
 
   /** Puts the cursor in top-level block `index` of the document and marks it briefly. */
@@ -876,7 +1222,12 @@ export default function App() {
   };
 
   /** A few words about block `index` for the error list: "Heading “Results”". */
-  const describeBlock = (index: number): string => {
+  const describeBlock = (index: number, chapter?: string): string => {
+    const p = projectRef.current;
+    if (p && chapter && chapter !== p.chapter) {
+      // Another chapter isn't loaded: name the chapter.
+      return p.index.chapters.find((c) => c.file === chapter)?.title || chapter;
+    }
     const node = editor?.state.doc.maybeChild(index);
     if (!node) return "";
     const kind: Record<string, MessageKey> = {
@@ -901,7 +1252,9 @@ export default function App() {
   /** SyncTeX, editor → PDF: scrolls the preview to the block with the cursor. */
   const showInPdf = async () => {
     if (!editor) return;
-    const spot = await api.blockToPdf(editor.state.selection.$from.index(0)).catch(() => null);
+    const block = editor.state.selection.$from.index(0);
+    const p = projectRef.current;
+    const spot = await (p ? api.projectBlockToPdf(p.chapter, block) : api.blockToPdf(block)).catch(() => null);
     if (!spot) return;
     setShowLatex(false);
     setPdfSpot({ ...spot }); // a new object, so showing the same place again works
@@ -1022,7 +1375,18 @@ export default function App() {
       ? [tr("app.styleSection"), tr("app.styleSubsection"), tr("app.styleSubsubsection"), tr("app.styleParagraph")]
       : [tr("app.styleChapter"), tr("app.styleSection"), tr("app.styleSubsection"), tr("app.styleSubsubsection")];
   const draftErrors = draftIssues.filter((i) => i.severity === "error").length;
+  // A chapter of a project: the page's own numbers (CSS counters) start where the
+  // chapters before it end, and an appendix chapter numbers with letters.
+  const chapterStart = project && template ? bookNumbering(project.index.chapters, project.chapter, template).start : null;
+  const chapterIsAppendix = !!project?.index.chapters.find((c) => c.file === project.chapter)?.appendix;
+  const counterCss = chapterStart
+    ? `.editor-pane .page .tiptap{counter-reset:tl-h1 ${chapterStart.levels[0]} tl-h2 0 tl-h3 0 tl-h4 0 tl-figure ${chapterStart.figure} tl-table ${chapterStart.table} tl-equation ${chapterStart.equation}}`
+    : "";
+  const openChapterTitle = project ? project.index.chapters.find((c) => c.file === project.chapter)?.title || tr("project.untitledChapter") : "";
+  // Words in the whole book: the other chapters (as indexed) plus this one, live.
+  const bookWords = project ? project.index.chapters.reduce((n, c) => n + (c.file === project.chapter ? 0 : c.words), 0) + wordCount : 0;
   const panelTitle: Record<SidePanel, string> = {
+    chapters: tr("project.panel"),
     outline: tr("app.panelOutline"),
     info: tr("app.panelInfo"),
     refs: tr("app.panelRefs"),
@@ -1044,6 +1408,7 @@ export default function App() {
                 <>
                   <MenuItem icon={<FilePlus2 />} label={tr("app.menuNew")} shortcut="Ctrl+N" onClick={act(() => newDoc())} title={tr("app.menuNewTitle")} />
                   <MenuItem icon={<LayoutTemplate />} label={tr("app.menuNewFromTemplate")} shortcut="Ctrl+Shift+N" onClick={act(() => openGallery())} title={tr("app.menuNewFromTemplateTitle")} />
+                  <MenuItem icon={<Files />} label={tr("project.newProject")} onClick={act(newProject)} title={tr("project.newProjectTitle")} />
                   <MenuItem icon={<FolderOpen />} label={tr("app.menuOpen")} shortcut="Ctrl+O" onClick={act(() => openDoc())} />
                   <MenuItem icon={<Sparkles />} label={tr("app.menuOpenExampleReport")} onClick={act(() => openExample())} />
                   <MenuItem icon={<Sparkles />} label={tr("app.menuOpenExamplePresentation")} onClick={act(() => openExample("presentation"))} />
@@ -1057,12 +1422,20 @@ export default function App() {
                   )}
                   <MenuSeparator />
                   <MenuItem icon={<Save />} label={tr("common.save")} shortcut="Ctrl+S" onClick={act(saveDoc)} />
-                  <MenuItem label={tr("app.menuSaveAs")} shortcut="Ctrl+Shift+S" onClick={act(saveAs)} />
-                  <MenuItem
-                    label={tr("app.menuSaveSingleFile")}
-                    onClick={act(saveAsSingleFile)}
-                    title={tr("app.menuSaveSingleFileTitle")}
-                  />
+                  {!project && (
+                    <>
+                      <MenuItem label={tr("app.menuSaveAs")} shortcut="Ctrl+Shift+S" onClick={act(saveAs)} />
+                      <MenuItem
+                        label={tr("app.menuSaveSingleFile")}
+                        onClick={act(saveAsSingleFile)}
+                        title={tr("app.menuSaveSingleFileTitle")}
+                      />
+                    </>
+                  )}
+                  {!project && !isDeck && (
+                    <MenuItem icon={<Split />} label={tr("project.menuSplit")} onClick={act(splitIntoProject)} title={tr("project.menuSplitTitle")} />
+                  )}
+                  {project && <MenuItem icon={<Merge />} label={tr("project.menuJoin")} onClick={act(joinProject)} title={tr("project.menuJoinTitle")} />}
                   <MenuSeparator />
                   <MenuItem icon={<FileDown />} label={tr("app.menuExportPdf")} shortcut="Ctrl+Shift+E" onClick={act(exportPdfFile)} />
                   <MenuItem
@@ -1085,8 +1458,9 @@ export default function App() {
             }}
           </Menu>
           <div className="doc-title" title={path ?? tr("app.notSavedYet")}>
-            <FileText size={15} aria-hidden="true" />
+            {project ? <Files size={15} aria-hidden="true" /> : <FileText size={15} aria-hidden="true" />}
             <span className="doc-name">{fileName}</span>
+            {project && <span className="doc-chapter">— {openChapterTitle}</span>}
             {dirty && <span className="dirty-dot" title={tr("app.unsavedChanges")} />}
           </div>
         </div>
@@ -1251,6 +1625,7 @@ export default function App() {
       <main className={`workspace${mode === "template" ? " template-mode" : ""}`}>
         {mode === "document" && (
           <nav className="rail" aria-label={tr("app.panels")}>
+            {project && <RailButton icon={<Files />} label={panelTitle.chapters} active={panel === "chapters"} onClick={() => togglePanel("chapters")} />}
             <RailButton icon={<ListTree />} label={panelTitle.outline} active={panel === "outline"} onClick={() => togglePanel("outline")} />
             <RailButton icon={<IdCard />} label={panelTitle.info} badge={missing || undefined} active={panel === "info"} onClick={() => togglePanel("info")} />
             <RailButton
@@ -1279,6 +1654,16 @@ export default function App() {
               </button>
             </div>
             <div className="side-body">
+              {panel === "chapters" && project && (
+                <ChaptersPanel
+                  entries={project.entries}
+                  index={project.index}
+                  current={project.chapter}
+                  onOpen={(file) => void openChapter(file)}
+                  onEntries={changeEntries}
+                  onNewChapter={addChapter}
+                />
+              )}
               {panel === "outline" && editor && template && <Outline editor={editor} />}
               {panel === "info" && template && <MetadataForm template={template} metadata={metadata} onChange={onMetadataChange} />}
               {panel === "refs" && <ReferencesPanel source={bibliography} info={bibInfo} cited={citedKeys(editor)} onChange={onBibliographyChange} />}
@@ -1308,6 +1693,7 @@ export default function App() {
         {/* Kept mounted (just hidden) in template mode so the editor keeps its state. */}
         <section className="editor-pane" hidden={mode !== "document"}>
           {template && <style>{templateCss(template, ".editor-pane .page", deckInfo)}</style>}
+          {counterCss && <style>{counterCss}</style>}
           {search && editor && <SearchBar editor={editor} withReplace={search.replace} onClose={() => setSearchBar(null)} />}
           {picker && editor && (
             <div className="picker-anchor">
@@ -1320,7 +1706,7 @@ export default function App() {
           )}
           <div className="editor-scroll" ref={editorScroll} style={{ ["--page-zoom" as string]: pageZoom }}>
             <div
-              className={`page${isDeck ? " deck" : ""}`}
+              className={`page${isDeck ? " deck" : ""}${chapterIsAppendix ? " appendix-chapter" : ""}`}
               dir={lang.rtl ? "rtl" : "ltr"}
               lang={lang.tag}
               style={logoUrl ? { ["--slide-logo" as string]: `url("${logoUrl}")` } : undefined}
@@ -1343,6 +1729,24 @@ export default function App() {
               </span>
             )}
             <span className="spacer" />
+            {project && mode === "document" && !showLatex && (
+              <span className="segmented" role="group" aria-label={tr("project.scopeTitle")} title={tr("project.scopeTitle")}>
+                {[false, true].map((whole) => (
+                  <button
+                    key={String(whole)}
+                    className={wholeBook === whole ? "active" : ""}
+                    aria-pressed={wholeBook === whole}
+                    onClick={() => {
+                      wholeBookRef.current = whole;
+                      setWholeBookState(whole);
+                      compile();
+                    }}
+                  >
+                    {tr(whole ? "project.scopeBook" : "project.scopeChapter")}
+                  </button>
+                ))}
+              </span>
+            )}
             {!settings.autoCompile && (
               <button className="tb-button" onClick={compile} title={tr("app.compileTitle")}>
                 <Play size={14} aria-hidden="true" /> {tr("app.compile")}
@@ -1382,7 +1786,7 @@ export default function App() {
             </button>
           </div>
           {templateProblem && <TemplateProblemPanel problem={templateProblem} onDismiss={() => setTemplateProblem(null)} />}
-          {status.state === "error" && <ErrorPanel error={status.error} onJump={jumpToBlock} describe={describeBlock} />}
+          {status.state === "error" && <ErrorPanel error={status.error} onJump={jumpToError} describe={describeBlock} />}
           {showLatex ? (
             <pre className="latex-source">{latex}</pre>
           ) : mode === "template" && designPreview === "page" && draft ? (
@@ -1396,7 +1800,12 @@ export default function App() {
       <footer className="statusbar">
         <StatusBadge status={status} ms={compileMs} />
         {pageCount > 0 && <span>{tr(pageCount === 1 ? "app.pageCountOne" : "app.pageCountMany", { n: pageCount })}</span>}
-        {mode === "document" && <span>{tr("app.wordCount", { n: wordCount.toLocaleString() })}</span>}
+        {mode === "document" &&
+          (project ? (
+            <span title={tr("project.wordsBookTitle")}>{tr("project.wordsBook", { chapter: wordCount.toLocaleString(), book: bookWords.toLocaleString() })}</span>
+          ) : (
+            <span>{tr("app.wordCount", { n: wordCount.toLocaleString() })}</span>
+          ))}
         {mode === "document" && issues.length > 0 && (
           <button className="status-link warn" onClick={() => setPanel("checks")}>
             <TriangleAlert size={13} aria-hidden="true" /> {tr("app.toCheck", { n: issues.length })}
@@ -1447,19 +1856,20 @@ export default function App() {
         <NewDocumentDialog
           builtins={builtins}
           currentId={templateInfo?.path ? null : template?.meta.id ?? null}
-          onPick={(id) => newFromTemplate(() => switchToBuiltin(id), `builtin:${id}`)}
+          onPick={(id) => (projectPick ? createProject : newFromTemplate)(() => switchToBuiltin(id), `builtin:${id}`)}
           userTemplates={userTemplates}
           currentPath={templateInfo?.path ?? null}
-          onPickUser={(u) => newFromTemplate(() => openTemplateFile(u.path), `mine:${u.path}`)}
+          onPickUser={(u) => (projectPick ? createProject : newFromTemplate)(() => openTemplateFile(u.path), `mine:${u.path}`)}
           onRemoveUser={removeUserTemplate}
-          onImport={() => newFromTemplate(importTemplateFile)}
+          onImport={() => (projectPick ? createProject : newFromTemplate)(importTemplateFile)}
           installed={installedTemplates}
           waiting={installedWaiting}
           installedThemes={installedThemeCount}
           currentClass={currentTexClass}
-          onPickInstalled={(c) => newFromTemplate(() => switchToInstalled(c), `tex:${c}`)}
+          onPickInstalled={(c) => (projectPick ? createProject : newFromTemplate)(() => switchToInstalled(c), `tex:${c}`)}
           engine={settings.engine}
-          start={startWindow}
+          start={startWindow && !projectPick}
+          forProject={projectPick}
           view={settings.galleryView}
           category={settings.galleryCategory}
           recentTemplates={settings.recentTemplates}
@@ -1469,10 +1879,12 @@ export default function App() {
             setShowGallery(false);
             openDoc(p);
           }}
+          onNewProject={newProject}
           onExample={() => openExample()}
           onExamplePresentation={() => openExample("presentation")}
           onClose={() => {
             setShowGallery(false);
+            setProjectPick(false);
             // Closing the start window starts writing in the empty document.
             if (startWindow && editor) focusStart(editor, editorScroll.current);
             setStartWindow(false);
@@ -1781,7 +2193,16 @@ function errorHint(message: string): MessageKey | null {
   return null;
 }
 
-function ErrorPanel({ error, onJump, describe }: { error: AppError; onJump?: (block: number) => void; describe?: (block: number) => string }) {
+function ErrorPanel({
+  error,
+  onJump,
+  describe,
+}: {
+  error: AppError;
+  /** Goes to a block (in a project: of `chapter`). */
+  onJump?: (block: number, chapter?: string) => void;
+  describe?: (block: number, chapter?: string) => string;
+}) {
   const t = useT();
   if (error.kind === "texErrors") {
     return (
@@ -1794,13 +2215,13 @@ function ErrorPanel({ error, onJump, describe }: { error: AppError; onJump?: (bl
               <>
                 <span className="error-message">{e.message}</span>
                 {hint && <span className="error-hint">{t(hint)}</span>}
-                {e.block != null && describe && <span className="error-where">{t("app.errorIn", { where: describe(e.block) })}</span>}
+                {e.block != null && describe && <span className="error-where">{t("app.errorIn", { where: describe(e.block, e.chapter) })}</span>}
               </>
             );
             return (
               <li key={i}>
                 {e.block != null && onJump ? (
-                  <button type="button" className="error-jump" onClick={() => onJump(e.block!)} title={t("app.goToPlace")}>
+                  <button type="button" className="error-jump" onClick={() => onJump(e.block!, e.chapter)} title={t("app.goToPlace")}>
                     {body}
                   </button>
                 ) : (

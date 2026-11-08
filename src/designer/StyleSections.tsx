@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import * as api from "../api";
 import { FontPicker } from "./PageSections";
 import type { HeadingStyle } from "../bindings/HeadingStyle";
+import type { PartStyle } from "../bindings/PartStyle";
 import type { PageStyle } from "../bindings/PageStyle";
 import type { TextStyle } from "../bindings/TextStyle";
 import { ColorInput, NumberInput, PlaceholderInput, Row, Segmented, Toggle, issuesAt } from "./controls";
@@ -141,6 +142,30 @@ export function HeadingsSection({ t, edit, issues }: SectionProps) {
   const tr = useT();
   const [level, setLevel] = useState(0);
   const names = headingNames(t, tr);
+  // Parts group chapters (in a project): only for templates with chapters.
+  const withParts = t.structure.topLevel === "chapter" && !t.base;
+  const tabs = (
+    <Segmented
+      value={level < 0 ? "part" : String(level)}
+      options={[
+        ...names.map((n, i) => ({
+          value: String(i),
+          label: `${i + 1}. ${n}`,
+          title: issuesAt(issues, `headings.levels[${i}]`).length ? tr("designer.hasProblems") : undefined,
+        })),
+        ...(withParts ? [{ value: "part", label: tr("designer.partTab"), title: tr("designer.partTabTitle") }] : []),
+      ]}
+      onChange={(v) => setLevel(v === "part" ? -1 : Number(v))}
+    />
+  );
+  if (level < 0 && withParts) {
+    return (
+      <>
+        {tabs}
+        <PartControls t={t} edit={edit} issues={issues} />
+      </>
+    );
+  }
   const style = t.headings.levels[level];
   if (!style) return <p className="d-error">{tr("designer.headingLevelMissing", { n: level + 1 })}</p>;
   const path = `headings.levels[${level}]`;
@@ -148,15 +173,7 @@ export function HeadingsSection({ t, edit, issues }: SectionProps) {
   const numbered = level < t.structure.numberedDepth;
   return (
     <>
-      <Segmented
-        value={String(level)}
-        options={names.map((n, i) => ({
-          value: String(i),
-          label: `${i + 1}. ${n}`,
-          title: issuesAt(issues, `headings.levels[${i}]`).length ? tr("designer.hasProblems") : undefined,
-        }))}
-        onChange={(v) => setLevel(Number(v))}
-      />
+      {tabs}
       <HeadingSample t={t} style={style} level={level} numbered={numbered} lang={sampleLanguage(t)} />
       <TextStyleControls style={style.text} path={`${path}.text`} issues={issues} onChange={(fn) => set((h) => fn(h.text))} />
       <Row label={tr("designer.layout")}>
@@ -189,6 +206,63 @@ export function HeadingsSection({ t, edit, issues }: SectionProps) {
           <NumberInput value={style.spaceAfterPt} unit="pt" min={0} onChange={(v) => set((h) => void (h.spaceAfterPt = v))} />
         </span>
       </Row>
+    </>
+  );
+}
+
+/** A part's number in words, as the PDF writes it ("الأول", "One"). */
+const PART_WORDS = { ar: ["الأول", "الثاني", "الثالث"], en: ["One", "Two", "Three"] };
+
+/** The part heading ("الباب الأول"): the base class's plain \part, or a style of its own. */
+function PartControls({ t, edit, issues }: SectionProps) {
+  const tr = useT();
+  const part = t.headings.part;
+  const lang = sampleLanguage(t);
+  const set = (fn: (p: PartStyle) => void) => edit((d) => d.headings.part && fn(d.headings.part));
+  const enable = (on: boolean) =>
+    edit((d) => {
+      if (!on) delete d.headings.part;
+      else
+        d.headings.part = {
+          text: { ...d.headings.levels[0].text, sizePt: d.headings.levels[0].text.sizePt + 6, bold: true, align: "center" },
+          label: lang === "ar" ? "الباب {n}" : "Part {n}",
+          numberWords: true,
+          ownPage: true,
+          inToc: true,
+          labelGapPt: 12,
+        };
+    });
+  return (
+    <>
+      <Row label={tr("designer.partCustom")} hint={tr("designer.partCustomHint")}>
+        <Toggle checked={!!part} onChange={enable} label={tr("designer.partCustomToggle")} />
+      </Row>
+      {part && (
+        <>
+          <div className="d-sample" aria-label={tr("designer.headingPreview")} dir={lang === "ar" ? "rtl" : "ltr"} style={{ fontFamily: pageFontStack(t) }}>
+            <div style={{ ...textCss(part.text), fontFamily: part.text.font ? cssFontStack(part.text.font) : pageFontStack(t) }}>
+              <div style={{ marginBottom: part.labelGapPt * PX_PER_PT }}>
+                {part.label.replace(/\{n\}/g, part.numberWords ? PART_WORDS[lang][0] : localDigits("1", docLanguage(t).digits))}
+              </div>
+              <div>{translate(lang, "designer.partSampleTitle")}</div>
+            </div>
+          </div>
+          <TextStyleControls style={part.text} path="headings.part.text" issues={issues} onChange={(fn) => set((p) => fn(p.text))} />
+          <Row label={tr("designer.numberLabel")} hint={tr("designer.partLabelHint")} issues={issuesAt(issues, "headings.part.label")}>
+            <PlaceholderInput value={part.label} onChange={(v) => set((p) => void (p.label = v))} placeholders={[{ name: "n", description: tr("designer.phPartNumber") }]} />
+          </Row>
+          <Row label={tr("designer.partOptions")}>
+            <span className="d-inline">
+              <Toggle checked={part.numberWords} onChange={(v) => set((p) => void (p.numberWords = v))} label={tr("designer.partNumberWords")} />
+              <Toggle checked={part.ownPage} onChange={(v) => set((p) => void (p.ownPage = v))} label={tr("designer.partOwnPage")} />
+              <Toggle checked={part.inToc} onChange={(v) => set((p) => void (p.inToc = v))} label={tr("designer.partInToc")} />
+            </span>
+          </Row>
+          <Row label={tr("designer.gapAfterNumber")} issues={issuesAt(issues, "headings.part.labelGapPt")}>
+            <NumberInput value={part.labelGapPt} unit="pt" min={0} onChange={(v) => set((p) => void (p.labelGapPt = v))} />
+          </Row>
+        </>
+      )}
     </>
   );
 }

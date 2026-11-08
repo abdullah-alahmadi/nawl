@@ -11,10 +11,11 @@ import * as designer from "./designer";
 import * as designerContent from "./designerContent";
 import * as dialogs from "./dialogs";
 import * as editor from "./editor";
+import * as project from "./project";
 
-const en = { ...common.en, ...app.en, ...designer.en, ...designerContent.en, ...dialogs.en, ...editor.en };
+const en = { ...common.en, ...app.en, ...designer.en, ...designerContent.en, ...dialogs.en, ...editor.en, ...project.en };
 export type MessageKey = keyof typeof en;
-const ar: Record<MessageKey, string> = { ...common.ar, ...app.ar, ...designer.ar, ...designerContent.ar, ...dialogs.ar, ...editor.ar };
+const ar: Record<MessageKey, string> = { ...common.ar, ...app.ar, ...designer.ar, ...designerContent.ar, ...dialogs.ar, ...editor.ar, ...project.ar };
 
 export type UiLanguage = "en" | "ar";
 const TABLES: Record<UiLanguage, Record<MessageKey, string>> = { en, ar };

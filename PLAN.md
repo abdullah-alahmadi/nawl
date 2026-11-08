@@ -260,6 +260,230 @@ Word is an export target only; Texloom never imports Word files.
       shows them only with its own "Hindi digits" option)
 - [ ] More languages on the same model (Persian, Urdu, Hebrew)
 
+### Projects: books and theses as one file per chapter (in progress)
+
+**Why.** Long documents are easier to organize as chapters: each opens on its own, can
+be reordered, backed up or tracked in git, and two people can work on different
+chapters. Writing gets faster as a side effect: the editor holds one chapter (the
+1000-page test book opens in about 7 s as one file; a chapter opens at once), and
+LaTeX can recompile just the chapter being written. This is the same idea as LaTeX's
+`\include` and LyX's master/child documents.
+
+**Not a replacement for single files.** A `.loom` stays the default. A project is for
+documents that have chapters (book, thesis, long report). The templates are the same.
+
+#### File format
+
+A project is a folder:
+
+```
+my-thesis/
+  my-thesis.loomproj      project file
+  chapters/
+    01-introduction.loom  one chapter per file
+    02-literature.loom
+    a1-survey.loom        appendix
+  figures/                shared by all chapters
+```
+
+- **Project file** (`.loomproj`, JSON):
+  `{"format": "texloom-project", "version": 1, "template": {...}, "metadata": {...},
+  "bibliography": "...", "chapters": [{"part": "الباب الأول: الإطار النظري"},
+  {"file": "chapters/01-introduction.loom"}, …, {"file": "chapters/a1-survey.loom",
+  "appendix": true}]}`.
+  Everything the whole book shares lives here: the template (embedded, as in a
+  `.loom`), title-page metadata, front matter fields, the bibliography and the
+  chapter order.
+  - **Parts** ("الباب الأول") are entries in the chapter list, not files: a title,
+    followed by the chapters it groups until the next part. Books without parts don't
+    have any.
+  - **Front matter written as text** (abstract, dedication, acknowledgments, الإهداء,
+    الشكر والتقدير) stays as the template's metadata fields, edited in Document
+    info, as for single documents.
+- **Chapter file**: an ordinary `.loom` (`format`, `version`, `doc`) with
+  `"project": "../my-thesis.loomproj"` and no template, metadata or bibliography of its
+  own. It starts with its chapter heading.
+  - A chapter opened on its own (double-clicked) finds its project and opens the
+    project at that chapter.
+  - If the project file is missing, the chapter opens as a single document with the
+    default template, with a notice.
+- **Paths** in the project file are relative, so the folder can be moved, zipped or
+  synced. "Save as single file…" zips the folder (`.loomproj` inside; opening it
+  detects either kind).
+
+#### Writing
+
+- **Chapters panel:** the side rail gets a Chapters tab, listing chapters by their
+  titles (from each file's first heading), grouped under their parts, with appendices
+  after a separator. From there you can:
+  - add a new chapter, or an existing `.loom` as a chapter;
+  - add, rename or remove a part (removing a part keeps its chapters);
+  - rename (the heading and the file name);
+  - drag to reorder;
+  - remove (from the project only; the file stays);
+  - open in the editor.
+- **One chapter in the editor at a time.** Switching chapters saves the current one
+  (or keeps it unsaved, the way tabs do).
+  - Undo history is per chapter.
+  - The Outline shows the open chapter's headings, plus the other chapters' titles
+    collapsed, so you can jump anywhere.
+- **Document info** edits the project's metadata. References edits the project's
+  bibliography.
+- **Word count:** the status bar shows the chapter and the whole book ("2,140 / 61,300
+  words").
+- **Search and replace:** "this chapter" by default, "whole book" as an option. Results
+  from other chapters open that chapter at the match.
+- **Checks** run per chapter, plus the cross-chapter references (below).
+
+#### Numbering, references and citations across files
+
+The single-document code works on one ProseMirror document (`computeNumbering`,
+`citationLabels`). A project adds a **project index**, built by the backend from all
+chapter files when the project opens and updated when a chapter is saved or switched.
+For each chapter it records:
+
+- its numbered targets: heading, figure, table and equation ids, with their kind, level
+  and caption text;
+- its citation keys, in order;
+- its word count.
+
+The editor uses the index to:
+- **start numbering where the previous chapters end.** Chapter 3's first figure is
+  "Figure ٣.١"; continuous numbering styles count from the totals so far.
+  `computeNumbering` takes a starting state (chapter number, appendix letter, counters
+  carried over) instead of always starting from zero.
+- **resolve references to other chapters.** A reference whose target isn't in the open
+  chapter is looked up in the index; it shows its number, and Ctrl-click opens that
+  chapter at the target. Inserting a cross-reference lists targets from every
+  chapter, grouped by chapter.
+- **number citations in book order.** IEEE numbers by first citation in the whole book:
+  citations in earlier chapters come first. The index provides the key order before
+  the open chapter.
+- **keep ids unique across the project.** The id plugin (`TexloomIds`) also checks the
+  index, so copying a figure from one chapter to another gets a new id instead of a
+  duplicate.
+
+#### Compiling and exporting
+
+- **Whole book:** codegen writes `main.tex` (preamble, title page, contents, front
+  matter) and one `.tex` per chapter, joined with `\include{chapters/…}`. Appendices
+  come after `\appendix`, as now. Parts are `\part{…}` lines in `main.tex`.
+- **Part style:** templates gain a part heading style in the designer, next to the
+  chapter style:
+  - a page of its own or not;
+  - the label, with Arabic ordinal words ("الباب الأول", "الباب الثاني") or numbers;
+  - font and size;
+  - whether parts appear in the contents.
+  Templates without one get a plain default. Single documents don't use it.
+  - Each chapter's `.tex` comes from the existing body generator. `generate_for` gains
+    a project entry point that takes the template, metadata, bibliography and the
+    ordered chapter bodies.
+  - The reference list Texloom writes itself (`refs.rs`, Arabic documents) collects
+    citations from all chapters.
+- **Just this chapter** (the default while writing a long book): the same files with
+  `\includeonly{chapters/03-…}`.
+  - LaTeX keeps the other chapters' `.aux` files from the last full compile, so page
+    numbers, references and citations to other chapters stay right.
+  - **The app compiles the whole book instead, automatically,** whenever those files
+    could be out of date:
+    - the first compile of a project;
+    - after chapters or parts are added, removed or reordered;
+    - after a numbered target is added or removed in another chapter, or a citation
+      that changes the book's citation order;
+    - after the template or bibliography changes.
+    The project index tells which of these happened since the last full compile. Once
+    the whole book is compiled, compiles go back to just the open chapter.
+  - A toolbar switch picks "this chapter" or "whole book". Compile after saving and
+    compile while typing follow it.
+- **SyncTeX** maps PDF positions back to chapter files: codegen records each block's
+  `.tex` file and line, not only its line.
+- **Export** (zip) contains `main.tex`, the chapter `.tex` files, the class, figures
+  and bibliography. It compiles anywhere, including Overleaf, which handles `\include`.
+- **Word export** joins the chapters into one `.docx` (one Word file per book; Word's
+  master documents are unreliable).
+
+#### Moving between single files and projects
+
+- **Split into project…** (File menu, for a `.loom` with chapters): writes a project
+  folder, one file per top-level chapter heading, splitting at `appendixStart`.
+  Figures are copied into `figures/`, and ids are kept so references still work.
+- **Join into single document…**: the reverse, for sending one file, or for a project
+  that turned out short.
+- **New project** in the start window, for the book and thesis templates. It creates
+  the folder with the template's sample chapters, or one empty chapter.
+
+#### Recovery, recent files, settings
+
+- **Crash recovery** copies the unsaved chapters and the project file, keyed by the
+  project path. On the next start, it offers them back together.
+- **Recent files** list projects with their own icon; reopening goes to the last open
+  chapter.
+- **File watching:** a chapter changed on disk while the project is open (git pull,
+  sync) reloads if it has no unsaved changes, otherwise asks. The index is refreshed
+  either way.
+
+#### Steps
+
+- [x] Core: `ProjectFile` and `Project` in `texloom-core` (with TypeScript bindings),
+      `"project"` in chapter files, validation (unsafe or repeated paths, appendices
+      before chapters, empty parts, ids used in two chapters, appendix markers inside
+      chapters, chapters without a chapter heading), tests
+- [x] Template: part heading style (`headings.part`: label with `{n}`, number in
+      words — Arabic ordinals "الباب الأول" / English "Part One" — own page, contents
+      line, text style); the class defines `\texloompart` (the base class's `\part`
+      without a style; a `\providecommand` fallback for publisher classes); the
+      designer's Headings → Part tab; the Arabic book and thesis templates have one
+- [x] Codegen: `generate_project_for` (`main.tex` + `chapters/chNN.tex` by position,
+      parts, the reference list and `\appendix` in the main file, `\includeonly`),
+      each chapter's block lines for SyncTeX; tests (same LaTeX as the joined single
+      document; Tectonic and pdfLaTeX compiles of an Arabic and an English project; a
+      one-chapter Tectonic compile with `-k` keeps the other chapters' references)
+- [x] Compile: `compile_in` builds in a kept folder (only changed files rewritten;
+      Tectonic with `--keep-intermediates`), so one-chapter compiles find the other
+      chapters' `.aux` files; SyncTeX reads the chapter files too (`read_with`,
+      `place_at`, `spot_in`)
+- [x] Core: `ProjectIndex` (per chapter: title, part, appendix, words, targets with
+      kind/level/numbered/text, citations), with TypeScript bindings
+- [x] Backend (`src-tauri/src/project.rs`): `open_project` (template restored,
+      unreadable chapters reported), `close_project`, `read_chapter`, `save_chapter`,
+      `save_project` (validated, template embedded, unknown fields kept), `new_chapter`,
+      `project_index` (with the open chapter's live content), `render_project`
+      (build folder per project and engine in the app cache; whole book when the
+      signature of template, engine, bibliography, chapter list, targets and citations
+      differs from the last full compile; errors located by chapter and block),
+      `project_pdf_to_block` / `project_block_to_pdf`, `export_project_tex`,
+      `split_into_project`, `join_project`; opening a chapter file reports its project
+- [x] Crash recovery of the open chapter (with the project's metadata and
+      bibliography), restored into the project at that chapter
+- [x] Word export of the whole book (`export_project_docx`; the editor sends MathML for
+      every chapter's formulas; parts aren't written)
+- [ ] Backend: file watching (chapters changed on disk)
+- [x] Frontend: Chapters panel (parts, chapters, appendices; open, move, make
+      appendix/chapter, remove, add chapter/part/appendix; list changes save the
+      project file at once), chapter switching (saves the open chapter), numbering
+      from the index (`bookNumbering`: the open chapter starts where the ones before
+      end, CSS counters too, appendix chapters in letters), references to other
+      chapters (picker, labels, Ctrl-click opens the chapter at the target), ids
+      unique across chapters, citations in book order, chapter / book word count,
+      PDF ↔ editor jumps and error jumps across chapters; Open takes `.loomproj` and
+      chapter files (opens the project there); Split into project / Join into single
+      document; PDF and LaTeX export of the whole book
+- [ ] Frontend: search across chapters, the Outline with the other chapters
+- [x] Compile switch (this chapter / whole book)
+- [ ] CLI: `render`, `export` and `check` accept a `.loomproj`
+- [x] New project (File menu and start window: a folder, the current template, a first
+      chapter titled in the document's language)
+- [ ] A sample Arabic thesis project in `examples/`
+
+#### Decided
+
+- Parts ("الباب الأول") are a level above chapters, in the project's chapter list and
+  the Chapters panel, with their own style in the template.
+- Front matter written as text (dedication, acknowledgments) stays as template
+  metadata fields, not chapter files.
+- When a one-chapter compile could show outdated numbers, the app compiles the whole
+  book automatically.
+
 ### Phase 6: Polish and distribution (ongoing)
 - [x] Installed TeX as an alternative engine (pdfLaTeX, XeLaTeX, LuaLaTeX via latexmk,
       found on PATH or in TeX Live/MacTeX folders; 3-minute limit per run);

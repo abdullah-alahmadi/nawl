@@ -461,6 +461,11 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     }
     w!(o);
 
+    // ---- parts (projects group chapters into parts: "الباب الأول")
+    w!(o, "% Parts");
+    o.push_str(&part_command(t, &langs));
+    w!(o);
+
     // hyperref goes last, as it patches many of the packages above.
     w!(o, "\\RequirePackage[hidelinks]{{hyperref}}");
 
@@ -470,6 +475,62 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
         w!(o, "{}", raw.trim_end());
     }
     w!(o, "\\endinput");
+    o
+}
+
+/// Arabic ordinals for parts (masculine, after "الباب"), and English numbers.
+const ARABIC_ORDINALS: [&str; 20] = [
+    "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر",
+    "الحادي عشر", "الثاني عشر", "الثالث عشر", "الرابع عشر", "الخامس عشر", "السادس عشر", "السابع عشر", "الثامن عشر", "التاسع عشر", "العشرون",
+];
+const ENGLISH_NUMBERS: [&str; 20] = [
+    "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty",
+];
+
+/// `\texloompart{title}`, which a project's main file writes before each part's
+/// chapters: the base class's `\part` without a part style, else a heading of its
+/// own (label line, title, optionally a page of its own and a contents line). Its
+/// own counter, not the class's `part`, so it works the same in every base class.
+pub(crate) fn part_command(t: &Template, langs: &Languages) -> String {
+    let Some(style) = &t.headings.part else {
+        return "\\newcommand\\texloompart[1]{\\part{#1}}\n".into();
+    };
+    let mut o = String::new();
+    let tx = |s: &str| crate::language::text(s, langs.main, langs);
+    o.push_str("\\newcounter{tl@part}\n");
+    let number = if style.number_words {
+        let words: Vec<String> = match langs.main {
+            texloom_core::Language::Arabic => ARABIC_ORDINALS.iter().map(|w| tx(w)).collect(),
+            texloom_core::Language::English => ENGLISH_NUMBERS.iter().map(|w| w.to_string()).collect(),
+        };
+        // Past the table: digits.
+        o.push_str(&format!("\\newcommand\\tl@partword[1]{{\\ifcase#1\\or {}\\else\\number#1\\fi}}\n", words.join("\\or ")));
+        "\\tl@partword{\\number\\value{tl@part}}"
+    } else {
+        "\\arabic{tl@part}"
+    };
+    let label = render_placeholders(&style.label, PlaceholderContext { number: Some(number), langs: Some(langs) });
+    let fill = match style.text.align {
+        texloom_core::Align::Left => "\\raggedright",
+        texloom_core::Align::Center => "\\centering",
+        texloom_core::Align::Right => "\\raggedleft",
+    };
+    let font = font_commands(&style.text);
+    let (upper_open, upper_close) = if style.text.uppercase { ("\\MakeUppercase{", "}") } else { ("", "") };
+    // The contents line: the label (number written out now) and the title.
+    let toc = if style.in_toc { format!("\\phantomsection\\addcontentsline{{toc}}{{part}}{{{label}\\quad #1}}") } else { String::new() };
+    let (open, close) = if style.own_page {
+        ("\\cleardoublepage\\thispagestyle{empty}\\vspace*{\\fill}", "\\vspace*{\\fill}\\cleardoublepage")
+    } else {
+        ("\\par\\bigskip", "\\par\\bigskip")
+    };
+    o.push_str(&format!(
+        // A space after the alignment command: XeTeX reads Arabic letters as letters,
+        // so "\centeringالباب" would be one (undefined) command.
+        "\\newcommand\\texloompart[1]{{{open}\\refstepcounter{{tl@part}}{toc}{{\\normalfont{font}{fill} {upper_open}{label}{upper_close}\\par\\vspace{{{}pt}}{upper_open}#1{upper_close}\\par}}{close}}}\n",
+        num(style.label_gap_pt)
+    ));
     o
 }
 

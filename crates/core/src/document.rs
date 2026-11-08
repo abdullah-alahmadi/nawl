@@ -25,6 +25,10 @@ pub struct DocumentFile {
     pub version: u32,
     #[serde(flatten)]
     pub document: Document,
+    /// For a chapter of a project: the project file, relative to the chapter's folder
+    /// (`"../my-thesis.loomproj"`). A chapter has no metadata or bibliography of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project: Option<String>,
 }
 
 /// Metadata values plus the body.

@@ -102,7 +102,19 @@
         "spaceBeforePt": 12,
         "spaceAfterPt": 4
       }
-    ]
+    ],
+    "part": {
+      "text": {
+        "sizePt": 26,
+        "bold": true,
+        "align": "center"
+      },
+      "label": "الباب {n}",
+      "numberWords": true,
+      "ownPage": true,
+      "inToc": true,
+      "labelGapPt": 16
+    }
   },
   "headerFooter": {
     "frontMatter": {

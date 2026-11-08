@@ -8,7 +8,7 @@ import type { NodeView } from "@tiptap/pm/view";
 import type { Template } from "../api";
 import type { BibEntry } from "../api";
 import { docLanguage, hasArabic, localDigits, words } from "./language";
-import { computeNumbering, type NumberedItem } from "./numbering";
+import { computeNumbering, type Counters, type NumberedItem } from "./numbering";
 import { t as tr } from "../i18n";
 
 /** Node types that cross-references can point at. */
@@ -20,6 +20,22 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 export interface TexloomContext {
   template: Template | null;
   bibEntries: BibEntry[];
+  /** The open document is a chapter of a project. */
+  project: ProjectContext | null;
+}
+
+/** For a chapter of a project: what the other chapters contribute (from the index). */
+export interface ProjectContext {
+  /** Numbering starts where the chapters before this one end. */
+  start: Counters;
+  /** The other chapters' numbered items, for references to them. */
+  others: NumberedItem[];
+  /** Citation keys of the chapters before and after this one, in order (citations
+   *  are numbered in book order). */
+  citationsBefore: string[];
+  citationsAfter: string[];
+  /** Opens another chapter at a target (Ctrl-click on a reference to it). */
+  openTarget: (chapter: string, id: string) => void;
 }
 
 declare module "@tiptap/react" {
@@ -45,7 +61,7 @@ export const TexloomIds = Extension.create<object, TexloomContext>({
   name: "texloom",
 
   addStorage() {
-    return { template: null, bibEntries: [] };
+    return { template: null, bibEntries: [], project: null };
   },
 
   addGlobalAttributes() {
@@ -96,7 +112,9 @@ export const TexloomIds = Extension.create<object, TexloomContext>({
         key: new PluginKey("texloom-ids"),
         appendTransaction: (transactions, _old, state) => {
           if (!transactions.some((tr) => tr.docChanged) && _old.doc.eq(state.doc)) return null;
-          const seen = new Set<string>();
+          // In a project, ids are unique across chapters too: a figure copied from
+          // another chapter gets a new one.
+          const seen = new Set<string>(this.storage.project?.others.flatMap((i: NumberedItem) => (i.id ? [i.id] : [])) ?? []);
           const tr = state.tr;
           state.doc.descendants((node, pos) => {
             if (!TARGET_TYPES.includes(node.type.name)) return true;
@@ -123,21 +141,24 @@ export function setTexloomContext(editor: Editor, ctx: Partial<TexloomContext>) 
   editor.view.dispatch(editor.state.tr.setMeta("texloom-context", true));
 }
 
-type Numbering = { template: unknown; items: NumberedItem[]; byId: Map<string, NumberedItem> };
-const NO_NUMBERING: Numbering = { template: null, items: [], byId: new Map() };
+type Numbering = { template: unknown; project: unknown; items: NumberedItem[]; byId: Map<string, NumberedItem> };
+const NO_NUMBERING: Numbering = { template: null, project: null, items: [], byId: new Map() };
 const numberingCache = new WeakMap<PMNode, Numbering>();
 
 /** The document's numbered targets, computed once per version of the document
  *  (documents are immutable) and shared by every node view that shows a number:
- *  computed per view, typing in a long book redid it hundreds of times a keystroke. */
+ *  computed per view, typing in a long book redid it hundreds of times a keystroke.
+ *  In a project, `byId` also has the other chapters' targets. */
 function numberingOf(editor: Editor): Numbering {
-  const template = editor.storage.texloom.template;
+  const { template, project } = editor.storage.texloom;
   if (!template) return NO_NUMBERING;
   const doc = editor.state.doc;
   let cached = numberingCache.get(doc);
-  if (!cached || cached.template !== template) {
-    const items = computeNumbering(doc, template);
-    cached = { template, items, byId: new Map(items.flatMap((i) => (i.id ? [[i.id, i] as const] : []))) };
+  if (!cached || cached.template !== template || cached.project !== project) {
+    const items = computeNumbering(doc, template, project?.start);
+    const byId = new Map(items.flatMap((i) => (i.id ? [[i.id, i] as const] : [])));
+    for (const i of project?.others ?? []) if (i.id && !byId.has(i.id)) byId.set(i.id, i);
+    cached = { template, project, items, byId };
     numberingCache.set(doc, cached);
   }
   return cached;
@@ -155,7 +176,7 @@ function labelStore(editor: Editor): LabelStore {
   if (store) return store;
   const s: LabelStore = { version: 0, signature: "", listeners: new Set() };
   const check = () => {
-    const signature = JSON.stringify([numberingOf(editor).items.map((i) => [i.id, i.refText, i.text]), [...citationLabels(editor)]]);
+    const signature = JSON.stringify([[...numberingOf(editor).byId.values()].map((i) => [i.id, i.refText, i.text]), [...citationLabels(editor)]]);
     if (signature === s.signature) return;
     s.signature = signature;
     s.version++;
@@ -238,6 +259,20 @@ export function useNumbering(editor: Editor): NumberedItem[] {
   });
 }
 
+/** What a cross-reference can point at: this document's numbered targets, and in a
+ *  project the other chapters' (marked with their `chapter`). */
+export function useReferenceTargets(editor: Editor): NumberedItem[] {
+  return useEditorState({
+    editor,
+    selector: ({ editor }) => {
+      const own = numberingOf(editor).items;
+      const others = editor.storage.texloom.project?.others ?? [];
+      return others.length ? [...own, ...others] : own;
+    },
+    equalityFn: (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b),
+  });
+}
+
 // ---------------------------------------------------------------- cross-references
 
 function refView(node: PMNode, editor: Editor): NodeView {
@@ -258,7 +293,8 @@ function refView(node: PMNode, editor: Editor): NodeView {
     const target = numberingOf(editor).byId.get(view.node.attrs.target);
     if (!target || !(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    editor.chain().focus().setTextSelection(target.pos + 1).scrollIntoView().run();
+    if (target.chapter && target.id) editor.storage.texloom.project?.openTarget(target.chapter, target.id);
+    else editor.chain().focus().setTextSelection(target.pos + 1).scrollIntoView().run();
   });
   return view;
 }
@@ -290,17 +326,17 @@ export const CrossRef = Node.create({
 
 // ---------------------------------------------------------------- citations
 
-const citationCache = new WeakMap<PMNode, { template: unknown; bibEntries: unknown; labels: Map<string, string> }>();
+const citationCache = new WeakMap<PMNode, { template: unknown; bibEntries: unknown; project: unknown; labels: Map<string, string> }>();
 
 /** On-screen citation labels, matching the template's bibliography style: computed
  *  once per version of the document and shared by every citation on the page. */
 export function citationLabels(editor: Editor): Map<string, string> {
-  const { template, bibEntries } = editor.storage.texloom;
+  const { template, bibEntries, project } = editor.storage.texloom;
   const doc = editor.state.doc;
   const cached = citationCache.get(doc);
-  if (cached && cached.template === template && cached.bibEntries === bibEntries) return cached.labels;
+  if (cached && cached.template === template && cached.bibEntries === bibEntries && cached.project === project) return cached.labels;
   const labels = computeCitationLabels(editor);
-  citationCache.set(doc, { template, bibEntries, labels });
+  citationCache.set(doc, { template, bibEntries, project, labels });
   return labels;
 }
 
@@ -309,11 +345,13 @@ function computeCitationLabels(editor: Editor): Map<string, string> {
   const labels = new Map<string, string>();
   if (!template) return labels;
   const byKey = new Map(bibEntries.map((e) => [e.key, e]));
-  // Keys in the order they're first cited.
-  const seen = new Set<string>();
+  // Keys in the order they're first cited (in a project: in the whole book).
+  const project = editor.storage.texloom.project;
+  const seen = new Set<string>(project?.citationsBefore ?? []);
   editor.state.doc.descendants((n) => {
     if (n.type.name === "citation") for (const k of n.attrs.keys as string[]) seen.add(k);
   });
+  for (const k of project?.citationsAfter ?? []) seen.add(k);
   const order = [...seen];
   const style = template.bibliography.style;
   const digits = docLanguage(template).digits;

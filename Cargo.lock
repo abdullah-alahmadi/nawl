@@ -4115,6 +4115,7 @@ version = "0.1.0"
 dependencies = [
  "insta",
  "serde_json",
+ "tempfile",
  "texloom-compile",
  "texloom-core",
 ]

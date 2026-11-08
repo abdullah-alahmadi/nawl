@@ -10,6 +10,7 @@ mod bundle;
 mod files;
 mod installed;
 mod library;
+mod project;
 mod recovery;
 mod templates;
 mod themes;
@@ -118,6 +119,9 @@ pub struct LocatedTexError {
     error: TexError,
     /// Index of the top-level block of the document whose LaTeX failed.
     block: Option<usize>,
+    /// For a project: the chapter file the block is in.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    chapter: Option<String>,
 }
 
 impl LocatedTexError {
@@ -131,7 +135,7 @@ impl LocatedTexError {
             }
             _ => None,
         };
-        Self { error, block }
+        Self { error, block, chapter: None }
     }
 }
 
@@ -139,7 +143,7 @@ impl From<CompileError> for AppError {
     fn from(e: CompileError) -> Self {
         match e {
             CompileError::Failed { errors, log } => {
-                AppError::TexErrors { errors: errors.into_iter().map(|error| LocatedTexError { error, block: None }).collect(), log }
+                AppError::TexErrors { errors: errors.into_iter().map(|error| LocatedTexError { error, block: None, chapter: None }).collect(), log }
             }
             CompileError::NotFound(_) => AppError::TectonicMissing { message: e.to_string() },
             other => AppError::other(other),
@@ -189,6 +193,22 @@ impl Runner {
         match self {
             Runner::Tectonic(c) => c.compile(tex, files),
             Runner::System(s) => s.compile(tex, files),
+        }
+    }
+
+    /// Compiles in a build folder that is kept between compiles (a project's).
+    fn compile_in(&self, dir: &Path, tex: &str, files: &[Asset<'_>]) -> Result<CompileOutput, CompileError> {
+        match self {
+            Runner::Tectonic(c) => c.compile_in(dir, tex, files),
+            Runner::System(s) => s.compile_in(dir, tex, files),
+        }
+    }
+
+    /// Identifies the engine, for keeping build folders apart.
+    fn id(&self) -> &'static str {
+        match self {
+            Runner::Tectonic(_) => "tectonic",
+            Runner::System(s) => s.program.command(),
         }
     }
 }
@@ -278,6 +298,10 @@ struct OpenedDocument {
     /// it again writes one too.
     #[serde(default, skip_deserializing)]
     bundled: bool,
+    /// Opened a chapter of a project: the project file (the editor opens the project
+    /// at that chapter instead).
+    #[serde(default, skip_deserializing, skip_serializing_if = "Option::is_none")]
+    project: Option<String>,
 }
 
 /// The template fields saved inside a `.loom` file.
@@ -764,6 +788,7 @@ fn new_document(state: State<'_, AppState>) -> Result<OpenedDocument, AppError> 
         bibliography: String::new(),
         template: None,
         bundled: false,
+        project: None,
     })
 }
 
@@ -781,35 +806,12 @@ async fn compile_document(
     metadata: Metadata,
     bibliography: Option<String>,
 ) -> Result<Vec<u8>, AppError> {
-    let mut runner = state.runner()?;
-    let mut target = state.engine().target();
     let active = state.templates.current();
     if let Some(e) = active.missing_kit() {
         return Err(e);
     }
     let document = to_document(doc, metadata, bibliography)?;
-    if needs_lualatex(&active.template) && target != texloom_codegen::Engine::Lua {
-        // Right-to-left slides only work with LuaLaTeX (beamer-rl): the installed one,
-        // whatever engine is chosen for everything else.
-        let lua = SystemLatex::find(LatexProgram::LuaLatex).ok_or_else(|| {
-            AppError::other(tr!(
-                "Arabic slides need LuaLaTeX, which comes with TeX Live and MiKTeX: install one of them (the built-in Tectonic can typeset Arabic documents, but not right-to-left slides).",
-                "تحتاج الشرائح العربية إلى LuaLaTeX، وهو يأتي مع TeX Live وMiKTeX: ثبّت أحدهما (يستطيع Tectonic المدمج تنضيد المستندات العربية، لكن لا يستطيع تنضيد الشرائح من اليمين إلى اليسار)."
-            ))
-        })?;
-        runner = Runner::System(lua);
-        target = texloom_codegen::Engine::Lua;
-    }
-    if target == texloom_codegen::Engine::Pdf && texloom_codegen::language::Languages::of(&active.template, &document).need_unicode_engine() {
-        // pdfLaTeX can't typeset Arabic: such documents use the built-in Tectonic
-        // (or an installed XeLaTeX/LuaLaTeX) whatever engine is chosen for the rest.
-        (runner, target) = unicode_runner(state).ok_or_else(|| {
-            AppError::other(tr!(
-                "Arabic text needs XeLaTeX or LuaLaTeX, and pdfLaTeX can't typeset it. Install TeX Live or MiKTeX, or use the built-in Tectonic.",
-                "يحتاج النص العربي إلى XeLaTeX أو LuaLaTeX، ولا يستطيع pdfLaTeX تنضيده. ثبّت TeX Live أو MiKTeX، أو استخدم Tectonic المدمج."
-            ))
-        })?;
-    }
+    let (runner, target) = choose_runner(state, &active.template, &document)?;
     let generated = texloom_codegen::generate_for(&active.template, &document, target);
     let mut assets = active.load_assets(&generated.assets)?;
     assets.extend(active.load_kit_files(&generated.kit_files, target)?);
@@ -833,6 +835,36 @@ async fn compile_document(
     })?;
     *state.sync.lock().expect("sync lock") = out.synctex.map(|synctex| SyncState { synctex, block_lines });
     Ok(out.pdf)
+}
+
+/// The engine for a document: the chosen one, except where it can't typeset it
+/// (Arabic slides need LuaLaTeX; pdfLaTeX can't typeset Arabic).
+fn choose_runner(state: &AppState, template: &Template, document: &Document) -> Result<(Runner, texloom_codegen::Engine), AppError> {
+    let mut runner = state.runner()?;
+    let mut target = state.engine().target();
+    if needs_lualatex(template) && target != texloom_codegen::Engine::Lua {
+        // Right-to-left slides only work with LuaLaTeX (beamer-rl): the installed one,
+        // whatever engine is chosen for everything else.
+        let lua = SystemLatex::find(LatexProgram::LuaLatex).ok_or_else(|| {
+            AppError::other(tr!(
+                "Arabic slides need LuaLaTeX, which comes with TeX Live and MiKTeX: install one of them (the built-in Tectonic can typeset Arabic documents, but not right-to-left slides).",
+                "تحتاج الشرائح العربية إلى LuaLaTeX، وهو يأتي مع TeX Live وMiKTeX: ثبّت أحدهما (يستطيع Tectonic المدمج تنضيد المستندات العربية، لكن لا يستطيع تنضيد الشرائح من اليمين إلى اليسار)."
+            ))
+        })?;
+        runner = Runner::System(lua);
+        target = texloom_codegen::Engine::Lua;
+    }
+    if target == texloom_codegen::Engine::Pdf && texloom_codegen::language::Languages::of(template, document).need_unicode_engine() {
+        // pdfLaTeX can't typeset Arabic: such documents use the built-in Tectonic
+        // (or an installed XeLaTeX/LuaLaTeX) whatever engine is chosen for the rest.
+        (runner, target) = unicode_runner(state).ok_or_else(|| {
+            AppError::other(tr!(
+                "Arabic text needs XeLaTeX or LuaLaTeX, and pdfLaTeX can't typeset it. Install TeX Live or MiKTeX, or use the built-in Tectonic.",
+                "يحتاج النص العربي إلى XeLaTeX أو LuaLaTeX، ولا يستطيع pdfLaTeX تنضيده. ثبّت TeX Live أو MiKTeX، أو استخدم Tectonic المدمج."
+            ))
+        })?;
+    }
+    Ok((runner, target))
 }
 
 /// Presentations in a right-to-left language: beamer-rl, which needs LuaLaTeX.
@@ -930,6 +962,17 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
         return Ok(opened);
     }
     let text = String::from_utf8(bytes).map_err(|_| AppError::other(tr!("Not a Texloom document", "ليس مستند Texloom")))?;
+    if let Some(project) = serde_json::from_str::<Value>(&text).ok().and_then(|f| project::project_of_chapter(Path::new(&path), &f)) {
+        // A chapter of a project: the editor opens the project instead.
+        return Ok(OpenedDocument {
+            doc: Value::Null,
+            metadata: Metadata::new(),
+            bibliography: String::new(),
+            template: None,
+            bundled: false,
+            project: Some(project),
+        });
+    }
     let opened = read_document(&app, &state, &text)?;
     state.doc_folder.set(Path::new(&path).parent().map(Path::to_path_buf).unwrap_or_default());
     Ok(opened)
@@ -941,22 +984,26 @@ fn read_document(app: &AppHandle, state: &AppState, text: &str) -> Result<Opened
     if file.get("format").and_then(Value::as_str) != Some(DOC_FORMAT) {
         return Err(AppError::other(tr!("Not a Texloom document", "ليس مستند Texloom")));
     }
-    let saved: SavedTemplate = serde_json::from_value(file.clone()).unwrap_or(SavedTemplate { template: None, template_path: None });
     let mut opened: OpenedDocument =
-        serde_json::from_value(file).map_err(|e| AppError::other(tr!("Not a valid document: {e}", "ليس مستندًا صالحًا: {e}")))?;
+        serde_json::from_value(file.clone()).map_err(|e| AppError::other(tr!("Not a valid document: {e}", "ليس مستندًا صالحًا: {e}")))?;
+    opened.template = restore_template(app, state, &file);
+    Ok(opened)
+}
 
+/// Makes the template saved in a document or project file the active one: the
+/// template file on disk if it still exists and is valid, else the saved copy.
+fn restore_template(app: &AppHandle, state: &AppState, file: &Value) -> Option<TemplateInfo> {
+    let saved: SavedTemplate = serde_json::from_value(file.clone()).unwrap_or(SavedTemplate { template: None, template_path: None });
     let from_disk = saved.template_path.as_deref().filter(|p| p.is_file()).and_then(|p| templates::load_file(p).ok());
     let restored = from_disk.or_else(|| {
         let t = saved.template?;
         // Keep the path so image assets can still be found next to it.
         let path = saved.template_path.filter(|p| p.is_file());
         templates::from_parsed(t, path).ok()
-    });
-    if let Some(t) = restored {
-        opened.template = Some(t.info());
-        state.templates.set(app, t);
-    }
-    Ok(opened)
+    })?;
+    let info = restored.info();
+    state.templates.set(app, restored);
+    Some(info)
 }
 
 /// Keeps a copy of the unsaved changes for crash recovery (see `recovery.rs`).
@@ -965,13 +1012,14 @@ fn write_recovery(
     state: State<'_, AppState>,
     recovery: State<'_, Recovery>,
     original_path: Option<String>,
+    chapter: Option<String>,
     doc: Value,
     metadata: Metadata,
     bibliography: Option<String>,
 ) -> Result<(), AppError> {
     let figures = figure_sources(&doc)?;
     let file = document_file(&state, doc, metadata, bibliography);
-    Ok(recovery.write(&file, &figures, &state.doc_folder.get(), original_path)?)
+    Ok(recovery.write(&file, &figures, &state.doc_folder.get(), original_path, chapter)?)
 }
 
 /// Unsaved changes left behind by a previous run (Texloom closed without saving).
@@ -987,6 +1035,8 @@ struct RestoredDocument {
     document: OpenedDocument,
     /// The file the changes belong to, if it still exists.
     original_path: Option<String>,
+    /// For a chapter of a project (`original_path` is the project file).
+    chapter: Option<String>,
 }
 
 /// Opens the recovered changes. Figures are found next to the original file, or in
@@ -1001,7 +1051,7 @@ fn restore_recovery(app: AppHandle, state: State<'_, AppState>, recovery: State<
         None => state.doc_folder.reset()?,
     }
     files::copy_missing(&figure_sources(&document.doc)?, &recovery.files_dir(), &state.doc_folder.get())?;
-    Ok(RestoredDocument { document, original_path: original })
+    Ok(RestoredDocument { document, original_path: original, chapter: info.chapter })
 }
 
 /// Templates in the user's library ("My templates").
@@ -1206,8 +1256,12 @@ async fn export_docx(
     bibliography: Option<String>,
     mathml: HashMap<String, String>,
 ) -> Result<(), AppError> {
+    write_docx(&state, to_document(doc, metadata, bibliography)?, path, mathml).await
+}
+
+/// Writes `document` as a Word file at `path` with the active template.
+async fn write_docx(state: &AppState, document: Document, path: String, mathml: HashMap<String, String>) -> Result<(), AppError> {
     let active = state.templates.current();
-    let document = to_document(doc, metadata, bibliography)?;
     let folder = state.doc_folder.get();
     tauri::async_runtime::spawn_blocking(move || {
         // A missing image becomes a placeholder in the Word file rather than an error.
@@ -1246,6 +1300,7 @@ pub fn run() {
             beamer_themes: std::sync::Mutex::new(None),
             sync: std::sync::Mutex::new(None),
         })
+        .manage(project::ProjectStore::default())
         .setup(|app| {
             enable_spell_checking(app);
             let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom"));
@@ -1334,7 +1389,22 @@ pub fn run() {
             export_docx,
             set_message_language,
             list_library_fonts,
-            read_library_font
+            read_library_font,
+            project::open_project,
+            project::close_project,
+            project::read_chapter,
+            project::save_chapter,
+            project::save_project,
+            project::new_chapter,
+            project::project_index,
+            project::render_project,
+            project::export_project_pdf,
+            project::export_project_docx,
+            project::project_pdf_to_block,
+            project::project_block_to_pdf,
+            project::export_project_tex,
+            project::split_into_project,
+            project::join_project
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

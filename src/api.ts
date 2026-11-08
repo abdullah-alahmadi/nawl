@@ -6,6 +6,10 @@ import type { JSONContent } from "@tiptap/react";
 import type { Template } from "./bindings/Template";
 import type { FieldValue } from "./bindings/FieldValue";
 import type { Issue } from "./bindings/Issue";
+import type { ProjectEntry } from "./bindings/ProjectEntry";
+import type { ProjectIndex } from "./bindings/ProjectIndex";
+import type { ChapterIndex } from "./bindings/ChapterIndex";
+import type { IndexTarget } from "./bindings/IndexTarget";
 
 export type { Template, FieldValue, Issue };
 export type Metadata = Record<string, FieldValue>;
@@ -43,6 +47,8 @@ export interface OpenedDocument {
   template?: TemplateInfo | null;
   /** A single-file document (images inside); saving keeps it one. */
   bundled?: boolean;
+  /** The file was a chapter of a project: the project file, to open instead. */
+  project?: string;
 }
 
 export type TemplateReloadEvent =
@@ -55,6 +61,8 @@ export interface TexError {
   message: string;
   /** The top-level block of the document whose LaTeX failed, when known. */
   block?: number | null;
+  /** In a project: the chapter file the block is in. */
+  chapter?: string;
 }
 
 export type AppError =
@@ -203,12 +211,14 @@ export interface RecoveryInfo {
   originalPath: string | null;
   /** Seconds since 1970. */
   savedAt: number;
+  /** For a chapter of a project: the chapter file (`originalPath` is the project). */
+  chapter?: string;
 }
-export const writeRecovery = (originalPath: string | null, d: DocState) =>
-  invoke<void>("write_recovery", { originalPath, ...d });
+export const writeRecovery = (originalPath: string | null, d: DocState, chapter?: string) =>
+  invoke<void>("write_recovery", { originalPath, chapter: chapter ?? null, ...d });
 export const recoveryInfo = () => invoke<RecoveryInfo | null>("recovery_info");
 export const restoreRecovery = () =>
-  invoke<OpenedDocument & { originalPath: string | null }>("restore_recovery");
+  invoke<OpenedDocument & { originalPath: string | null; chapter: string | null }>("restore_recovery");
 export const discardRecovery = () => invoke<void>("discard_recovery");
 
 export const getSettings = () => invoke<unknown>("get_settings");
@@ -243,3 +253,51 @@ export interface EngineInfo {
 }
 export const listEngines = () => invoke<EngineInfo[]>("list_engines");
 export const setEngine = (id: string) => invoke<void>("set_engine", { id });
+
+// Projects: a book written as one .loom per chapter (src-tauri/src/project.rs).
+export type { ProjectEntry, ProjectIndex, ChapterIndex, IndexTarget };
+export interface OpenedProject {
+  path: string;
+  metadata: Metadata;
+  bibliography: string;
+  chapters: ProjectEntry[];
+  /** The project's template, now active. */
+  template: TemplateInfo | null;
+  index: ProjectIndex;
+  /** Chapters that couldn't be read, and other problems. */
+  issues: Issue[];
+}
+/** The open chapter and the book-wide values, sent with compiles and exports. */
+export interface ProjectState {
+  /** The chapter open in the editor, and its live content. */
+  file: string | null;
+  doc: JSONContent | null;
+  metadata: Metadata;
+  bibliography: string;
+}
+export interface ProjectSpot {
+  file: string;
+  block: number;
+}
+export const openProject = (path: string) => invoke<OpenedProject>("open_project", { path });
+export const closeProject = () => invoke<void>("close_project");
+export const readChapter = (file: string) => invoke<JSONContent>("read_chapter", { file });
+export const saveChapter = (file: string, doc: JSONContent) => invoke<void>("save_chapter", { file, doc });
+export const saveProject = (metadata: Metadata, bibliography: string, chapters: ProjectEntry[]) =>
+  invoke<ProjectIndex>("save_project", { metadata, bibliography, chapters });
+export const newChapter = (title: string, appendix: boolean) => invoke<string>("new_chapter", { title, appendix });
+export const projectIndex = (file: string | null, doc: JSONContent | null) => invoke<ProjectIndex>("project_index", { file, doc });
+/** Compiles the project: just the open chapter when `onlyChapter` and the numbers
+ *  can't be out of date, else the whole book. */
+export const renderProject = (s: ProjectState, onlyChapter: boolean) => invoke<ArrayBuffer>("render_project", { ...s, onlyChapter });
+export const exportProjectPdf = (path: string, s: ProjectState) => invoke<void>("export_project_pdf", { path, ...s });
+export const exportProjectTex = (path: string, s: ProjectState) => invoke<void>("export_project_tex", { path, ...s });
+/** The whole book as one Word file; `mathml` covers every chapter's formulas. */
+export const exportProjectDocx = (path: string, s: ProjectState, mathml: Record<string, string>) =>
+  invoke<void>("export_project_docx", { path, ...s, mathml });
+export const projectPdfToBlock = (page: number, x: number, y: number) => invoke<ProjectSpot | null>("project_pdf_to_block", { page, x, y });
+export const projectBlockToPdf = (file: string, block: number) => invoke<PdfSpot | null>("project_block_to_pdf", { file, block });
+/** Splits the document into a project in `folder`; returns the project file. */
+export const splitIntoProject = (folder: string, name: string, d: DocState) => invoke<string>("split_into_project", { folder, name, ...d });
+/** Writes the whole project as one document at `path`. */
+export const joinProject = (path: string, s: ProjectState) => invoke<void>("join_project", { path, ...s });

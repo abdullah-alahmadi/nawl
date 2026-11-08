@@ -22,6 +22,10 @@ pub struct RecoveryInfo {
     pub original_path: Option<String>,
     /// When the changes were written (seconds since 1970).
     pub saved_at: u64,
+    /// For a chapter of a project: the chapter file (relative to the project folder);
+    /// `original_path` is then the project file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chapter: Option<String>,
 }
 
 pub struct Recovery {
@@ -35,10 +39,10 @@ impl Recovery {
 
     /// Writes the document (a complete `.loom` file) and copies the figures it uses,
     /// so an unsaved document's images survive even when its temporary folder doesn't.
-    pub fn write(&self, file: &Value, figures: &[String], figures_dir: &Path, original_path: Option<String>) -> std::io::Result<()> {
+    pub fn write(&self, file: &Value, figures: &[String], figures_dir: &Path, original_path: Option<String>, chapter: Option<String>) -> std::io::Result<()> {
         std::fs::create_dir_all(&self.dir)?;
         files::copy_missing(figures, figures_dir, &self.dir.join(FILES))?;
-        let info = RecoveryInfo { original_path, saved_at: now() };
+        let info = RecoveryInfo { original_path, saved_at: now(), chapter };
         write_atomic(&self.dir.join(INFO), &serde_json::to_vec(&info)?)?;
         // Last, and atomically: the document only counts once everything else is there.
         write_atomic(&self.dir.join(DOCUMENT), &serde_json::to_vec(file)?)
@@ -50,7 +54,7 @@ impl Recovery {
             return None;
         }
         let info = std::fs::read(self.dir.join(INFO)).ok().and_then(|b| serde_json::from_slice(&b).ok());
-        Some(info.unwrap_or(RecoveryInfo { original_path: None, saved_at: 0 }))
+        Some(info.unwrap_or(RecoveryInfo { original_path: None, saved_at: 0, chapter: None }))
     }
 
     /// The saved `.loom` text.
@@ -97,13 +101,18 @@ mod tests {
         assert_eq!(r.info(), None);
 
         let file = serde_json::json!({"format": "texloom", "doc": {"type": "doc"}});
-        r.write(&file, &["figures/a.png".into(), "../escape.png".into()], &doc_dir, Some("/x/report.loom".into())).unwrap();
+        r.write(&file, &["figures/a.png".into(), "../escape.png".into()], &doc_dir, Some("/x/report.loom".into()), None).unwrap();
         let info = r.info().unwrap();
         assert_eq!(info.original_path.as_deref(), Some("/x/report.loom"));
+        assert_eq!(info.chapter, None);
         assert!(info.saved_at > 0);
         assert_eq!(serde_json::from_str::<Value>(&r.read_document().unwrap()).unwrap(), file);
         assert_eq!(std::fs::read(r.files_dir().join("figures/a.png")).unwrap(), b"png");
         assert!(!root.join("escape.png").exists());
+
+        // A chapter of a project: the project file and the chapter.
+        r.write(&file, &[], &doc_dir, Some("/x/book.loomproj".into()), Some("chapters/02.loom".into())).unwrap();
+        assert_eq!(r.info().unwrap().chapter.as_deref(), Some("chapters/02.loom"));
 
         r.discard().unwrap();
         assert_eq!(r.info(), None);
