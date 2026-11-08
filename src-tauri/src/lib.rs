@@ -619,6 +619,60 @@ async fn list_system_fonts() -> Vec<String> {
     .unwrap_or_default()
 }
 
+/// Installed font families with Arabic letters, for the Arabic font list (Diwani,
+/// Thuluth and other fonts that come with Office, say): from fontconfig, or on
+/// Windows by reading each font file's character map.
+#[tauri::command]
+async fn list_arabic_system_fonts() -> Vec<String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut families: Vec<String> = match texloom_compile::tool("fc-list").args([":lang=ar", "family"]).output() {
+            Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .filter_map(|l| l.split(',').next())
+                .map(|f| f.trim().to_string())
+                .filter(|f| !f.is_empty())
+                .collect(),
+            _ => windows_arabic_font_families(),
+        };
+        families.sort_by_key(|f| f.to_lowercase());
+        families.dedup();
+        families
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Windows fonts whose files have Arabic letters, by family.
+fn windows_arabic_font_families() -> Vec<String> {
+    if !cfg!(windows) {
+        return Vec::new();
+    }
+    let fonts_dir = std::env::var_os("WINDIR").map(|w| PathBuf::from(w).join("Fonts")).unwrap_or_default();
+    let key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts";
+    let mut out = Vec::new();
+    for root in ["HKLM", "HKCU"] {
+        let Ok(o) = texloom_compile::tool("reg").args(["query", &format!("{root}\\{key}")]).output() else { continue };
+        for line in String::from_utf8_lossy(&o.stdout).lines() {
+            let (Some(family), Some((_, file))) = (font_family_from_registry(line), line.split_once("REG_SZ")) else { continue };
+            // The machine's fonts are named by file; a user's own by full path.
+            let file = Path::new(file.trim());
+            let path = if file.is_absolute() { file.to_path_buf() } else { fonts_dir.join(file) };
+            if !out.contains(&family) && font_has_arabic(&path) {
+                out.push(family);
+            }
+        }
+    }
+    out
+}
+
+/// The font (or a font in the collection) has the basic Arabic letters.
+fn font_has_arabic(path: &Path) -> bool {
+    let is_font = path.extension().and_then(|e| e.to_str()).is_some_and(|e| ["ttf", "otf", "ttc", "otc"].contains(&e.to_lowercase().as_str()));
+    let Some(data) = is_font.then(|| std::fs::read(path).ok()).flatten() else { return false };
+    let faces = ttf_parser::fonts_in_collection(&data).unwrap_or(1);
+    (0..faces).any(|i| ttf_parser::Face::parse(&data, i).is_ok_and(|f| ['ا', 'ب', 'ع', 'ي'].iter().all(|c| f.glyph_index(*c).is_some())))
+}
+
 /// Windows fonts (the machine's and the user's own), by family: "Traditional Arabic
 /// Bold (TrueType)" → "Traditional Arabic". Empty elsewhere.
 fn windows_font_families() -> Vec<String> {
@@ -1248,6 +1302,7 @@ pub fn run() {
             pdf_to_block,
             block_to_pdf,
             list_system_fonts,
+            list_arabic_system_fonts,
             import_template_asset,
             import_figure,
             read_document_file,
@@ -1287,6 +1342,27 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn installed_arabic_fonts_are_found() {
+        // A library font (fetched by scripts/fetch-fonts.mjs, when it's there).
+        let ruqaa = Path::new(env!("CARGO_MANIFEST_DIR")).join("fonts/aref-ruqaa-Regular.ttf");
+        if ruqaa.exists() {
+            assert!(font_has_arabic(&ruqaa));
+        }
+        assert!(!font_has_arabic(Path::new("missing.ttf")) && !font_has_arabic(Path::new("readme.txt")));
+        // Windows: Arial and Tahoma have Arabic; Consolas doesn't.
+        if cfg!(windows) {
+            let fonts = windows_arabic_font_families();
+            assert!(fonts.iter().any(|f| f == "Arial") && fonts.iter().any(|f| f == "Tahoma"), "{fonts:?}");
+            assert!(!fonts.iter().any(|f| f == "Consolas"), "{fonts:?}");
+            // Office's Diwani, where it's installed.
+            if Path::new(r"C:\Windows\Fonts\DIWANLTR.TTF").exists() {
+                assert!(fonts.iter().any(|f| f == "Diwani Letter"), "{fonts:?}");
+            }
+            eprintln!("Arabic fonts: {fonts:?}");
+        }
+    }
 
     #[test]
     fn windows_font_names() {

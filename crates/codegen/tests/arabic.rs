@@ -435,7 +435,7 @@ fn decimal_numbers_stay_left_to_right() {
 }
 
 /// The Arabic example documents and the built-in template each is written for.
-const EXAMPLES: [(&str, &str); 7] = [
+const EXAMPLES: [(&str, &str); 8] = [
     ("arabic-article.loom", "arabic-article"),
     ("arabic-load-forecasting.loom", "arabic-article"),
     ("arabic-article-two-column.loom", "arabic-article-two-column"),
@@ -443,7 +443,28 @@ const EXAMPLES: [(&str, &str); 7] = [
     ("arabic-thesis.loom", "arabic-thesis"),
     ("arabic-book.loom", "arabic-book"),
     ("arabic-presentation.loom", "arabic-presentation"),
+    ("arabic-admin-order.loom", "arabic-admin-order"),
 ];
+
+/// A system font may not be installed where the document is compiled (the
+/// administrative order's Diwani title needs Microsoft Office's fonts): it falls back
+/// to Amiri (Latin Modern for Latin text) instead of failing.
+#[test]
+fn missing_system_fonts_fall_back() {
+    let t = builtin("arabic-admin-order");
+    let cls = texloom_codegen::template_to_cls(&t);
+    assert!(
+        cls.contains("\\IfFontExistsTF{Diwani Letter}{\\newfontfamily\\tlfontDiwaniLetter[Script=Arabic,Ligatures=TeX]{Diwani Letter}}{\\newfontfamily\\tlfontDiwaniLetter[Script=Arabic,Ligatures=TeX]{Amiri}}"),
+        "{cls}"
+    );
+    // The Arabic body font too.
+    let mut t = builtin("arabic-article");
+    t.fonts.arabic = Some(texloom_core::FontChoice::System { family: "DecoType Naskh".into() });
+    let doc: texloom_core::DocumentFile = serde_json::from_str(&example_file("arabic-article.loom")).unwrap();
+    let tex = texloom_codegen::document_to_tex(&t, &doc.document);
+    assert!(tex.contains("\\IfFontExistsTF{DecoType Naskh}{\\def\\texloomarabicfont{DecoType Naskh}}{\\def\\texloomarabicfont{Amiri}}\n"), "{tex}");
+    assert!(tex.contains("\\setmainfont[Script=Arabic]{\\texloomarabicfont}"), "{tex}");
+}
 
 fn example_file(name: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples").join(name)).unwrap()

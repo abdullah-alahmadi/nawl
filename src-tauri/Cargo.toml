@@ -31,6 +31,8 @@ texloom-compile = { path = "../crates/compile" }
 texloom-codegen = { path = "../crates/codegen" }
 texloom-docx = { path = "../crates/docx" }
 tauri-plugin-dialog = "2"
+# Which installed fonts have Arabic letters (Windows has no fontconfig to ask).
+ttf-parser = "0.25"
 
 
 # Linux: WebKitGTK's spell checker is off unless the app turns it on.

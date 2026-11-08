@@ -1,0 +1,533 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-admin-order",
+      "name": "أمر إداري أو خطاب رسمي",
+      "description": "أمر إداري أو قرار أو خطاب رسمي: اسم الجهة ورقم الخطاب وتاريخه بالتقويمين في أعلى الصفحة، والبسملة والعنوان بخط ديواني، ثم الموضوع والنص. يُستعمل الخط الديواني إن كان مثبتًا (مع Microsoft Office) وإلا خط أميري. Arabic administrative order or official letter with a Diwani title.",
+      "version": "1.0.0"
+    },
+    "page": {
+      "paper": {
+        "kind": "a4"
+      },
+      "margins": {
+        "topMm": 20,
+        "bottomMm": 22,
+        "innerMm": 22,
+        "outerMm": 22
+      },
+      "twoSided": false,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "custom",
+        "stretch": 1.2
+      },
+      "paragraph": {
+        "indentMm": 0,
+        "spacingPt": 4
+      }
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "latinModern"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "section",
+      "numberedDepth": 0,
+      "tocDepth": 0,
+      "frontMatterPageNumbers": "arabic",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": false,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 4
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": true,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 8,
+          "spaceAfterPt": 3
+        },
+        {
+          "text": {
+            "sizePt": 11,
+            "bold": false,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 8,
+          "spaceBeforePt": 6,
+          "spaceAfterPt": 3
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "main": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "chapterOpening": {
+        "footer": {
+          "center": "{page}"
+        }
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "footnote",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "authorYear",
+      "title": "المراجع",
+      "inToc": false
+    },
+    "skeleton": [],
+    "titlePage": {
+      "items": [
+        {
+          "xMm": 188,
+          "yMm": 20,
+          "anchor": "topRight",
+          "content": {
+            "type": "text",
+            "text": "{organization}",
+            "style": {
+              "sizePt": 13,
+              "align": "right",
+              "bold": true
+            },
+            "widthMm": 85
+          }
+        },
+        {
+          "xMm": 188,
+          "yMm": 27,
+          "anchor": "topRight",
+          "content": {
+            "type": "text",
+            "text": "{department}",
+            "style": {
+              "sizePt": 11.5,
+              "align": "right",
+              "bold": false
+            },
+            "widthMm": 85
+          }
+        },
+        {
+          "xMm": 22,
+          "yMm": 20,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "الرقم: {order_number}",
+            "style": {
+              "sizePt": 11.5,
+              "align": "right",
+              "bold": false
+            },
+            "widthMm": 70
+          }
+        },
+        {
+          "xMm": 22,
+          "yMm": 27,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "التاريخ: {date_hijri}",
+            "style": {
+              "sizePt": 11.5,
+              "align": "right",
+              "bold": false
+            },
+            "widthMm": 70
+          }
+        },
+        {
+          "xMm": 22,
+          "yMm": 34,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "الموافق: {date}م",
+            "style": {
+              "sizePt": 11.5,
+              "align": "right",
+              "bold": false
+            },
+            "widthMm": 70
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 43,
+          "anchor": "top",
+          "content": {
+            "type": "rule",
+            "lengthMm": 166,
+            "thicknessPt": 0.6
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 48,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "بسم الله الرحمن الرحيم",
+            "style": {
+              "sizePt": 18,
+              "align": "center",
+              "bold": false,
+              "font": {
+                "kind": "system",
+                "family": "Diwani Letter"
+              }
+            },
+            "widthMm": 166
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 60,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title}",
+            "style": {
+              "sizePt": 30,
+              "align": "center",
+              "bold": false,
+              "font": {
+                "kind": "system",
+                "family": "Diwani Letter"
+              }
+            },
+            "widthMm": 166
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 80,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "الموضوع: {subject}",
+            "style": {
+              "sizePt": 14,
+              "align": "center",
+              "bold": true
+            },
+            "widthMm": 166
+          }
+        }
+      ],
+      "blockHeightMm": 94
+    },
+    "fields": [
+      {
+        "id": "organization",
+        "label": "اسم الجهة",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "department",
+        "label": "الإدارة أو القسم",
+        "kind": "text"
+      },
+      {
+        "id": "title",
+        "label": "نوع الخطاب (أمر إداري، قرار، تعميم…)",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "order_number",
+        "label": "رقم الخطاب",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "date",
+        "label": "التاريخ",
+        "kind": "date",
+        "required": true
+      },
+      {
+        "id": "subject",
+        "label": "الموضوع",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "frontMatter": [
+      {
+        "type": "titlePage"
+      }
+    ],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic"
+    }
+  },
+  "templatePath": null,
+  "metadata": {
+    "organization": "جامعة المعرفة",
+    "department": "إدارة الوثائق والمحفوظات",
+    "title": "أمر إداري",
+    "order_number": "٤٧/و/١٤٤٧",
+    "date": "2026-02-03",
+    "subject": "تشكيل لجنة لحصر الوثائق التاريخية وفهرستها"
+  },
+  "bibliography": "\n",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "إنَّ مديرَ الجامعةِ، بناءً على الصلاحياتِ المخوَّلةِ له نظامًا، وإشارةً إلى خطابِ عميدِ شؤونِ المكتباتِ ذي الرقمِ ١٢٣٤ والمؤرَّخِ في ١٠/٧/١٤٤٧هـ بشأنِ الوثائقِ والمخطوطاتِ المحفوظةِ في مستودعِ المكتبةِ المركزية، ونظرًا لما تقتضيه المصلحةُ العامةُ من حفظِ هذا الإرثِ وإتاحتِه للباحثين،"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": false
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "يُقرِّرُ ما يأتي:"
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تُشكَّلُ لجنةٌ برئاسةِ الدكتورِ عبدِ اللهِ الأحمدي، وعضويةِ كلٍّ من الأستاذةِ سارةَ القحطاني والأستاذِ خالدٍ العمري، لحصرِ الوثائقِ التاريخيةِ والمخطوطاتِ وفهرستِها."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تتولّى اللجنةُ المهامَّ الآتية:"
+                  }
+                ]
+              },
+              {
+                "type": "bulletList",
+                "content": [
+                  {
+                    "type": "listItem",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "حصرَ الوثائقِ والمخطوطاتِ وتصنيفَها حسبَ تاريخِها وموضوعِها."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "listItem",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "إعدادَ فهرسٍ وصفيٍّ لكلِّ وثيقةٍ يتضمّنُ تاريخَها ومصدرَها وحالتَها."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "listItem",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "اقتراحَ ما يلزمُ لترميمِ الوثائقِ التالفةِ وحفظِها رقميًّا."
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "تُنجزُ اللجنةُ أعمالَها خلالَ تسعين يومًا من تاريخِ هذا الأمر، وترفعُ تقريرَها النهائيَّ إلى مديرِ الجامعة."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "يُبلَّغُ هذا الأمرُ لمن يلزمُ لتنفيذِه، ويُعملُ به من تاريخِه."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "والله وليُّ التوفيق،،،"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "مدير الجامعة",
+            "marks": [
+              {
+                "type": "bold"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "أ.د. محمد بن سعد العتيبي"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "صورة مع التحية إلى:",
+            "marks": [
+              {
+                "type": "bold"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " عمادة شؤون المكتبات، إدارة الشؤون المالية، أعضاء اللجنة، الملف."
+          }
+        ]
+      }
+    ]
+  }
+}

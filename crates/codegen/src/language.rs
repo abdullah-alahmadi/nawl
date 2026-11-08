@@ -546,12 +546,20 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
     if langs.english_only() {
         return String::new();
     }
-    let (arabic, ar) = arabic_font(t);
+    let (mut arabic, ar) = arabic_font(t);
     let mut o = String::new();
     let names: Vec<&str> = std::iter::once(langs.main).chain(langs.others.iter().copied()).map(Language::polyglossia).collect();
     o.push_str(&format!("% Languages: {} (compile with XeLaTeX or LuaLaTeX)\n", names.join(", ")));
     // Publisher classes and beamer don't load it themselves.
     o.push_str("\\usepackage{fontspec}\n");
+    if let Some(FontChoice::System { family }) = &t.fonts.arabic
+        && !family.trim().is_empty()
+    {
+        // A system font may not be installed where the document is compiled (Office's
+        // Diwani fonts, say): Amiri, which every TeX distribution has, rather than an error.
+        o.push_str(&format!("\\IfFontExistsTF{{{arabic}}}{{\\def\\texloomarabicfont{{{arabic}}}}}{{\\def\\texloomarabicfont{{Amiri}}}}\n"));
+        arabic = "\\texloomarabicfont".into();
+    }
     let numerals = match langs.digits {
         Digits::ArabicIndic => "numerals=mashriq",
         Digits::Western => "numerals=maghrib",
@@ -564,9 +572,17 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
         // family, and polyglossia would then take body text for sans (English
         // words would come out in the sans font).
         o.push_str(&format!("\\setsansfont[Script=Arabic,WordSpace=1{ar}]{{{arabic}}}\n"));
-        o.push_str(&format!("\\newfontfamily\\englishfont{}\n", latin_spec(&t.fonts.main, Role::Main)));
-        o.push_str(&format!("\\newfontfamily\\englishfontsf{}\n", latin_spec(&t.fonts.sans, Role::Sans)));
-        o.push_str(&format!("\\newfontfamily\\englishfonttt{}\n", latin_spec(&t.fonts.mono, Role::Mono)));
+        for (cmd, choice, role) in [("englishfont", &t.fonts.main, Role::Main), ("englishfontsf", &t.fonts.sans, Role::Sans), ("englishfonttt", &t.fonts.mono, Role::Mono)] {
+            let line = format!("\\newfontfamily\\{cmd}{}", latin_spec(choice, role));
+            match choice {
+                // Not installed where the document is compiled: Latin Modern instead.
+                FontChoice::System { family } => {
+                    let lm = latin_spec(&FontChoice::Builtin { font: BuiltinFont::LatinModern }, role);
+                    o.push_str(&format!("\\IfFontExistsTF{{{}}}{{{line}}}{{\\newfontfamily\\{cmd}{lm}}}\n", escape(family)));
+                }
+                _ => o.push_str(&format!("{line}\n")),
+            }
+        }
         // Arabic in code font (newer polyglossia insists every style can show Arabic).
         o.push_str(&format!("\\newfontfamily\\arabicfonttt[Script=Arabic,Ligatures=TeX{ar}]{{{arabic}}}\n"));
     } else {

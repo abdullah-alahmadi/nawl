@@ -16,6 +16,7 @@ export const EXAMPLES = {
   "arabic-thesis.loom": "arabic-thesis",
   "arabic-book.loom": "arabic-book",
   "arabic-presentation.loom": "arabic-presentation",
+  "arabic-admin-order.loom": "arabic-admin-order",
 };
 
 for (const [file, id] of Object.entries(EXAMPLES)) {

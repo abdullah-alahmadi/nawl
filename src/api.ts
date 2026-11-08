@@ -147,6 +147,8 @@ export const importFigure = (source: string) => invoke<string>("import_figure", 
 export const readDocumentFile = (path: string) => invoke<ArrayBuffer>("read_document_file", { path });
 export const exportPdf = (path: string, d: DocState) => invoke<void>("export_pdf", { path, ...d });
 export const listSystemFonts = () => invoke<string[]>("list_system_fonts");
+/** Installed font families that have Arabic letters (Diwani, Thuluth…). */
+export const listArabicSystemFonts = () => invoke<string[]>("list_arabic_system_fonts");
 /** A family of Texloom's Arabic font library. */
 export interface LibraryFont {
   id: string;

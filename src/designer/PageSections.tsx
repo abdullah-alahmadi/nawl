@@ -335,6 +335,10 @@ function ArabicFontGallery({
 }) {
   const tr = useT();
   const [fonts, setFonts] = useState<api.LibraryFont[]>([]);
+  const [installed, setInstalled] = useState<string[]>([]);
+  useEffect(() => {
+    api.listArabicSystemFonts().then(setInstalled, () => setInstalled([]));
+  }, []);
   useEffect(() => {
     api.listLibraryFonts().then(
       (list) => {
@@ -378,6 +382,32 @@ function ArabicFontGallery({
           </section>
         );
       })}
+      {(() => {
+        // Installed fonts with Arabic letters, each shown in its own face (the
+        // library's and Amiri, already above, left out).
+        const shown = new Set([...fonts.map((f) => f.name.toLowerCase()), "amiri"]);
+        const list = installed.filter((f) => !shown.has(f.toLowerCase()));
+        if (list.length === 0) return null;
+        return (
+          <section>
+            <h4 className="font-category">{tr("designer.fontInstalledArabic")}</h4>
+            <p className="d-note">{tr("designer.fontInstalledArabicNote")}</p>
+            <div className="font-grid">
+              {list.map((f) => {
+                const selected = value?.kind === "system" && value.family === f;
+                return (
+                  <button key={f} type="button" className={card(selected)} aria-pressed={selected} onClick={() => onChange({ kind: "system", family: f })}>
+                    <span className="font-card-name">{f}</span>
+                    <span className="font-card-sample" style={{ fontFamily: `"${f}", serif` }} dir="rtl" lang="ar">
+                      {FONT_SAMPLE}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
       <h4 className="font-category">{tr("designer.fontInstalled")}</h4>
       <span className="d-inline">
         <input

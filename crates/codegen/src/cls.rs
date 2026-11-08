@@ -549,7 +549,12 @@ fn font_line(cmd: &str, choice: &FontChoice) -> Option<String> {
                 "\\{cmd}{{{file}}}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]"
             ))
         }
-        FontChoice::System { family } => Some(format!("\\{cmd}{{{}}}", escape(family))),
+        // A system font may not be installed where the document is compiled (Office's
+        // fonts, say): fontspec's default then, rather than an error.
+        FontChoice::System { family } => {
+            let f = escape(family);
+            Some(format!("\\IfFontExistsTF{{{f}}}{{\\{cmd}{{{f}}}}}{{}}"))
+        }
         // From Texloom's font library: its files are in the build folder's fonts/.
         FontChoice::Library { id } => {
             let f = texloom_core::fonts::find(id)?;
@@ -583,7 +588,18 @@ pub(crate) fn style_fonts(t: &Template, engine: Engine) -> String {
                 Some(file) => format!("{{{file}}}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]"),
                 None => continue,
             },
-            FontChoice::System { family } => format!("[{script}Ligatures=TeX]{{{}}}", escape(family)),
+            FontChoice::System { family } => {
+                // Not installed where the document is compiled (a Diwani title on a
+                // machine without Office): Amiri for Arabic, Latin Modern otherwise.
+                let f = escape(family);
+                let fallback = if arabic {
+                    format!("[{script}Ligatures=TeX]{{Amiri}}")
+                } else {
+                    "{lmroman10}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]".to_string()
+                };
+                w!(o, "\\IfFontExistsTF{{{f}}}{{\\newfontfamily\\{cmd}[{script}Ligatures=TeX]{{{f}}}}}{{\\newfontfamily\\{cmd}{fallback}}}");
+                continue;
+            }
             FontChoice::Library { id } => match texloom_core::fonts::find(id) {
                 Some(lib) => format!("[{script}Ligatures=TeX,{}]{{{}}}", library_options(lib), lib.regular_file()),
                 None => continue,

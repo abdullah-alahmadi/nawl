@@ -37,6 +37,7 @@ pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("arabic-thesis", include_str!("../../templates/arabic-thesis/template.json")),
     ("arabic-book", include_str!("../../templates/arabic-book/template.json")),
     ("arabic-presentation", include_str!("../../templates/arabic-presentation/template.json")),
+    ("arabic-admin-order", include_str!("../../templates/arabic-admin-order/template.json")),
 ];
 
 /// What a blank template starts as ("New blank template").
