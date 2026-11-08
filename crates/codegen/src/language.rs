@@ -107,6 +107,12 @@ fn has_arabic(doc: &Document) -> bool {
             FieldValue::List(l) => l.iter().any(|s| s.chars().any(is_arabic)),
             FieldValue::Authors(a) => a.iter().any(|a| a.name.chars().any(is_arabic) || a.affiliations.iter().any(|s| s.chars().any(is_arabic))),
         })
+        // A cited reference in Arabic: its entry in the list needs the Arabic font and
+        // direction too (without them it would print as missing characters).
+        || (!doc.bibliography.trim().is_empty() && {
+            let cited = crate::refs::cited_keys(doc);
+            texloom_core::bib::parse(&doc.bibliography).entries.iter().any(|e| cited.contains(&e.key) && crate::refs::entry_language(e) == Language::Arabic)
+        })
 }
 
 /// A formula's LaTeX made ready for Arabic: the math fonts have no Arabic letters
@@ -431,13 +437,24 @@ pub(crate) fn join(pieces: &[Piece], lang: Language, langs: &Languages, render: 
 }
 
 /// Plain text (a field value) in a paragraph of `lang`, escaped, with words in
-/// another script wrapped.
+/// another script wrapped. Text wholly in the other language (an English abstract)
+/// is one run from its first character to its last: its punctuation belongs to it
+/// ("…in Ramadan." keeps its period after "Ramadan" in right-to-left text).
 pub fn text(s: &str, lang: Language, langs: &Languages) -> String {
     if langs.english_only() {
         return escape(s);
     }
     let mut last = None;
-    join(&split(0, s, &mut last), lang, langs, &|_, t| escape(t))
+    let pieces = split(0, s, &mut last);
+    let mut written: Vec<Language> = pieces.iter().filter_map(|p| p.script).filter_map(|s| langs.of_script(s)).collect();
+    written.dedup();
+    if let [other] = written[..] {
+        if other != lang {
+            let inner = render_pieces(&pieces, other.rtl(), &|_, t| escape(t));
+            return format!("\\text{}{{{inner}}}", other.polyglossia());
+        }
+    }
+    join(&pieces, lang, langs, &|_, t| escape(t))
 }
 
 /// The preamble lines that set up the languages and their fonts; empty for English
@@ -601,6 +618,19 @@ mod tests {
         // Numbers with separators stay one left-to-right unit in Arabic text.
         assert_eq!(text("المتوسط 54.2 في الصفحات 45–70.", Language::Arabic, &l), "المتوسط \\textenglish{54.2} في الصفحات \\textenglish{45--70}.");
         assert_eq!(text("The mean was 54.2.", Language::English, &l), "The mean was 54.2.");
+    }
+
+    #[test]
+    fn text_wholly_in_the_other_language_is_one_run() {
+        let l = arabic_doc();
+        // An English abstract in an Arabic document: its final period and brackets
+        // are in the English run.
+        assert_eq!(text("It fell by 37% in Ramadan.", Language::Arabic, &l), "\\textenglish{It fell by 37\\% in Ramadan.}");
+        assert_eq!(text("(LSTM)", Language::Arabic, &l), "\\textenglish{(LSTM)}");
+        // Arabic text ending in an English word keeps its own period.
+        assert_eq!(text("نموذج LSTM.", Language::Arabic, &l), "نموذج \\textenglish{LSTM}.");
+        // Arabic text in an English document, the other way round.
+        assert_eq!(text("«مقدمة».", Language::English, &l), "\\textarabic{\\guillemotleft{}مقدمة\\guillemotright{}.}");
     }
 
     #[test]

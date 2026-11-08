@@ -84,6 +84,48 @@ fn arabic_report_tex() {
     assert!(tex.contains("\\eqref{tl:eq-1}"));
 }
 
+/// The English sample article citing an Arabic source as well (no Arabic in its text).
+fn english_article_citing_arabic() -> (Template, Document) {
+    let t = builtin("general-article");
+    let mut doc: texloom_core::DocumentFile = serde_json::from_str(include_str!("../../../examples/article.loom")).unwrap();
+    doc.document.bibliography.push_str(
+        "@article{alghamdi2021, author = {الغامدي, خالد and الزهراني, فهد}, title = {التنبؤ بالطلب على الطاقة الكهربائية في المنطقة الغربية باستخدام نماذج السلاسل الزمنية}, journal = {المجلة العربية للهندسة الكهربائية}, volume = {9}, pages = {77--98}, year = {2021}}\n",
+    );
+    let mut body = serde_json::to_value(&doc.document.body).unwrap();
+    let text = body.to_string().replacen(r#"{"keys":["doe2021"]}"#, r#"{"keys":["doe2021","alghamdi2021"]}"#, 1);
+    body = serde_json::from_str(&text).unwrap();
+    doc.document.body = serde_json::from_value(body).unwrap();
+    (t, doc.document)
+}
+
+/// An English document citing an Arabic source gets Arabic (its font and direction),
+/// though its own text has none: else the entry would print as missing characters.
+/// The entry is a right-to-left paragraph in the left-to-right list.
+#[test]
+fn english_document_citing_arabic_gets_arabic() {
+    let (t, doc) = english_article_citing_arabic();
+    let tex = texloom_codegen::document_to_tex(&t, &doc);
+    assert!(tex.contains("\\setotherlanguage[numerals=maghrib]{arabic}"), "{tex}");
+    assert!(tex.contains("\\cite{doe2021,alghamdi2021}"), "{tex}");
+    assert!(tex.contains("\\bibitem{alghamdi2021} \\tl@rtlentry{خالد الغامدي"), "{tex}");
+}
+
+/// Run with: TEXLOOM_TECTONIC=… cargo test -p texloom-codegen --test arabic -- --ignored
+#[test]
+#[ignore]
+fn english_document_citing_arabic_compiles() {
+    let (t, doc) = english_article_citing_arabic();
+    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let g = texloom_codegen::generate(&t, &doc);
+    let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+    let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> = support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = compiler.compile(&g.tex, &files).unwrap();
+    let missing: Vec<&str> = out.log.lines().filter(|l| l.contains("Missing character")).collect();
+    assert!(missing.is_empty(), "{missing:#?}");
+}
+
 #[test]
 fn english_document_with_arabic_words_gets_arabic() {
     let t: Template = serde_json::from_str(include_str!("../../../templates/senior-design/template.json")).unwrap();

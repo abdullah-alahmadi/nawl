@@ -144,7 +144,11 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
         } else if langs.main.rtl() && !r.lang.rtl() {
             // A left-to-right entry in a right-to-left list: its own paragraph
             // direction, so its lines start on the left with the hanging indent.
-            format!("\\begin{{{}}}\\tl@ltrentry {}\\par\\end{{{}}}", r.lang.polyglossia(), r.latex, r.lang.polyglossia())
+            let env = r.lang.environment();
+            format!("\\begin{{{env}}}\\tl@ltrentry {}\\par\\end{{{env}}}", r.latex)
+        } else if r.lang.rtl() && !langs.main.rtl() {
+            // The mirror case: a right-to-left entry in a left-to-right list.
+            format!("\\tl@rtlentry{{{}}}", r.latex)
         } else {
             // An entry in the other language keeps its own direction.
             format!("\\text{}{{{}}}", r.lang.polyglossia(), r.latex)
@@ -152,12 +156,20 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
         format!("\\bibitem{label}{{{}}} {body}\n", r.key)
     };
     let mut o = String::from("% Reference list written by Texloom: BibTeX can't set entries in two directions\n\\makeatletter\n");
+    // bidi (XeTeX) keeps the list's indents on the list's side in a paragraph of the
+    // other direction: the hang would be on the wrong side and the first line (with
+    // its label) would stick out into the margin. Shifting the lines by the list's
+    // margins puts them back.
     if langs.main.rtl() {
-        // bidi (XeTeX) keeps a right-to-left list's indents mirrored in a
-        // left-to-right paragraph: the hang would be on the right and the first line
-        // would stick out on the left. Shifting the lines by the list's margins puts
-        // them back. (LuaTeX's paragraph directions place the lines themselves.)
+        // LuaTeX's paragraph directions place a left-to-right entry's lines themselves.
         o.push_str("\\def\\tl@ltrentry{\\ifdefined\\XeTeXrevision\\leftskip\\dimexpr\\leftmargin-\\rightmargin\\relax\\rightskip-\\leftskip\\fi}\n");
+    } else {
+        // In LuaTeX a right-to-left paragraph in a left-to-right list sets its label
+        // over the text, so there the entry stays a right-to-left run.
+        let arabic = Language::Arabic.environment();
+        o.push_str(&format!(
+            "\\long\\def\\tl@rtlentry#1{{\\ifdefined\\XeTeXrevision\\begin{{{arabic}}}\\leftskip=-\\dimexpr\\leftmargin-\\rightmargin\\relax\\rightskip-\\leftskip #1\\par\\end{{{arabic}}}\\else\\textarabic{{#1}}\\fi}}\n"
+        ));
     }
     let (own, other) = split_by_language(&refs, langs.main);
     if split && !own.is_empty() && !other.is_empty() {
@@ -191,6 +203,10 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
     if style == BibStyle::AuthorYear && langs.main.rtl() {
         // Arabic punctuation between authors and years, and between citations.
         o.push_str("\\AtBeginDocument{\\setcitestyle{aysep={،},yysep={،},citesep={؛}}}\n");
+    } else if langs.main.rtl() {
+        // An Arabic comma between numbers ("[٣، ٧]"): natbib's and cite's own
+        // setting, else LaTeX's \cite, which writes "," itself.
+        o.push_str("\\AtBeginDocument{\\@ifpackageloaded{natbib}{\\setcitestyle{citesep={،}}}{\\@ifpackageloaded{cite}{\\renewcommand\\citepunct{،\\penalty\\@m\\ }}{\\patchcmd\\@citex{,\\penalty\\@m\\ }{،\\penalty\\@m\\ }{}{}}}}\n");
     }
     // Wherever the class asks for BibTeX's list, this one comes instead.
     o.push_str("\\AtBeginDocument{\\renewcommand\\bibliography[1]{\\tl@reflist}\\renewcommand\\bibliographystyle[1]{}}\n\\makeatother\n");
@@ -685,11 +701,22 @@ mod tests {
         assert!(p.contains("\\def\\tl@ltrentry{\\ifdefined\\XeTeXrevision\\leftskip\\dimexpr\\leftmargin-\\rightmargin"));
         // Arabic entries stay as they are.
         assert!(p.contains("{ahmadi2020} عبدالله الأحمدي"), "{p}");
-        // An English document's list is left to right: Arabic entries are runs in it.
+    }
+
+    /// The mirror case: in an English document's list, an Arabic entry is a
+    /// right-to-left paragraph (polyglossia's `Arabic` environment), shifted the other
+    /// way; under LuaTeX it stays a right-to-left run.
+    #[test]
+    fn arabic_entries_in_a_left_to_right_list_are_right_to_left_paragraphs() {
+        let t: Template = serde_json::from_str(include_str!("../../../templates/general-article/template.json")).unwrap();
         let mixed = Languages { main: Language::English, others: vec![Language::Arabic], digits: Default::default() };
         let p = preamble(&t, &doc(), &mixed);
-        assert!(p.contains("{ahmadi2020} \\textarabic{"), "{p}");
-        assert!(!p.contains("tl@ltrentry"), "{p}");
+        assert!(p.contains("{ahmadi2020} \\tl@rtlentry{عبدالله الأحمدي"), "{p}");
+        assert!(
+            p.contains("\\long\\def\\tl@rtlentry#1{\\ifdefined\\XeTeXrevision\\begin{Arabic}\\leftskip=-\\dimexpr\\leftmargin-\\rightmargin\\relax\\rightskip-\\leftskip #1\\par\\end{Arabic}\\else\\textarabic{#1}\\fi}"),
+            "{p}"
+        );
+        assert!(p.contains("{smith2021} John Smith, Mary-Ann Lee"), "English entries as they are: {p}");
     }
 
     #[test]
@@ -703,6 +730,10 @@ mod tests {
         // Western digits: LaTeX numbers them itself.
         let western = Languages { digits: texloom_core::Digits::Western, ..indic() };
         assert!(preamble(&t, &doc(), &western).contains("\\bibitem{smith2021} "));
+        // An Arabic comma between numbers: LaTeX's \cite (or natbib's, cite's setting).
+        let p = preamble(&t, &doc(), &indic());
+        assert!(p.contains("\\patchcmd\\@citex{,\\penalty\\@m\\ }{،\\penalty\\@m\\ }{}{}"), "{p}");
+        assert!(p.contains("\\setcitestyle{citesep={،}}") && p.contains("\\renewcommand\\citepunct{،\\penalty\\@m\\ }"), "{p}");
     }
 
     #[test]
