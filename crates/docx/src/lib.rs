@@ -727,7 +727,9 @@ impl<'a> Writer<'a> {
         o.push_str("</w:tblGrid>");
         let saved = self.context_style.replace("TableText");
         for r in 0..rows.len() {
-            o.push_str("<w:tr>");
+            // A row stays on one page (or column): Word would otherwise split it,
+            // leaving a word of a cell alone at the top of the next one.
+            o.push_str("<w:tr><w:trPr><w:cantSplit/></w:trPr>");
             let mut col = 0;
             while col < columns {
                 let Some((cr, ci)) = slots[r].get(col).copied().flatten() else {

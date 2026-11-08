@@ -233,6 +233,11 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     w!(o, "{}", page_style("texloomfront", &hf.front_matter, &langs));
     w!(o, "{}", page_style("texloommain", &hf.main, &langs));
     w!(o, "{}", page_style("texloomchapter", &hf.chapter_opening, &langs));
+    if t.page.two_sided {
+        // The page left blank so a chapter starts on the right is blank: no running
+        // header, footer or page number (as the emptypage package does).
+        w!(o, "\\renewcommand\\cleardoublepage{{\\clearpage\\if@twoside\\ifodd\\c@page\\else\\hbox{{}}\\thispagestyle{{empty}}\\newpage\\if@twocolumn\\hbox{{}}\\newpage\\fi\\fi\\fi}}");
+    }
     // Chapter-opening pages use "plain": follow the front-matter style before the
     // main text, the chapter-opening style after it.
     w!(o, "\\let\\ps@plain\\ps@texloomchapter");
@@ -422,6 +427,21 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
     // ---- appendices: lettered, with their own label ("Appendix A")
     w!(o, "% Appendices");
     let top_style = &t.headings.levels[0];
+    // In the contents too: "Appendix A Title", not a bare "A" (and in Arabic "ا",
+    // which looks like the digit "١"). The appendices write \tl@appendixtoc into the
+    // contents, and from there the top-level entries print their number in the label.
+    let label = t.structure.appendix_label.trim();
+    if label.contains("{n}") && label != "{n}" {
+        let (before, after) = label.split_once("{n}").expect("checked");
+        w!(
+            o,
+            "\\newcommand\\tl@appendixtoc{{\\let\\tl@ltop\\l@{mark_top}\\def\\l@{mark_top}##1##2{{\\begingroup\\def\\numberline####1{{\\mbox{{{}####1{}}}\\enspace}}\\tl@ltop{{##1}}{{##2}}\\endgroup}}}}",
+            tx(before),
+            tx(after)
+        );
+    } else {
+        w!(o, "\\newcommand\\tl@appendixtoc{{}}");
+    }
     if covers {
         // A cover page for the appendices as a whole, then each appendix on its own cover.
         let title = match langs.main {
@@ -430,14 +450,14 @@ pub fn template_to_cls_for(t: &Template, engine: Engine) -> String {
         };
         w!(
             o,
-            "\\newcommand\\texloomappendix{{{new_page}\\appendix\\thispagestyle{{texloomchapter}}\\vspace*{{\\fill}}{{\\normalfont{}\\centering {}\\par}}\\vspace*{{\\fill}}\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}{new_page}{}}}",
+            "\\newcommand\\texloomappendix{{{new_page}\\appendix\\addtocontents{{toc}}{{\\protect\\tl@appendixtoc}}\\thispagestyle{{texloomchapter}}\\vspace*{{\\fill}}{{\\normalfont{}\\centering {}\\par}}\\vspace*{{\\fill}}\\phantomsection\\addcontentsline{{toc}}{{{mark_top}}}{{{}}}{new_page}{}}}",
             font_commands(&top_style.text),
             if top_style.text.uppercase { format!("\\MakeUppercase{{{}}}", tx(title)) } else { tx(title) },
             tx(title),
             cover_format(top_style, cmds[0], &t.structure.appendix_label, &langs)
         );
     } else {
-        w!(o, "\\newcommand\\texloomappendix{{{new_page}\\appendix{}}}", title_format(top_style, cmds[0], &t.structure.appendix_label, &langs));
+        w!(o, "\\newcommand\\texloomappendix{{{new_page}\\appendix\\addtocontents{{toc}}{{\\protect\\tl@appendixtoc}}{}}}", title_format(top_style, cmds[0], &t.structure.appendix_label, &langs));
     }
     w!(o);
 

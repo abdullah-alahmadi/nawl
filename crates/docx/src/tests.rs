@@ -312,6 +312,8 @@ fn write_samples() {
         ("general-article", "article.loom", "general-article.docx"),
         ("arabic-article-cairo", "arabic-article.loom", "arabic-article-cairo.docx"),
         ("article-two-column", "article.loom", "article-two-column.docx"),
+        // Merged cells (rows and columns) in a right-to-left table.
+        ("arabic-article-two-column-arabic-only", "arabic-article-two-column-arabic-only.loom", "arabic-merged-cells.docx"),
     ] {
         // "-cairo": the Arabic article with a library font, embedded (the fonts fetched
         // by scripts/fetch-fonts.mjs).

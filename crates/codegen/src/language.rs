@@ -16,6 +16,29 @@ use texloom_core::{
 
 use crate::latex::escape;
 
+thread_local! {
+    static LR_NUMBERS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Runs `f` writing numbers in right-to-left text in `\LR{…}`, for LuaLaTeX: unlike
+/// XeTeX, LuaTeX doesn't order digits itself and sets them backwards there ("2021"
+/// as "1202", "٣٣–٥٢" scrambled). XeTeX output is left as it is.
+pub fn with_lr_numbers<T>(on: bool, f: impl FnOnce() -> T) -> T {
+    let before = LR_NUMBERS.with(|c| c.replace(on));
+    let out = f();
+    LR_NUMBERS.with(|c| c.set(before));
+    out
+}
+
+fn lr_numbers() -> bool {
+    LR_NUMBERS.with(|c| c.get())
+}
+
+/// A digit, Western or Arabic-Indic (or Persian).
+fn is_digit(c: char) -> bool {
+    c.is_ascii_digit() || ('\u{0660}'..='\u{0669}').contains(&c) || ('\u{06F0}'..='\u{06F9}').contains(&c)
+}
+
 /// The languages a document uses: the template's, plus Arabic when an English
 /// document contains Arabic text or right-to-left paragraphs.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -393,7 +416,67 @@ fn render_pieces(pieces: &[Piece], rtl: bool, render: &dyn Fn(usize, &str) -> St
             text.push_str(&pieces[i].text);
             i += 1;
         }
-        out.push_str(&render(node, &text));
+        if rtl && lr_numbers() {
+            for (digits, part) in digit_runs(&text) {
+                if digits {
+                    out.push_str(&format!("\\LR{{{}}}", render(node, part)));
+                } else {
+                    out.push_str(&render(node, part));
+                }
+            }
+        } else {
+            out.push_str(&render(node, &text));
+        }
+    }
+    out
+}
+
+/// `text` cut into numbers and the rest: (is a number, run). A number takes in the
+/// separators between its digits ("٢٫٣١", "١٨(٢):٣٣–٥٢", "1/5/2025"), so it's one
+/// left-to-right unit, with a closing bracket that balances one in it.
+fn digit_runs(text: &str) -> Vec<(bool, &str)> {
+    const SEPARATORS: &str = "٫٬.,:/-–()[]";
+    let chars: Vec<(usize, char)> = text.char_indices().collect();
+    let mut out = Vec::new();
+    let mut start = 0;
+    let mut k = 0;
+    while k < chars.len() {
+        if !is_digit(chars[k].1) {
+            k += 1;
+            continue;
+        }
+        let from = chars[k].0;
+        let mut end = k + 1;
+        loop {
+            while end < chars.len() && is_digit(chars[end].1) {
+                end += 1;
+            }
+            // Separators count when another digit follows them.
+            let mut next = end;
+            while next < chars.len() && SEPARATORS.contains(chars[next].1) {
+                next += 1;
+            }
+            if next > end && next < chars.len() && is_digit(chars[next].1) {
+                end = next;
+            } else {
+                break;
+            }
+        }
+        let run: String = chars[k..end].iter().map(|c| c.1).collect();
+        let open = |o: char, c: char| run.matches(o).count() > run.matches(c).count();
+        if end < chars.len() && ((chars[end].1 == ')' && open('(', ')')) || (chars[end].1 == ']' && open('[', ']'))) {
+            end += 1;
+        }
+        let to = chars.get(end).map_or(text.len(), |c| c.0);
+        if from > start {
+            out.push((false, &text[start..from]));
+        }
+        out.push((true, &text[from..to]));
+        start = to;
+        k = end;
+    }
+    if start < text.len() {
+        out.push((false, &text[start..]));
     }
     out
 }
@@ -492,11 +575,17 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
         o.push_str(&format!("\\newfontfamily\\arabicfonttt[Script=Arabic,Ligatures=TeX{ar}]{{{arabic}}}\n"));
     }
     o.push_str("\\usepackage{polyglossia}\n");
+    if lr_numbers() {
+        // Numbers in right-to-left text go in \LR (luabidi's), so LuaTeX keeps their
+        // digits in order.
+        o.push_str("\\AtBeginDocument{\\providecommand\\LR[1]{#1}}\n");
+    }
     let options = |l: Language| if l == Language::Arabic { format!("[{numerals}]") } else { String::new() };
     o.push_str(&format!("\\setdefaultlanguage{}{{{}}}\n", options(langs.main), langs.main.polyglossia()));
     for l in &langs.others {
         o.push_str(&format!("\\setotherlanguage{}{{{}}}\n", options(*l), l.polyglossia()));
     }
+    o.push_str(&arabic_symbol_fallbacks());
     // polyglossia sets its own "Figure"/"شكل" when the document starts; the
     // template's labels win.
     let labels = format!(
@@ -511,6 +600,21 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
         o.push_str("\\makeatletter\n");
         o.push_str(&crate::cls::heading_formats(t, langs));
         o.push_str("\\makeatother\n");
+    }
+    o
+}
+
+/// Some Arabic fonts have no Arabic decimal or thousands separator or percent sign
+/// (Aref Ruqaa, Reem Kufi, Tajawal…), and TeX would drop them: ٢٫٥ would print "٢٥".
+/// Each prints itself where the current font has it, else a stand-in every font
+/// has: the Arabic comma for the decimal separator (also used for decimals), a thin
+/// space between thousands, "%" for the percent sign.
+fn arabic_symbol_fallbacks() -> String {
+    let mut o = String::from("% Arabic separators and percent sign, with stand-ins for fonts that lack them\n");
+    for (code, fallback) in [("066B", "\\char\"060C "), ("066C", "\\,"), ("066A", "\\char\"25 ")] {
+        o.push_str(&format!(
+            "\\begingroup\\lccode`\\~=\"{code}\\lowercase{{\\endgroup\\protected\\def~}}{{\\iffontchar\\font\"{code} \\char\"{code} \\else{fallback}\\fi}}\\catcode\"{code}=13\n"
+        ));
     }
     o
 }
@@ -650,6 +754,12 @@ mod tests {
         assert!(p.contains("\\newfontfamily\\englishfont{lmroman10}") || p.contains("\\newfontfamily\\englishfont{texgyre"), "{p}");
         assert!(p.contains("\\setdefaultlanguage[numerals=mashriq]{arabic}\n\\setotherlanguage{english}"));
         assert!(p.contains("\\gappto\\captionsarabic{\\renewcommand\\figurename{شكل}"));
+        // Stand-ins for fonts without Arabic separators or percent sign.
+        assert!(
+            p.contains("\\begingroup\\lccode`\\~=\"066B\\lowercase{\\endgroup\\protected\\def~}{\\iffontchar\\font\"066B \\char\"066B \\else\\char\"060C \\fi}\\catcode\"066B=13\n"),
+            "{p}"
+        );
+        assert!(p.contains("\\iffontchar\\font\"066A \\char\"066A \\else\\char\"25 \\fi"));
         // English main with Arabic: Arabic gets its own font and the digit option.
         let mixed = Languages { main: Language::English, others: vec![Language::Arabic], digits: Digits::Western };
         let p = preamble(&t, &mixed);

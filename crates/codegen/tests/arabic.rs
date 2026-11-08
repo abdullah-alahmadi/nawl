@@ -126,6 +126,28 @@ fn english_document_citing_arabic_compiles() {
     assert!(missing.is_empty(), "{missing:#?}");
 }
 
+/// Aref Ruqaa has no Arabic decimal or thousands separator: the 9-page sample (with
+/// "٢٫٣١٪" in its abstract and decimals in its formulas) loses none of them.
+/// Run with: TEXLOOM_TECTONIC=… cargo test -p texloom-codegen --test arabic -- --ignored
+#[test]
+#[ignore]
+fn fonts_without_arabic_separators_compile() {
+    let mut t = builtin("arabic-article");
+    t.fonts.arabic = Some(texloom_core::FontChoice::Library { id: "aref-ruqaa".into() });
+    let doc: texloom_core::DocumentFile = serde_json::from_str(&example_file("arabic-load-forecasting.loom")).unwrap();
+    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let g = texloom_codegen::generate(&t, &doc.document);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut extra: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(root.join("examples").join(f)).unwrap())).collect();
+    // The library's font files, fetched into src-tauri/fonts by scripts/fetch-fonts.mjs.
+    extra.extend(g.fonts.iter().map(|f| (f.clone(), std::fs::read(root.join("src-tauri").join(f)).unwrap())));
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> = support.iter().chain(extra.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = compiler.compile(&g.tex, &files).unwrap();
+    let lost: Vec<&str> = out.log.lines().filter(|l| l.contains("Missing character") && (l.contains('٫') || l.contains('٬') || l.contains('٪'))).collect();
+    assert!(lost.is_empty(), "{lost:#?}");
+}
+
 #[test]
 fn english_document_with_arabic_words_gets_arabic() {
     let t: Template = serde_json::from_str(include_str!("../../../templates/senior-design/template.json")).unwrap();
@@ -145,6 +167,41 @@ fn english_document_with_arabic_words_gets_arabic() {
     assert!(tex.contains("\\setdefaultlanguage{english}\n\\setotherlanguage[numerals=maghrib]{arabic}"), "{tex}");
     assert!(tex.contains("The Arabic word \\textarabic{كتاب} means book."));
     assert!(tex.contains("\\begin{Arabic}\nالسلام عليكم\n\\end{Arabic}"), "{tex}");
+}
+
+/// Appendices are listed in the contents with their label ("الملحق ا"), not a bare
+/// letter that looks like the digit "١"; and in two-sided documents the page left
+/// blank before a chapter has no header or page number.
+#[test]
+fn appendix_contents_and_blank_pages() {
+    let cls = texloom_codegen::template_to_cls(&builtin("arabic-thesis"));
+    assert!(cls.contains("\\newcommand\\tl@appendixtoc{\\let\\tl@ltop\\l@chapter\\def\\l@chapter##1##2{\\begingroup\\def\\numberline####1{\\mbox{الملحق ####1}\\enspace}"), "{cls}");
+    assert!(cls.contains("\\appendix\\addtocontents{toc}{\\protect\\tl@appendixtoc}"), "{cls}");
+    let book = texloom_codegen::template_to_cls(&builtin("arabic-book"));
+    assert!(book.contains("\\renewcommand\\cleardoublepage{\\clearpage\\if@twoside\\ifodd\\c@page\\else\\hbox{}\\thispagestyle{empty}"), "{book}");
+    // One-sided documents leave \cleardoublepage alone.
+    assert!(!texloom_codegen::template_to_cls(&builtin("arabic-article")).contains("\\renewcommand\\cleardoublepage"));
+}
+
+/// LuaLaTeX gets numbers in right-to-left text in \LR (it would set their digits
+/// backwards); XeTeX, which orders them itself, gets the text as it is.
+#[test]
+fn numbers_in_right_to_left_text_for_lualatex() {
+    let (t, doc) = english_article_citing_arabic();
+    let lua = texloom_codegen::generate_for(&t, &doc, texloom_codegen::Engine::Lua).tex;
+    assert!(lua.contains("\\LR{2021}"), "{lua}");
+    assert!(lua.contains("\\AtBeginDocument{\\providecommand\\LR[1]{#1}}"));
+    let xe = texloom_codegen::generate(&t, &doc).tex;
+    assert!(!xe.contains("\\LR{"), "{xe}");
+    // A number with separators is one unit: "١٨(٢):٣٣–٥٢".
+    let (_, t, doc) = arabic_samples().into_iter().find(|(n, ..)| *n == "arabic-thesis").unwrap();
+    let mut doc = doc;
+    doc.body = serde_json::from_value(serde_json::json!({"type": "doc", "content": [
+        {"type": "paragraph", "content": [{"type": "text", "text": "المجلد ١٨(٢):٣٣–٥٢، سنة ٢٠٢١."}]}
+    ]}))
+    .unwrap();
+    let lua = texloom_codegen::generate_for(&t, &doc, texloom_codegen::Engine::Lua).tex;
+    assert!(lua.contains("المجلد \\LR{١٨(٢):٣٣--٥٢}، سنة \\LR{٢٠٢١}."), "{lua}");
 }
 
 /// The thesis's defence date in both calendars, and its references as two lists:

@@ -105,6 +105,10 @@ pub fn generate(template: &Template, doc: &Document) -> Generated {
 
 /// Like [`generate`], for a particular engine.
 pub fn generate_for(template: &Template, doc: &Document, engine: Engine) -> Generated {
+    language::with_lr_numbers(engine == Engine::Lua, || generate_with(template, doc, engine))
+}
+
+fn generate_with(template: &Template, doc: &Document, engine: Engine) -> Generated {
     let assets: Vec<String> = template
         .placed_items()
         .into_iter()

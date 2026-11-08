@@ -134,7 +134,8 @@ expression: "texloom_codegen::template_to_cls(&template())"
 \newcommand\texloombibliography{\clearpage\phantomsection\addcontentsline{toc}{chapter}{References}\renewcommand\bibname{References}\bibliographystyle{IEEEtran}\bibliography{refs}}
 
 % Appendices
-\newcommand\texloomappendix{\clearpage\appendix\titleformat{\chapter}[display]{\normalfont\fontsize{18}{21.6}\selectfont\bfseries\filcenter}{\MakeUppercase{Appendix \thechapter}}{8pt}{\MakeUppercase}
+\newcommand\tl@appendixtoc{\let\tl@ltop\l@chapter\def\l@chapter##1##2{\begingroup\def\numberline####1{\mbox{Appendix ####1}\enspace}\tl@ltop{##1}{##2}\endgroup}}
+\newcommand\texloomappendix{\clearpage\appendix\addtocontents{toc}{\protect\tl@appendixtoc}\titleformat{\chapter}[display]{\normalfont\fontsize{18}{21.6}\selectfont\bfseries\filcenter}{\MakeUppercase{Appendix \thechapter}}{8pt}{\MakeUppercase}
 \titleformat{name=\chapter,numberless}[block]{\normalfont\fontsize{18}{21.6}\selectfont\bfseries\filcenter}{}{0pt}{\MakeUppercase}}
 
 \RequirePackage[hidelinks]{hyperref}
