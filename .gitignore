@@ -41,3 +41,6 @@ dist-ssr
 # Arabic font library downloaded for the installers (scripts/fetch-fonts.mjs)
 /src-tauri/fonts/*
 !/src-tauri/fonts/README.md
+
+# A long generated book for testing large documents (scripts/make-long-arabic-book.mjs)
+/examples/arabic-book-long.loom

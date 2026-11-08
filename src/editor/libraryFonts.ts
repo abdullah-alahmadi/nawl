@@ -54,3 +54,11 @@ export function libraryFonts(): Promise<api.LibraryFont[]> {
   libraryList ??= api.listLibraryFonts().catch(() => []);
   return libraryList;
 }
+
+let arabicSystemList: Promise<string[]> | null = null;
+
+/** Installed fonts with Arabic letters (asked for once: it reads the font files). */
+export function arabicSystemFonts(): Promise<string[]> {
+  arabicSystemList ??= api.listArabicSystemFonts().catch(() => []);
+  return arabicSystemList;
+}

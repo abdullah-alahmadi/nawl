@@ -1,7 +1,8 @@
 // Display equation node: a MathLive field embedded in the TipTap document.
 // The node stores plain LaTeX in its `latex` attribute; MathLive edits it visually.
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MathfieldElement } from "mathlive";
+import { staticMarkup } from "./InlineMath";
 import {
   Node,
   mergeAttributes,
@@ -47,9 +48,17 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
   const t = useT();
   const host = useRef<HTMLDivElement>(null);
   const field = useRef<MathfieldElement | null>(null);
+  // A live MathLive field only while the equation is being edited (a new, empty one
+  // starts so); otherwise static markup. Live fields for every equation of a long
+  // book made opening it slow.
+  const [editing, setEditing] = useState(!node.attrs.latex);
+  // Something to do once the field exists ("add line" clicked on a static equation).
+  const pending = useRef<((mf: MathfieldElement) => void) | null>(null);
+  const markup = useMemo(() => staticMarkup(node.attrs.latex ?? "", true), [node.attrs.latex]);
 
-  // Create the math field once; React doesn't manage its internals.
+  // Create the math field while editing; React doesn't manage its internals.
   useEffect(() => {
+    if (!editing) return;
     const mf = new MathfieldElement();
     mf.mathVirtualKeyboardPolicy = "manual";
     mf.value = node.attrs.latex ?? "";
@@ -62,12 +71,30 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
         (ev as CustomEvent<{ direction: string }>).detail.direction !== "upward";
       editor.chain().focus().setTextSelection(after ? pos + node.nodeSize : pos).run();
     });
+    // Back to static markup once the field loses the focus, or the text cursor goes
+    // elsewhere in the document (should a blur be missed).
+    const done = () => setEditing(false);
+    mf.addEventListener("focusout", done);
+    mf.addEventListener("blur", done);
+    const elsewhere = () => {
+      if (document.activeElement !== mf) done();
+    };
+    editor.on("selectionUpdate", elsewhere);
     host.current?.appendChild(mf);
     field.current = mf;
-    if (!mf.value) requestAnimationFrame(() => mf.focus());
-    return () => mf.remove();
+    // Once attached (a timer, not an animation frame: hidden windows run no frames).
+    window.setTimeout(() => {
+      mf.focus();
+      pending.current?.(mf);
+      pending.current = null;
+    });
+    return () => {
+      editor.off("selectionUpdate", elsewhere);
+      mf.remove();
+      field.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [editing]);
 
   // Keep the field in sync when the attribute changes from outside (undo, open file).
   useEffect(() => {
@@ -82,12 +109,10 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
     const mf = field.current;
     if (mf) {
       mf.value = latex;
-      requestAnimationFrame(() => mf.focus());
+      window.setTimeout(() => mf.focus());
     }
   };
-  const addLine = () => {
-    const mf = field.current;
-    if (!mf) return;
+  const addRow = (mf: MathfieldElement) => {
     if (!isMultiLine(mf.value)) mf.value = toMultiLine(mf.value);
     mf.focus();
     // The cursor has to be inside the aligned block (in its last row): at the very
@@ -97,13 +122,31 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
     mf.executeCommand("addRowAfter");
     updateAttributes({ latex: mf.value });
   };
+  const addLine = () => {
+    if (field.current) addRow(field.current);
+    else {
+      pending.current = addRow;
+      setEditing(true);
+    }
+  };
 
   return (
     <NodeViewWrapper
       className={`equation${selected ? " is-selected" : ""}${numbered ? "" : " unnumbered"}`}
       data-equation=""
     >
-      <div ref={host} className="equation-field" />
+      {editing ? (
+        <div ref={host} className="equation-field" />
+      ) : (
+        <div
+          className="equation-field equation-static"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setEditing(true);
+          }}
+          dangerouslySetInnerHTML={{ __html: markup || "&nbsp;" }}
+        />
+      )}
       {/* The number "(3.1)" comes from CSS counters (see templateStyle.ts). */}
       {numbered && <span className="equation-number" aria-hidden />}
       <div className="equation-tools" contentEditable={false}>

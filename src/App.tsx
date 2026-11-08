@@ -965,11 +965,26 @@ export default function App() {
     editor?.view.dom.setAttribute("spellcheck", String(settings.spellcheck));
   }, [editor, settings.spellcheck]);
 
-  // Words in the document body, for the status bar.
-  const wordCount = useEditorState({
-    editor,
-    selector: ({ editor }) => (editor ? countWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, " ", " ")) : 0),
-  });
+  // Words in the document body, for the status bar: counted after a pause in typing,
+  // not on every keystroke (counting a long book's text takes tens of milliseconds).
+  const [wordCount, setWordCount] = useState(0);
+  useEffect(() => {
+    if (!editor) return;
+    let timer = 0;
+    const count = () => setWordCount(countWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, " ", " ")));
+    // Any change of the document, typed or loaded (opening a file replaces it).
+    const later = ({ transaction }: { transaction: { docChanged: boolean } }) => {
+      if (!transaction.docChanged) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(count, 400);
+    };
+    count();
+    editor.on("transaction", later);
+    return () => {
+      window.clearTimeout(timer);
+      editor.off("transaction", later);
+    };
+  }, [editor]);
 
   // Presentations: what the slides' footer and logo show on screen.
   const slideCount = useEditorState({

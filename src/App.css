@@ -394,6 +394,9 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .equation-field math-field {
   font-size: 1.15em; min-width: 6em; border: none; background: transparent; outline: none;
 }
+/* An equation not being edited: static markup the size of the field; a click edits it. */
+.equation-static { font-size: 1.15em; min-width: 6em; text-align: center; cursor: text; padding: 2px 0; }
+.inline-math-static { cursor: text; }
 .equation-number { position: absolute; right: 4px; color: #8a929c; font-size: 0.9em; }
 /* Arabic: the number at the end of the line, on the left, as in the PDF (leqno). */
 .page[dir="rtl"] .equation-number { right: auto; left: 4px; }

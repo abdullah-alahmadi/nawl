@@ -11,7 +11,7 @@ import { NumberInput, Row, Segmented, Select, Toggle, issuesAt } from "./control
 import { headingLevels, type SectionProps, type Translate } from "./common";
 import { useT, type MessageKey } from "../i18n";
 import * as api from "../api";
-import { ensureLibraryFont, libraryFamily, libraryFonts } from "../editor/libraryFonts";
+import { arabicSystemFonts, ensureLibraryFont, libraryFamily, libraryFonts } from "../editor/libraryFonts";
 
 export function InfoSection({ t, edit, issues }: SectionProps) {
   const tr = useT();
@@ -203,10 +203,19 @@ export function FontPicker({
 }) {
   const tr = useT();
   const [library, setLibrary] = useState<api.LibraryFont[]>([]);
+  const [arabic, setArabic] = useState<string[]>([]);
   useEffect(() => {
     void libraryFonts().then((list) => setLibrary(list.filter((f) => f.available)));
+    void arabicSystemFonts().then(setArabic);
   }, []);
-  const selectValue = !value ? "__inherit" : value.kind === "builtin" ? value.font : value.kind === "library" ? `lib:${value.id}` : "__system";
+  // Installed fonts, picked from the list: those with Arabic letters first (Diwani,
+  // Thuluth…), then the others. A name in neither (a template from another computer)
+  // keeps an entry of its own.
+  const arabicSet = new Set(arabic);
+  const others = systemFonts.filter((f) => !arabicSet.has(f));
+  const family = value?.kind === "system" ? value.family : null;
+  const unlisted = family !== null && !arabicSet.has(family) && !others.includes(family);
+  const selectValue = !value ? "__inherit" : value.kind === "builtin" ? value.font : value.kind === "library" ? `lib:${value.id}` : `sys:${value.family}`;
   return (
     <span className="d-inline">
       <select
@@ -214,7 +223,7 @@ export function FontPicker({
         onChange={(e) => {
           const v = e.target.value;
           if (v === "__inherit") onChange(undefined);
-          else if (v === "__system") onChange({ kind: "system", family: systemFonts[0] ?? "" });
+          else if (v.startsWith("sys:")) onChange({ kind: "system", family: v.slice(4) });
           else if (v.startsWith("lib:")) {
             void ensureLibraryFont(v.slice(4));
             onChange({ kind: "library", id: v.slice(4) });
@@ -241,18 +250,26 @@ export function FontPicker({
             </optgroup>
           );
         })}
-        <option value="__system">{tr("designer.fontInstalled")}</option>
-      </select>
-      {value?.kind === "system" && (
-        <>
-          <input list="system-fonts" value={value.family} placeholder={tr("designer.fontFamily")} onChange={(e) => onChange({ kind: "system", family: e.target.value })} />
-          <datalist id="system-fonts">
-            {systemFonts.map((f) => (
-              <option key={f} value={f} />
+        {unlisted && family && <option value={`sys:${family}`}>{tr("designer.fontNotInstalled", { name: family })}</option>}
+        {arabic.length > 0 && (
+          <optgroup label={tr("designer.fontInstalledArabicGroup")}>
+            {arabic.map((f) => (
+              <option key={f} value={`sys:${f}`}>
+                {f}
+              </option>
             ))}
-          </datalist>
-        </>
-      )}
+          </optgroup>
+        )}
+        {others.length > 0 && (
+          <optgroup label={tr("designer.fontInstalledOtherGroup")}>
+            {others.map((f) => (
+              <option key={f} value={`sys:${f}`}>
+                {f}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
     </span>
   );
 }

@@ -1,13 +1,15 @@
 // Cross-references, citations, appendices — and the stable ids that references
 // point at. On-screen numbers come from numbering.ts; the PDF uses \ref and BibTeX.
-import { Extension, Node, mergeAttributes, NodeViewWrapper, ReactNodeViewRenderer, useEditorState } from "@tiptap/react";
-import type { Editor, ReactNodeViewProps } from "@tiptap/react";
+import { Extension, Node, mergeAttributes, useEditorState } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
+import type { Node as PMNode } from "@tiptap/pm/model";
+import type { NodeView } from "@tiptap/pm/view";
 import type { Template } from "../api";
 import type { BibEntry } from "../api";
 import { docLanguage, hasArabic, localDigits, words } from "./language";
 import { computeNumbering, type NumberedItem } from "./numbering";
-import { t as tr, useT } from "../i18n";
+import { t as tr } from "../i18n";
 
 /** Node types that cross-references can point at. */
 const TARGET_TYPES = ["heading", "figure", "tableFigure", "equation"];
@@ -121,39 +123,144 @@ export function setTexloomContext(editor: Editor, ctx: Partial<TexloomContext>) 
   editor.view.dispatch(editor.state.tr.setMeta("texloom-context", true));
 }
 
+type Numbering = { template: unknown; items: NumberedItem[]; byId: Map<string, NumberedItem> };
+const NO_NUMBERING: Numbering = { template: null, items: [], byId: new Map() };
+const numberingCache = new WeakMap<PMNode, Numbering>();
+
+/** The document's numbered targets, computed once per version of the document
+ *  (documents are immutable) and shared by every node view that shows a number:
+ *  computed per view, typing in a long book redid it hundreds of times a keystroke. */
+function numberingOf(editor: Editor): Numbering {
+  const template = editor.storage.texloom.template;
+  if (!template) return NO_NUMBERING;
+  const doc = editor.state.doc;
+  let cached = numberingCache.get(doc);
+  if (!cached || cached.template !== template) {
+    const items = computeNumbering(doc, template);
+    cached = { template, items, byId: new Map(items.flatMap((i) => (i.id ? [[i.id, i] as const] : []))) };
+    numberingCache.set(doc, cached);
+  }
+  return cached;
+}
+
+type LabelStore = { version: number; signature: string; listeners: Set<() => void> };
+const labelStores = new WeakMap<Editor, LabelStore>();
+
+/** One listener per editor for every reference and citation on the page: after each
+ *  transaction it compares the labels they show (numbers, captions, citation labels)
+ *  and wakes the views only when one changed. A listener per view (thousands in a
+ *  long book) made every keystroke slow, though typing rarely changes a label. */
+function labelStore(editor: Editor): LabelStore {
+  let store = labelStores.get(editor);
+  if (store) return store;
+  const s: LabelStore = { version: 0, signature: "", listeners: new Set() };
+  const check = () => {
+    const signature = JSON.stringify([numberingOf(editor).items.map((i) => [i.id, i.refText, i.text]), [...citationLabels(editor)]]);
+    if (signature === s.signature) return;
+    s.signature = signature;
+    s.version++;
+    s.listeners.forEach((l) => l());
+  };
+  editor.on("transaction", check);
+  check();
+  labelStores.set(editor, s);
+  store = s;
+  return store;
+}
+
+/**
+ * A plain (non-React) node view for an inline label (a reference or a citation),
+ * redrawn when its node or any label changes. A long book has thousands of these, and
+ * as React node views they took seconds to mount.
+ */
+class LabelView implements NodeView {
+  dom: HTMLSpanElement;
+  private unsubscribe: () => void;
+
+  constructor(
+    public node: PMNode,
+    private editor: Editor,
+    private draw: (dom: HTMLSpanElement, node: PMNode, editor: Editor) => void,
+    private tooltip: (node: PMNode, editor: Editor) => string,
+  ) {
+    this.dom = document.createElement("span");
+    // Tooltips are built when hovered, not for every label up front.
+    this.dom.addEventListener("mouseenter", () => {
+      this.dom.title = this.tooltip(this.node, this.editor);
+    });
+    const store = labelStore(editor);
+    const redraw = () => this.draw(this.dom, this.node, this.editor);
+    store.listeners.add(redraw);
+    this.unsubscribe = () => void store.listeners.delete(redraw);
+    redraw();
+  }
+
+  update(node: PMNode) {
+    if (node.type !== this.node.type) return false;
+    if (node.attrs !== this.node.attrs) {
+      this.node = node;
+      this.draw(this.dom, node, this.editor);
+    }
+    this.node = node;
+    return true;
+  }
+
+  selectNode() {
+    this.dom.classList.add("is-selected");
+  }
+
+  deselectNode() {
+    this.dom.classList.remove("is-selected");
+  }
+
+  ignoreMutation() {
+    return true;
+  }
+
+  destroy() {
+    this.unsubscribe();
+  }
+}
+
+/** Sets the label's text and classes, keeping the selection highlight. */
+function setLabel(dom: HTMLSpanElement, base: string, broken: boolean, text: string) {
+  const selected = dom.classList.contains("is-selected");
+  dom.className = `${base}${broken ? " broken" : ""}${selected ? " is-selected" : ""}`;
+  if (dom.textContent !== text) dom.textContent = text;
+}
+
 /** Numbered targets of the current document (empty until a template is set). */
 export function useNumbering(editor: Editor): NumberedItem[] {
   return useEditorState({
     editor,
-    selector: ({ editor }) => {
-      const t = editor.storage.texloom.template;
-      return t ? computeNumbering(editor.state.doc, t) : [];
-    },
-    equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+    selector: ({ editor }) => numberingOf(editor).items,
+    equalityFn: (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b),
   });
 }
 
 // ---------------------------------------------------------------- cross-references
 
-function RefView({ node, editor, selected }: ReactNodeViewProps) {
-  const t = useT();
-  const items = useNumbering(editor);
-  const target = items.find((i) => i.id === node.attrs.target);
-  const jump = (e: React.MouseEvent) => {
+function refView(node: PMNode, editor: Editor): NodeView {
+  const view = new LabelView(
+    node,
+    editor,
+    (dom, node, editor) => {
+      const shown = numberingOf(editor).byId.get(node.attrs.target);
+      setLabel(dom, "ref", !shown, shown ? shown.refText : "??");
+    },
+    (node, editor) => {
+      const shown = numberingOf(editor).byId.get(node.attrs.target);
+      return shown ? tr("editor.refTooltip", { ref: shown.refText, text: shown.text }) : tr("editor.refBroken");
+    },
+  );
+  // Ctrl/Cmd-click jumps to what the reference points at.
+  view.dom.addEventListener("click", (e) => {
+    const target = numberingOf(editor).byId.get(view.node.attrs.target);
     if (!target || !(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
     editor.chain().focus().setTextSelection(target.pos + 1).scrollIntoView().run();
-  };
-  return (
-    <NodeViewWrapper
-      as="span"
-      className={`ref${target ? "" : " broken"}${selected ? " is-selected" : ""}`}
-      title={target ? t("editor.refTooltip", { ref: target.refText, text: target.text }) : t("editor.refBroken")}
-      onClick={jump}
-    >
-      {target ? target.refText : "??"}
-    </NodeViewWrapper>
-  );
+  });
+  return view;
 }
 
 export const CrossRef = Node.create({
@@ -169,7 +276,7 @@ export const CrossRef = Node.create({
   parseHTML: () => [{ tag: "span[data-ref]", getAttrs: (el) => ({ target: (el as HTMLElement).dataset.ref }) }],
   renderHTML: ({ node, HTMLAttributes }) => ["span", mergeAttributes(HTMLAttributes, { "data-ref": node.attrs.target })],
   addNodeView() {
-    return ReactNodeViewRenderer(RefView, { as: "span" });
+    return ({ node, editor }) => refView(node, editor);
   },
   addCommands() {
     return {
@@ -183,16 +290,31 @@ export const CrossRef = Node.create({
 
 // ---------------------------------------------------------------- citations
 
-/** On-screen citation labels, matching the template's bibliography style. */
+const citationCache = new WeakMap<PMNode, { template: unknown; bibEntries: unknown; labels: Map<string, string> }>();
+
+/** On-screen citation labels, matching the template's bibliography style: computed
+ *  once per version of the document and shared by every citation on the page. */
 export function citationLabels(editor: Editor): Map<string, string> {
+  const { template, bibEntries } = editor.storage.texloom;
+  const doc = editor.state.doc;
+  const cached = citationCache.get(doc);
+  if (cached && cached.template === template && cached.bibEntries === bibEntries) return cached.labels;
+  const labels = computeCitationLabels(editor);
+  citationCache.set(doc, { template, bibEntries, labels });
+  return labels;
+}
+
+function computeCitationLabels(editor: Editor): Map<string, string> {
   const { template, bibEntries } = editor.storage.texloom;
   const labels = new Map<string, string>();
   if (!template) return labels;
   const byKey = new Map(bibEntries.map((e) => [e.key, e]));
-  const order: string[] = [];
+  // Keys in the order they're first cited.
+  const seen = new Set<string>();
   editor.state.doc.descendants((n) => {
-    if (n.type.name === "citation") for (const k of n.attrs.keys as string[]) if (!order.includes(k)) order.push(k);
+    if (n.type.name === "citation") for (const k of n.attrs.keys as string[]) seen.add(k);
   });
+  const order = [...seen];
   const style = template.bibliography.style;
   const digits = docLanguage(template).digits;
   if (style === "authorYear") {
@@ -221,31 +343,24 @@ export function citationLabels(editor: Editor): Map<string, string> {
   return labels;
 }
 
-function CitationView({ node, editor, selected }: ReactNodeViewProps) {
-  const t = useT();
-  const labels = useEditorState({
-    editor,
-    selector: ({ editor }) => Array.from(citationLabels(editor).entries()),
-    equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b),
-  });
-  const map = new Map(labels);
+function drawCitation(dom: HTMLSpanElement, node: PMNode, editor: Editor) {
   const keys: string[] = node.attrs.keys;
+  const all = citationLabels(editor);
+  const own = keys.map((k) => all.get(k) ?? null);
   const authorYear = editor.storage.texloom.template?.bibliography.style === "authorYear";
-  const missing = keys.filter((k) => !map.has(k));
-  const parts = keys.map((k) => map.get(k) ?? "?");
+  const parts = own.map((l) => l ?? "?");
   const text = authorYear ? `(${parts.join("; ")})` : `[${parts.join(", ")}]`;
+  setLabel(dom, "citation", own.includes(null), text);
+}
+
+function citationTooltip(node: PMNode, editor: Editor): string {
   const entries = editor.storage.texloom.bibEntries;
-  const title = keys
+  return (node.attrs.keys as string[])
     .map((k) => {
       const e = entries.find((x) => x.key === k);
-      return e ? `${k}: ${e.authors.join(", ")} (${e.year ?? t("editor.citationNoDate")}) ${e.title}` : t("editor.citationMissing", { key: k });
+      return e ? `${k}: ${e.authors.join(", ")} (${e.year ?? tr("editor.citationNoDate")}) ${e.title}` : tr("editor.citationMissing", { key: k });
     })
     .join("\n");
-  return (
-    <NodeViewWrapper as="span" className={`citation${missing.length ? " broken" : ""}${selected ? " is-selected" : ""}`} title={title}>
-      {text}
-    </NodeViewWrapper>
-  );
 }
 
 export const Citation = Node.create({
@@ -267,7 +382,7 @@ export const Citation = Node.create({
   parseHTML: () => [{ tag: "span[data-keys]" }],
   renderHTML: ({ HTMLAttributes }) => ["span", mergeAttributes(HTMLAttributes, { class: "citation" })],
   addNodeView() {
-    return ReactNodeViewRenderer(CitationView, { as: "span" });
+    return ({ node, editor }) => new LabelView(node, editor, drawCitation, citationTooltip);
   },
   addCommands() {
     return {

@@ -683,7 +683,8 @@ fn windows_font_families() -> Vec<String> {
     let mut out = Vec::new();
     for root in ["HKLM", "HKCU"] {
         let Ok(o) = texloom_compile::tool("reg").args(["query", &format!("{root}\\{key}")]).output() else { continue };
-        out.extend(String::from_utf8_lossy(&o.stdout).lines().filter_map(font_family_from_registry));
+        // Bitmap fonts (.fon: "8514fix", "Terminal") are for the screen; TeX can't use them.
+        out.extend(String::from_utf8_lossy(&o.stdout).lines().filter(|l| !l.trim_end().to_lowercase().ends_with(".fon")).filter_map(font_family_from_registry));
     }
     out
 }
@@ -1356,6 +1357,9 @@ mod tests {
             let fonts = windows_arabic_font_families();
             assert!(fonts.iter().any(|f| f == "Arial") && fonts.iter().any(|f| f == "Tahoma"), "{fonts:?}");
             assert!(!fonts.iter().any(|f| f == "Consolas"), "{fonts:?}");
+            // Screen bitmap fonts (.fon), which TeX can't use, aren't offered at all.
+            let all = windows_font_families();
+            assert!(all.iter().any(|f| f == "Consolas") && !all.iter().any(|f| f == "8514fix" || f == "Terminal"), "{all:?}");
             // Office's Diwani, where it's installed.
             if Path::new(r"C:\Windows\Fonts\DIWANLTR.TTF").exists() {
                 assert!(fonts.iter().any(|f| f == "Diwani Letter"), "{fonts:?}");
