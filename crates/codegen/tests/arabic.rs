@@ -183,6 +183,22 @@ fn appendix_contents_and_blank_pages() {
     assert!(!texloom_codegen::template_to_cls(&builtin("arabic-article")).contains("\\renewcommand\\cleardoublepage"));
 }
 
+/// polyglossia's Arabic drops the chapter from equation numbers ("(١)" beside
+/// "شكل ١.١"): with per-chapter numbering it goes back, also when polyglossia sets
+/// the numbers again. Without it (or without chapters), polyglossia's is right.
+#[test]
+fn arabic_equations_numbered_per_chapter() {
+    let fix = "\\gappto\\arabic@globalnumbers{\\tl@chapterequation}";
+    let book = builtin("arabic-book");
+    assert!(book.structure.per_chapter_numbering);
+    let tex = texloom_codegen::document_to_tex(&book, &arabic_document());
+    assert!(tex.contains(fix) && tex.contains("\\renewcommand\\theequation{\\ifnum\\c@chapter>\\z@\\thechapter\\@SepMark\\fi\\@arabic\\c@equation}"), "{tex}");
+    let mut whole = book.clone();
+    whole.structure.per_chapter_numbering = false;
+    assert!(!texloom_codegen::document_to_tex(&whole, &arabic_document()).contains(fix));
+    assert!(!texloom_codegen::document_to_tex(&builtin("arabic-article"), &arabic_document()).contains(fix));
+}
+
 /// LuaLaTeX gets numbers in right-to-left text in \LR (it would set their digits
 /// backwards); XeTeX, which orders them itself, gets the text as it is.
 #[test]

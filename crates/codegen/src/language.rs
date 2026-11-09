@@ -11,7 +11,7 @@
 //! English template's document contains Arabic is only known from the document.
 
 use texloom_core::{
-    walk_inlines, BuiltinFont, Digits, Document, FieldValue, FontChoice, Inline, Language, Template, TextDir,
+    walk_inlines, BuiltinFont, Digits, Document, FieldValue, FontChoice, Inline, Language, Template, TextDir, TopLevel,
 };
 
 use crate::latex::escape;
@@ -602,6 +602,16 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
         o.push_str(&format!("\\setotherlanguage{}{{{}}}\n", options(*l), l.polyglossia()));
     }
     o.push_str(&arabic_symbol_fallbacks());
+    // Arabic as the main language: polyglossia's Arabic sets \theequation to the bare
+    // count whenever it becomes the main language (at the start too), so equations
+    // read "(١)" next to "شكل ١.١". With per-chapter numbering, the chapter goes back
+    // in front, now and each time polyglossia sets it again.
+    if langs.main == Language::Arabic && t.structure.top_level == TopLevel::Chapter && t.structure.per_chapter_numbering {
+        o.push_str("\\makeatletter\n\\providecommand\\@SepMark{.}\n");
+        o.push_str("\\def\\tl@chapterequation{\\@ifundefined{c@chapter}{}{\\renewcommand\\theequation{\\ifnum\\c@chapter>\\z@\\thechapter\\@SepMark\\fi\\@arabic\\c@equation}}}\n");
+        o.push_str("\\ifdefined\\arabic@globalnumbers\\gappto\\arabic@globalnumbers{\\tl@chapterequation}\\fi\n");
+        o.push_str("\\tl@chapterequation\\AtBeginDocument{\\tl@chapterequation}\n\\makeatother\n");
+    }
     // polyglossia sets its own "Figure"/"شكل" when the document starts; the
     // template's labels win.
     let labels = format!(
