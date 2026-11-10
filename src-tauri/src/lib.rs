@@ -38,6 +38,12 @@ const SAMPLE_PRESENTATION: &str = include_str!("../../examples/presentation.loom
 /// The Arabic examples, offered when the interface is in Arabic.
 const SAMPLE_ARABIC_ARTICLE: &str = include_str!("../../examples/arabic-article.loom");
 const SAMPLE_ARABIC_PRESENTATION: &str = include_str!("../../examples/arabic-presentation.loom");
+/// The Arabic thesis, offered as the example project.
+const SAMPLE_ARABIC_THESIS: &str = include_str!("../../examples/arabic-thesis.loom");
+const SAMPLE_THESIS_FILES: &[(&str, &[u8])] = &[
+    ("figures/thesis-pipeline.png", include_bytes!("../../examples/figures/thesis-pipeline.png")),
+    ("figures/thesis-f1.png", include_bytes!("../../examples/figures/thesis-f1.png")),
+];
 /// Images the sample documents use (written to their temporary folder).
 const SAMPLE_FILES: &[(&str, &[u8])] = &[
     ("figures/system-diagram.png", include_bytes!("../../examples/figures/system-diagram.png")),
@@ -1404,6 +1410,7 @@ pub fn run() {
             project::project_block_to_pdf,
             project::export_project_tex,
             project::split_into_project,
+            project::sample_project,
             project::join_project
         ])
         .run(tauri::generate_context!())

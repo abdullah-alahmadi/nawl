@@ -506,11 +506,23 @@ pub struct HeadingAttrs {
     pub dir: Option<TextDir>,
 }
 
-/// A paragraph's own direction, when it differs from the document's.
+/// A paragraph's own direction, when it differs from the document's, and its own
+/// alignment (a signature on the left, a centred line), when it isn't the template's.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct TextAttrs {
     #[serde(default)]
     pub dir: Option<TextDir>,
+    #[serde(default)]
+    pub align: Option<TextAlign>,
+}
+
+/// Where a paragraph's lines sit on the page (as seen, in either direction).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TextAlign {
+    Left,
+    Center,
+    Right,
 }
 
 /// Left to right or right to left (the editor's `dir` attribute).

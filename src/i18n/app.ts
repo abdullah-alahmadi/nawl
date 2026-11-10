@@ -131,7 +131,7 @@ export const en = {
   "app.chooseFromClasses": "Choose from {n} classes…",
   "app.chooseFromClassesTitle": "Journal, thesis, book and article classes found in your TeX distribution",
   "app.exportPdf": "Export PDF",
-  "app.exportPdfTitle": "Export PDF (Ctrl+Shift+E)",
+  "app.exportPdfTitle": "Export PDF",
 
   // Preview pane
   "app.latexSource": "LaTeX source",
@@ -179,6 +179,9 @@ export const en = {
   "app.bulletList": "Bullet list",
   "app.numberedList": "Numbered list",
   "app.quote": "Quote",
+  "app.alignLeft": "Align the paragraph left; again for the template's alignment",
+  "app.alignCenter": "Centre the paragraph; again for the template's alignment",
+  "app.alignRight": "Align the paragraph right; again for the template's alignment",
   "app.textDirection": "Text direction: switch this paragraph between right to left (Arabic) and left to right (English) (Ctrl+Shift+X)",
   "app.inlineMath": "Inline math (Ctrl+M, or type $x^2$)",
   "app.equation": "Equation on its own line ($$ + space)",
@@ -368,7 +371,7 @@ export const ar: Record<keyof typeof en, string> = {
   "app.chooseFromClasses": "الاختيار من الأصناف ({n})…",
   "app.chooseFromClassesTitle": "أصناف المجلات والرسائل والكتب والمقالات الموجودة في توزيعة TeX لديك",
   "app.exportPdf": "تصدير PDF",
-  "app.exportPdfTitle": "تصدير PDF (Ctrl+Shift+E)",
+  "app.exportPdfTitle": "تصدير PDF",
 
   // Preview pane
   "app.latexSource": "مصدر LaTeX",
@@ -416,6 +419,9 @@ export const ar: Record<keyof typeof en, string> = {
   "app.bulletList": "قائمة نقطية",
   "app.numberedList": "قائمة مرقّمة",
   "app.quote": "اقتباس",
+  "app.alignLeft": "محاذاة الفقرة إلى اليسار؛ مرة أخرى للعودة إلى محاذاة القالب",
+  "app.alignCenter": "توسيط الفقرة؛ مرة أخرى للعودة إلى محاذاة القالب",
+  "app.alignRight": "محاذاة الفقرة إلى اليمين؛ مرة أخرى للعودة إلى محاذاة القالب",
   "app.textDirection": "اتجاه النص: تبديل هذه الفقرة بين من اليمين إلى اليسار (العربية) ومن اليسار إلى اليمين (الإنجليزية) (Ctrl+Shift+X)",
   "app.inlineMath": "رياضيات ضمن السطر (Ctrl+M، أو اكتب $x^2$)",
   "app.equation": "معادلة في سطر مستقل ($$ + مسافة)",

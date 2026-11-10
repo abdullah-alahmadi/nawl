@@ -5,8 +5,8 @@
     "meta": {
       "id": "arabic-admin-order",
       "name": "أمر إداري أو خطاب رسمي",
-      "description": "أمر إداري أو قرار أو خطاب رسمي: اسم الجهة ورقم الخطاب وتاريخه بالتقويمين في أعلى الصفحة، والبسملة والعنوان بخط ديواني، ثم الموضوع والنص. يُستعمل الخط الديواني إن كان مثبتًا (مع Microsoft Office) وإلا خط أميري. Arabic administrative order or official letter with a Diwani title.",
-      "version": "1.0.0"
+      "description": "أمر إداري أو قرار أو خطاب رسمي: اسم الجهة وشعارها ورقم الخطاب وتاريخه بالتقويمين ومرفقاته في أعلى الصفحة، والبسملة والعنوان بخط ديواني، ثم الموضوع والنص، وعنوان الجهة في أسفل الصفحة. يُستعمل الخط الديواني إن كان مثبتًا (مع Microsoft Office) وإلا خط أميري. Arabic administrative order or official letter with a Diwani title.",
+      "version": "1.1.0"
     },
     "page": {
       "paper": {
@@ -22,11 +22,11 @@
       "bindingOffsetMm": 0,
       "lineSpacing": {
         "kind": "custom",
-        "stretch": 1.2
+        "stretch": 1.35
       },
       "paragraph": {
         "indentMm": 0,
-        "spacingPt": 4
+        "spacingPt": 6
       }
     },
     "fonts": {
@@ -112,18 +112,27 @@
     "headerFooter": {
       "frontMatter": {
         "footer": {
-          "center": "{page}"
-        }
+          "left": "{page}",
+          "center": "{address}",
+          "right": ""
+        },
+        "footerRulePt": 0.4
       },
       "main": {
         "footer": {
-          "center": "{page}"
-        }
+          "left": "{page}",
+          "center": "{address}",
+          "right": ""
+        },
+        "footerRulePt": 0.4
       },
       "chapterOpening": {
         "footer": {
-          "center": "{page}"
-        }
+          "left": "{page}",
+          "center": "{address}",
+          "right": ""
+        },
+        "footerRulePt": 0.4
       }
     },
     "captions": {
@@ -144,37 +153,47 @@
       "items": [
         {
           "xMm": 188,
-          "yMm": 20,
+          "yMm": 15.5,
           "anchor": "topRight",
           "content": {
             "type": "text",
             "text": "{organization}",
             "style": {
-              "sizePt": 13,
+              "sizePt": 14,
               "align": "right",
               "bold": true
             },
-            "widthMm": 85
+            "widthMm": 66
           }
         },
         {
           "xMm": 188,
-          "yMm": 27,
+          "yMm": 23.5,
           "anchor": "topRight",
           "content": {
             "type": "text",
             "text": "{department}",
             "style": {
-              "sizePt": 11.5,
+              "sizePt": 12,
               "align": "right",
               "bold": false
             },
-            "widthMm": 85
+            "widthMm": 66
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 13,
+          "anchor": "top",
+          "content": {
+            "type": "image",
+            "asset": "{logo}",
+            "widthMm": 30
           }
         },
         {
           "xMm": 22,
-          "yMm": 20,
+          "yMm": 15.5,
           "anchor": "topLeft",
           "content": {
             "type": "text",
@@ -184,12 +203,12 @@
               "align": "right",
               "bold": false
             },
-            "widthMm": 70
+            "widthMm": 60
           }
         },
         {
           "xMm": 22,
-          "yMm": 27,
+          "yMm": 20.5,
           "anchor": "topLeft",
           "content": {
             "type": "text",
@@ -199,12 +218,12 @@
               "align": "right",
               "bold": false
             },
-            "widthMm": 70
+            "widthMm": 60
           }
         },
         {
           "xMm": 22,
-          "yMm": 34,
+          "yMm": 25.5,
           "anchor": "topLeft",
           "content": {
             "type": "text",
@@ -214,22 +233,47 @@
               "align": "right",
               "bold": false
             },
-            "widthMm": 70
+            "widthMm": 60
+          }
+        },
+        {
+          "xMm": 22,
+          "yMm": 30.4,
+          "anchor": "topLeft",
+          "content": {
+            "type": "text",
+            "text": "المرفقات: {attachments}",
+            "style": {
+              "sizePt": 11.5,
+              "align": "right",
+              "bold": false
+            },
+            "widthMm": 60
           }
         },
         {
           "xMm": 105,
-          "yMm": 43,
+          "yMm": 39.5,
           "anchor": "top",
           "content": {
             "type": "rule",
             "lengthMm": 166,
-            "thicknessPt": 0.6
+            "thicknessPt": 1.2
           }
         },
         {
           "xMm": 105,
-          "yMm": 48,
+          "yMm": 40.6,
+          "anchor": "top",
+          "content": {
+            "type": "rule",
+            "lengthMm": 166,
+            "thicknessPt": 0.4
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 45,
           "anchor": "top",
           "content": {
             "type": "text",
@@ -248,7 +292,7 @@
         },
         {
           "xMm": 105,
-          "yMm": 60,
+          "yMm": 57,
           "anchor": "top",
           "content": {
             "type": "text",
@@ -267,7 +311,7 @@
         },
         {
           "xMm": 105,
-          "yMm": 80,
+          "yMm": 78,
           "anchor": "top",
           "content": {
             "type": "text",
@@ -281,7 +325,7 @@
           }
         }
       ],
-      "blockHeightMm": 94
+      "blockHeightMm": 92
     },
     "fields": [
       {
@@ -296,8 +340,13 @@
         "kind": "text"
       },
       {
+        "id": "logo",
+        "label": "شعار الجهة",
+        "kind": "image"
+      },
+      {
         "id": "title",
-        "label": "نوع الخطاب (أمر إداري، قرار، تعميم…)",
+        "label": "نوع الخطاب",
         "kind": "text",
         "required": true
       },
@@ -314,10 +363,20 @@
         "required": true
       },
       {
+        "id": "attachments",
+        "label": "المرفقات",
+        "kind": "text"
+      },
+      {
         "id": "subject",
         "label": "الموضوع",
         "kind": "text",
         "required": true
+      },
+      {
+        "id": "address",
+        "label": "عنوان الجهة ووسائل الاتصال (أسفل الصفحة)",
+        "kind": "text"
       }
     ],
     "frontMatter": [
@@ -338,7 +397,10 @@
     "title": "أمر إداري",
     "order_number": "٤٧/و/١٤٤٧",
     "date": "2026-02-03",
-    "subject": "تشكيل لجنة لحصر الوثائق التاريخية وفهرستها"
+    "subject": "تشكيل لجنة لحصر الوثائق التاريخية وفهرستها",
+    "attachments": "بيان بالوثائق (٣ صفحات)",
+    "address": "جامعة المعرفة – ص.ب ١٢٣٤ الرياض ١١٤٥١ – هاتف ٠١١٢٣٤٥٦٧٨",
+    "logo": "figures/logo-placeholder.png"
   },
   "bibliography": "\n",
   "doc": {
@@ -485,7 +547,11 @@
             "type": "text",
             "text": "والله وليُّ التوفيق،،،"
           }
-        ]
+        ],
+        "attrs": {
+          "dir": null,
+          "align": "center"
+        }
       },
       {
         "type": "paragraph",
@@ -499,7 +565,11 @@
               }
             ]
           }
-        ]
+        ],
+        "attrs": {
+          "dir": null,
+          "align": "left"
+        }
       },
       {
         "type": "paragraph",
@@ -508,7 +578,11 @@
             "type": "text",
             "text": "أ.د. محمد بن سعد العتيبي"
           }
-        ]
+        ],
+        "attrs": {
+          "dir": null,
+          "align": "left"
+        }
       },
       {
         "type": "paragraph",

@@ -299,5 +299,8 @@ export const projectPdfToBlock = (page: number, x: number, y: number) => invoke<
 export const projectBlockToPdf = (file: string, block: number) => invoke<PdfSpot | null>("project_block_to_pdf", { file, block });
 /** Splits the document into a project in `folder`; returns the project file. */
 export const splitIntoProject = (folder: string, name: string, d: DocState) => invoke<string>("split_into_project", { folder, name, ...d });
+/** Writes an example project (the Arabic thesis, else the senior design report) to a
+ *  temporary folder; returns its path, for `openProject`. */
+export const sampleProject = (name?: "arabic-thesis") => invoke<string>("sample_project", { name: name ?? null });
 /** Writes the whole project as one document at `path`. */
 export const joinProject = (path: string, s: ProjectState) => invoke<void>("join_project", { path, ...s });

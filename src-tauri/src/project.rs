@@ -561,6 +561,72 @@ pub fn split_into_project(
     Ok(path.display().to_string())
 }
 
+/// An example project ("arabic-thesis": the Arabic thesis in two parts, else the
+/// senior design report), written to a fresh temporary folder with its images.
+/// Returns the project file's path, for `open_project`.
+#[tauri::command]
+pub fn sample_project(state: State<'_, AppState>, name: Option<String>) -> Result<String, AppError> {
+    let sample = SampleProject::named(name.as_deref());
+    state.doc_folder.reset_with(sample.files)?;
+    Ok(sample.write(&state.doc_folder.get())?.display().to_string())
+}
+
+/// An example document offered as a project.
+struct SampleProject {
+    /// File name of the project, without the extension.
+    stem: &'static str,
+    /// The example `.loom` (with its template, or none for the built-in one).
+    document: &'static str,
+    files: &'static [(&'static str, &'static [u8])],
+    /// Parts: the title, and how many chapters come before it.
+    parts: &'static [(usize, &'static str)],
+}
+
+impl SampleProject {
+    fn named(name: Option<&str>) -> Self {
+        match name {
+            Some("arabic-thesis") => SampleProject {
+                stem: "arabic-thesis",
+                document: crate::SAMPLE_ARABIC_THESIS,
+                files: crate::SAMPLE_THESIS_FILES,
+                parts: &[(0, "الإطار العام للدراسة"), (2, "الدراسة التطبيقية")],
+            },
+            _ => SampleProject { stem: "senior-design-report", document: crate::SAMPLE_DOCUMENT, files: crate::SAMPLE_FILES, parts: &[] },
+        }
+    }
+
+    /// Splits the example into chapter files in `folder` and writes the project file.
+    fn write(&self, folder: &Path) -> Result<PathBuf, AppError> {
+        let source: Value = serde_json::from_str(self.document).map_err(AppError::other)?;
+        let path = folder.join(format!("{}.{}", self.stem, texloom_core::PROJECT_EXTENSION));
+        let (chapters, bodies) = split_blocks(&source["doc"]);
+        for (file, body) in &bodies {
+            write_chapter(&path, folder, file, body)?;
+        }
+        let mut file = ProjectFile::new();
+        file.metadata = serde_json::from_value(source["metadata"].clone()).map_err(AppError::other)?;
+        file.bibliography = source["bibliography"].as_str().unwrap_or_default().to_string();
+        let mut before = 0;
+        for entry in chapters {
+            if matches!(entry, ProjectEntry::Chapter { appendix: false, .. }) {
+                file.chapters.extend(self.parts.iter().filter(|(n, _)| *n == before).map(|(_, title)| ProjectEntry::Part { part: (*title).into() }));
+                before += 1;
+            }
+            file.chapters.push(entry);
+        }
+        let mut json = serde_json::to_value(&file).map_err(AppError::other)?;
+        // The example's own template; the built-in one for the report.
+        let template = match source.get("template") {
+            Some(t) if !t.is_null() => t.clone(),
+            _ => serde_json::from_str(crate::templates::BUILTIN_TEMPLATE).map_err(AppError::other)?,
+        };
+        json["template"] = template;
+        json["templatePath"] = Value::Null;
+        std::fs::write(&path, serde_json::to_string_pretty(&json).map_err(AppError::other)?)?;
+        Ok(path)
+    }
+}
+
 /// A document's top-level blocks split at chapter headings and the appendix marker:
 /// the chapter list and each chapter file's body JSON.
 fn split_blocks(doc: &Value) -> (Vec<ProjectEntry>, Vec<(String, Value)>) {
@@ -725,6 +791,62 @@ mod tests {
         let g = texloom_codegen::generate_project_for(&template, &project, texloom_codegen::Engine::Xe, None);
         assert_eq!(g.chapters.len(), 2);
         assert!(g.chapters[1].tex.contains("\\eqref{tl:eq}"));
+    }
+
+    /// The example projects open without problems: chapters, parts, an appendix,
+    /// their images, and a template that takes their metadata.
+    #[test]
+    fn sample_projects_are_complete() {
+        for (name, parts) in [(Some("arabic-thesis"), 2), (None, 0)] {
+            let sample = SampleProject::named(name);
+            let dir = tempfile::tempdir().unwrap();
+            let path = sample.write(dir.path()).unwrap();
+            let raw: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            let file: ProjectFile = serde_json::from_value(raw.clone()).unwrap();
+            assert!(file.validate().is_empty(), "{name:?}: {:?}", file.validate());
+            assert_eq!(file.chapters.iter().filter(|e| matches!(e, ProjectEntry::Part { .. })).count(), parts);
+            assert!(matches!(file.chapters.last(), Some(ProjectEntry::Chapter { appendix: true, .. })), "{name:?}");
+            if parts > 0 {
+                assert!(matches!(file.chapters[0], ProjectEntry::Part { .. }) && matches!(file.chapters[3], ProjectEntry::Part { .. }), "{:?}", file.chapters);
+            }
+            let project = Project::load(&file, |f| read_chapter_file(&dir.path().join(f)).and_then(|d| serde_json::from_value::<Body>(d).map_err(|e| e.to_string()))).unwrap();
+            assert!(project.validate().is_empty(), "{name:?}: {:?}", project.validate());
+            let template: texloom_core::Template = serde_json::from_value(raw["template"].clone()).unwrap();
+            let document = project.combined();
+            assert!(template.check_metadata(&document.metadata).is_empty(), "{name:?}");
+            let figures = document.body.figure_sources();
+            assert!(!figures.is_empty() && figures.iter().all(|f| sample.files.iter().any(|(p, _)| p == f)), "{name:?}: {figures:?}");
+            let g = texloom_codegen::generate_project_for(&template, &project, texloom_codegen::Engine::Xe, None);
+            assert_eq!(g.tex.matches("\\texloompart{").count(), parts, "{name:?}");
+        }
+    }
+
+    /// The example projects compile, with their references resolved.
+    /// Run with TEXLOOM_TECTONIC=… cargo test -p texloom sample_projects_compile -- --ignored
+    /// (TEXLOOM_SAVE_PDF=<folder> keeps the PDFs).
+    #[test]
+    #[ignore]
+    fn sample_projects_compile() {
+        for name in [Some("arabic-thesis"), None] {
+            let sample = SampleProject::named(name);
+            let dir = tempfile::tempdir().unwrap();
+            let path = sample.write(dir.path()).unwrap();
+            let raw: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            let file: ProjectFile = serde_json::from_value(raw.clone()).unwrap();
+            let project = Project::load(&file, |f| read_chapter_file(&dir.path().join(f)).and_then(|d| serde_json::from_value::<Body>(d).map_err(|e| e.to_string()))).unwrap();
+            let template: texloom_core::Template = serde_json::from_value(raw["template"].clone()).unwrap();
+            let g = texloom_codegen::generate_project_for(&template, &project, texloom_codegen::Engine::Xe, None);
+            let support = g.support_files();
+            let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), sample.files.iter().find(|(p, _)| p == f).unwrap().1.to_vec())).collect();
+            let files: Vec<Asset> = support.iter().chain(figures.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
+            let out = texloom_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files).unwrap_or_else(|e| panic!("{name:?}: {e:?}"));
+            assert!(out.pdf.starts_with(b"%PDF"));
+            if let Some(save) = std::env::var_os("TEXLOOM_SAVE_PDF") {
+                std::fs::write(Path::new(&save).join(format!("{}.pdf", sample.stem)), &out.pdf).unwrap();
+            }
+            let undefined: Vec<&str> = out.log.lines().filter(|l| l.contains("undefined")).collect();
+            assert!(undefined.is_empty(), "{name:?}: {undefined:#?}");
+        }
     }
 
     #[test]

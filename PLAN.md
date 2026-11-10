@@ -237,6 +237,10 @@ Word is an export target only; Texloom never imports Word files.
       templates; Arabic example article
 - [x] Word export (`crates/docx`): hand-written OOXML with RTL properties, styles from
       the template, MathML → OMML equations, merged cells, crops, TOC and STYLEREF fields
+- [x] Paragraph alignment (left, centre, right as seen on the page; toolbar buttons, no
+      shortcuts: the usual ones are taken) for signatures and centred lines, in LaTeX
+      and Word; table cells keep theirs. Administrative order template: logo,
+      attachments, double rule, address footer; its example signs on the left
 - [x] Arabic interface (`src/i18n/`, Settings → Appearance → Language)
 - [x] Separate Arabic and foreign reference lists; Arabic sorting without ال
 - [x] Date fields with Hijri dates (Umm al-Qura) for {field_hijri}
@@ -473,7 +477,10 @@ The editor uses the index to:
 - [ ] CLI: `render`, `export` and `check` accept a `.loomproj`
 - [x] New project (File menu and start window: a folder, the current template, a first
       chapter titled in the document's language)
-- [ ] A sample Arabic thesis project in `examples/`
+- [x] An example project (start window and File menu): the Arabic thesis example in
+      two parts when the interface is Arabic, else the senior design report; split
+      into chapter files in a temporary folder when opened (`sample_project`), so it
+      can't go out of date with the single-file examples
 
 #### Decided
 

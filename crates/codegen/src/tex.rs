@@ -171,7 +171,7 @@ pub(crate) fn write_tex(t: &Template, doc: &Document, layout: Option<&Layout>) -
         t,
         langs,
     };
-    let mut w = BodyWriter { out: &mut o, ctx: &ctx, bibliography_pending: has_bibliography(doc), in_slide: false, in_minipage: false, lang };
+    let mut w = BodyWriter { out: &mut o, ctx: &ctx, bibliography_pending: has_bibliography(doc), in_slide: false, in_minipage: false, lang, in_cell: false };
     let mut counter = LineCounter::default();
     if presentation {
         w.slides(&doc.body.content, &mut counter, &mut lines);
@@ -372,6 +372,8 @@ struct BodyWriter<'a> {
     in_minipage: bool,
     /// The language of the text being written (the document's, or a paragraph's own).
     lang: Language,
+    /// Inside a table cell: paragraphs keep the cell's alignment.
+    in_cell: bool,
 }
 
 impl<'a> BodyWriter<'a> {
@@ -380,7 +382,7 @@ impl<'a> BodyWriter<'a> {
     where
         'a: 'b,
     {
-        BodyWriter { out, ctx: self.ctx, bibliography_pending: false, in_slide: self.in_slide, in_minipage: self.in_minipage, lang: self.lang }
+        BodyWriter { out, ctx: self.ctx, bibliography_pending: false, in_slide: self.in_slide, in_minipage: self.in_minipage, lang: self.lang, in_cell: self.in_cell }
     }
 
     /// A presentation's body: sections between slides; anything outside a slide is
@@ -521,6 +523,16 @@ impl<'a> BodyWriter<'a> {
                     // A right-to-left paragraph opening with an English word or number:
                     // start the paragraph first, or it would take the word's direction.
                     text.insert_str(0, "\\leavevmode ");
+                }
+                // The paragraph's own alignment (not in table cells, which have theirs):
+                // in a group, ended inside it so it applies to this paragraph only.
+                let align = attrs.align.filter(|_| !self.in_cell).map(|a| match a {
+                    texloom_core::TextAlign::Left => "\\raggedright",
+                    texloom_core::TextAlign::Center => "\\centering",
+                    texloom_core::TextAlign::Right => "\\raggedleft",
+                });
+                if let Some(cmd) = align.filter(|_| !text.trim().is_empty()) {
+                    text = format!("{{{cmd} {}\\par}}", text.trim());
                 }
                 if !text.trim().is_empty() {
                     if lang == self.lang {
@@ -802,7 +814,9 @@ impl<'a> BodyWriter<'a> {
                 }
                 let cell = &rows[p.row].content[p.index];
                 let mut inner = String::new();
-                self.nested(&mut inner).blocks(&cell.content);
+                let mut w = self.nested(&mut inner);
+                w.in_cell = true;
+                w.blocks(&cell.content);
                 let mut text = inner.trim().replace("\n\n", "\\par ");
                 if cell.is_header() && !text.is_empty() {
                     text = format!("{{\\bfseries {text}}}");

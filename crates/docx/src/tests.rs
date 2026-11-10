@@ -101,6 +101,27 @@ fn author_year_citations_in_arabic() {
     assert!(!d.contains("77–98"));
 }
 
+/// A paragraph's own alignment: Word's "left" is the start of the line, so the
+/// other way round in right-to-left paragraphs.
+#[test]
+fn aligned_paragraphs() {
+    let p = |text: &str, align: &str, dir: Option<&str>| serde_json::json!({"type": "paragraph", "attrs": {"align": align, "dir": dir}, "content": [{"type": "text", "text": text}]});
+    let body = serde_json::json!({"type": "doc", "content": [p("يسار", "left", None), p("وسط", "center", None), p("Right", "right", Some("ltr"))]});
+    let doc = Document { metadata: Default::default(), body: serde_json::from_value(body).unwrap(), bibliography: String::new() };
+    let t = template("arabic-article");
+    let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap();
+    let parts = unzip(&bytes);
+    assert_well_formed(&parts);
+    assert_schema_order(&parts);
+    let d = &parts["word/document.xml"];
+    let jc = |text: &str| {
+        let end = d.find(text).unwrap_or_else(|| panic!("{text}"));
+        let start = d[..end].rfind("<w:pPr>").unwrap();
+        d[start..end].split("<w:jc w:val=\"").nth(1).and_then(|s| s.split('"').next()).unwrap_or("").to_string()
+    };
+    assert_eq!((jc("يسار").as_str(), jc("وسط").as_str(), jc("Right").as_str()), ("right", "center", "right"), "{d}");
+}
+
 #[test]
 fn english_report_with_merged_cells_and_crop() {
     let t = template("senior-design");

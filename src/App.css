@@ -613,6 +613,11 @@ select option, select optgroup { color: var(--text); background-color: var(--pan
 .page .table-figure { margin: 1.2em 0; }
 .page .table-figure figcaption { margin: 0 0 6px; }
 .page table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 0; }
+/* A paragraph's own alignment (table cells keep theirs, as in the PDF). */
+.page p[data-align="left"] { text-align: left; text-indent: 0; }
+.page p[data-align="center"] { text-align: center; text-indent: 0; }
+.page p[data-align="right"] { text-align: right; text-indent: 0; }
+.page :is(td, th) p[data-align] { text-align: inherit; }
 .page td, .page th { border: 1px solid #333; padding: 3px 6px; vertical-align: top; text-align: start; position: relative; }
 .page th { font-weight: 700; }
 .page .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(47, 111, 222, 0.15); pointer-events: none; }

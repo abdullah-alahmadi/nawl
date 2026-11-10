@@ -12,12 +12,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export function PdfPreview({
   pdf,
+  docKey = 0,
   zoom = 100,
   onPages,
   onLocate,
   spot,
 }: {
   pdf: ArrayBuffer | null;
+  /** Changes when another document is shown: its PDF starts at the first page. */
+  docKey?: number;
   /** Percent of the pane's width. */
   zoom?: number;
   onPages?: (count: number) => void;
@@ -33,6 +36,14 @@ export function PdfPreview({
   const scroller = useRef<HTMLDivElement>(null);
   /** A place to show once its page is drawn. */
   const pendingSpot = useRef<PdfSpot | null>(null);
+
+  // Another document: back to the top now, and again when its own PDF is drawn (the
+  // old one is still showing, and may be scrolled meanwhile).
+  const toTop = useRef(false);
+  useEffect(() => {
+    toTop.current = true;
+    scroller.current?.scrollTo({ top: 0 });
+  }, [docKey]);
 
   /** Scrolls `spot` into view and marks it; false when its page isn't drawn yet. */
   const showSpot = (spot: PdfSpot): boolean => {
@@ -93,6 +104,10 @@ export function PdfPreview({
       // Swapping in one synchronous step keeps the scroll position of the pane.
       if (!cancelled) {
         target.replaceChildren(...pages.childNodes);
+        if (toTop.current) {
+          toTop.current = false;
+          scroller.current?.scrollTo({ top: 0 });
+        }
         if (pendingSpot.current) showSpot(pendingSpot.current);
       }
       await task.destroy();

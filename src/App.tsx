@@ -48,7 +48,7 @@ import {
   BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
   LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Palette, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
-  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit, ArrowRightLeft, Files, Split, Merge,
+  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit, ArrowRightLeft, AlignLeft, AlignCenter, AlignRight, Files, Split, Merge,
 } from "lucide-react";
 import "./App.css";
 
@@ -156,6 +156,13 @@ export default function App() {
   const togglePanel = (p: SidePanel) => setPanel((cur) => (cur === p ? null : p));
   const [showSettings, setShowSettings] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  // Counts the documents shown (new, opened, example, project): the PDF preview
+  // starts each at its first page. Switching chapters keeps the place.
+  const [docKey, setDocKey] = useState(0);
+  const showDocument = (editor: Editor, doc: JSONContent) => {
+    loadDocument(editor, doc);
+    setDocKey((k) => k + 1);
+  };
   // The template window is choosing the template of a new project.
   const [projectPick, setProjectPick] = useState(false);
   // The gallery as the start window: also offers Open, recent files and the example.
@@ -378,7 +385,7 @@ export default function App() {
       setDraft(t.template);
       if (await offerRecovery(editor)) return;
       const blank = await api.newDocument();
-      loadDocument(editor, blank.doc);
+      showDocument(editor, blank.doc);
       setPanel("info"); // like any new document: start with its title, authors…
       compile();
       setStartWindow(true);
@@ -410,7 +417,7 @@ export default function App() {
       if (!p || p.chapter !== info.chapter) return true; // the project couldn't open; its error shows
       const r = await api.restoreRecovery();
       editor.storage.texloom.project = null; // see openChapter
-      loadDocument(editor, r.doc);
+      showDocument(editor, r.doc);
       setProject({ ...p });
       setBibliography(r.bibliography ?? "");
       setMetadata(r.metadata);
@@ -420,7 +427,7 @@ export default function App() {
       return true;
     }
     const r = await api.restoreRecovery();
-    loadDocument(editor, r.doc);
+    showDocument(editor, r.doc);
     focusStart(editor, editorScroll.current);
     setBibliography(r.bibliography ?? "");
     metadataRef.current = r.metadata;
@@ -912,16 +919,17 @@ export default function App() {
 
   /** Opens a project, at `chapter` (relative to the project folder) or its first one.
    *  `keepRecovery`: restoring a crash's changes into it (the copy must stay). */
-  const openProject = async (target: string, chapter?: string, keepRecovery = false) => {
+  const openProject = async (target: string, chapter?: string, keepRecovery = false, recent = true) => {
     if (!editor) return;
     try {
       const opened = await api.openProject(target);
       const files = opened.chapters.flatMap((e) => ("file" in e ? [e.file] : []));
       const first = chapter && files.includes(chapter) ? chapter : files.find((f) => !opened.issues.some((i) => i.path === `chapters.${f}`)) ?? files[0];
       const doc = first ? await api.readChapter(first) : EMPTY_DOC;
-      addRecent(target);
+      // Not the example project: its folder is temporary.
+      if (recent) addRecent(target);
       editor.storage.texloom.project = null; // see openChapter
-      loadDocument(editor, doc);
+      showDocument(editor, doc);
       focusStart(editor, editorScroll.current);
       setBibliography(opened.bibliography ?? "");
       metadataRef.current = opened.metadata;
@@ -1069,7 +1077,7 @@ export default function App() {
       }
       leaveProject();
       addRecent(target);
-      loadDocument(editor, opened.doc);
+      showDocument(editor, opened.doc);
       focusStart(editor, editorScroll.current);
       setBibliography(opened.bibliography ?? "");
       metadataRef.current = opened.metadata;
@@ -1128,7 +1136,7 @@ export default function App() {
     try {
       const fresh = await api.newDocument();
       leaveProject();
-      loadDocument(editor, fresh.doc);
+      showDocument(editor, fresh.doc);
       focusStart(editor, editorScroll.current);
       setMetadata({});
       setBibliography("");
@@ -1148,11 +1156,20 @@ export default function App() {
 
   /** An example document with its template: in Arabic when the interface is (the
    *  Arabic journal article and slides), else the senior design report and slides. */
-  const openExample = async (which: "report" | "presentation" = "report") => {
+  const openExample = async (which: "report" | "presentation" | "project" = "report") => {
     if (!editor) return;
     if (dirty && !(await ask(tr("app.discardAndExample"), { title: tr("app.exampleTitle"), kind: "warning" }))) return;
     setShowGallery(false);
+    setStartWindow(false);
     try {
+      if (which === "project") {
+        // The Arabic thesis (in two parts) or the report, one file per chapter, in a
+        // temporary folder.
+        const projectPath = await api.sampleProject(uiLang === "ar" ? "arabic-thesis" : undefined);
+        await markClean();
+        await openProject(projectPath, undefined, false, false);
+        return;
+      }
       const deck = which === "presentation";
       const arabic = uiLang === "ar";
       const [templateId, sampleName] = arabic
@@ -1160,7 +1177,7 @@ export default function App() {
         : deck ? (["beamer-presentation", "presentation"] as const) : (["senior-design", undefined] as const);
       const [t, sample] = await Promise.all([api.switchToBuiltinTemplate(templateId), api.sampleDocument(sampleName)]);
       leaveProject();
-      loadDocument(editor, sample.doc);
+      showDocument(editor, sample.doc);
       focusStart(editor, editorScroll.current);
       setBibliography(sample.bibliography ?? "");
       metadataRef.current = sample.metadata;
@@ -1412,6 +1429,7 @@ export default function App() {
                   <MenuItem icon={<FolderOpen />} label={tr("app.menuOpen")} shortcut="Ctrl+O" onClick={act(() => openDoc())} />
                   <MenuItem icon={<Sparkles />} label={tr("app.menuOpenExampleReport")} onClick={act(() => openExample())} />
                   <MenuItem icon={<Sparkles />} label={tr("app.menuOpenExamplePresentation")} onClick={act(() => openExample("presentation"))} />
+                  <MenuItem icon={<Sparkles />} label={tr("project.menuOpenExample")} onClick={act(() => openExample("project"))} title={tr("project.openExampleTitle")} />
                   {settings.recentFiles.length > 0 && (
                     <>
                       <MenuHeading>{tr("app.menuRecent")}</MenuHeading>
@@ -1792,7 +1810,7 @@ export default function App() {
           ) : mode === "template" && designPreview === "page" && draft ? (
             <PagePreview editor={editor} template={draft} deck={deckInfo} />
           ) : (
-            <PdfPreview pdf={pdf} zoom={previewZoom} onPages={setPageCount} onLocate={mode === "document" ? jumpFromPdf : undefined} spot={pdfSpot} />
+            <PdfPreview pdf={pdf} docKey={docKey} zoom={previewZoom} onPages={setPageCount} onLocate={mode === "document" ? jumpFromPdf : undefined} spot={pdfSpot} />
           )}
         </section>
       </main>
@@ -1882,6 +1900,7 @@ export default function App() {
           onNewProject={newProject}
           onExample={() => openExample()}
           onExamplePresentation={() => openExample("presentation")}
+          onExampleProject={() => openExample("project")}
           onClose={() => {
             setShowGallery(false);
             setProjectPick(false);
@@ -2013,6 +2032,8 @@ function FormatBar({
       headingNumbered: editor.getAttributes("heading").numbered !== false,
       // The paragraph or heading at the cursor runs the other way than the document.
       otherDir: (editor.getAttributes("paragraph").dir ?? editor.getAttributes("heading").dir ?? null) as string | null,
+      // The paragraph's own alignment (null: the template's).
+      align: (editor.isActive("paragraph") ? editor.getAttributes("paragraph").align ?? null : null) as string | null,
       canUndo: editor.can().undo(),
       canRedo: editor.can().redo(),
     }),
@@ -2068,6 +2089,9 @@ function FormatBar({
         on={!!s.otherDir}
         run={() => c().toggleDirection().run()}
       />
+      <T icon={<AlignLeft size={sz} />} title={t("app.alignLeft")} on={s.align === "left"} disabled={!s.paragraph} run={() => c().toggleAlign("left").run()} />
+      <T icon={<AlignCenter size={sz} />} title={t("app.alignCenter")} on={s.align === "center"} disabled={!s.paragraph} run={() => c().toggleAlign("center").run()} />
+      <T icon={<AlignRight size={sz} />} title={t("app.alignRight")} on={s.align === "right"} disabled={!s.paragraph} run={() => c().toggleAlign("right").run()} />
       <span className="sep" />
       <T icon={<Superscript size={sz} />} title={t("app.inlineMath")} run={() => c().insertInlineMath().run()} />
       <T icon={<Sigma size={sz} />} title={t("app.equation")} run={() => ins().insertEquation().run()} />

@@ -62,6 +62,26 @@ fn arabic_document() -> Document {
     Document { metadata, body: serde_json::from_value(body).unwrap(), bibliography: bibliography.into() }
 }
 
+/// A paragraph's own alignment (the signature of an official letter on the left):
+/// left and right as seen on the page, in either direction; table cells keep theirs.
+#[test]
+fn aligned_paragraphs() {
+    let p = |text: &str, align: &str| serde_json::json!({"type": "paragraph", "attrs": {"align": align}, "content": [{"type": "text", "text": text}]});
+    let cell = serde_json::json!({"type": "tableCell", "content": [p("خلية", "center")]});
+    let body = serde_json::json!({"type": "doc", "content": [
+        p("مدير الجامعة", "left"), p("والله ولي التوفيق", "center"), p("يمين", "right"),
+        {"type": "paragraph", "attrs": {"align": "right", "dir": "ltr"}, "content": [{"type": "text", "text": "English"}]},
+        {"type": "paragraph", "attrs": {"align": "left"}},
+        {"type": "table", "content": [{"type": "tableRow", "content": [cell]}]},
+    ]});
+    let doc = Document { metadata: Default::default(), body: serde_json::from_value(body).unwrap(), bibliography: String::new() };
+    let tex = texloom_codegen::document_to_tex(&builtin("arabic-admin-order"), &doc);
+    assert!(tex.contains("{\\raggedright مدير الجامعة\\par}\n\n{\\centering والله ولي التوفيق\\par}\n\n{\\raggedleft يمين\\par}\n\n"), "{tex}");
+    assert!(tex.contains("\\begin{english}\n{\\raggedleft English\\par}\n\\end{english}"), "{tex}");
+    assert_eq!(tex.matches("\\raggedright").count(), 1, "an empty paragraph writes nothing: {tex}");
+    assert_eq!(tex.matches("\\centering").count(), 1, "not in a table cell: {tex}");
+}
+
 #[test]
 fn arabic_report_tex() {
     let t = arabic_template(Digits::ArabicIndic);

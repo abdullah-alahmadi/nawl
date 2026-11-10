@@ -2,6 +2,8 @@
 // Arabic one in an English document. The page takes the document's direction; a
 // paragraph or heading only stores `dir` when it differs (the LaTeX output sets it
 // in the other language, see crates/codegen/src/language.rs).
+// Alignment too: a paragraph stores `align` (left, center or right, as seen on the
+// page) when it isn't the template's, as for a signature or a centred line.
 import { Extension } from "@tiptap/core";
 
 declare module "@tiptap/core" {
@@ -9,6 +11,8 @@ declare module "@tiptap/core" {
     direction: {
       /** Switches the selected paragraphs and headings between left to right and right to left. */
       toggleDirection: () => ReturnType;
+      /** Aligns the selected paragraphs; the alignment they already have (or null) goes back to the template's. */
+      toggleAlign: (align: "left" | "center" | "right" | null) => ReturnType;
     };
   }
   interface Storage {
@@ -40,6 +44,19 @@ export const Direction = Extension.create({
           },
         },
       },
+      {
+        types: ["paragraph"],
+        attributes: {
+          align: {
+            default: null,
+            parseHTML: (el) => {
+              const a = el.getAttribute("data-align") ?? el.style.textAlign;
+              return a === "left" || a === "center" || a === "right" ? a : null;
+            },
+            renderHTML: (attrs) => (attrs.align ? { "data-align": attrs.align } : {}),
+          },
+        },
+      },
     ];
   },
 
@@ -64,10 +81,27 @@ export const Direction = Extension.create({
           });
           return found;
         },
+      toggleAlign:
+        (align) =>
+        ({ state, tr, dispatch }) => {
+          const { from, to } = state.selection;
+          const paragraphs: { pos: number; attrs: Record<string, unknown> }[] = [];
+          state.doc.nodesBetween(from, to, (node, pos) => {
+            if (node.type.name === "paragraph") paragraphs.push({ pos, attrs: node.attrs });
+            return true;
+          });
+          if (!paragraphs.length) return false;
+          // All of them already have it: back to the template's alignment.
+          const next = paragraphs.every((p) => p.attrs.align === align) ? null : align;
+          if (dispatch) for (const p of paragraphs) tr.setNodeMarkup(p.pos, undefined, { ...p.attrs, align: next });
+          return true;
+        },
     };
   },
 
   addKeyboardShortcuts() {
+    // No shortcuts for alignment: Ctrl+Shift+E exports, Ctrl+J shows the place in the
+    // PDF, and Ctrl+Shift+R reloads the page when the editor hasn't the focus.
     return { "Mod-Shift-x": () => this.editor.commands.toggleDirection() };
   },
 });

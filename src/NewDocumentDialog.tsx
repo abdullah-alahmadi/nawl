@@ -89,6 +89,7 @@ export function NewDocumentDialog({
   onNewProject,
   onExample,
   onExamplePresentation,
+  onExampleProject,
   view = "grid",
   category: savedCategory = "all",
   recentTemplates = [],
@@ -130,6 +131,8 @@ export function NewDocumentDialog({
   onNewProject?: () => void;
   onExample?: () => void;
   onExamplePresentation?: () => void;
+  /** Opens the example project (a thesis or report as one file per chapter). */
+  onExampleProject?: () => void;
   /** Cards or a compact list (remembered in the settings). */
   view?: "grid" | "list";
   /** The chosen category (remembered in the settings). */
@@ -319,6 +322,11 @@ export function NewDocumentDialog({
             <button className="start-action" onClick={onExamplePresentation}>
               <Presentation size={16} aria-hidden="true" /> {t("dialogs.openExamplePresentation")}
             </button>
+            {onExampleProject && (
+              <button className="start-action" onClick={onExampleProject} title={t("project.openExampleTitle")}>
+                <Files size={16} aria-hidden="true" /> {t("project.openExample")}
+              </button>
+            )}
             {recentFiles.length > 0 && (
               <>
                 <div className="start-heading">{t("dialogs.recent")}</div>

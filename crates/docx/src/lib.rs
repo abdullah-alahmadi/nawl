@@ -541,7 +541,21 @@ impl<'a> Writer<'a> {
                     return;
                 }
                 let runs = self.inlines(content);
-                o.push_str(&self.para_dir(None, Self::para_rtl(attrs.dir, rtl), &runs));
+                let para_rtl = Self::para_rtl(attrs.dir, rtl);
+                match attrs.align {
+                    None => o.push_str(&self.para_dir(None, para_rtl, &runs)),
+                    Some(align) => {
+                        // Word's "left" and "right" mean the start and the end of the
+                        // line: the other way round in a right-to-left paragraph.
+                        let jc = match (align, para_rtl) {
+                            (texloom_core::TextAlign::Center, _) => "center",
+                            (texloom_core::TextAlign::Left, false) | (texloom_core::TextAlign::Right, true) => "left",
+                            _ => "right",
+                        };
+                        let pp = Pp { bidi: self.bidi(para_rtl), ind: Some("w:firstLine=\"0\"".into()), jc: Some(jc), ..Default::default() };
+                        o.push_str(&self.para(pp, &runs));
+                    }
+                }
             }
             Block::Heading { attrs, content } => {
                 let level = usize::from(attrs.level.clamp(1, 4));

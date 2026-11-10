@@ -44,6 +44,9 @@ export const en = {
   "project.chooseTemplate": "Choose a template for the new project",
   "project.newProjectFolderTitle": "Folder for the new project (an empty folder)",
   "project.firstChapterTitle": "Introduction",
+  "project.openExample": "Open the example project",
+  "project.menuOpenExample": "Open the example project",
+  "project.openExampleTitle": "The example report as a project: one file per chapter, with an appendix",
 } satisfies Record<string, string>;
 
 export const ar: Record<keyof typeof en, string> = {
@@ -90,4 +93,7 @@ export const ar: Record<keyof typeof en, string> = {
   "project.chooseTemplate": "اختر قالب المشروع الجديد",
   "project.newProjectFolderTitle": "مجلد المشروع الجديد (مجلد فارغ)",
   "project.firstChapterTitle": "المقدمة",
+  "project.openExample": "فتح المشروع النموذجي",
+  "project.menuOpenExample": "فتح مثال المشروع",
+  "project.openExampleTitle": "رسالة علمية نموذجية في مشروع: ملف لكل فصل، في بابين، مع ملحق",
 };
