@@ -445,6 +445,10 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .math-assist-palette button:hover { background: #e9edf3; }
 .math-assist-palette .mirrored { display: inline-block; transform: scaleX(-1); }
 .math-assist:not(.arabic) :is(.math-assist-preview, .math-assist-palette) { display: none; }
+/* Numbers like ١.١: for Arabic text, Arabic fonts draw their own full stop (Amiri's
+   "locl"), raised and round like the zero, so the number read ١٠١. Numbers keep the
+   plain one, on the baseline, as the PDF does. */
+.page :is(h1, h2, h3, h4)::before, .page figcaption::before, .page .equation-number, .page .ref, .page .citation { font-feature-settings: "locl" 0; }
 .equation-number { position: absolute; right: 4px; color: #8a929c; font-size: 0.9em; }
 /* Arabic: the number at the end of the line, on the left, as in the PDF (leqno). */
 .page[dir="rtl"] .equation-number { right: auto; left: 4px; }

@@ -79,10 +79,14 @@ export function computeNumbering(doc: PMNode, t: Template, start?: Counters): Nu
 /** Numbers `events` the way the PDF will, advancing `c`. */
 export function numberEvents(events: NumberEvent[], t: Template, c: Counters): NumberedItem[] {
   // Numbers written with the document's digits (٣٫١ in Arabic documents that use them).
-  const digits = docLanguage(t).digits;
-  return numberWestern(events, t, c).map((i) =>
-    digits === "western" ? i : { ...i, number: localDigits(i.number, digits), refText: i.number ? localDigits(i.refText, digits) : i.refText },
-  );
+  const { digits, rtl } = docLanguage(t);
+  // In a right-to-left document each part of a number is set on its own, the chapter
+  // on the right (2.1 reads "١.٢"), as the PDF does: right-to-left marks around the
+  // dot keep the parts from joining into one left-to-right number.
+  const RLM = String.fromCharCode(0x200f);
+  const parts = (s: string) => (rtl ? s.replace(/(\S)\.(?=\S)/g, "$1" + RLM + "." + RLM) : s);
+  const local = (s: string) => parts(digits === "western" ? s : localDigits(s, digits));
+  return numberWestern(events, t, c).map((i) => (i.number ? { ...i, number: local(i.number), refText: local(i.refText) } : i));
 }
 
 function numberWestern(events: NumberEvent[], t: Template, c: Counters): NumberedItem[] {

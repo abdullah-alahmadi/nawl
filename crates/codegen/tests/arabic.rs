@@ -90,6 +90,10 @@ fn arabic_report_tex() {
     assert!(tex.contains("\\setdefaultlanguage[numerals=mashriq]{arabic}"), "{tex}");
     // Equation numbers at the end of the line: the left.
     assert!(tex.contains("\\PassOptionsToPackage{leqno}{amsmath}\n\\documentclass"), "{tex}");
+    // The dot in "١.١" comes from the Latin font: Amiri's Arabic full stop looks like
+    // the zero ("١٠١"). Western digits keep the font's own dot.
+    assert!(tex.contains("\\DeclareRobustCommand\\tlnumdot{{\\englishfont .}}\n\\providecommand\\@SepMark{.}\\renewcommand\\@SepMark{\\tlnumdot}"), "{tex}");
+    assert!(!texloom_codegen::document_to_tex(&arabic_template(Digits::Western), &arabic_document()).contains("\\tlnumdot"));
     assert!(tex.contains("استخدام \\textenglish{deep neural networks} في"));
     assert!(tex.contains("نظام \\textenglish{Windows 11} لعام 2024"));
     // One run across italic and bold parts, so the English words keep their order.

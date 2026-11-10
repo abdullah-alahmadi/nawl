@@ -258,9 +258,13 @@ function articleCss(t: Template, scope: string): string {
   const lineHeight = (1.2 * stretch(t)).toFixed(3);
   const inner = t.page.margins.innerMm + t.page.bindingOffsetMm;
 
+  // The dot between the parts of a number. In a right-to-left document each part is
+  // set on its own, the chapter on the right (2.1 reads "١.٢"), as the PDF does:
+  // right-to-left marks around the dot keep the parts from joining into one number.
+  const dot = docLanguage(t).rtl ? '"\\200F.\\200F"' : '"."';
   // Counter expression for heading level i (0-based): "1", "1.2", "1.2.3"…
   const counterExpr = (i: number) =>
-    Array.from({ length: i + 1 }, (_, j) => `counter(tl-h${j + 1})`).join(' "." ');
+    Array.from({ length: i + 1 }, (_, j) => `counter(tl-h${j + 1})`).join(` ${dot} `);
   // Label template ("Chapter {n}") → CSS content value.
   const labelContent = (label: string, i: number) =>
     label
@@ -270,7 +274,7 @@ function articleCss(t: Template, scope: string): string {
       .join(" ") || '""';
 
   const perChapter = chapters && t.structure.perChapterNumbering;
-  const numberPrefix = perChapter ? 'counter(tl-h1) "." ' : "";
+  const numberPrefix = perChapter ? `counter(tl-h1) ${dot} ` : "";
   const sep = { colon: ": ", period: ". ", dash: " — ", newline: "" }[t.captions.separator];
   const captionSize = { footnote: 0.8, small: 0.9, normal: 1 }[t.captions.size];
   const captionAlign = t.captions.align === "left" ? "left" : t.captions.align === "justified" ? "justify" : "center";
@@ -316,7 +320,7 @@ function articleCss(t: Template, scope: string): string {
   // Abjad letters in Arabic (ا ب ج), as polyglossia prints \Alph.
   const letters = docLanguage(t).main === "arabic" ? "tl-abjad" : "upper-alpha";
   const appendixLabel = (i: number) => {
-    const expr = Array.from({ length: i + 1 }, (_, j) => (j === 0 ? `counter(tl-h1, ${letters})` : `counter(tl-h${j + 1})`)).join(' "." ');
+    const expr = Array.from({ length: i + 1 }, (_, j) => (j === 0 ? `counter(tl-h1, ${letters})` : `counter(tl-h${j + 1})`)).join(` ${dot} `);
     return expr;
   };
   // Numbered lists as LaTeX's enumerate: 1. (a) i. A.; abjad letters in Arabic.
@@ -354,7 +358,7 @@ function articleCss(t: Template, scope: string): string {
     }
   });
   if (perChapter) {
-    const prefixA = `counter(tl-h1, ${letters}) "." `;
+    const prefixA = `counter(tl-h1, ${letters}) ${dot} `;
     rules.push(
       `${inAppendix(".node-figure figure.figure figcaption::before")}{content:${q(t.captions.figureLabel + " ")} ${prefixA}counter(tl-figure) ${q(sep)}}`,
       `${inAppendix(".table-figure figcaption::before")}{content:${q(t.captions.tableLabel + " ")} ${prefixA}counter(tl-table) ${q(sep)}}`,

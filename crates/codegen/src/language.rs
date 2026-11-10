@@ -618,6 +618,15 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
         o.push_str("\\ifdefined\\arabic@globalnumbers\\gappto\\arabic@globalnumbers{\\tl@chapterequation}\\fi\n");
         o.push_str("\\tl@chapterequation\\AtBeginDocument{\\tl@chapterequation}\n\\makeatother\n");
     }
+    // The dot in numbers like ١.١: Arabic fonts draw their own full stop for Arabic
+    // text (Amiri's `locl`), raised and round, exactly like the zero, so "١.١" read
+    // "١٠١". Between Arabic-Indic digits the dot comes from the Latin font instead:
+    // on the baseline. bidi's classes write numbers with \@SepMark.
+    if langs.main == Language::Arabic && langs.digits == Digits::ArabicIndic && t.base.is_none() && t.kind != texloom_core::DocumentKind::Presentation {
+        o.push_str("\\makeatletter\n\\DeclareRobustCommand\\tlnumdot{{\\englishfont .}}\n");
+        o.push_str("\\providecommand\\@SepMark{.}\\renewcommand\\@SepMark{\\tlnumdot}\n");
+        o.push_str("\\ifdefined\\pdfstringdefDisableCommands\\pdfstringdefDisableCommands{\\def\\tlnumdot{.}}\\fi\n\\makeatother\n");
+    }
     // polyglossia sets its own "Figure"/"شكل" when the document starts; the
     // template's labels win.
     let labels = format!(

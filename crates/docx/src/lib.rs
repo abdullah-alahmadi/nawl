@@ -181,6 +181,10 @@ fn heading_word(t: &Template, level: usize, appendix: bool) -> String {
 fn number_document(t: &Template, doc: &Document) -> Numbers {
     let mut n = Numbers::default();
     let digits = t.lang().digits;
+    // The dot between the parts of a number. In a right-to-left document each part is
+    // set on its own, the chapter on the right (2.1 reads "١.٢"), as the PDF does:
+    // right-to-left marks around the dot keep the parts from joining into one number.
+    let dot = if t.lang().main == Language::Arabic { "\u{200F}.\u{200F}" } else { "." };
     let mut counters = [0usize; 4];
     let (mut figure, mut table, mut equation) = (0usize, 0usize, 0usize);
     let mut appendix = false;
@@ -220,7 +224,7 @@ fn number_document(t: &Template, doc: &Document) -> Numbers {
             }
             let mut parts = vec![top(appendix, counters[0])];
             parts.extend(counters[1..level].iter().map(|c| c.to_string()));
-            let number = local_digits(&parts.join("."), digits);
+            let number = local_digits(&parts.join(dot), digits);
             let label = if appendix && level == 1 { t.structure.appendix_label.clone() } else { t.headings.levels.get(level - 1).map(|h| h.label.clone()).unwrap_or_default() };
             n.headings.push(Some(if label.trim().is_empty() { number.clone() } else { label.replace("{n}", &number) }));
             if let Some(id) = &attrs.id {
@@ -229,7 +233,7 @@ fn number_document(t: &Template, doc: &Document) -> Numbers {
         }
         Block::Figure { attrs, .. } => {
             figure += 1;
-            let num = local_digits(&if per_chapter { format!("{}.{figure}", top(appendix, counters[0])) } else { figure.to_string() }, digits);
+            let num = local_digits(&if per_chapter { format!("{}{dot}{figure}", top(appendix, counters[0])) } else { figure.to_string() }, digits);
             if let Some(id) = &attrs.id {
                 n.refs.insert(id.clone(), format!("{} {num}", t.captions.figure_label));
             }
@@ -237,7 +241,7 @@ fn number_document(t: &Template, doc: &Document) -> Numbers {
         }
         Block::TableFigure { attrs, .. } => {
             table += 1;
-            let num = local_digits(&if per_chapter { format!("{}.{table}", top(appendix, counters[0])) } else { table.to_string() }, digits);
+            let num = local_digits(&if per_chapter { format!("{}{dot}{table}", top(appendix, counters[0])) } else { table.to_string() }, digits);
             if let Some(id) = &attrs.id {
                 n.refs.insert(id.clone(), format!("{} {num}", t.captions.table_label));
             }
@@ -245,7 +249,7 @@ fn number_document(t: &Template, doc: &Document) -> Numbers {
         }
         Block::Equation { attrs } if attrs.numbered => {
             equation += 1;
-            let num = local_digits(&if per_chapter { format!("{}.{equation}", top(appendix, counters[0])) } else { equation.to_string() }, digits);
+            let num = local_digits(&if per_chapter { format!("{}{dot}{equation}", top(appendix, counters[0])) } else { equation.to_string() }, digits);
             if let Some(id) = &attrs.id {
                 n.refs.insert(id.clone(), format!("({num})"));
             }
