@@ -3,6 +3,7 @@ name = "texloom-core"
 description = "Texloom document and template models, placeholders and validation"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 serde.workspace = true

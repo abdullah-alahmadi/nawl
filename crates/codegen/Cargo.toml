@@ -3,6 +3,7 @@ name = "texloom-codegen"
 description = "Generates a LaTeX class from a Texloom template and LaTeX source from a document"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 texloom-core = { path = "../core" }

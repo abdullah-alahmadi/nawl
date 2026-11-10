@@ -3,6 +3,7 @@ name = "texloom-compile"
 description = "Runs Tectonic on generated LaTeX and turns its logs into readable errors"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 serde.workspace = true

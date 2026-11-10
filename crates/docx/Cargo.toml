@@ -3,6 +3,7 @@ name = "texloom-docx"
 description = "Exports Texloom documents to Microsoft Word (.docx), right-to-left included"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 texloom-core = { path = "../core" }

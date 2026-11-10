@@ -1,0 +1,13 @@
+Texloom
+Copyright 2026 Abdullah Al-Ahmadi
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The installers also carry software and fonts by others, under their own licenses:
+
+- Tectonic, the TeX engine (MIT License): https://tectonic-typesetting.github.io
+- TeX packages from TeX Live, in the offline package cache, each under its own
+  license (most under the LaTeX Project Public License).
+- The Arabic font library, each family under the SIL Open Font License; the
+  license of each is in fonts/licenses/ of the installed app.
+- MathLive, the formula editor (MIT License): https://cortexjs.io/mathlive

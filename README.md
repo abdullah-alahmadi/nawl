@@ -352,3 +352,12 @@ cargo test --workspace            # also regenerates src/bindings/*.ts
 INSTA_UPDATE=always cargo test -p texloom-codegen   # accept changed .cls/.tex snapshots (review the diff!)
 TEXLOOM_TECTONIC=$PWD/src-tauri/binaries/tectonic-x86_64-unknown-linux-gnu cargo test --workspace -- --ignored   # real compiles
 ```
+
+## License
+
+Texloom is licensed under the [Apache License, Version 2.0](LICENSE).
+Copyright 2026 Abdullah Al-Ahmadi.
+
+The installers also carry software and fonts by others under their own licenses:
+Tectonic and MathLive (MIT), TeX packages (mostly the LaTeX Project Public License),
+and the Arabic font library (see [NOTICE](NOTICE)).

@@ -3,6 +3,7 @@ name = "texloom-cli"
 description = "Command-line tool: render Texloom documents to PDF, export LaTeX, check templates"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [[bin]]
 name = "texloom-cli"
