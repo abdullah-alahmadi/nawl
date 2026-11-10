@@ -658,7 +658,9 @@ pub(crate) fn style_fonts(t: &Template, engine: Engine) -> String {
                 } else {
                     "{lmroman10}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]".to_string()
                 };
-                w!(o, "\\IfFontExistsTF{{{f}}}{{\\newfontfamily\\{cmd}[{script}Ligatures=TeX]{{{f}}}}}{{\\newfontfamily\\{cmd}{fallback}}}");
+                // Its italic may have no Arabic letters: see SYSTEM_ARABIC_SHAPES.
+                let shapes = if arabic { format!(",{}", crate::language::SYSTEM_ARABIC_SHAPES) } else { String::new() };
+                w!(o, "\\IfFontExistsTF{{{f}}}{{\\newfontfamily\\{cmd}[{script}Ligatures=TeX{shapes}]{{{f}}}}}{{\\newfontfamily\\{cmd}{fallback}}}");
                 continue;
             }
             FontChoice::Library { id } => match texloom_core::fonts::find(id) {

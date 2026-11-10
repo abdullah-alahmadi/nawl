@@ -489,8 +489,13 @@ const EXAMPLES: [(&str, &str); 8] = [
 fn missing_system_fonts_fall_back() {
     let t = builtin("arabic-admin-order");
     let cls = texloom_codegen::template_to_cls(&t);
+    // An installed font's italic may have no Arabic letters (Segoe UI Italic), which
+    // would print boxes: italic Arabic is the upright font, slanted.
+    let shapes = "ItalicFont=*,ItalicFeatures={FakeSlant=0.15},BoldItalicFont=*,BoldItalicFeatures={FakeSlant=0.15,FakeBold=1.5}";
     assert!(
-        cls.contains("\\IfFontExistsTF{Diwani Letter}{\\newfontfamily\\tlfontDiwaniLetter[Script=Arabic,Ligatures=TeX]{Diwani Letter}}{\\newfontfamily\\tlfontDiwaniLetter[Script=Arabic,Ligatures=TeX]{Amiri}}"),
+        cls.contains(&format!(
+            "\\IfFontExistsTF{{Diwani Letter}}{{\\newfontfamily\\tlfontDiwaniLetter[Script=Arabic,Ligatures=TeX,{shapes}]{{Diwani Letter}}}}{{\\newfontfamily\\tlfontDiwaniLetter[Script=Arabic,Ligatures=TeX]{{Amiri}}}}"
+        )),
         "{cls}"
     );
     // The Arabic body font too.
@@ -499,7 +504,9 @@ fn missing_system_fonts_fall_back() {
     let doc: texloom_core::DocumentFile = serde_json::from_str(&example_file("arabic-article.loom")).unwrap();
     let tex = texloom_codegen::document_to_tex(&t, &doc.document);
     assert!(tex.contains("\\IfFontExistsTF{DecoType Naskh}{\\def\\texloomarabicfont{DecoType Naskh}}{\\def\\texloomarabicfont{Amiri}}\n"), "{tex}");
-    assert!(tex.contains("\\setmainfont[Script=Arabic]{\\texloomarabicfont}"), "{tex}");
+    assert!(tex.contains(&format!("\\setmainfont[Script=Arabic,{shapes}]{{\\texloomarabicfont}}")), "{tex}");
+    // Amiri and the library fonts keep their own shapes.
+    assert!(!texloom_codegen::document_to_tex(&builtin("arabic-article"), &doc.document).contains("FakeSlant"));
 }
 
 fn example_file(name: &str) -> String {

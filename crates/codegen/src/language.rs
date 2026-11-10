@@ -645,10 +645,15 @@ fn arabic_symbol_fallbacks() -> String {
     o
 }
 
+/// fontspec options for an installed font used for Arabic. Its italic is often a
+/// separate font without Arabic letters (Segoe UI Italic, Tahoma…), which would print
+/// boxes: italic Arabic is the upright font, slanted (and emboldened for bold italic).
+pub(crate) const SYSTEM_ARABIC_SHAPES: &str = "ItalicFont=*,ItalicFeatures={FakeSlant=0.15},BoldItalicFont=*,BoldItalicFeatures={FakeSlant=0.15,FakeBold=1.5}";
+
 /// The font for Arabic text, as fontspec takes it: the name, and options to add.
 fn arabic_font(t: &Template) -> (String, String) {
     match &t.fonts.arabic {
-        Some(FontChoice::System { family }) if !family.trim().is_empty() => (escape(family.trim()), String::new()),
+        Some(FontChoice::System { family }) if !family.trim().is_empty() => (escape(family.trim()), format!(",{SYSTEM_ARABIC_SHAPES}")),
         // From Texloom's font library: by file, from the build folder's fonts/.
         Some(FontChoice::Library { id }) if texloom_core::fonts::find(id).is_some() => {
             let f = texloom_core::fonts::find(id).expect("checked");
