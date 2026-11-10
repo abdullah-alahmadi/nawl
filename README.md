@@ -3,7 +3,29 @@
 # Texloom
 
 Texloom is a LyX-like visual LaTeX editor built with Tauri, whose templates are designed visually
-instead of in code. See [PLAN.md](PLAN.md) for the roadmap.
+instead of in code. It is built Arabic first: right-to-left documents, Arabic fonts,
+references, dates and mathematics work alongside English ones. See [PLAN.md](PLAN.md)
+for the roadmap.
+
+> **Early preview (version 0.1).** Texloom is usable for real documents, but it is young:
+> expect rough edges, and keep copies of work that matters. File formats may still change
+> between versions. The installers are not code-signed, so Windows shows a SmartScreen
+> warning on first run. It is developed and tested on Windows and Ubuntu; macOS is
+> untested. Bug reports are welcome in the repository's issues.
+
+**What it does**
+
+- **Writes like a word processor, typesets with LaTeX:** headings, lists, figures,
+  tables, equations, cross-references and citations, with a live PDF preview linked to
+  the editor in both directions.
+- **Templates without code:** a visual designer for the page, fonts, headings, title
+  page and front matter; publisher classes (IEEE, Elsevier, ACM, Springer…) and the
+  classes of your own TeX installation work too.
+- **Arabic:** articles, theses, books, administrative orders and slides, with a library
+  of 31 free Arabic fonts and right-to-left mathematics.
+- **Projects:** a thesis or book as one project with a file per chapter.
+- **Presentations** with beamer, and export to LaTeX and Word.
+- **Nothing else to install:** the TeX engine (Tectonic) comes with the app.
 
 ## Setup (Linux)
 
@@ -41,7 +63,8 @@ The window has a **File** menu (New, Open, recent files, Save, Export) and a
 template, so it looks like the PDF next to it.
 
 The toolbar has the **paragraph style** (Body text, Chapter, Section… as in LyX),
-bold/italic/code, lists, and inserts: **inline math** (type `$x^2$` in a sentence,
+bold/italic/code, lists, **paragraph alignment** (left, centre, right; justified when
+none is chosen), and inserts: **inline math** (type `$x^2$` in a sentence,
 or Ctrl+M), **equations** (`$$` + space; hover one to make it unnumbered or
 multi-line, with **+ Line** for aligned derivations), **figures** (pick an image;
 type the caption below it; **Crop…** cuts off its edges by dragging), **tables**
@@ -59,7 +82,9 @@ The preview and the editor are linked: **double-click the PDF** to put the curso
 the paragraph, heading or figure you clicked, and **Ctrl+J** (or the target button
 above the preview) scrolls the PDF to the cursor's place and marks it (SyncTeX). When
 LaTeX reports errors, the list says what each one usually means and where it is
-("in Heading “Results”"); click one to go there.
+("in Heading “Results”"); click one to go there. The editor and the preview each have
+their own zoom buttons in their pane's header, and the **LaTeX** view of the generated
+code has a **Copy code** button.
 
 **Cross-reference** inserts "Figure 3.1", "Chapter 2" or "(3.2)" and stays correct
 as things move; **Citation** inserts a reference from the **References** panel.
@@ -87,6 +112,25 @@ Unsaved changes are copied to Texloom's data folder a few seconds after each edi
 Texloom closes without saving (a crash, a power cut), it offers to restore them on the
 next start.
 
+## Projects: a thesis or book as chapters
+
+A long document can be a **project**: a folder with a project file (`.loomproj`) and
+one `.loom` file per chapter. **File → New project…** asks for a template and a folder;
+**Open** takes a `.loomproj`, and the start window opens an example project (the Arabic
+thesis).
+
+- The **Chapters** panel in the left rail lists parts, chapters and appendices: open
+  one, add, rename, move or remove them, or group chapters under a part.
+- One chapter is open in the editor at a time. Numbers continue across chapters, and
+  cross-references and citations reach the other chapters. Document info and the
+  reference list belong to the project.
+- The preview compiles the whole book, or only the open chapter for speed; clicks in
+  the PDF and LaTeX errors jump to the right chapter.
+- Export LaTeX and Export Word write the whole book.
+
+Not there yet: searching across chapters, an outline that includes the other chapters,
+and projects in the command-line tool.
+
 ## Built-in templates
 
 **File → New from template…** (Ctrl+Shift+N) shows every template: Texloom's own, your
@@ -100,7 +144,7 @@ bar switches the open document to another template. Texloom's own templates:
 | Template | Built on |
 |---|---|
 | Senior Design Report | Texloom's own layout (fully editable in the designer) |
-| Majmaah University Engineering Report | Texloom's own layout, following the College of Engineering's graduation project rules (October 2025): cover, committee and declaration pages, English and Arabic abstracts, chapter cover pages, APA 7. The student picks the university logo (an image field) |
+| Engineering Graduation Project Report | Texloom's own layout for a college of engineering: cover, committee and declaration pages, English and Arabic abstracts, chapter cover pages, APA 7. The student fills in the university and college names and picks the university logo (an image field) |
 | Article | Texloom's own layout: one column, A4, title block with abstract and keywords on page 1 |
 | Two-column Article | Texloom's own layout: journal style, title and abstract across both columns, running head |
 | Short Paper | Texloom's own layout: compact one-column paper on US Letter for workshops and letters |
@@ -159,7 +203,8 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   names, then the Arabic and English abstracts and keywords; every part designable, own
   font included), a thesis (title
   page, approval page, Arabic and English abstracts, chapters), a book (two-sided,
-  170×240 mm) and a presentation. **New blank template…** in the template menu (title
+  170×240 mm), an administrative order (أمر إداري: letterhead, number and date, body
+  and signature) and a presentation. **New blank template…** in the template menu (title
   bar) can start a blank Arabic template, and the
   designer's **Language** section turns any template Arabic: main language, second
   language, and Arabic-Indic (١٢٣) or Western (123) digits for page, chapter, figure and
@@ -191,11 +236,22 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   English and numbers keep their own marks ("ok?", "3,5"). Settings → Editor turns it off.
 - **Formulas:** Arabic letters and words typed into a formula (س + ص = ع, "حيث") are set
   in the Arabic font, in the PDF and in Word; with Arabic-Indic digits, numbers in
-  formulas use them too (٣٫٥). Formulas still run left to right, and the editor shows
-  their digits as typed. Fully right-to-left notation (mirrored ∑ and √) isn't supported.
+  formulas use them too (٣٫٥). By default formulas run left to right, as in most Arabic
+  scientific writing.
+- **Arabic mathematics (right to left):** the designer's **Language** section can set
+  formulas to **Arabic**: they run right to left with mirrored integrals, sums, roots
+  and limits, Arabic function names (جا، جتا، ظا، لو، نهـــا) and variables in a font of
+  their own (Aref Ruqaa by default, so letters stand apart from the text). A single
+  formula can be switched either way from the helper that appears while editing it,
+  which also has a palette of Arabic symbols and buttons that convert letters (x → س
+  and back). Changing the template's setting offers to convert the document's
+  formulas. **File → Export Word…** places these formulas as pictures, since Word
+  can't lay them out. Arabic mathematics on slides (LuaLaTeX) is untested. The example
+  document `examples/arabic-math.loom` shows what is covered.
 - **Numbering:** appendices and second-level lists use abjad letters (الملحق ب، (ج)),
   in the editor, the PDF and Word; equation numbers sit on the left, at the end of the
-  line.
+  line. Section numbers read with the chapter on the right (section 1 of chapter 2 is
+  ١.٢), the same in the editor, the PDF and Word.
 - **Find and replace** ignores Arabic diacritics and tatweel and treats أ إ آ ا, ة/ه and
   ى/ي as the same letter, so "محمد" finds "مُحَمَّدٌ"; **Match exactly** turns that off.
 - **Engines:** Arabic needs XeLaTeX or LuaLaTeX; the built-in Tectonic is XeLaTeX.

@@ -414,8 +414,8 @@ fn write_samples() {
 
 #[test]
 fn university_report_has_cover_pages_and_logo() {
-    let t = template("majmaah-engineering");
-    let doc = example("majmaah-report.loom");
+    let t = template("engineering-report");
+    let doc = example("engineering-report.loom");
     let parts = unzip(&write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
     assert_well_formed(&parts);
     let body = &parts["word/document.xml"];

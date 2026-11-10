@@ -1,9 +1,9 @@
 {
   "meta": {
-    "id": "majmaah-engineering",
-    "name": "Majmaah University Engineering Report",
-    "description": "Graduation project report of the College of Engineering, Majmaah University (Senior Design Committee requirements, October 2025): cover and committee pages, English and Arabic abstracts, chapter cover pages, APA 7 references.",
-    "version": "1.0.0"
+    "id": "engineering-report",
+    "name": "Engineering Graduation Project Report",
+    "description": "Graduation project report for a college of engineering: the university and college names and the logo are filled in by the author; cover and committee pages, English and Arabic abstracts, chapter cover pages, APA 7 references.",
+    "version": "2.0.0"
   },
   "language": {
     "main": "english",
@@ -175,7 +175,7 @@
         "anchor": "top",
         "content": {
           "type": "text",
-          "text": "Majmaah University",
+          "text": "{university}",
           "widthMm": 170,
           "style": {
             "sizePt": 18,
@@ -190,7 +190,7 @@
         "anchor": "top",
         "content": {
           "type": "text",
-          "text": "College of Engineering",
+          "text": "{college}",
           "widthMm": 170,
           "style": {
             "sizePt": 15,
@@ -392,6 +392,18 @@
       "required": true
     },
     {
+      "id": "university",
+      "label": "University",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "college",
+      "label": "College or faculty (e.g. College of Engineering)",
+      "kind": "text",
+      "required": true
+    },
+    {
       "id": "department",
       "label": "Department (e.g. Department of Architecture)",
       "kind": "text",
@@ -500,7 +512,7 @@
           "anchor": "top",
           "content": {
             "type": "text",
-            "text": "This graduation project report, entitled “{title}”, was examined and approved by the committee below in partial fulfilment of the requirements of {course}, {department}, College of Engineering, Majmaah University.",
+            "text": "This graduation project report, entitled “{title}”, was examined and approved by the committee below in partial fulfilment of the requirements of {course}, {department}, {college}, {university}.",
             "widthMm": 160,
             "style": {
               "sizePt": 12,
@@ -1059,7 +1071,7 @@
           "anchor": "topLeft",
           "content": {
             "type": "text",
-            "text": "We, the undersigned, declare that this report, entitled “{title}”, is our own work and has not been submitted, in whole or in part, for any other course or degree. Every source we used is acknowledged and cited in APA 7th style, figures and tables taken or adapted from other works state their source, and any use of generative AI tools is disclosed. We understand that a breach of academic integrity is dealt with under Majmaah University's regulations.",
+            "text": "We, the undersigned, declare that this report, entitled “{title}”, is our own work and has not been submitted, in whole or in part, for any other course or degree. Every source we used is acknowledged and cited in APA 7th style, figures and tables taken or adapted from other works state their source, and any use of generative AI tools is disclosed. We understand that a breach of academic integrity is dealt with under the regulations of {university}.",
             "widthMm": 160,
             "style": {
               "sizePt": 12,

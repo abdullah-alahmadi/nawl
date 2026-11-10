@@ -257,7 +257,7 @@ Word is an export target only; Texloom never imports Word files.
       fonts/catalog.json), shown in a gallery, sent with the document, embedded in Word
 - [ ] Kashida justification (LuaLaTeX only)
 - [ ] Exact house styles of particular Arabic journals and universities
-  - [x] Majmaah University, College of Engineering graduation project report: cover
+  - [x] Engineering graduation project report (university and college names are fields): cover
         pages before chapters, references and appendices (`structure.coverPages`), and
         title-page images taken from a document's image field (`"asset": "{logo}"`)
 - [ ] Arabic-Indic page numbers in Word (Word

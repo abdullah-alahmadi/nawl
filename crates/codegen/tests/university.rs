@@ -3,15 +3,15 @@
 
 use texloom_core::{DocumentFile, Template};
 
-fn majmaah() -> (Template, texloom_core::Document) {
-    let t: Template = serde_json::from_str(include_str!("../../../templates/majmaah-engineering/template.json")).unwrap();
-    let doc: DocumentFile = serde_json::from_str(include_str!("../../../examples/majmaah-report.loom")).unwrap();
+fn engineering_report() -> (Template, texloom_core::Document) {
+    let t: Template = serde_json::from_str(include_str!("../../../templates/engineering-report/template.json")).unwrap();
+    let doc: DocumentFile = serde_json::from_str(include_str!("../../../examples/engineering-report.loom")).unwrap();
     (t, doc.document)
 }
 
 #[test]
-fn majmaah_template_is_valid() {
-    let (t, doc) = majmaah();
+fn report_template_is_valid() {
+    let (t, doc) = engineering_report();
     let issues = t.validate();
     assert!(!texloom_core::has_errors(&issues), "{issues:#?}");
     assert!(t.structure.cover_pages);
@@ -23,7 +23,7 @@ fn majmaah_template_is_valid() {
 
 #[test]
 fn chapters_open_on_cover_pages() {
-    let (t, _) = majmaah();
+    let (t, _) = engineering_report();
     let cls = texloom_codegen::template_to_cls(&t);
     // From the main text on, chapters (numbered and not) get a page of their own.
     let covers = cls.lines().find(|l| l.starts_with("\\g@addto@macro\\texloommainmatter")).expect("cover pages in the main matter");
@@ -44,7 +44,7 @@ fn chapters_open_on_cover_pages() {
 
 #[test]
 fn title_page_logo_comes_from_an_image_field() {
-    let (t, mut doc) = majmaah();
+    let (t, mut doc) = engineering_report();
     let cls = texloom_codegen::template_to_cls(&t);
     assert!(cls.contains("\\ifcsname tl@f@logo\\endcsname\\node[anchor=north,inner sep=0pt]"), "logo node missing");
     assert!(cls.contains("\\includegraphics[width=32mm]{\\csname tl@f@logo\\endcsname}"));
@@ -60,7 +60,7 @@ fn title_page_logo_comes_from_an_image_field() {
 
 #[test]
 fn image_field_must_exist() {
-    let (mut t, _) = majmaah();
+    let (mut t, _) = engineering_report();
     if let texloom_core::TitleContent::Image { asset, .. } = &mut t.title_page.items[0].content {
         *asset = "{crest}".into();
     }
@@ -70,9 +70,9 @@ fn image_field_must_exist() {
 
 #[test]
 #[ignore]
-fn majmaah_report_compiles() {
+fn engineering_report_compiles() {
     let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
-    let (t, doc) = majmaah();
+    let (t, doc) = engineering_report();
     let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
     let g = texloom_codegen::generate(&t, &doc);
     let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
