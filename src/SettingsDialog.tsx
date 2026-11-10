@@ -98,7 +98,7 @@ export function SettingsDialog({
               <Field label={t("dialogs.pageZoom")} hint={t("dialogs.pageZoomHint")}>
                 <select value={settings.pageZoom} onChange={(e) => onChange({ pageZoom: Number(e.target.value) })}>
                   <option value={0}>{t("dialogs.fitToPane")}</option>
-                  {[75, 90, 100, 110, 125, 150].map((z) => (
+                  {[...new Set([75, 90, 100, 110, 125, 150, settings.pageZoom || 100])].sort((a, b) => a - b).map((z) => (
                     <option key={z} value={z}>
                       {z}%
                     </option>

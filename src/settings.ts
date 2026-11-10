@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   uiLanguage: "system",
   theme: "system",
   density: "comfortable",
-  pageZoom: 0,
+  pageZoom: 100,
   spellcheck: true,
   arabicPunctuation: true,
   pageColor: "#f4efe6",

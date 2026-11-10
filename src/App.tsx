@@ -45,7 +45,7 @@ import { ThemePicker } from "./ThemePicker";
 import type { PresentationSettings } from "./bindings/PresentationSettings";
 import { Menu, MenuHeading, MenuItem, MenuSeparator } from "./ui/Menu";
 import {
-  BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Columns3, FileCode2, FileDown, FilePlus2,
+  BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Copy, Check, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
   LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Palette, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
   Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit, ArrowRightLeft, AlignLeft, AlignCenter, AlignRight, Files, Split, Merge,
@@ -172,6 +172,25 @@ export default function App() {
   const [pageCount, setPageCount] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(100);
   const [latex, setLatex] = useState("");
+  // "Copied" on the LaTeX view's copy button, for a moment.
+  const [latexCopied, setLatexCopied] = useState(false);
+  const copyLatex = async () => {
+    try {
+      await navigator.clipboard.writeText(latex);
+    } catch {
+      // No clipboard permission in this webview: the old way, through a selection.
+      const area = document.createElement("textarea");
+      area.value = latex;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    setLatexCopied(true);
+    window.setTimeout(() => setLatexCopied(false), 1500);
+  };
   const [templateInfo, setTemplateInfo] = useState<api.TemplateInfo | null>(null);
   // Set when the template file on disk has errors; the last valid version stays in use.
   const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
@@ -1638,7 +1657,7 @@ export default function App() {
         </div>
       </header>
 
-      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} deck={isDeck} onThemes={() => setShowThemePicker(true)} />}
+      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} deck={isDeck} onThemes={() => setShowThemePicker(true)} zoom={Math.round(pageZoom * 100)} onZoom={(z) => updateSettings({ pageZoom: z })} />}
 
       <main className={`workspace${mode === "template" ? " template-mode" : ""}`}>
         {mode === "document" && (
@@ -1792,6 +1811,11 @@ export default function App() {
                 title={tr("app.showInPdfTitle")}
               >
                 <LocateFixed size={15} />
+              </button>
+            )}
+            {showLatex && (
+              <button className="tb-button" onClick={copyLatex} disabled={!latex} title={tr("app.copyLatexTitle")}>
+                {latexCopied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />} {tr(latexCopied ? "app.copied" : "app.copyLatex")}
               </button>
             )}
             <button
@@ -2001,7 +2025,12 @@ function FormatBar({
   onPicker,
   deck,
   onThemes,
+  zoom,
+  onZoom,
 }: {
+  /** The page's zoom in percent, and a new one from the zoom buttons. */
+  zoom: number;
+  onZoom: (percent: number) => void;
   editor: Editor;
   headingNames: string[];
   onError: (e: unknown) => void;
@@ -2146,6 +2175,18 @@ function FormatBar({
           <T icon={<Trash2 size={15} />} title={t("app.deleteTable")} run={() => c().deleteCaptionedTable().run()} />
         </span>
       )}
+      {/* The page's zoom, as in the preview: steps of 10, the value goes back to 100%. */}
+      <span className="zoom toolbar-zoom" role="group" aria-label={t("app.pageZoom")}>
+        <button className="icon-button small" onMouseDown={(e) => e.preventDefault()} onClick={() => onZoom(Math.max(50, Math.ceil(zoom / 10) * 10 - 10))} disabled={zoom <= 50} aria-label={t("app.zoomOut")} title={t("app.zoomOut")}>
+          <ZoomOut size={15} />
+        </button>
+        <button className="zoom-value" onMouseDown={(e) => e.preventDefault()} onClick={() => onZoom(100)} title={t("app.pageZoomReset")}>
+          {zoom}%
+        </button>
+        <button className="icon-button small" onMouseDown={(e) => e.preventDefault()} onClick={() => onZoom(Math.min(200, Math.floor(zoom / 10) * 10 + 10))} disabled={zoom >= 200} aria-label={t("app.zoomIn")} title={t("app.zoomIn")}>
+          <ZoomIn size={15} />
+        </button>
+      </span>
     </div>
   );
 }
