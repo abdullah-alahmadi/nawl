@@ -136,6 +136,7 @@ export const en = {
   // Preview pane
   "app.latexSource": "LaTeX source",
   "app.preview": "Preview",
+  "app.editor": "Editor",
   "app.previewKind": "Preview kind",
   "app.previewPdfTitle": "The compiled PDF (exact)",
   "app.previewPage": "Page",
@@ -380,6 +381,7 @@ export const ar: Record<keyof typeof en, string> = {
   // Preview pane
   "app.latexSource": "مصدر LaTeX",
   "app.preview": "معاينة",
+  "app.editor": "المحرر",
   "app.previewKind": "نوع المعاينة",
   "app.previewPdfTitle": "ملف PDF بعد التجميع (مطابق تمامًا)",
   "app.previewPage": "الصفحة",

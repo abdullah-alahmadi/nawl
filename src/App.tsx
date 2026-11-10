@@ -244,6 +244,7 @@ export default function App() {
   const recoveryQueue = useRef<Promise<unknown>>(Promise.resolve());
   const [fitZoom, setFitZoom] = useState(1);
   const pageZoom = settings.pageZoom > 0 ? settings.pageZoom / 100 : fitZoom;
+  const shownZoom = Math.round(pageZoom * 100);
   // App renders the LanguageContext provider, so its own body can't use useT().
   const uiLang = resolveUiLanguage(settings.uiLanguage);
   const tr = (key: MessageKey, vars?: Record<string, string | number>) => translate(uiLang, key, vars);
@@ -1657,7 +1658,7 @@ export default function App() {
         </div>
       </header>
 
-      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} deck={isDeck} onThemes={() => setShowThemePicker(true)} zoom={Math.round(pageZoom * 100)} onZoom={(z) => updateSettings({ pageZoom: z })} />}
+      {editor && mode === "document" && <FormatBar editor={editor} headingNames={headingNames} onError={report} onPicker={setPicker} deck={isDeck} onThemes={() => setShowThemePicker(true)} />}
 
       <main className={`workspace${mode === "template" ? " template-mode" : ""}`}>
         {mode === "document" && (
@@ -1731,6 +1732,23 @@ export default function App() {
         <section className="editor-pane" hidden={mode !== "document"}>
           {template && <style>{templateCss(template, ".editor-pane .page", deckInfo)}</style>}
           {counterCss && <style>{counterCss}</style>}
+          {/* The editor's own header, like the preview's: the page's zoom in steps of
+              10; the value goes back to 100%. */}
+          <div className="pane-head">
+            <span className="pane-title">{tr("app.editor")}</span>
+            <span className="spacer" />
+            <span className="zoom" role="group" aria-label={tr("app.pageZoom")}>
+              <button className="icon-button small" onMouseDown={(e) => e.preventDefault()} onClick={() => updateSettings({ pageZoom: Math.max(50, Math.ceil(shownZoom / 10) * 10 - 10) })} disabled={shownZoom <= 50} aria-label={tr("app.zoomOut")} title={tr("app.zoomOut")}>
+                <ZoomOut size={15} />
+              </button>
+              <button className="zoom-value" onMouseDown={(e) => e.preventDefault()} onClick={() => updateSettings({ pageZoom: 100 })} title={tr("app.pageZoomReset")}>
+                {shownZoom}%
+              </button>
+              <button className="icon-button small" onMouseDown={(e) => e.preventDefault()} onClick={() => updateSettings({ pageZoom: Math.min(200, Math.floor(shownZoom / 10) * 10 + 10) })} disabled={shownZoom >= 200} aria-label={tr("app.zoomIn")} title={tr("app.zoomIn")}>
+                <ZoomIn size={15} />
+              </button>
+            </span>
+          </div>
           {search && editor && <SearchBar editor={editor} withReplace={search.replace} onClose={() => setSearchBar(null)} />}
           {picker && editor && (
             <div className="picker-anchor">
@@ -2025,12 +2043,7 @@ function FormatBar({
   onPicker,
   deck,
   onThemes,
-  zoom,
-  onZoom,
 }: {
-  /** The page's zoom in percent, and a new one from the zoom buttons. */
-  zoom: number;
-  onZoom: (percent: number) => void;
   editor: Editor;
   headingNames: string[];
   onError: (e: unknown) => void;
@@ -2175,18 +2188,6 @@ function FormatBar({
           <T icon={<Trash2 size={15} />} title={t("app.deleteTable")} run={() => c().deleteCaptionedTable().run()} />
         </span>
       )}
-      {/* The page's zoom, as in the preview: steps of 10, the value goes back to 100%. */}
-      <span className="zoom toolbar-zoom" role="group" aria-label={t("app.pageZoom")}>
-        <button className="icon-button small" onMouseDown={(e) => e.preventDefault()} onClick={() => onZoom(Math.max(50, Math.ceil(zoom / 10) * 10 - 10))} disabled={zoom <= 50} aria-label={t("app.zoomOut")} title={t("app.zoomOut")}>
-          <ZoomOut size={15} />
-        </button>
-        <button className="zoom-value" onMouseDown={(e) => e.preventDefault()} onClick={() => onZoom(100)} title={t("app.pageZoomReset")}>
-          {zoom}%
-        </button>
-        <button className="icon-button small" onMouseDown={(e) => e.preventDefault()} onClick={() => onZoom(Math.min(200, Math.floor(zoom / 10) * 10 + 10))} disabled={zoom >= 200} aria-label={t("app.zoomIn")} title={t("app.zoomIn")}>
-          <ZoomIn size={15} />
-        </button>
-      </span>
     </div>
   );
 }

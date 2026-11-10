@@ -111,7 +111,6 @@ button.link { padding: 0; color: var(--accent-text); text-decoration: underline;
   flex: none; display: flex; align-items: center; gap: 2px; padding: 4px 8px; min-height: calc(var(--tool) + 10px);
   background: var(--chrome); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none;
 }
-.toolbar-zoom { margin-inline-start: auto; padding-inline-start: 8px; flex: none; }
 .toolbar .sep { width: 1px; height: 18px; background: var(--border-strong); margin: 0 6px; flex: none; }
 .tool { height: var(--tool); min-width: var(--tool); padding: 0; justify-content: center; color: var(--muted); flex: none; }
 /* "Merge down": the merge icon turned to point along the column. */
@@ -319,10 +318,10 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .equation-field math-field::part(menu-toggle) { display: none; }
 
 /* ---------------------------------------------------------------- pickers */
-.picker-anchor { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20; }
+.picker-anchor { position: absolute; top: 48px; left: 50%; transform: translateX(-50%); z-index: 20; }
 /* Find and replace, at the editor's top right */
 .search-bar {
-  position: absolute; top: 10px; inset-inline-end: 22px; z-index: 21; display: grid; gap: 6px; padding: 8px;
+  position: absolute; top: 46px; inset-inline-end: 22px; z-index: 21; display: grid; gap: 6px; padding: 8px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-pop);
 }
 .search-row { display: flex; align-items: center; gap: 4px; }
