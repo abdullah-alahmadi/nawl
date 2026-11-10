@@ -282,6 +282,9 @@ function articleCss(t: Template, scope: string): string {
     `${scope} p{margin:0;text-indent:${mm(t.page.paragraph.indentMm)};padding-top:${px(t.page.paragraph.spacingPt)}}`,
     `${scope} li p, ${scope} figcaption, ${scope} td p, ${scope} th p{text-indent:0;padding-top:0}`,
     `${scope} code, ${scope} pre{font-family:${cssFontStack(t.fonts.mono)}}`,
+    // Arabic formulas: variables in their own font, words and numbers in the page's.
+    `${scope} .tl-armath .tl-v, ${scope} .tl-armath .tl-v *{font-family:${cssFontStack(t.fonts.arabicMath ?? { kind: "library", id: "aref-ruqaa" })} !important;font-style:normal}`,
+    `${scope} .tl-armath .tl-w, ${scope} .tl-armath .tl-w *{font-family:${pageFontStack(t)} !important;font-style:normal}`,
   ];
 
   t.headings.levels.slice(0, 4).forEach((h, i) => {

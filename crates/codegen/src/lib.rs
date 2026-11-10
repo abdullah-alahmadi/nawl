@@ -4,6 +4,7 @@
 //! - [`document_to_tex`]: a document becomes a `.tex` file using that class.
 //! - [`generate`]: both at once, plus the list of template assets the build needs.
 
+mod armath;
 mod cls;
 pub mod language;
 pub mod refs;
@@ -109,6 +110,29 @@ impl Generated {
 /// Callers should run [`Template::validate`] first; generation assumes a valid template.
 pub fn generate(template: &Template, doc: &Document) -> Generated {
     generate_for(template, doc, Engine::Xe)
+}
+
+/// A document that sets each Arabic formula on a page of its own, exactly its size:
+/// pictures of formulas for Word, which can't lay math out right to left. The class,
+/// fonts and language setup are the template's, so the pictures match the PDF.
+/// `formulas`: the LaTeX and whether it's a displayed equation. Sizes come from the
+/// compile's log, see [`formula_picture_sizes`].
+pub fn formula_pictures(template: &Template, formulas: &[(String, bool)], engine: Engine) -> Generated {
+    let empty = Document { metadata: Default::default(), body: Default::default(), bibliography: String::new() };
+    let mut g = generate_for(template, &empty, engine);
+    let langs = language::Languages::of(template, &empty);
+    let preamble_end = g.tex.find(r"\begin{document}").unwrap_or(g.tex.len());
+    g.tex.truncate(preamble_end);
+    g.tex.push_str(&armath::picture_pages(formulas, &langs));
+    g.bibliography = None;
+    g.block_lines.clear();
+    g
+}
+
+/// Width, height above the baseline and depth below it of each formula picture (pt),
+/// from the log of a [`formula_pictures`] compile.
+pub fn formula_picture_sizes(log: &str) -> Vec<[f32; 3]> {
+    armath::picture_sizes(log)
 }
 
 /// Like [`generate`], for a particular engine.

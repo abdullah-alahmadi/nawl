@@ -42,6 +42,8 @@ export function templateFonts(t: Template): (FontChoice | undefined)[] {
     t.fonts.sans,
     t.fonts.mono,
     t.fonts.arabic,
+    // The variables of Arabic formulas (Aref Ruqaa unless the template says otherwise).
+    t.language?.main === "arabic" && t.language.math === "arabic" ? (t.fonts.arabicMath ?? { kind: "library", id: "aref-ruqaa" }) : undefined,
     ...t.headings.levels.map((h) => h.text.font),
     ...items.map((i) => (i.content.type === "text" ? i.content.style.font : undefined)),
   ];

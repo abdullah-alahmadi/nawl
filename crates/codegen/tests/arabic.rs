@@ -5,7 +5,7 @@ use texloom_core::{Digits, Document, Language, LanguageSettings, Template};
 /// The reference report template set to Arabic.
 fn arabic_template(digits: Digits) -> Template {
     let mut t: Template = serde_json::from_str(include_str!("../../../templates/senior-design/template.json")).unwrap();
-    t.language = Some(LanguageSettings { main: Language::Arabic, other: Some(Language::English), digits });
+    t.language = Some(LanguageSettings { main: Language::Arabic, other: Some(Language::English), digits, math: Default::default() });
     t.captions.figure_label = "شكل".into();
     t.captions.table_label = "جدول".into();
     t.headings.levels[0].label = "الفصل {n}".into();
@@ -166,6 +166,164 @@ fn fonts_without_arabic_separators_compile() {
     let out = compiler.compile(&g.tex, &files).unwrap();
     let lost: Vec<&str> = out.log.lines().filter(|l| l.contains("Missing character") && (l.contains('٫') || l.contains('٬') || l.contains('٪'))).collect();
     assert!(lost.is_empty(), "{lost:#?}");
+}
+
+/// A document with Arabic formulas of every kind: inline, numbered, multi-line,
+/// cases, a matrix, and one formula kept international.
+fn arabic_math_document() -> (Template, Document) {
+    let mut t = builtin("arabic-article");
+    t.language.as_mut().unwrap().math = texloom_core::MathStyle::Arabic;
+    let eq = |latex: &str| serde_json::json!({"type": "equation", "attrs": {"latex": latex, "numbered": true, "id": null}});
+    let body = serde_json::json!({"type": "doc", "content": [
+        {"type": "heading", "attrs": {"level": 1}, "content": [{"type": "text", "text": "الرياضيات"}]},
+        {"type": "paragraph", "content": [
+            {"type": "text", "text": "نظرية فيثاغورس: "},
+            {"type": "inlineMath", "attrs": {"latex": "س^2+ص^2=ع^2"}},
+            {"type": "text", "text": " والنسبة التقريبية "},
+            {"type": "inlineMath", "attrs": {"latex": "\\pi\\approx 3.14"}},
+            {"type": "text", "text": "."}
+        ]},
+        eq("\\int_0^1 س^2\\,دس=\\frac{1}{3}"),
+        eq("\\lim_{س\\to\\infty}\\frac{1}{س}=0"),
+        eq("\\sum_{ك=1}^{ن}ك=\\frac{ن(ن+1)}{2}"),
+        eq("\\sqrt{س^2+1}<ص,\\qquad \\sin^2 س+\\cos^2 س=1"),
+        eq("د(س)=\\begin{cases}س&س\\ge 0\\\\-س&س<0\\end{cases}"),
+        eq("\\begin{aligned}(س+ص)^2&=س^2+2سص+ص^2\\\\(س-ص)^2&=س^2-2سص+ص^2\\end{aligned}"),
+        eq("\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}\\begin{pmatrix}س\\\\ص\\end{pmatrix}=\\begin{pmatrix}5\\\\6\\end{pmatrix}"),
+        {"type": "equation", "attrs": {"latex": "E=mc^2", "numbered": true, "id": null, "style": "international"}},
+    ]});
+    let mut doc = arabic_document();
+    doc.body = serde_json::from_value(body).unwrap();
+    doc.bibliography = String::new();
+    (t, doc)
+}
+
+/// Arabic formulas are mirrored as a whole, their letters and numbers mirrored
+/// back; the variables' font (Aref Ruqaa) goes with the document.
+#[test]
+fn arabic_math_is_mirrored() {
+    let (t, doc) = arabic_math_document();
+    assert!(!texloom_core::has_errors(&t.validate()), "{:?}", t.validate());
+    let g = texloom_codegen::generate(&t, &doc);
+    assert!(g.tex.contains("\\let\\tlmathfont\\tlfontarefruqaa"), "{}", g.tex);
+    assert!(g.cls.contains("\\newfontfamily\\tlfontarefruqaa[Script=Arabic,"), "{}", g.cls);
+    assert!(g.fonts.iter().any(|f| f == "fonts/aref-ruqaa-Regular.ttf"), "{:?}", g.fonts);
+    assert!(g.tex.contains("\\tlarmath{{\\tla{س}}^{\\tlw{٢}}+{\\tla{ص}}^{\\tlw{٢}}={\\tla{ع}}^{\\tlw{٢}}}"), "{}", g.tex);
+    assert!(g.tex.contains("\\begin{equation}\n\\tlardisplay{\\int_{\\tlw{٠}}^{\\tlw{١}} {\\tla{س}}^{\\tlw{٢}}\\,{\\tla{د}}{\\tla{س}}=\\frac{{\\tlw{١}}}{{\\tlw{٣}}}}\n\\end{equation}"), "{}", g.tex);
+    // A formula can keep the international way.
+    assert!(g.tex.contains("\\begin{equation}\nE=mc^{\\text{٢}}\n\\end{equation}"), "{}", g.tex);
+    // Templates without it are unchanged, down to the fonts.
+    let plain = texloom_codegen::generate(&builtin("arabic-article"), &doc);
+    assert!(!plain.tex.contains("\\tlarmath{") && plain.fonts.is_empty(), "{:?}", plain.fonts);
+}
+
+/// Arabic formulas compile (Tectonic), with every letter there.
+/// Run with: TEXLOOM_TECTONIC=… cargo test -p texloom-codegen --test arabic arabic_math -- --ignored
+#[test]
+#[ignore]
+fn arabic_math_compiles() {
+    let (t, doc) = arabic_math_document();
+    let g = texloom_codegen::generate(&t, &doc);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let fonts: Vec<(String, Vec<u8>)> = g.fonts.iter().map(|f| (f.clone(), std::fs::read(root.join("src-tauri").join(f)).unwrap())).collect();
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> = support.iter().chain(fonts.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = texloom_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files).unwrap();
+    assert!(out.pdf.starts_with(b"%PDF"));
+    if let Ok(dir) = std::env::var("TEXLOOM_ARABIC_OUT") {
+        std::fs::write(std::path::Path::new(&dir).join("arabic-math.pdf"), &out.pdf).unwrap();
+    }
+    let missing: Vec<&str> = out.log.lines().filter(|l| l.contains("Missing character")).collect();
+    assert!(missing.is_empty(), "{missing:#?}");
+}
+
+/// The Arabic mathematics example with the template it carries (the Arabic article
+/// with formulas the Arabic way).
+fn arabic_math_example() -> (Template, Document) {
+    let file: serde_json::Value = serde_json::from_str(&example_file("arabic-math.loom")).unwrap();
+    let template: Template = serde_json::from_value(file["template"].clone()).unwrap();
+    let doc: texloom_core::DocumentFile = serde_json::from_value(file).unwrap();
+    (template, doc.document)
+}
+
+/// The example is complete: a valid template that differs from the built-in article
+/// only in how formulas are written, no warnings, every kind of formula.
+#[test]
+fn arabic_math_example_is_complete() {
+    let (t, doc) = arabic_math_example();
+    assert!(t.validate().is_empty(), "{:?}", t.validate());
+    let mut plain = t.clone();
+    plain.language.as_mut().unwrap().math = Default::default();
+    plain.meta = builtin("arabic-article").meta;
+    assert_eq!(plain, builtin("arabic-article"), "run scripts/embed-example-templates.mjs");
+    assert!(t.check_document(&doc, None).is_empty(), "{:?}", t.check_document(&doc, None));
+    let tex = texloom_codegen::document_to_tex(&t, &doc);
+    for piece in ["\\mathop{\\tlw{نهـــا}}_", "\\mathop{\\tlw{جا}}\\nolimits", "\\begin{aligned}", "\\begin{cases}", "\\begin{pmatrix}", "\\sum_", "\\int_", "{\\tlw{إذا كان }}"] {
+        assert!(tex.contains(piece), "{piece}: {tex}");
+    }
+    // One formula keeps the international way.
+    assert!(tex.contains("\\begin{equation}\\label{tl:eq-einstein}\nE=mc^{\\text{٢}}\n\\end{equation}"), "{tex}");
+}
+
+/// The example compiles, with every letter there and its references resolved.
+/// Run with: TEXLOOM_TECTONIC=… cargo test -p texloom-codegen --test arabic arabic_math_example -- --ignored
+#[test]
+#[ignore]
+fn arabic_math_example_compiles() {
+    let (t, doc) = arabic_math_example();
+    let g = texloom_codegen::generate(&t, &doc);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let fonts: Vec<(String, Vec<u8>)> = g.fonts.iter().map(|f| (f.clone(), std::fs::read(root.join("src-tauri").join(f)).unwrap())).collect();
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> = support.iter().chain(fonts.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = texloom_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files).unwrap();
+    assert!(out.pdf.starts_with(b"%PDF"));
+    let problems: Vec<&str> = out.log.lines().filter(|l| l.contains("Missing character") || l.contains("undefined")).collect();
+    assert!(problems.is_empty(), "{problems:#?}");
+}
+
+/// Pictures of formulas for Word: one page per formula, exactly its size, with the
+/// template's own setup; sizes are read from the log.
+#[test]
+fn formula_pictures_document() {
+    let (t, _) = arabic_math_document();
+    let formulas = vec![("س^2".to_string(), false), ("\\int_0^1 س\\,دس".to_string(), true)];
+    let g = texloom_codegen::formula_pictures(&t, &formulas, texloom_codegen::Engine::Xe);
+    assert!(g.tex.contains("\\let\\tlmathfont\\tlfontarefruqaa"), "the template's setup: {}", g.tex);
+    assert_eq!(g.tex.matches("\\begin{document}").count(), 1, "{}", g.tex);
+    assert!(g.tex.contains("\\tlformula{\\tlarmath{{\\tla{س}}^{\\tlw{٢}}}}\n\\tlformula{\\tlardisplay{\\int_{\\tlw{٠}}^{\\tlw{١}} {\\tla{س}}\\,{\\tla{د}}{\\tla{س}}}}\n\\end{document}"), "{}", g.tex);
+    assert!(g.fonts.iter().any(|f| f == "fonts/aref-ruqaa-Regular.ttf"));
+    // Width, height and depth with the 2pt padding (the width has it already).
+    let sizes = texloom_codegen::formula_picture_sizes("noise\nTLF:79.78139pt:8.80933pt:4.40399pt\n TLF:82.5pt:17pt:10pt\nTLF:broken\n");
+    assert_eq!(sizes, vec![[79.78139, 10.80933, 6.40399], [82.5, 19.0, 12.0]]);
+}
+
+/// The formula pages compile: as many pages as formulas, each with its size.
+/// Run with: TEXLOOM_TECTONIC=… cargo test -p texloom-codegen --test arabic formula_pictures -- --ignored
+#[test]
+#[ignore]
+fn formula_pictures_compile() {
+    let (t, _) = arabic_math_document();
+    let formulas = vec![
+        ("س^2+ص^2=ع^2".to_string(), false),
+        ("\\int_0^1 س^2\\,دس=\\frac{1}{3}".to_string(), true),
+        ("\\lim_{س\\to\\infty}\\frac{1}{س}=0".to_string(), true),
+    ];
+    let g = texloom_codegen::formula_pictures(&t, &formulas, texloom_codegen::Engine::Xe);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let fonts: Vec<(String, Vec<u8>)> = g.fonts.iter().map(|f| (f.clone(), std::fs::read(root.join("src-tauri").join(f)).unwrap())).collect();
+    let support = g.support_files();
+    let files: Vec<texloom_compile::Asset> = support.iter().chain(fonts.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let out = texloom_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files).unwrap();
+    if let Ok(dir) = std::env::var("TEXLOOM_ARABIC_OUT") {
+        std::fs::write(std::path::Path::new(&dir).join("formula-pictures.pdf"), &out.pdf).unwrap();
+    }
+    let sizes = texloom_codegen::formula_picture_sizes(&out.log);
+    assert_eq!(sizes.len(), 3, "{}", out.log);
+    assert!(sizes.iter().all(|[w, h, d]| *w > 20.0 && *h > 5.0 && *d > 2.0), "{sizes:?}");
+    // The display integral is taller than the inline formula.
+    assert!(sizes[1][1] + sizes[1][2] > sizes[0][1] + sizes[0][2] + 5.0, "{sizes:?}");
+    assert!(out.pdf.starts_with(b"%PDF"));
 }
 
 #[test]

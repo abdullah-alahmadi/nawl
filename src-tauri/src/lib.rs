@@ -1261,12 +1261,67 @@ async fn export_docx(
     metadata: Metadata,
     bibliography: Option<String>,
     mathml: HashMap<String, String>,
+    pictures: Option<HashMap<String, FormulaPictureIn>>,
 ) -> Result<(), AppError> {
-    write_docx(&state, to_document(doc, metadata, bibliography)?, path, mathml).await
+    write_docx(&state, to_document(doc, metadata, bibliography)?, path, mathml, pictures.unwrap_or_default()).await
+}
+
+/// A formula to make a picture of: its LaTeX, and whether it's a displayed equation.
+#[derive(Deserialize)]
+struct FormulaRequest {
+    latex: String,
+    display: bool,
+}
+
+/// The Arabic formulas, each on a page of its own exactly its size, for the app to
+/// turn into pictures (Word can't lay math out right to left).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FormulaPages {
+    pdf: Vec<u8>,
+    /// Per page: width, height above the baseline and depth below it, in TeX points.
+    sizes: Vec<[f32; 3]>,
+}
+
+/// A formula's picture from the app (see `FormulaPages`), by `texloom_docx::formula_key`.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FormulaPictureIn {
+    png: Vec<u8>,
+    width_pt: f32,
+    height_pt: f32,
+    depth_pt: f32,
+}
+
+/// Sets `formulas` the Arabic way with the active template, one per PDF page.
+#[tauri::command]
+async fn formula_pictures(state: State<'_, AppState>, formulas: Vec<FormulaRequest>) -> Result<FormulaPages, AppError> {
+    let active = state.templates.current();
+    let empty = Document { metadata: Metadata::new(), body: Body::default(), bibliography: String::new() };
+    let (runner, target) = choose_runner(&state, &active.template, &empty)?;
+    let formulas: Vec<(String, bool)> = formulas.into_iter().map(|f| (f.latex, f.display)).collect();
+    let generated = texloom_codegen::formula_pictures(&active.template, &formulas, target);
+    let mut assets = active.load_assets(&generated.assets)?;
+    assets.extend(load_library_fonts(&generated.fonts)?);
+    let out = tauri::async_runtime::spawn_blocking(move || {
+        let support = generated.support_files();
+        let files: Vec<Asset> = support.iter().chain(assets.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
+        runner.compile(&generated.tex, &files)
+    })
+    .await
+    .map_err(AppError::other)??;
+    let sizes = texloom_codegen::formula_picture_sizes(&out.log);
+    Ok(FormulaPages { pdf: out.pdf, sizes })
 }
 
 /// Writes `document` as a Word file at `path` with the active template.
-async fn write_docx(state: &AppState, document: Document, path: String, mathml: HashMap<String, String>) -> Result<(), AppError> {
+async fn write_docx(
+    state: &AppState,
+    document: Document,
+    path: String,
+    mathml: HashMap<String, String>,
+    pictures: HashMap<String, FormulaPictureIn>,
+) -> Result<(), AppError> {
     let active = state.templates.current();
     let folder = state.doc_folder.get();
     tauri::async_runtime::spawn_blocking(move || {
@@ -1276,7 +1331,11 @@ async fn write_docx(state: &AppState, document: Document, path: String, mathml: 
         // Library fonts are embedded, so the file shows them where they aren't installed.
         let font = |rel: &str| load_library_fonts(&[rel.to_string()]).ok().and_then(|mut v| v.pop()).map(|(_, b)| b);
         let input = texloom_docx::Input { template: &active.template, doc: &document, image: &image, asset: &asset, mathml: &mathml, font: &font };
-        let bytes = texloom_docx::write(&input).map_err(AppError::other)?;
+        let pictures: HashMap<String, texloom_docx::FormulaPicture> = pictures
+            .into_iter()
+            .map(|(key, p)| (key, texloom_docx::FormulaPicture { png: p.png, width_pt: p.width_pt, height_pt: p.height_pt, depth_pt: p.depth_pt }))
+            .collect();
+        let bytes = texloom_docx::write_with(&input, &pictures).map_err(AppError::other)?;
         std::fs::write(&path, bytes)?;
         Ok(())
     })
@@ -1393,6 +1452,7 @@ pub fn run() {
             save_settings,
             export_tex,
             export_docx,
+            formula_pictures,
             set_message_language,
             list_library_fonts,
             read_library_font,

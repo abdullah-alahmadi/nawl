@@ -514,9 +514,10 @@ pub async fn export_project_docx(
     metadata: Metadata,
     bibliography: String,
     mathml: HashMap<String, String>,
+    pictures: Option<HashMap<String, crate::FormulaPictureIn>>,
 ) -> Result<(), AppError> {
     let project = with_project(&store, |p| p.project(file.as_deref().zip(doc.as_ref()), metadata, bibliography))?;
-    crate::write_docx(&state, project.combined(), path, mathml).await
+    crate::write_docx(&state, project.combined(), path, mathml, pictures.unwrap_or_default()).await
 }
 
 /// Splits a single document into a project in `folder` (created if needed; it must

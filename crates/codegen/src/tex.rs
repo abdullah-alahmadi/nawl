@@ -322,6 +322,14 @@ struct Ctx<'a> {
     langs: Languages,
 }
 
+impl Ctx<'_> {
+    /// A formula is written the Arabic way (right to left): its own style, else the
+    /// template's; only in Arabic documents.
+    fn arabic_math(&self, style: Option<texloom_core::MathStyle>) -> bool {
+        self.langs.main == texloom_core::Language::Arabic && style.unwrap_or(self.t.lang().math) == texloom_core::MathStyle::Arabic
+    }
+}
+
 /// `\label{tl:<id>}` for ids made of safe characters.
 fn label(id: &Option<String>) -> String {
     match id {
@@ -465,9 +473,16 @@ impl<'a> BodyWriter<'a> {
                 Inline::Text { text, marks } => s.push_str(&apply_marks(escape(text), marks)),
                 Inline::HardBreak => s.push_str("\\newline\n"),
                 Inline::InlineMath { attrs } => {
-                    let latex = language::math(&clean_math(&attrs.latex), &self.ctx.langs);
-                    if !latex.is_empty() {
-                        s.push_str(&format!("${latex}$"));
+                    let clean = clean_math(&attrs.latex);
+                    if self.ctx.arabic_math(attrs.style) {
+                        if !clean.trim().is_empty() {
+                            s.push_str(&crate::armath::inline(&clean, &self.ctx.langs));
+                        }
+                    } else {
+                        let latex = language::math(&clean, &self.ctx.langs);
+                        if !latex.is_empty() {
+                            s.push_str(&format!("${latex}$"));
+                        }
                     }
                 }
                 Inline::Ref { attrs } => s.push_str(&self.reference(&attrs.target)),
@@ -607,7 +622,13 @@ impl<'a> BodyWriter<'a> {
             }
             Block::HorizontalRule => self.out.push_str("\\noindent\\rule{\\linewidth}{0.4pt}\n\n"),
             Block::Equation { attrs } => {
-                let latex = language::math(&clean_math(&attrs.latex), &self.ctx.langs);
+                let clean = clean_math(&attrs.latex);
+                // The Arabic way: mirrored as a whole, inside the same environment.
+                let latex = match self.ctx.arabic_math(attrs.style) {
+                    true if !clean.trim().is_empty() => crate::armath::display(&clean, &self.ctx.langs),
+                    true => String::new(),
+                    false => language::math(&clean, &self.ctx.langs),
+                };
                 let latex = latex.as_str();
                 if !latex.is_empty() {
                     // Multi-line equations arrive as an `aligned` block from the editor; inside
@@ -1001,7 +1022,7 @@ fn is_safe_relative(path: &str) -> bool {
 
 /// MathLive marks empty cells with `\placeholder{…}`, which isn't LaTeX: keep what's
 /// inside (usually nothing).
-fn clean_math(latex: &str) -> String {
+pub(crate) fn clean_math(latex: &str) -> String {
     let mut out = String::with_capacity(latex.len());
     let mut rest = latex;
     while let Some(i) = rest.find("\\placeholder{") {

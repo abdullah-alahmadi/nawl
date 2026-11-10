@@ -602,6 +602,12 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
         o.push_str(&format!("\\setotherlanguage{}{{{}}}\n", options(*l), l.polyglossia()));
     }
     o.push_str(&arabic_symbol_fallbacks());
+    // Arabic formulas (the template's style, or a formula's own): their commands, and
+    // the variables' font, which the class defines with the fonts of headings.
+    if langs.main == Language::Arabic && t.kind != texloom_core::DocumentKind::Presentation {
+        static RUQAA: std::sync::LazyLock<FontChoice> = std::sync::LazyLock::new(|| FontChoice::Library { id: "aref-ruqaa".into() });
+        o.push_str(&crate::armath::preamble(&crate::latex::style_font_command(t.arabic_math_font().unwrap_or(&RUQAA))));
+    }
     // Arabic as the main language: polyglossia's Arabic sets \theequation to the bare
     // count whenever it becomes the main language (at the start too), so equations
     // read "(١)" next to "شكل ١.١". With per-chapter numbering, the chapter goes back

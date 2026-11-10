@@ -148,7 +148,7 @@ export function TemplateDesigner({
           </h3>
           {section === "publisher" && <PublisherSection {...props} canImport={!!info.path && !needsSaveAs} onImportKit={onImportKit} />}
           {section === "info" && <InfoSection {...props} />}
-          {section === "language" && <LanguageSection {...props} />}
+          {section === "language" && <LanguageSection {...props} systemFonts={systemFonts} />}
           {section === "slides" && <SlidesSection {...props} onBrowseThemes={onBrowseThemes} />}
           {section === "page" && <PageSection {...props} />}
           {section === "fonts" && <FontsSection {...props} systemFonts={systemFonts} />}

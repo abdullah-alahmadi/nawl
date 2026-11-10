@@ -704,11 +704,15 @@ pub struct MathAttrs {
     /// Display equations: whether it gets a number (and can be referenced).
     #[serde(default = "yes")]
     pub numbered: bool,
+    /// Written the Arabic way (right to left) or the international way, when that
+    /// isn't the template's.
+    #[serde(default)]
+    pub style: Option<crate::MathStyle>,
 }
 
 impl Default for MathAttrs {
     fn default() -> Self {
-        Self { latex: String::new(), id: None, numbered: true }
+        Self { latex: String::new(), id: None, numbered: true, style: None }
     }
 }
 

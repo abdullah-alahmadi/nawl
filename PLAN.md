@@ -264,6 +264,57 @@ Word is an export target only; Texloom never imports Word files.
       shows them only with its own "Hindi digits" option)
 - [ ] More languages on the same model (Persian, Urdu, Hebrew)
 
+### Arabic mathematics (in progress)
+Goal: formulas the way Arabic schoolbooks and universities write them (the Mashriq
+style): right to left, Arabic letters for variables, mirrored integral, sum and root,
+powers and indices on the left, `نهـا`, `جا`, `جتا`… for limits and functions.
+
+How: XeTeX (Tectonic) has no right-to-left math, so Texloom lays the formula out left
+to right, mirrors it as a whole (`\reflectbox`), and mirrors each letter, word and
+number back so it reads normally. One method for XeLaTeX and LuaLaTeX, no new
+packages or math fonts. Symbols that Arabic notation mirrors (∫ ∑ √, brackets,
+`<`, `→`) are simply not turned back.
+
+Decisions (owner, 2026-11-10): Mashriq style first; digits follow the template; the
+sum sign is a mirrored ∑ (`مجـ` from the palette); functions `جا جتا ظا ظتا قا قتا لو
+نهـا`; converting Latin formulas (x → س) comes after the core; a picture of the
+equation in Word is acceptable if Word can't lay it out right to left; **variables are
+set in a Ruqaa font** (Aref Ruqaa by default, any font can be chosen) so they stand
+out from the text, numbers and function names in the text font.
+
+- [x] Setting: `language.math` (`international` | `arabic`) and `fonts.arabicMath`
+      in the template (designer's Language section); `style` on an equation or
+      inline formula overrides the template's
+- [x] LaTeX: formulas rewritten into the mirrored form (`crates/codegen/src/armath.rs`):
+      inline, display, multi-line, matrices, cases; variables one letter each in the
+      variables' font, numbers in the document's digits, `\sin`, `\lim`… and their
+      Arabic names typed directly (`جتا`, `نهـا`, `مجـ`) as operators
+- [x] Editor: formulas drawn the same mirrored way on the page (`src/editor/arabicMath.ts`
+      mirrors armath.rs: MathLive markup with `\class` marks, mirrored and turned back
+      by CSS; redrawn when the template's setting changes); the `style` attribute is
+      kept by the editor
+- [x] Typing (`src/editor/mathAssist.ts`): under a formula being edited in an Arabic
+      document, a live right-to-left preview, a palette of Arabic functions and signs
+      (`جا جتا ظا لو لط نهـا مجـ`, mirrored ∑ ∫ √, fraction, power, index…), and a switch
+      between the Arabic and the international way for that formula; `\sin`, `\lim`…
+      are shown as their Arabic names
+- [x] "x → س" in the typing helper: a formula's Latin variables into Arabic letters
+      (x y z → س ص ع, a b c → ا ب ج, n → ن, f and d → د, each other letter one of its
+      own), for this formula or every Arabic formula of the document (one undo step);
+      text, commands, Greek letters and `\mathbb{R}` are kept
+- [ ] The special math letter forms (dotless, stretched, double-struck): they need a
+      math font that has them
+- [x] Word export: Word lays math out left to right only (as far as its developer's
+      notes go), so each Arabic formula goes in as a picture of how the PDF sets it:
+      `formula_pictures` compiles one page per formula, exactly its size (sizes from
+      the log); the app draws the pages with pdf.js (288 px per inch, no background)
+      and `texloom_docx::write_with` places them on the text's baseline. Without
+      pictures (the compile failed) they're Word equations as before
+- [x] `examples/arabic-math.loom`: algebra, limits, derivatives, integrals, a sum,
+      cases, a matrix, one international formula; compile tests for it, for a
+      document of every kind of formula, and for the formula pictures
+- [ ] Not checked yet: the Word file opened in Word; Arabic slides (LuaLaTeX)
+
 ### Projects: books and theses as one file per chapter (in progress)
 
 **Why.** Long documents are easier to organize as chapters: each opens on its own, can

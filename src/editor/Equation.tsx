@@ -1,8 +1,10 @@
 // Display equation node: a MathLive field embedded in the TipTap document.
 // The node stores plain LaTeX in its `latex` attribute; MathLive edits it visually.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MathfieldElement } from "mathlive";
 import { staticMarkup } from "./InlineMath";
+import { mathSettings, onMathSettings } from "./arabicMath";
+import { createMathAssist, type MathAssist } from "./mathAssist";
 import {
   Node,
   mergeAttributes,
@@ -54,7 +56,12 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
   const [editing, setEditing] = useState(!node.attrs.latex);
   // Something to do once the field exists ("add line" clicked on a static equation).
   const pending = useRef<((mf: MathfieldElement) => void) | null>(null);
-  const markup = useMemo(() => staticMarkup(node.attrs.latex ?? "", true), [node.attrs.latex]);
+  const assist = useRef<MathAssist | null>(null);
+  const styleRef = useRef<string | null>(node.attrs.style ?? null);
+  styleRef.current = node.attrs.style ?? null;
+  // Drawn again when the template's way of writing formulas changes.
+  const math = useSyncExternalStore(onMathSettings, mathSettings);
+  const markup = useMemo(() => staticMarkup(node.attrs.latex ?? "", true, node.attrs.style), [node.attrs.latex, node.attrs.style, math]);
 
   // Create the math field while editing; React doesn't manage its internals.
   useEffect(() => {
@@ -82,6 +89,17 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
     editor.on("selectionUpdate", elsewhere);
     host.current?.appendChild(mf);
     field.current = mf;
+    // The right-to-left preview and the palette (Arabic documents).
+    assist.current = createMathAssist({
+      field: mf,
+      display: true,
+      getLatex: () => mf.value,
+      getStyle: () => styleRef.current,
+      setStyle: (style) => updateAttributes({ style }),
+      setLatex: (latex) => updateAttributes({ latex }),
+      editor,
+    });
+    if (assist.current) host.current?.appendChild(assist.current.el);
     // Once attached (a timer, not an animation frame: hidden windows run no frames).
     window.setTimeout(() => {
       mf.focus();
@@ -91,6 +109,8 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
     return () => {
       editor.off("selectionUpdate", elsewhere);
       mf.remove();
+      assist.current?.el.remove();
+      assist.current = null;
       field.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,7 +120,8 @@ function EquationView({ node, updateAttributes, selected, editor, getPos }: Reac
   useEffect(() => {
     const mf = field.current;
     if (mf && mf.value !== node.attrs.latex) mf.value = node.attrs.latex ?? "";
-  }, [node.attrs.latex]);
+    assist.current?.update();
+  }, [node.attrs.latex, node.attrs.style, math]);
 
   const numbered = node.attrs.numbered !== false;
   const multi = isMultiLine(node.attrs.latex ?? "");
@@ -178,7 +199,8 @@ export const Equation = Node.create({
   draggable: true,
 
   addAttributes() {
-    return { latex: { default: "" }, numbered: { default: true } };
+    // `style`: "arabic" or "international" when it isn't the template's way.
+    return { latex: { default: "" }, numbered: { default: true }, style: { default: null, rendered: false } };
   },
 
   parseHTML() {
@@ -188,6 +210,7 @@ export const Equation = Node.create({
         getAttrs: (el) => ({
           latex: (el as HTMLElement).dataset.latex ?? "",
           numbered: (el as HTMLElement).dataset.numbered !== "false",
+          style: (el as HTMLElement).dataset.mathStyle ?? null,
         }),
       },
     ];
@@ -200,6 +223,7 @@ export const Equation = Node.create({
         "data-equation": "",
         "data-latex": node.attrs.latex,
         "data-numbered": String(node.attrs.numbered !== false),
+        ...(node.attrs.style ? { "data-math-style": node.attrs.style } : {}),
       }),
     ];
   },

@@ -122,6 +122,46 @@ fn aligned_paragraphs() {
     assert_eq!((jc("يسار").as_str(), jc("وسط").as_str(), jc("Right").as_str()), ("right", "center", "right"), "{d}");
 }
 
+/// Arabic formulas (right to left) go in as pictures of how the PDF sets them, on the
+/// text's baseline; without a picture, or written the international way, they're
+/// Word equations as before.
+#[test]
+fn arabic_formulas_are_pictures() {
+    let mut t = template("arabic-article");
+    t.language.as_mut().unwrap().math = texloom_core::MathStyle::Arabic;
+    let body = serde_json::json!({"type": "doc", "content": [
+        {"type": "paragraph", "content": [{"type": "text", "text": "حيث "}, {"type": "inlineMath", "attrs": {"latex": "س^2"}}, {"type": "text", "text": " مربع."}]},
+        {"type": "equation", "attrs": {"latex": "س^2", "numbered": true}},
+        {"type": "equation", "attrs": {"latex": "ص+1", "numbered": false}},
+        {"type": "equation", "attrs": {"latex": "E=mc^2", "numbered": false, "style": "international"}},
+    ]});
+    let doc = Document { metadata: Default::default(), body: serde_json::from_value(body).unwrap(), bibliography: String::new() };
+    let png = figure("figures/system-diagram.png").unwrap();
+    let pictures: HashMap<String, FormulaPicture> = [
+        (formula_key("س^2", false), FormulaPicture { png: png.clone(), width_pt: 20.0, height_pt: 14.0, depth_pt: 3.0 }),
+        (formula_key(" س^2 ", true), FormulaPicture { png: png.clone(), width_pt: 30.0, height_pt: 20.0, depth_pt: 0.0 }),
+        // Not used: the formula is written the international way.
+        (formula_key("E=mc^2", true), FormulaPicture { png, width_pt: 1.0, height_pt: 1.0, depth_pt: 0.0 }),
+    ]
+    .into();
+    let mathml: HashMap<String, String> = [("E=mc^2".to_string(), "<math><mi>E</mi><mo>=</mo><mi>m</mi></math>".to_string())].into();
+    let input = Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &mathml, font: &|_| None };
+    let parts = unzip(&write_with(&input, &pictures).unwrap());
+    assert_well_formed(&parts);
+    assert_schema_order(&parts);
+    let d = &parts["word/document.xml"];
+    assert_eq!(d.matches("<w:drawing>").count(), 2, "{d}");
+    assert!(parts.contains_key("word/media/image1.png") && parts.contains_key("word/media/image2.png") && !parts.contains_key("word/media/image3.png"));
+    // 20 × 14 TeX points, lowered by 3pt (6 half-points); the display one isn't lowered.
+    assert!(d.contains("<w:r><w:rPr><w:position w:val=\"-6\"/></w:rPr><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"253051\" cy=\"177136\"/>"), "{d}");
+    assert!(d.contains("<w:r><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"379577\" cy=\"253051\"/>"), "{d}");
+    // No picture for ص+1: shown some other way, not dropped; E=mc² is a Word equation.
+    assert!(d.contains("ص") && d.contains("<m:oMath>"), "{d}");
+    // Without pictures nothing changes.
+    let plain = unzip(&write(&input).unwrap());
+    assert!(!plain["word/document.xml"].contains("<w:drawing>"));
+}
+
 #[test]
 fn english_report_with_merged_cells_and_crop() {
     let t = template("senior-design");

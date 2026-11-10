@@ -183,6 +183,12 @@ export const en = {
   "designer.secondLanguageHint": "For passages in it: an English abstract, English references",
   "designer.digits": "Digits",
   "designer.digitsHint": "For page, chapter, figure and equation numbers",
+  "designer.mathStyle": "Formulas",
+  "designer.mathStyleHint": "International: left to right with Latin letters. Arabic: right to left with Arabic letters, a mirrored integral, sum and root, and powers on the left",
+  "designer.mathInternational": "International",
+  "designer.mathArabic": "Arabic",
+  "designer.mathFont": "Font of variables",
+  "designer.mathFontHint": "The letters in Arabic formulas, so they stand out from the text (numbers and function names use the text font)",
   "designer.languageNote":
     "Words in another script are kept in their own direction automatically (English terms in Arabic text, and the other way round). A whole paragraph in the other language: put the cursor in it and press Ctrl+Shift+X (or the direction button in the toolbar). Arabic needs Tectonic, XeLaTeX or LuaLaTeX (not pdfLaTeX).",
 
@@ -480,6 +486,12 @@ export const ar: Record<keyof typeof en, string> = {
   "designer.secondLanguageHint": "للمقاطع المكتوبة بها: ملخص بالإنجليزية، مراجع بالإنجليزية",
   "designer.digits": "الأرقام",
   "designer.digitsHint": "لأرقام الصفحات والفصول والأشكال والمعادلات",
+  "designer.mathStyle": "المعادلات",
+  "designer.mathStyleHint": "دولية: من اليسار إلى اليمين بحروف لاتينية. عربية: من اليمين إلى اليسار بحروف عربية، مع عكس رموز التكامل والمجموع والجذر، والأسس إلى اليسار",
+  "designer.mathInternational": "دولية",
+  "designer.mathArabic": "عربية",
+  "designer.mathFont": "خط المتغيرات",
+  "designer.mathFontHint": "حروف المعادلات العربية، لتتميّز عن النص (الأرقام وأسماء الدوال بخط النص)",
   "designer.languageNote":
     "تحتفظ الكلمات المكتوبة بخط آخر باتجاهها تلقائيًا (المصطلحات الإنجليزية في النص العربي، والعكس). لفقرة كاملة باللغة الأخرى: ضع المؤشر فيها واضغط Ctrl+Shift+X (أو زر الاتجاه في شريط الأدوات). تحتاج العربية إلى Tectonic أو XeLaTeX أو LuaLaTeX (وليس pdfLaTeX).",
 

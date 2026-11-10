@@ -168,6 +168,7 @@ impl Template {
             ("fonts.sans".into(), Some(&t.fonts.sans)),
             ("fonts.mono".into(), Some(&t.fonts.mono)),
             ("fonts.arabic".into(), t.fonts.arabic.as_ref()),
+            ("fonts.arabicMath".into(), t.fonts.arabic_math.as_ref()),
         ];
         for (i, h) in t.headings.levels.iter().enumerate() {
             styled.push((format!("headings.levels[{i}].text.font"), h.text.font.as_ref()));

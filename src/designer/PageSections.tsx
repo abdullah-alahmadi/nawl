@@ -450,15 +450,15 @@ const LANGUAGES: { value: Language; label: MessageKey }[] = [
 ];
 
 /** The document's language, a second language for passages in it, and digits. */
-export function LanguageSection({ t, edit }: SectionProps) {
+export function LanguageSection({ t, edit, systemFonts }: SectionProps & { systemFonts: string[] }) {
   const tr = useT();
   const languages = LANGUAGES.map((l) => ({ value: l.value, label: tr(l.label) }));
-  const lang: LanguageSettings = t.language ?? { main: "english", other: null, digits: "western" };
+  const lang: LanguageSettings = t.language ?? { main: "english", other: null, digits: "western", math: "international" };
   const set = (patch: Partial<LanguageSettings>) =>
     edit((d) => {
       const next = { ...lang, ...patch };
       // English only, the default: no setting at all (as in older templates).
-      if (next.main === "english" && !next.other && next.digits === "western") delete d.language;
+      if (next.main === "english" && !next.other && next.digits === "western" && next.math === "international") delete d.language;
       else d.language = next;
     });
   const arabic = lang.main === "arabic" || lang.other === "arabic";
@@ -483,6 +483,33 @@ export function LanguageSection({ t, edit }: SectionProps) {
               { value: "arabicIndic", label: "١ ٢ ٣" },
             ]}
             onChange={(v) => set({ digits: v })}
+          />
+        </Row>
+      )}
+      {lang.main === "arabic" && (
+        <Row label={tr("designer.mathStyle")} hint={tr("designer.mathStyleHint")}>
+          <Segmented
+            value={lang.math ?? "international"}
+            options={[
+              { value: "international", label: tr("designer.mathInternational") },
+              { value: "arabic", label: tr("designer.mathArabic") },
+            ]}
+            onChange={(v) => set({ math: v })}
+          />
+        </Row>
+      )}
+      {lang.main === "arabic" && lang.math === "arabic" && (
+        <Row label={tr("designer.mathFont")} hint={tr("designer.mathFontHint")}>
+          <ArabicFontGallery
+            value={t.fonts.arabicMath ?? { kind: "library", id: "aref-ruqaa" }}
+            systemFonts={systemFonts}
+            onChange={(f) =>
+              edit((d) => {
+                // Aref Ruqaa is the default: no setting at all.
+                if (f && !(f.kind === "library" && f.id === "aref-ruqaa")) d.fonts.arabicMath = f;
+                else delete d.fonts.arabicMath;
+              })
+            }
           />
         </Row>
       )}

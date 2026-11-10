@@ -202,8 +202,20 @@ export const newDocument = () => invoke<OpenedDocument>("new_document");
 export const openDocument = (path: string) => invoke<OpenedDocument>("open_document", { path });
 export const exportTex = (path: string, d: DocState) => invoke<void>("export_tex", { path, ...d });
 /** Writes a Word file; `mathml` maps each formula's LaTeX to its MathML. */
-export const exportDocx = (path: string, d: DocState, mathml: Record<string, string>) =>
-  invoke<void>("export_docx", { path, ...d, mathml });
+export const exportDocx = (path: string, d: DocState, mathml: Record<string, string>, pictures: Record<string, FormulaPicture> = {}) =>
+  invoke<void>("export_docx", { path, ...d, mathml, pictures });
+/** A formula's picture for the Word file: PNG bytes and its size in TeX points
+ *  (`depthPt` of the height is below the baseline). */
+export interface FormulaPicture {
+  png: number[];
+  widthPt: number;
+  heightPt: number;
+  depthPt: number;
+}
+/** Arabic formulas set by the active template, one per PDF page exactly its size;
+ *  `sizes`: each page's width, height above the baseline and depth, in TeX points. */
+export const formulaPictures = (formulas: { latex: string; display: boolean }[]) =>
+  invoke<{ pdf: number[]; sizes: [number, number, number][] }>("formula_pictures", { formulas });
 
 // Crash recovery: unsaved changes are kept in the app's data folder.
 export interface RecoveryInfo {
@@ -293,8 +305,8 @@ export const renderProject = (s: ProjectState, onlyChapter: boolean) => invoke<A
 export const exportProjectPdf = (path: string, s: ProjectState) => invoke<void>("export_project_pdf", { path, ...s });
 export const exportProjectTex = (path: string, s: ProjectState) => invoke<void>("export_project_tex", { path, ...s });
 /** The whole book as one Word file; `mathml` covers every chapter's formulas. */
-export const exportProjectDocx = (path: string, s: ProjectState, mathml: Record<string, string>) =>
-  invoke<void>("export_project_docx", { path, ...s, mathml });
+export const exportProjectDocx = (path: string, s: ProjectState, mathml: Record<string, string>, pictures: Record<string, FormulaPicture> = {}) =>
+  invoke<void>("export_project_docx", { path, ...s, mathml, pictures });
 export const projectPdfToBlock = (page: number, x: number, y: number) => invoke<ProjectSpot | null>("project_pdf_to_block", { page, x, y });
 export const projectBlockToPdf = (file: string, block: number) => invoke<PdfSpot | null>("project_block_to_pdf", { file, block });
 /** Splits the document into a project in `folder`; returns the project file. */

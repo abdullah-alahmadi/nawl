@@ -25,7 +25,8 @@ import { Search } from "./editor/Search";
 import { Direction } from "./editor/Direction";
 import { ArabicPunctuation } from "./editor/ArabicPunctuation";
 import { docLanguage } from "./editor/language";
-import { formulasAsMathMl } from "./editor/wordExport";
+import { setMathSettings } from "./editor/arabicMath";
+import { arabicFormulaPictures, formulasAsMathMl } from "./editor/wordExport";
 import { ensureLibraryFont, libraryFontIds, templateFonts } from "./editor/libraryFonts";
 import { LanguageContext, resolveUiLanguage, translate, useT, t as tNow, type MessageKey } from "./i18n";
 import { Flash, flashBlock } from "./editor/Flash";
@@ -508,6 +509,13 @@ export default function App() {
   const isDeck = template?.kind === "presentation";
   const templateNowRef = useRef(template);
   templateNowRef.current = template;
+
+  // How formulas are drawn on the page: the Arabic way when the template says so.
+  const mathLang = template?.language;
+  useEffect(() => {
+    const arabicDocument = mathLang?.main === "arabic";
+    setMathSettings({ arabicDocument, arabic: arabicDocument && mathLang?.math === "arabic", indic: arabicDocument && mathLang?.digits === "arabicIndic" });
+  }, [mathLang?.main, mathLang?.math, mathLang?.digits]);
 
   // Node views (references, citations) read the template from the editor.
   const activeTemplate = templateInfo?.template ?? null;
@@ -1141,13 +1149,13 @@ export default function App() {
       try {
         const docs = await Promise.all(files.map((f) => (f === p.chapter ? Promise.resolve(state.doc) : api.readChapter(f))));
         const mathml = Object.assign({}, ...docs.map((d) => formulasAsMathMl(d)));
-        await api.exportProjectDocx(target, projectState(), mathml);
+        await api.exportProjectDocx(target, projectState(), mathml, await arabicFormulaPictures(docs));
       } catch (e) {
         report(e);
       }
       return;
     }
-    await api.exportDocx(target, state, formulasAsMathMl(state.doc)).catch(report);
+    await api.exportDocx(target, state, formulasAsMathMl(state.doc), await arabicFormulaPictures([state.doc])).catch(report);
   };
 
   const newDoc = async (skipAsk = false) => {

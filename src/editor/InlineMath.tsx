@@ -7,6 +7,8 @@ import { InputRule, Node, mergeAttributes, type Editor } from "@tiptap/react";
 import { TextSelection } from "@tiptap/pm/state";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import type { NodeView } from "@tiptap/pm/view";
+import { arabicMathLatex, isArabicMath, mathSettings, onMathSettings } from "./arabicMath";
+import { createMathAssist, type MathAssist } from "./mathAssist";
 
 declare module "@tiptap/react" {
   interface Commands<ReturnType> {
@@ -19,8 +21,14 @@ declare module "@tiptap/react" {
 
 /** A formula as static markup (MathLive's own rendering, so it looks as when edited);
  *  `display` for an equation of its own (TeX's display style). */
-export function staticMarkup(latex: string, display = false): string {
+export function staticMarkup(latex: string, display = false, style?: string | null): string {
   try {
+    // The Arabic way: drawn left to right with its letters and numbers marked, then
+    // mirrored as a whole by CSS (see arabicMath.ts).
+    if (latex.trim() && isArabicMath(style)) {
+      const marked = arabicMathLatex(latex, mathSettings().indic);
+      return `<span class="tl-armath">${convertLatexToMarkup(marked, display ? { defaultMode: "math" } : undefined)}</span>`;
+    }
     return convertLatexToMarkup(latex, display ? { defaultMode: "math" } : undefined);
   } catch {
     return latex.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] ?? c);
@@ -37,6 +45,12 @@ class InlineMathView implements NodeView {
   dom: HTMLSpanElement;
   private field: MathfieldElement | null = null;
   private stopListening: (() => void) | null = null;
+  // The preview and palette under the field (Arabic documents).
+  private assist: MathAssist | null = null;
+  // The template's way of writing formulas changed: draw this one again.
+  private stopSettings = onMathSettings(() => {
+    if (!this.field && this.node.attrs.latex) this.showStatic();
+  });
 
   constructor(
     private node: PMNode,
@@ -54,7 +68,7 @@ class InlineMathView implements NodeView {
     this.stopEditing();
     const span = document.createElement("span");
     span.className = "inline-math-static";
-    span.innerHTML = staticMarkup(this.node.attrs.latex ?? "") || "&nbsp;";
+    span.innerHTML = staticMarkup(this.node.attrs.latex ?? "", false, this.node.attrs.style) || "&nbsp;";
     span.addEventListener("mousedown", (e) => {
       e.preventDefault();
       this.startEditing();
@@ -110,7 +124,19 @@ class InlineMathView implements NodeView {
     editor.on("selectionUpdate", elsewhere);
     this.stopListening = () => editor.off("selectionUpdate", elsewhere);
     this.field = mf;
-    this.dom.replaceChildren(mf);
+    this.assist = createMathAssist({
+      field: mf,
+      display: false,
+      getLatex: () => this.node.attrs.latex ?? "",
+      getStyle: () => this.node.attrs.style,
+      setLatex: (latex) => this.setLatex(latex),
+      editor,
+      setStyle: (style) => {
+        const pos = this.getPos();
+        if (pos !== undefined) editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...this.node.attrs, style }));
+      },
+    });
+    this.dom.replaceChildren(mf, ...(this.assist ? [this.assist.el] : []));
     // Once attached (a timer, not an animation frame: hidden windows run no frames).
     window.setTimeout(() => mf.focus());
   }
@@ -119,14 +145,16 @@ class InlineMathView implements NodeView {
     this.stopListening?.();
     this.stopListening = null;
     this.field = null;
+    this.assist = null;
   }
 
   update(node: PMNode) {
     if (node.type !== this.node.type) return false;
-    const changed = node.attrs.latex !== this.node.attrs.latex;
+    const changed = node.attrs.latex !== this.node.attrs.latex || node.attrs.style !== this.node.attrs.style;
     this.node = node;
     if (this.field) {
       if (this.field.value !== node.attrs.latex) this.field.value = node.attrs.latex ?? "";
+      if (changed) this.assist?.update();
     } else if (changed) {
       this.showStatic();
     }
@@ -152,6 +180,7 @@ class InlineMathView implements NodeView {
 
   destroy() {
     this.stopEditing();
+    this.stopSettings();
   }
 }
 
@@ -163,15 +192,21 @@ export const InlineMath = Node.create({
   selectable: true,
 
   addAttributes() {
-    return { latex: { default: "" } };
+    // `style`: "arabic" or "international" when it isn't the template's way.
+    return { latex: { default: "" }, style: { default: null, rendered: false } };
   },
 
   parseHTML() {
-    return [{ tag: "span[data-inline-math]", getAttrs: (el) => ({ latex: (el as HTMLElement).dataset.latex ?? "" }) }];
+    return [
+      {
+        tag: "span[data-inline-math]",
+        getAttrs: (el) => ({ latex: (el as HTMLElement).dataset.latex ?? "", style: (el as HTMLElement).dataset.mathStyle ?? null }),
+      },
+    ];
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    return ["span", mergeAttributes(HTMLAttributes, { "data-inline-math": "", "data-latex": node.attrs.latex })];
+    return ["span", mergeAttributes(HTMLAttributes, { "data-inline-math": "", "data-latex": node.attrs.latex, ...(node.attrs.style ? { "data-math-style": node.attrs.style } : {}) })];
   },
 
   addNodeView() {

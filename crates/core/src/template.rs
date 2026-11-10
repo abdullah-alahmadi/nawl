@@ -463,6 +463,22 @@ pub struct LanguageSettings {
     /// Digits for page, chapter, figure and equation numbers (Arabic documents).
     #[serde(default)]
     pub digits: Digits,
+    /// How formulas are written (Arabic documents).
+    #[serde(default)]
+    pub math: MathStyle,
+}
+
+/// How formulas are written in an Arabic document.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum MathStyle {
+    /// Left to right with Latin letters, as in the Maghreb and most of the world.
+    #[default]
+    International,
+    /// Right to left, as in the Gulf, the Levant and Egypt: Arabic letters, mirrored
+    /// integral, sum and root, powers on the left.
+    Arabic,
 }
 
 impl LanguageSettings {
@@ -509,6 +525,11 @@ pub struct Fonts {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub arabic: Option<FontChoice>,
+    /// The font of the variables in Arabic formulas, so they stand out from the text
+    /// (Aref Ruqaa when absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub arabic_math: Option<FontChoice>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -707,7 +728,21 @@ impl Template {
                 out.extend(style.font.as_ref());
             }
         }
+        // Last, with the fonts that get a family command of their own.
+        out.extend(self.arabic_math_font());
         out
+    }
+
+    /// Formulas are written the Arabic way: the template says so, and is Arabic.
+    pub fn arabic_math(&self) -> bool {
+        let lang = self.lang();
+        lang.main == Language::Arabic && lang.math == MathStyle::Arabic
+    }
+
+    /// The font of the variables in Arabic formulas; `None` without Arabic formulas.
+    pub fn arabic_math_font(&self) -> Option<&FontChoice> {
+        static DEFAULT: std::sync::LazyLock<FontChoice> = std::sync::LazyLock::new(|| FontChoice::Library { id: "aref-ruqaa".into() });
+        self.arabic_math().then(|| self.fonts.arabic_math.as_ref().unwrap_or(&DEFAULT))
     }
 }
 

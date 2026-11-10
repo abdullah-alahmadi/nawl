@@ -1,0 +1,984 @@
+{
+  "format": "texloom",
+  "version": 1,
+  "template": {
+    "meta": {
+      "id": "arabic-article-math",
+      "name": "بحث لمجلة عربية (رياضيات عربية)",
+      "description": "بحث علمي بالعربية: عنوان ومستخلص وكلمات مفتاحية بالعربية والإنجليزية، ومراجع بنظام APA. Arabic journal article with Arabic and English titles, abstracts and keywords.",
+      "version": "2.0.0"
+    },
+    "page": {
+      "paper": {
+        "kind": "a4"
+      },
+      "margins": {
+        "topMm": 25,
+        "bottomMm": 25,
+        "innerMm": 25,
+        "outerMm": 25
+      },
+      "twoSided": false,
+      "bindingOffsetMm": 0,
+      "lineSpacing": {
+        "kind": "custom",
+        "stretch": 1.15
+      },
+      "paragraph": {
+        "indentMm": 4,
+        "spacingPt": 0
+      }
+    },
+    "fonts": {
+      "baseSizePt": 12,
+      "main": {
+        "kind": "builtin",
+        "font": "latinModern"
+      },
+      "sans": {
+        "kind": "builtin",
+        "font": "heros"
+      },
+      "mono": {
+        "kind": "builtin",
+        "font": "latinModern"
+      }
+    },
+    "structure": {
+      "topLevel": "section",
+      "numberedDepth": 3,
+      "tocDepth": 2,
+      "frontMatterPageNumbers": "arabic",
+      "mainPageNumbers": "arabic",
+      "perChapterNumbering": false,
+      "appendixLabel": "الملحق {n}"
+    },
+    "headings": {
+      "levels": [
+        {
+          "text": {
+            "sizePt": 14,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 14,
+          "spaceAfterPt": 6
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": false,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 10,
+          "spaceAfterPt": 4
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": true,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 8,
+          "spaceAfterPt": 3
+        },
+        {
+          "text": {
+            "sizePt": 12,
+            "bold": false,
+            "italic": true,
+            "align": "right"
+          },
+          "layout": "inline",
+          "label": "{n}",
+          "labelGapPt": 10,
+          "spaceBeforePt": 6,
+          "spaceAfterPt": 3
+        }
+      ]
+    },
+    "headerFooter": {
+      "frontMatter": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "main": {
+        "footer": {
+          "center": "{page}"
+        }
+      },
+      "chapterOpening": {
+        "footer": {
+          "center": "{page}"
+        }
+      }
+    },
+    "captions": {
+      "figureLabel": "شكل",
+      "tableLabel": "جدول",
+      "separator": "colon",
+      "labelBold": true,
+      "size": "footnote",
+      "align": "center"
+    },
+    "bibliography": {
+      "style": "authorYear",
+      "title": "المراجع",
+      "inToc": false
+    },
+    "skeleton": [
+      {
+        "title": "المقدمة",
+        "required": true
+      },
+      {
+        "title": "الدراسات السابقة",
+        "required": false
+      },
+      {
+        "title": "منهجية الدراسة",
+        "required": false
+      },
+      {
+        "title": "النتائج",
+        "required": false
+      },
+      {
+        "title": "المناقشة",
+        "required": false
+      },
+      {
+        "title": "الخاتمة",
+        "required": false
+      }
+    ],
+    "titlePage": {
+      "items": [
+        {
+          "xMm": 105,
+          "yMm": 25,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 18,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 37,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 12,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 43.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_affiliations}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 10,
+              "bold": false,
+              "italic": true,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 48.5,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_email}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 9.5,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 56,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{title_en}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 14,
+              "bold": true,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        },
+        {
+          "xMm": 105,
+          "yMm": 64,
+          "anchor": "top",
+          "content": {
+            "type": "text",
+            "text": "{authors_en}",
+            "widthMm": 160,
+            "style": {
+              "sizePt": 11,
+              "bold": false,
+              "italic": false,
+              "align": "center"
+            }
+          }
+        }
+      ],
+      "blockHeightMm": 74
+    },
+    "fields": [
+      {
+        "id": "title",
+        "label": "عنوان البحث",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "id": "authors",
+        "label": "المؤلفون",
+        "kind": "authors",
+        "required": true
+      },
+      {
+        "id": "abstract",
+        "label": "المستخلص",
+        "kind": "paragraphs",
+        "required": true
+      },
+      {
+        "id": "keywords",
+        "label": "الكلمات المفتاحية",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "title_en",
+        "label": "عنوان البحث بالإنجليزية",
+        "kind": "text"
+      },
+      {
+        "id": "abstract_en",
+        "label": "المستخلص بالإنجليزية (Abstract)",
+        "kind": "paragraphs"
+      },
+      {
+        "id": "keywords_en",
+        "label": "الكلمات المفتاحية بالإنجليزية (Keywords)",
+        "kind": "paragraphs"
+      }
+    ],
+    "frontMatter": [
+      {
+        "type": "titlePage"
+      },
+      {
+        "type": "fieldPage",
+        "title": "المستخلص",
+        "field": "abstract",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "الكلمات المفتاحية",
+        "field": "keywords",
+        "inToc": false,
+        "inline": true
+      },
+      {
+        "type": "fieldPage",
+        "title": "Abstract",
+        "field": "abstract_en",
+        "inToc": false,
+        "inline": true,
+        "language": "english"
+      },
+      {
+        "type": "fieldPage",
+        "title": "Keywords",
+        "field": "keywords_en",
+        "inToc": false,
+        "inline": true,
+        "language": "english"
+      }
+    ],
+    "language": {
+      "main": "arabic",
+      "other": "english",
+      "digits": "arabicIndic",
+      "math": "arabic"
+    }
+  },
+  "templatePath": null,
+  "metadata": {
+    "title": "مبادئ في الجبر والتفاضل والتكامل",
+    "authors": [
+      {
+        "name": "عبدالله الأحمدي",
+        "affiliations": [
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+        ],
+        "nameEn": "Abdullah Al-Ahmadi",
+        "affiliationsEn": [
+          "Department of Electrical Engineering, College of Engineering, Qassim University, Buraydah"
+        ],
+        "email": "author@example.edu.sa",
+        "corresponding": true
+      },
+      {
+        "name": "سارة القحطاني",
+        "affiliations": [
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+        ],
+        "nameEn": "Sarah Al-Qahtani",
+        "affiliationsEn": [
+          "Department of Electrical Engineering, College of Engineering, Qassim University, Buraydah"
+        ]
+      }
+    ],
+    "abstract": "ورقة نموذجية تعرض كتابة الرياضيات بالطريقة العربية في تكس لوم: المعادلات من اليمين إلى اليسار بحروف عربية، مع عكس رموز التكامل والمجموع والجذر، وكتابة الأسس والأدلّة إلى اليسار، وأسماء الدوال العربية مثل جا وجتا ونهـا.",
+    "keywords": "الرياضيات العربية، المعادلة التربيعية، النهايات، التكامل",
+    "title_en": "Elements of Algebra and Calculus",
+    "abstract_en": "A sample showing mathematics written the Arabic way in Texloom: formulas run right to left with Arabic letters, the integral, sum and root are mirrored, powers and indices sit on the left, and functions have their Arabic names.",
+    "keywords_en": "Arabic mathematics, quadratic equation, limits, integration"
+  },
+  "bibliography": "",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المقدمة"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تُكتب الرياضيات في كتب المشرق العربي من اليمين إلى اليسار: المتغيرات حروف عربية، والأسس والأدلّة إلى يسار الرمز، ورموز التكامل والمجموع والجذر معكوسة، وللدوال والنهايات أسماء عربية. تعرض هذه الورقة أمثلة من الجبر والتفاضل والتكامل مكتوبة بهذه الطريقة، ومعادلة واحدة بالطريقة الدولية."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المعادلة التربيعية"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "المعادلة التربيعية في المتغير "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "س"
+            }
+          },
+          {
+            "type": "text",
+            "text": " هي كل معادلة يمكن كتابتها على الصورة "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ا س^2+ب س+ج=0"
+            }
+          },
+          {
+            "type": "text",
+            "text": " حيث "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ا\\ne 0"
+            }
+          },
+          {
+            "type": "text",
+            "text": "، وتُسمّى الأعداد "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ا"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ب"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ج"
+            }
+          },
+          {
+            "type": "text",
+            "text": " معاملات المعادلة."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يُعطى جذرا المعادلة بالقانون العام:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "س=\\frac{-ب\\pm\\sqrt{ب^2-4اج}}{2ا}",
+          "numbered": true,
+          "id": "eq-roots"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ويُسمّى المقدار تحت الجذر في المعادلة "
+          },
+          {
+            "type": "ref",
+            "attrs": {
+              "target": "eq-roots"
+            }
+          },
+          {
+            "type": "text",
+            "text": " المميِّز، ونرمز له بالرمز "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\Delta"
+            }
+          },
+          {
+            "type": "text",
+            "text": ":"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\Delta=ب^2-4اج",
+          "numbered": true,
+          "id": "eq-delta"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "فإذا كان "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\Delta>0"
+            }
+          },
+          {
+            "type": "text",
+            "text": " كان للمعادلة جذران حقيقيان مختلفان، وإذا كان "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\Delta=0"
+            }
+          },
+          {
+            "type": "text",
+            "text": " كان لها جذر مكرَّر، وإذا كان "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\Delta<0"
+            }
+          },
+          {
+            "type": "text",
+            "text": " لم يكن لها جذور حقيقية."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "مثال"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "حُلَّ المعادلة "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "س^2-5س+6=0"
+            }
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "هنا "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ا=1"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ب=-5"
+            }
+          },
+          {
+            "type": "text",
+            "text": " و"
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ج=6"
+            }
+          },
+          {
+            "type": "text",
+            "text": "، فيكون المميِّز "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "\\Delta=25-24=1"
+            }
+          },
+          {
+            "type": "text",
+            "text": "، ومنه:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\begin{aligned}س_1&=\\frac{5+1}{2}=3\\\\س_2&=\\frac{5-1}{2}=2\\end{aligned}",
+          "numbered": true,
+          "id": "eq-example"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "النهايات والاشتقاق"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "نقول إن نهاية الدالة "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "د(س)"
+            }
+          },
+          {
+            "type": "text",
+            "text": " عندما تؤول "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "س"
+            }
+          },
+          {
+            "type": "text",
+            "text": " إلى "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ا"
+            }
+          },
+          {
+            "type": "text",
+            "text": " تساوي "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ل"
+            }
+          },
+          {
+            "type": "text",
+            "text": " ونكتب:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\lim_{س\\to ا}د(س)=ل",
+          "numbered": true,
+          "id": "eq-limit"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ومن النهايات الشهيرة:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\lim_{س\\to 0}\\frac{\\sin س}{س}=1,\\qquad \\lim_{ن\\to\\infty}\\left(1+\\frac{1}{ن}\\right)^{ن}=هـ",
+          "numbered": false,
+          "id": null
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "وتُعرَّف مشتقة الدالة "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "د"
+            }
+          },
+          {
+            "type": "text",
+            "text": " عند "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "س"
+            }
+          },
+          {
+            "type": "text",
+            "text": " بأنها:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\frac{د ص}{د س}=\\lim_{هـ\\to 0}\\frac{د(س+هـ)-د(س)}{هـ}",
+          "numbered": true,
+          "id": "eq-derivative"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "قواعد الاشتقاق"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\begin{aligned}\\frac{د}{د س}\\left(س^{ن}\\right)&=ن س^{ن-1}\\\\\\frac{د}{د س}\\left(\\sin س\\right)&=\\cos س\\\\\\frac{د}{د س}\\left(\\cos س\\right)&=-\\sin س\\\\\\frac{د}{د س}\\left(\\ln س\\right)&=\\frac{1}{س}\\end{aligned}",
+          "numbered": true,
+          "id": "eq-rules"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 1,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "التكامل والمتسلسلات"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "التكامل المحدَّد للدالة "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "د(س)"
+            }
+          },
+          {
+            "type": "text",
+            "text": " من "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ا"
+            }
+          },
+          {
+            "type": "text",
+            "text": " إلى "
+          },
+          {
+            "type": "inlineMath",
+            "attrs": {
+              "latex": "ب"
+            }
+          },
+          {
+            "type": "text",
+            "text": " هو مساحة المنطقة تحت منحناها، ومثاله:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\int_0^1 س^2\\,د س=\\frac{1}{3},\\qquad \\int_0^{\\pi}\\sin س\\,د س=2",
+          "numbered": true,
+          "id": "eq-integral"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "ومجموع الأعداد الطبيعية الأولى يُعطى بالعلاقة:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\sum_{ك=1}^{ن}ك=\\frac{ن(ن+1)}{2}",
+          "numbered": true,
+          "id": "eq-sum"
+        }
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "والدالة المعرَّفة على أجزاء تُكتب هكذا:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "|س|=\\begin{cases}س&\\text{إذا كان } س\\ge 0\\\\-س&\\text{إذا كان } س<0\\end{cases}",
+          "numbered": true,
+          "id": "eq-abs"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "المصفوفات"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "يُكتب النظام الخطي في مجهولين بصورة مصفوفية:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "\\begin{pmatrix}2&1\\\\1&3\\end{pmatrix}\\begin{pmatrix}س\\\\ص\\end{pmatrix}=\\begin{pmatrix}5\\\\10\\end{pmatrix}",
+          "numbered": true,
+          "id": "eq-matrix"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2,
+          "id": null,
+          "numbered": true
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "معادلة بالطريقة الدولية"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "تبقى بعض العلاقات بصورتها الدولية المعروفة حتى في الكتب العربية، ومنها علاقة أينشتاين بين الكتلة والطاقة:"
+          }
+        ]
+      },
+      {
+        "type": "equation",
+        "attrs": {
+          "latex": "E=mc^2",
+          "numbered": true,
+          "id": "eq-einstein",
+          "style": "international"
+        }
+      }
+    ]
+  }
+}

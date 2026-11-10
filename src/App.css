@@ -418,6 +418,31 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 /* An equation not being edited: static markup the size of the field; a click edits it. */
 .equation-static { font-size: 1.15em; min-width: 6em; text-align: center; cursor: text; padding: 2px 0; }
 .inline-math-static { cursor: text; }
+/* Arabic formulas: mirrored as a whole; letters, words and numbers mirrored back. */
+.tl-armath { display: inline-block; transform: scaleX(-1); }
+.tl-armath :is(.tl-v, .tl-w, .tl-b) { display: inline-block; transform: scaleX(-1); }
+/* The helper under a formula being typed in an Arabic document: how it will be set
+   (right to left), a palette, and the switch between the two ways of writing. */
+.page .inline-math { position: relative; }
+.math-assist {
+  position: absolute; top: calc(100% + 4px); inset-inline-start: 0; z-index: 30; display: grid; gap: 6px; padding: 6px 8px;
+  background: #fff; color: #1d2228; border: 1px solid #c9ced6; border-radius: 8px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+  font: 12px/1.3 system-ui, sans-serif; text-indent: 0; text-align: start; white-space: nowrap; width: max-content; max-width: 460px; cursor: default;
+}
+.math-assist.display { position: static; margin: 6px auto 0; box-shadow: none; }
+.math-assist-head { display: flex; gap: 2px; }
+.math-assist-head button { padding: 1px 8px; border-radius: 5px; color: #5b6470; font: inherit; }
+.math-assist-spacer { flex: 1; min-width: 12px; }
+.math-assist-head .math-assist-convert { color: #1f4fb5; }
+.math-assist-head .math-assist-convert:disabled { color: #a3abb6; cursor: default; }
+.math-assist:not(.arabic) .math-assist-convert { display: none; }
+.math-assist-head button.active { background: #e6edfb; color: #1f4fb5; font-weight: 600; }
+.math-assist-preview { min-height: 1.6em; padding: 4px 8px; text-align: center; font-size: 16px; background: #f6f7f9; border-radius: 6px; overflow-x: auto; }
+.math-assist-palette { display: flex; flex-wrap: wrap; gap: 2px; white-space: normal; }
+.math-assist-palette button { min-width: 26px; height: 24px; padding: 0 5px; border-radius: 5px; font: 14px/1 system-ui, sans-serif; color: #1d2228; }
+.math-assist-palette button:hover { background: #e9edf3; }
+.math-assist-palette .mirrored { display: inline-block; transform: scaleX(-1); }
+.math-assist:not(.arabic) :is(.math-assist-preview, .math-assist-palette) { display: none; }
 .equation-number { position: absolute; right: 4px; color: #8a929c; font-size: 0.9em; }
 /* Arabic: the number at the end of the line, on the left, as in the PDF (leqno). */
 .page[dir="rtl"] .equation-number { right: auto; left: 4px; }

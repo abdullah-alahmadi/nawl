@@ -41,12 +41,35 @@ pub struct Input<'a> {
     pub font: &'a dyn Fn(&str) -> Option<Vec<u8>>,
 }
 
+/// A picture of a formula, as the PDF sets it: for Arabic formulas, which Word can't
+/// lay out right to left.
+pub struct FormulaPicture {
+    pub png: Vec<u8>,
+    /// Size in TeX points; `depth_pt` of the height is below the text's baseline.
+    pub width_pt: f32,
+    pub height_pt: f32,
+    pub depth_pt: f32,
+}
+
+/// The key of a formula's picture: its LaTeX, and whether it's a displayed equation
+/// (those are set larger than formulas in a line).
+pub fn formula_key(latex: &str, display: bool) -> String {
+    format!("{}:{}", if display { "D" } else { "I" }, latex.trim())
+}
+
 /// The `.docx` file's bytes.
 pub fn write(input: &Input) -> Result<Vec<u8>, String> {
+    write_with(input, &HashMap::new())
+}
+
+/// Like [`write`], with pictures for the Arabic formulas (by [`formula_key`]); an
+/// Arabic formula without one is written as a Word equation, left to right.
+pub fn write_with(input: &Input, pictures: &HashMap<String, FormulaPicture>) -> Result<Vec<u8>, String> {
     if input.template.kind == texloom_core::DocumentKind::Presentation {
         return Err("Word export is for documents; export slides as PDF.".into());
     }
     let mut w = Writer::new(input);
+    w.pictures = Some(pictures);
     let body = w.body();
     w.package(&body)
 }
@@ -257,6 +280,8 @@ struct Writer<'a> {
     context_style: Option<&'static str>,
     /// Table header cells: their text is bold.
     bold_text: bool,
+    /// Pictures of the Arabic formulas, when the app made them.
+    pictures: Option<&'a HashMap<String, FormulaPicture>>,
 }
 
 const TEXT_WIDTH_FALLBACK_MM: f32 = 160.0;
@@ -300,6 +325,7 @@ impl<'a> Writer<'a> {
             bibliography_done: false,
             context_style: None,
             bold_text: false,
+            pictures: None,
         }
     }
 
@@ -398,7 +424,7 @@ impl<'a> Writer<'a> {
                     }
                 }
                 Inline::HardBreak => out.push_str("<w:r><w:br/></w:r>"),
-                Inline::InlineMath { attrs } => out.push_str(&self.formula(&attrs.latex)),
+                Inline::InlineMath { attrs } => out.push_str(&self.formula(attrs, false)),
                 Inline::Ref { attrs } => {
                     let text = self.numbers.refs.get(&attrs.target).cloned().unwrap_or_else(|| "??".into());
                     out.push_str(&self.text_runs(&text, &Rp::default()));
@@ -418,10 +444,16 @@ impl<'a> Writer<'a> {
         out
     }
 
-    fn formula(&self, latex: &str) -> String {
-        let latex = latex.trim();
+    fn formula(&mut self, attrs: &texloom_core::MathAttrs, display: bool) -> String {
+        let latex = attrs.latex.trim();
         if latex.is_empty() {
             return String::new();
+        }
+        // The Arabic way (right to left): Word can't lay that out, so the formula goes
+        // in as a picture of how the PDF sets it, sitting on the text's baseline.
+        let arabic = self.langs.main == Language::Arabic && attrs.style.unwrap_or(self.t.lang().math) == texloom_core::MathStyle::Arabic;
+        if arabic && let Some(p) = self.pictures.and_then(|all| all.get(&formula_key(latex, display))) {
+            return self.formula_picture(p);
         }
         // Numbers in formulas follow an Arabic document's Arabic-Indic digits, as in the PDF.
         let indic = self.langs.main == Language::Arabic && self.langs.digits == Digits::ArabicIndic;
@@ -592,7 +624,7 @@ impl<'a> Writer<'a> {
             }
             Block::HorizontalRule => o.push_str(&self.para(Pp { border_bottom: Some(6), ..Default::default() }, "")),
             Block::Equation { attrs } => {
-                let formula = self.formula(&attrs.latex);
+                let formula = self.formula(attrs, true);
                 let width = twips(self.line_width_mm());
                 let number = if attrs.numbered {
                     self.next.3 += 1;
@@ -805,6 +837,25 @@ impl<'a> Writer<'a> {
             "<w:r><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"{cx}\" cy=\"{cy}\"/><wp:docPr id=\"{id}\" name=\"{}\"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect=\"1\"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"><pic:pic><pic:nvPicPr><pic:cNvPr id=\"{id}\" name=\"{file}\"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed=\"{rid}\"/>{rect}<a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"{cx}\" cy=\"{cy}\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>",
             esc(name)
         ))
+    }
+
+    /// A formula's picture in the line: its size as in the PDF, lowered by its depth
+    /// so its baseline is the text's.
+    fn formula_picture(&mut self, p: &FormulaPicture) -> String {
+        const EMU_PER_PT: f32 = 914_400.0 / 72.27;
+        let n = self.media.len() + 1;
+        let rid = format!("rIdImage{n}");
+        let file = format!("image{n}.png");
+        self.media.push((rid.clone(), file.clone(), p.png.clone()));
+        let id = self.drawing_id;
+        self.drawing_id += 1;
+        let (cx, cy) = ((p.width_pt * EMU_PER_PT).round() as i64, (p.height_pt * EMU_PER_PT).round() as i64);
+        // Half-points below the baseline.
+        let lower = (p.depth_pt * 72.0 / 72.27 * 2.0).round() as i64;
+        let position = if lower > 0 { format!("<w:rPr><w:position w:val=\"-{lower}\"/></w:rPr>") } else { String::new() };
+        format!(
+            "<w:r>{position}<w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"{cx}\" cy=\"{cy}\"/><wp:docPr id=\"{id}\" name=\"{file}\"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect=\"1\"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"><pic:pic><pic:nvPicPr><pic:cNvPr id=\"{id}\" name=\"{file}\"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed=\"{rid}\"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"{cx}\" cy=\"{cy}\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>"
+        )
     }
 
     // ---------------------------------------------------------------- front matter

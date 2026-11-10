@@ -9,4 +9,9 @@ baseSizePt: number, main: FontChoice, sans: FontChoice, mono: FontChoice,
 /**
  * The font for Arabic text (Amiri when absent).
  */
-arabic?: FontChoice, };
+arabic?: FontChoice, 
+/**
+ * The font of the variables in Arabic formulas, so they stand out from the text
+ * (Aref Ruqaa when absent).
+ */
+arabicMath?: FontChoice, };
