@@ -5,7 +5,7 @@
 import type { MathfieldElement } from "mathlive";
 import type { Editor } from "@tiptap/react";
 import { translate, uiLanguage } from "../i18n";
-import { isArabicMath, mathSettings, toArabicNotation } from "./arabicMath";
+import { isArabicMath, mathSettings, toArabicNotation, toLatinNotation } from "./arabicMath";
 import { staticMarkup } from "./InlineMath";
 
 /** What a palette button inserts (`#?` is a place to fill in), and how it's shown;
@@ -34,18 +34,35 @@ const PALETTE: { label: string; insert: string; mirrored?: boolean }[] = [
   { label: "π", insert: "\\pi" },
 ];
 
-/** Every Arabic-style formula of the document with its Latin variables as Arabic
- *  letters (x → س), in one step that Undo takes back. */
-export function convertAllFormulas(editor: Editor) {
-  const tr = editor.state.tr;
+/** The formulas whose letters change, and their new LaTeX: Latin variables into
+ *  Arabic letters (x → س) in the formulas written the Arabic way, or Arabic letters
+ *  back into Latin ones (س → x) in all of them. `except`: formulas with this style
+ *  of their own are left alone, and the others are converted whatever the template
+ *  says (the template's way of writing formulas is just being changed). */
+function lettersToConvert(editor: Editor, to: "arabic" | "latin", except?: "arabic" | "international") {
+  const changes: { pos: number; attrs: Record<string, unknown> }[] = [];
   editor.state.doc.descendants((node, pos) => {
     if (node.type.name !== "inlineMath" && node.type.name !== "equation") return true;
     const latex = (node.attrs.latex as string) ?? "";
-    const next = isArabicMath(node.attrs.style) ? toArabicNotation(latex) : latex;
-    if (next !== latex) tr.setNodeMarkup(pos, undefined, { ...node.attrs, latex: next });
+    const wanted = except ? node.attrs.style !== except : to === "latin" || isArabicMath(node.attrs.style);
+    const next = !wanted ? latex : to === "latin" ? toLatinNotation(latex) : toArabicNotation(latex);
+    if (next !== latex) changes.push({ pos, attrs: { ...node.attrs, latex: next } });
     return false;
   });
-  if (tr.docChanged) editor.view.dispatch(tr);
+  return changes;
+}
+
+/** How many formulas `convertAllFormulas` would change. */
+export const formulasToConvert = (editor: Editor, to: "arabic" | "latin", except?: "arabic" | "international") => lettersToConvert(editor, to, except).length;
+
+/** Changes the letters of the document's formulas (see `lettersToConvert`) in one
+ *  step that Undo takes back. */
+export function convertAllFormulas(editor: Editor, to: "arabic" | "latin", except?: "arabic" | "international") {
+  const changes = lettersToConvert(editor, to, except);
+  if (!changes.length) return;
+  const tr = editor.state.tr;
+  for (const c of changes) tr.setNodeMarkup(c.pos, undefined, c.attrs);
+  editor.view.dispatch(tr);
 }
 
 export interface MathAssist {
@@ -93,22 +110,27 @@ export function createMathAssist(opts: {
     return { style, b };
   });
 
-  // Latin letters into Arabic ones (x → س): this formula, or all of the document's.
+  // The letters changed between the two notations (x → س, or back: س → x), in this
+  // formula or all of the document's. Each pair shows when it has something to do.
   const spacer = document.createElement("span");
   spacer.className = "math-assist-spacer";
-  const convert = document.createElement("button");
-  convert.type = "button";
-  convert.className = "math-assist-convert";
-  convert.textContent = t("editor.mathConvert");
-  convert.title = t("editor.mathConvertTitle");
-  convert.addEventListener("click", () => opts.setLatex(toArabicNotation(opts.getLatex())));
-  const convertAll = document.createElement("button");
-  convertAll.type = "button";
-  convertAll.className = "math-assist-convert";
-  convertAll.textContent = t("editor.mathConvertAll");
-  convertAll.title = t("editor.mathConvertAllTitle");
-  convertAll.addEventListener("click", () => convertAllFormulas(opts.editor));
-  head.append(spacer, convert, convertAll);
+  head.appendChild(spacer);
+  const converters = (["arabic", "latin"] as const).map((to) => {
+    const one = document.createElement("button");
+    one.type = "button";
+    one.className = "math-assist-convert";
+    one.textContent = t(to === "arabic" ? "editor.mathConvert" : "editor.mathConvertBack");
+    one.title = t(to === "arabic" ? "editor.mathConvertTitle" : "editor.mathConvertBackTitle");
+    one.addEventListener("click", () => opts.setLatex(to === "arabic" ? toArabicNotation(opts.getLatex()) : toLatinNotation(opts.getLatex())));
+    const all = document.createElement("button");
+    all.type = "button";
+    all.className = "math-assist-convert";
+    all.textContent = t("editor.mathConvertAll");
+    all.title = t(to === "arabic" ? "editor.mathConvertAllTitle" : "editor.mathConvertBackAllTitle");
+    all.addEventListener("click", () => convertAllFormulas(opts.editor, to));
+    head.append(one, all);
+    return { to, one, all };
+  });
 
   const preview = document.createElement("div");
   preview.className = "math-assist-preview";
@@ -138,10 +160,13 @@ export function createMathAssist(opts: {
     for (const { style, b } of styles) b.classList.toggle("active", (style === "arabic") === arabic);
     el.classList.toggle("arabic", arabic);
     const latex = opts.getLatex();
-    // Only offered when this formula has Latin letters to turn into Arabic ones.
-    const convertible = toArabicNotation(latex) !== latex;
-    convert.hidden = !convertible;
-    convertAll.hidden = !convertible;
+    // Into Arabic letters: a formula written the Arabic way that has Latin ones. Back
+    // into Latin letters: any formula that has Arabic ones.
+    for (const { to, one, all } of converters) {
+      const useful = to === "arabic" ? arabic && toArabicNotation(latex) !== latex : toLatinNotation(latex) !== latex;
+      one.hidden = !useful;
+      all.hidden = !useful;
+    }
     preview.innerHTML = arabic && latex.trim() ? staticMarkup(latex, opts.display, opts.getStyle()) : "";
   };
   update();

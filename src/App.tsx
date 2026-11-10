@@ -26,6 +26,7 @@ import { Direction } from "./editor/Direction";
 import { ArabicPunctuation } from "./editor/ArabicPunctuation";
 import { docLanguage } from "./editor/language";
 import { setMathSettings } from "./editor/arabicMath";
+import { convertAllFormulas, formulasToConvert } from "./editor/mathAssist";
 import { arabicFormulaPictures, formulasAsMathMl } from "./editor/wordExport";
 import { ensureLibraryFont, libraryFontIds, templateFonts } from "./editor/libraryFonts";
 import { LanguageContext, resolveUiLanguage, translate, useT, t as tNow, type MessageKey } from "./i18n";
@@ -700,8 +701,33 @@ export default function App() {
   };
 
   // Designer edits: validate after a pause; valid drafts go live in the preview.
+  // The designer's "Formulas" setting changed: the direction follows by itself, but
+  // the letters are the document's. Offer to change them too (x → س, or back).
+  const offerLetterConversion = async (style: "arabic" | "international") => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const to = style === "arabic" ? "arabic" : "latin";
+    // Formulas with the other way of their own keep it, and their letters.
+    const except = style === "arabic" ? "international" : "arabic";
+    const count = formulasToConvert(editor, to, except);
+    if (count === 0) return;
+    const yes = await ask(tr(to === "arabic" ? "app.mathLettersToArabic" : "app.mathLettersToLatin", { n: count }), { title: tr("app.mathLettersTitle"), kind: "info" });
+    if (yes) convertAllFormulas(editor, to, except);
+  };
+  const mathStyleOf = (t: api.Template | null) => (t?.language?.main === "arabic" && t.language.math === "arabic" ? "arabic" : "international");
+  const mathStyleRef = useRef<"arabic" | "international">("international");
+  useEffect(() => {
+    mathStyleRef.current = mathStyleOf(template);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template?.language?.main, template?.language?.math]);
+
   const onDraftChange = useCallback(
     (t: api.Template) => {
+      const style = mathStyleOf(t);
+      if (style !== mathStyleRef.current && t.language?.main === "arabic") {
+        mathStyleRef.current = style;
+        void offerLetterConversion(style);
+      }
       setDraft(t);
       setDraftDirty(true);
       window.clearTimeout(draftTimer.current);

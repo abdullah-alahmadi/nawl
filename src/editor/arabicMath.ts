@@ -61,6 +61,7 @@ const isArabicMark = (c: string) => (c >= "ً" && c <= "ٟ") || c === "ٰ";
 const isDigit = (c: string) => (c >= "0" && c <= "9") || (c >= "٠" && c <= "٩") || (c >= "۰" && c <= "۹");
 const isAsciiLetter = (c: string) => /^[A-Za-z]$/.test(c);
 const KASHIDA = "ـ";
+const BACKSLASH = String.fromCharCode(92);
 
 const variable = (s: string) => `{\\class{tl-v}{\\text{${s}}}}`;
 const word = (s: string) => `\\class{tl-w}{\\text{${s}}}`;
@@ -309,9 +310,10 @@ const LETTERS: Record<string, string> = {
 /** Commands whose argument stays as it is: text, names, lengths, other alphabets. */
 const KEPT = new Set([...TEXT, ...RAW, ...ALPHABETS, "operatorname"]);
 
-/** The formula with its Latin variables as Arabic letters (x → س). Commands, text,
- *  Greek letters and digits are untouched; so are letters in `\mathbb{R}` and the like. */
-export function toArabicNotation(latex: string): string {
+/** Rewrites the formula outside commands and kept arguments (text, names, lengths):
+ *  `piece` gives the replacement for what starts at `i` and how many characters it
+ *  takes, or null to copy the character. */
+function rewrite(latex: string, piece: (chars: string[], i: number) => [string, number] | null): string {
   const chars = [...latex];
   let out = "";
   let i = 0;
@@ -323,7 +325,7 @@ export function toArabicNotation(latex: string): string {
     let depth = 0;
     let k = j;
     for (; k < chars.length; k++) {
-      if (chars[k] === "\\") k++;
+      if (chars[k] === BACKSLASH) k++;
       else if (chars[k] === "{") depth++;
       else if (chars[k] === "}" && --depth === 0) break;
     }
@@ -332,11 +334,10 @@ export function toArabicNotation(latex: string): string {
     return group;
   };
   while (i < chars.length) {
-    const c = chars[i];
-    if (c === "\\") {
+    if (chars[i] === BACKSLASH) {
       const start = i++;
       while (i < chars.length && isAsciiLetter(chars[i])) i++;
-      if (i === start + 1 && i < chars.length) i++; // a control symbol: \{ \,
+      if (i === start + 1 && i < chars.length) i++; // a control symbol: a brace, a thin space
       const name = chars.slice(start + 1, i).join("");
       out += chars.slice(start, i).join("");
       if (KEPT.has(name)) {
@@ -344,15 +345,64 @@ export function toArabicNotation(latex: string): string {
         out += group;
         if (name === "begin" && WITH_COLUMNS.has(group.trim().slice(1, -1))) out += copyGroup();
       }
-    } else if (isAsciiLetter(c)) {
-      out += LETTERS[c.toLowerCase()] ?? c;
-      i++;
-    } else {
-      out += c;
-      i++;
+      continue;
     }
+    const replaced = piece(chars, i);
+    if (replaced) {
+      out += replaced[0];
+      i += replaced[1];
+    } else out += chars[i++];
   }
   return out;
+}
+
+/** The formula with its Latin variables as Arabic letters (x → س). Commands, text,
+ *  Greek letters and digits are untouched; so are letters in the argument of a
+ *  command for another alphabet (the reals' R). */
+export function toArabicNotation(latex: string): string {
+  return rewrite(latex, (chars, i) => (isAsciiLetter(chars[i]) ? [LETTERS[chars[i].toLowerCase()] ?? chars[i], 1] : null));
+}
+
+/** The Latin letter for each Arabic variable: `LETTERS` the other way (د is d). */
+const LATIN: Record<string, string> = Object.fromEntries(
+  Object.entries(LETTERS)
+    .filter(([latin]) => latin !== "f")
+    .map(([latin, arabic]) => [arabic, latin]),
+);
+
+/** The Latin command for each Arabic function name (as `ARABIC_NAMES` spells them). */
+const LATIN_NAMES: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(FUNCTIONS).map(([latin, [arabic]]) => [arabic.split(KASHIDA).join(""), latin])),
+  "مجـ": "sum",
+};
+
+/** The formula back in Latin notation (س → x): Arabic variables as Latin letters,
+ *  Arabic function names as their commands (جا → sin), Arabic-Indic digits and
+ *  punctuation as Western ones. Text and letters without a Latin partner are kept.
+ *  Not an exact way back: capitals are gone, and د is always d (never f). */
+export function toLatinNotation(latex: string): string {
+  return rewrite(latex, (chars, i) => {
+    const c = chars[i];
+    if (isArabicLetter(c)) {
+      const name = arabicName(chars.slice(i, i + 12));
+      if (name) {
+        const command = LATIN_NAMES[ARABIC_NAMES.find((n) => n[1] === name[1])?.[0] ?? ""];
+        // A letter right after the command would join its name.
+        const next = chars[i + name[0]];
+        if (command) return [BACKSLASH + command + (next !== undefined && (isAsciiLetter(next) || isArabicLetter(next)) ? " " : ""), name[0]];
+      }
+      // A kashida only stretches the letter before it.
+      if (c === KASHIDA) return ["", 1];
+      return LATIN[c] ? [LATIN[c], 1] : null;
+    }
+    if (isArabicMark(c)) return ["", 1];
+    if (c >= "٠" && c <= "٩") return [String(c.charCodeAt(0) - 0x0660), 1];
+    if (c >= "۰" && c <= "۹") return [String(c.charCodeAt(0) - 0x06f0), 1];
+    if (c === "٫") return [".", 1];
+    if (c === "،") return [",", 1];
+    if (c === "؛") return [";", 1];
+    return null;
+  });
 }
 
 /** Whether a formula with its own `style` (or none) is written the Arabic way. */

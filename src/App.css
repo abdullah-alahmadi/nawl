@@ -438,7 +438,6 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .math-assist-spacer { flex: 1; min-width: 12px; }
 .math-assist-head .math-assist-convert { color: #1f4fb5; }
 .math-assist-head .math-assist-convert[hidden] { display: none; }
-.math-assist:not(.arabic) .math-assist-convert { display: none; }
 .math-assist-head button.active { background: #e6edfb; color: #1f4fb5; font-weight: 600; }
 .math-assist-preview { min-height: 1.6em; padding: 4px 8px; text-align: center; font-size: 16px; background: #f6f7f9; border-radius: 6px; overflow-x: auto; }
 .math-assist-palette { display: flex; flex-wrap: wrap; gap: 2px; white-space: normal; }
