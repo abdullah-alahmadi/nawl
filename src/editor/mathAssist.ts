@@ -138,7 +138,10 @@ export function createMathAssist(opts: {
     for (const { style, b } of styles) b.classList.toggle("active", (style === "arabic") === arabic);
     el.classList.toggle("arabic", arabic);
     const latex = opts.getLatex();
-    convert.disabled = toArabicNotation(latex) === latex;
+    // Only offered when this formula has Latin letters to turn into Arabic ones.
+    const convertible = toArabicNotation(latex) !== latex;
+    convert.hidden = !convertible;
+    convertAll.hidden = !convertible;
     preview.innerHTML = arabic && latex.trim() ? staticMarkup(latex, opts.display, opts.getStyle()) : "";
   };
   update();

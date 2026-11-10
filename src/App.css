@@ -419,7 +419,10 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .equation-static { font-size: 1.15em; min-width: 6em; text-align: center; cursor: text; padding: 2px 0; }
 .inline-math-static { cursor: text; }
 /* Arabic formulas: mirrored as a whole; letters, words and numbers mirrored back. */
-.tl-armath { display: inline-block; transform: scaleX(-1); }
+/* No paragraph indent inside: an inline block starts a line of its own, which would
+   be indented and leave a gap beside the formula. */
+.tl-armath { display: inline-block; transform: scaleX(-1); text-indent: 0; }
+.page .inline-math { text-indent: 0; }
 .tl-armath :is(.tl-v, .tl-w, .tl-b) { display: inline-block; transform: scaleX(-1); }
 /* The helper under a formula being typed in an Arabic document: how it will be set
    (right to left), a palette, and the switch between the two ways of writing. */
@@ -434,7 +437,7 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .math-assist-head button { padding: 1px 8px; border-radius: 5px; color: #5b6470; font: inherit; }
 .math-assist-spacer { flex: 1; min-width: 12px; }
 .math-assist-head .math-assist-convert { color: #1f4fb5; }
-.math-assist-head .math-assist-convert:disabled { color: #a3abb6; cursor: default; }
+.math-assist-head .math-assist-convert[hidden] { display: none; }
 .math-assist:not(.arabic) .math-assist-convert { display: none; }
 .math-assist-head button.active { background: #e6edfb; color: #1f4fb5; font-weight: 600; }
 .math-assist-preview { min-height: 1.6em; padding: 4px 8px; text-align: center; font-size: 16px; background: #f6f7f9; border-radius: 6px; overflow-x: auto; }
