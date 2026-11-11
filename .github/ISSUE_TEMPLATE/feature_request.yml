@@ -1,0 +1,30 @@
+name: Feature request · طلب ميزة
+description: Something Nawl should do. · شيء ينبغي أن يفعله نول.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to do? · ما الذي تريد فعله؟
+      description: The task or document you're working on, and where Nawl gets in the way. · المهمة أو المستند الذي تعمل عليه، وأين يعيقك نول.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could Nawl help? · كيف يمكن أن يساعد نول؟
+      description: Your idea, if you have one; how LyX, Word or another tool does it is useful too. · فكرتك إن وُجدت، ومفيد أيضًا كيف يفعلها LyX أو Word أو غيرهما.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area · المجال
+      options:
+        - Writing and the editor · الكتابة والمحرر
+        - Arabic · العربية
+        - Mathematics · الرياضيات
+        - Template designer · مصمم القوالب
+        - References and citations · المراجع والاستشهادات
+        - Projects (books, theses) · المشاريع (الكتب والرسائل)
+        - Presentations · العروض التقديمية
+        - Export (PDF, LaTeX, Word) · التصدير
+        - Other · أخرى

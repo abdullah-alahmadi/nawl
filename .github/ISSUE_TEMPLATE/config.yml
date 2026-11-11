@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: User guide · دليل الاستخدام
+    url: https://github.com/abdullah-alahmadi/nawl/blob/main/docs/help.md
+    about: How each part of Nawl works, with pictures (English). · شرح كل جزء من نول بالصور (بالعربية في docs/help.ar.md).

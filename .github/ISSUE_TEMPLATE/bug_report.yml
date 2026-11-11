@@ -1,0 +1,71 @@
+name: Bug report · الإبلاغ عن خطأ
+description: Something in Nawl doesn't work as it should. · شيء في نول لا يعمل كما ينبغي.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting. You can write in English or Arabic. · شكرًا لبلاغك، ويمكنك الكتابة بالعربية أو بالإنجليزية.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? · ماذا حدث؟
+      description: What you expected, and what happened instead. · ما الذي توقعته، وما الذي حدث بدلًا منه.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce · خطوات تكرار المشكلة
+      placeholder: |
+        1. Open the example Arabic thesis
+        2. Click …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Nawl version · إصدار نول
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: System · النظام
+      options:
+        - Windows 11
+        - Windows 10
+        - Ubuntu (.deb)
+        - Ubuntu (snap)
+        - Other Linux · لينكس آخر
+        - macOS (untested) · ماك (غير مجرَّب)
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: TeX engine (Settings → Preview) · محرك TeX (الإعدادات ← المعاينة)
+      options:
+        - Built-in Tectonic · Tectonic المدمج
+        - Installed pdfLaTeX · pdfLaTeX مثبت
+        - Installed XeLaTeX · XeLaTeX مثبت
+        - Installed LuaLaTeX · LuaLaTeX مثبت
+        - Don't know · لا أعرف
+  - type: dropdown
+    id: language
+    attributes:
+      label: Document language · لغة المستند
+      options:
+        - Arabic · العربية
+        - English · الإنجليزية
+        - Both · كلتاهما
+        - Not about a document · لا يتعلق بمستند
+  - type: textarea
+    id: files
+    attributes:
+      label: Document, screenshots, error text · المستند والصور ونص الخطأ
+      description: |
+        Drag files here. File → Save as single file… gives one .nawl with its images (zip it to attach). For wrong output, a screenshot of the editor and the PDF side by side helps most.
+        اسحب الملفات إلى هنا. «ملف ← حفظ كملف واحد…» يعطي ملف .nawl واحدًا بصوره (اضغطه zip لإرفاقه). وللمخرجات الخاطئة تفيد صورة للمحرر وملف PDF متجاورين.

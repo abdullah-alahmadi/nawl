@@ -1,0 +1,49 @@
+name: Template request · طلب قالب
+description: A journal, conference, university or official document layout Nawl should offer. · تخطيط مجلة أو مؤتمر أو جامعة أو خطاب رسمي ينبغي أن يوفره نول.
+labels: ["template"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Journal, conference or institution · المجلة أو المؤتمر أو الجهة
+      placeholder: e.g. the journal name, or a university's thesis rules · مثلًا اسم المجلة أو قواعد الرسائل في جامعة
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of document · نوع المستند
+      options:
+        - Journal article · بحث لمجلة
+        - Conference paper · ورقة مؤتمر
+        - Thesis or dissertation · رسالة جامعية
+        - Report · تقرير
+        - Book · كتاب
+        - Official letter or order · خطاب أو أمر رسمي
+        - Presentation · عرض تقديمي
+        - Other · أخرى
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language · اللغة
+      options:
+        - Arabic · العربية
+        - English · الإنجليزية
+        - Both · كلتاهما
+    validations:
+      required: true
+  - type: textarea
+    id: rules
+    attributes:
+      label: Rules and samples · القواعد والنماذج
+      description: |
+        A link to the author guidelines or the publisher's LaTeX kit, or attach the institution's rules and a sample document (PDF or Word). Templates are made from these.
+        رابط إرشادات المؤلفين أو حزمة LaTeX من الناشر، أو أرفق قواعد الجهة ونموذج مستند (PDF أو Word)؛ فمنها تُصنع القوالب.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Many journals already work today: **Import template…** accepts the publisher's LaTeX kit (.zip). · كثير من المجلات تعمل الآن: «استيراد قالب…» يقبل حزمة LaTeX من الناشر (.zip).
