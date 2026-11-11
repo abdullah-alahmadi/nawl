@@ -44,3 +44,6 @@ dist-ssr
 # Instructions and settings for Claude Code sessions: kept locally, not published
 /CLAUDE.md
 /.claude/
+
+# The assembled website (scripts/build-site.sh)
+/_site/
