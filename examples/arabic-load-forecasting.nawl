@@ -354,23 +354,23 @@
       {
         "name": "عبدالله الأحمدي",
         "affiliations": [
-          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة المجمعة، المجمعة"
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة النخيل، المجمعة"
         ],
         "email": "author@example.edu.sa",
         "corresponding": true,
         "nameEn": "Abdullah Al-Ahmadi",
         "affiliationsEn": [
-          "Department of Electrical Engineering, College of Engineering, Majmaah University, Al-Majmaah"
+          "Department of Electrical Engineering, College of Engineering, Al-Nakheel University, Al-Majmaah"
         ]
       },
       {
         "name": "سارة القحطاني",
         "affiliations": [
-          "قسم الهندسة الكهربائية وهندسة الحاسبات، جامعة الملك عبدالعزيز، جدة"
+          "قسم الهندسة الكهربائية وهندسة الحاسبات، جامعة المعرفة، جدة"
         ],
         "nameEn": "Sarah Al-Qahtani",
         "affiliationsEn": [
-          "Department of Electrical and Computer Engineering, King Abdulaziz University, Jeddah"
+          "Department of Electrical and Computer Engineering, Al-Maarifa University, Jeddah"
         ]
       }
     ],

@@ -51,7 +51,7 @@ fn arabic_document() -> Document {
         ]}
     ]});
     let mut metadata = nawl_core::Metadata::new();
-    for (k, v) in [("title", "أثر التعلم العميق Deep Learning في التعليم"), ("university", "جامعة الملك عبدالعزيز"), ("department", "قسم علوم الحاسب"), ("course", "مشروع التخرج"), ("advisor", "د. أحمد علي"), ("date", "١٤٤٦هـ"), ("abstract", "ملخص البحث.")] {
+    for (k, v) in [("title", "أثر التعلم العميق Deep Learning في التعليم"), ("university", "جامعة المعرفة"), ("department", "قسم علوم الحاسب"), ("course", "مشروع التخرج"), ("advisor", "د. أحمد علي"), ("date", "١٤٤٦هـ"), ("abstract", "ملخص البحث.")] {
         metadata.insert(k.into(), nawl_core::FieldValue::Text(v.into()));
     }
     metadata.insert("team".into(), nawl_core::FieldValue::List(vec!["عبدالله الأحمدي".into()]));
@@ -519,7 +519,7 @@ fn arabic_samples() -> Vec<(&'static str, Template, Document)> {
             ("title_en", "The Effect of Deep Learning on University Education"),
             ("author", "عبدالله الأحمدي"),
             ("supervisor", "أ.د. محمد العتيبي"),
-            ("university", "جامعة الملك عبدالعزيز"),
+            ("university", "جامعة المعرفة"),
             ("college", "كلية الحاسبات وتقنية المعلومات"),
             ("department", "قسم علوم الحاسب"),
             ("degree", "الماجستير في علوم الحاسب"),
@@ -547,7 +547,7 @@ fn arabic_samples() -> Vec<(&'static str, Template, Document)> {
         ]}
     ]});
     let mut deck = Document { metadata: Default::default(), body: serde_json::from_value(slides).unwrap(), bibliography: String::new() };
-    deck = with_metadata(deck, &[("title", "التعلم الآلي في التعليم"), ("institute", "جامعة الملك عبدالعزيز")]);
+    deck = with_metadata(deck, &[("title", "التعلم الآلي في التعليم"), ("institute", "جامعة المعرفة")]);
     vec![
         ("arabic-thesis", builtin("arabic-thesis"), thesis),
         ("arabic-book", builtin("arabic-book"), book),

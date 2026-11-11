@@ -354,11 +354,11 @@
       {
         "name": "عبدالله الأحمدي",
         "affiliations": [
-          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة الأفق، بريدة"
         ],
         "nameEn": "Abdullah Al-Ahmadi",
         "affiliationsEn": [
-          "Department of Electrical Engineering, College of Engineering, Qassim University, Buraydah"
+          "Department of Electrical Engineering, College of Engineering, Al-Ofuq University, Buraydah"
         ],
         "email": "author@example.edu.sa",
         "corresponding": true
@@ -366,11 +366,11 @@
       {
         "name": "سارة القحطاني",
         "affiliations": [
-          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة الأفق، بريدة"
         ],
         "nameEn": "Sarah Al-Qahtani",
         "affiliationsEn": [
-          "Department of Electrical Engineering, College of Engineering, Qassim University, Buraydah"
+          "Department of Electrical Engineering, College of Engineering, Al-Ofuq University, Buraydah"
         ]
       }
     ],
@@ -1573,7 +1573,7 @@
         "content": [
           {
             "type": "text",
-            "text": "يشكر الباحثان المزارع الذي أتاح موقع التجربة، وعمادة البحث العلمي بجامعة القصيم على دعمها."
+            "text": "يشكر الباحثان المزارع الذي أتاح موقع التجربة، وعمادة البحث العلمي بجامعة الأفق على دعمها."
           }
         ]
       }

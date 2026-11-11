@@ -13,8 +13,8 @@ fn author(name: &str, name_en: &str, affiliations: &[(&str, &str)]) -> AuthorInf
     }
 }
 
-const EE: (&str, &str) = ("قسم الهندسة الكهربائية، جامعة المجمعة", "Department of Electrical Engineering, Majmaah University");
-const ECE: (&str, &str) = ("قسم الهندسة الكهربائية وهندسة الحاسبات، جامعة الملك عبدالعزيز", "Department of Electrical and Computer Engineering, King Abdulaziz University");
+const EE: (&str, &str) = ("قسم الهندسة الكهربائية، جامعة النخيل", "Department of Electrical Engineering, Al-Nakheel University");
+const ECE: (&str, &str) = ("قسم الهندسة الكهربائية وهندسة الحاسبات، جامعة المعرفة", "Department of Electrical and Computer Engineering, Al-Maarifa University");
 
 #[test]
 fn numbers_only_when_affiliations_differ() {

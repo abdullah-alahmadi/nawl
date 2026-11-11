@@ -355,11 +355,11 @@
       {
         "name": "ريم العتيبي",
         "affiliations": [
-          "قسم الهندسة البيئية، كلية الهندسة، جامعة الملك سعود، الرياض"
+          "قسم الهندسة البيئية، كلية الهندسة، جامعة الواحة، الرياض"
         ],
         "nameEn": "Reem Al-Otaibi",
         "affiliationsEn": [
-          "Department of Environmental Engineering, College of Engineering, King Saud University, Riyadh"
+          "Department of Environmental Engineering, College of Engineering, Al-Waha University, Riyadh"
         ],
         "email": "author@example.edu.sa",
         "corresponding": true
@@ -367,21 +367,21 @@
       {
         "name": "عبدالله الأحمدي",
         "affiliations": [
-          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة الأفق، بريدة"
         ],
         "nameEn": "Abdullah Al-Ahmadi",
         "affiliationsEn": [
-          "Department of Electrical Engineering, College of Engineering, Qassim University, Buraydah"
+          "Department of Electrical Engineering, College of Engineering, Al-Ofuq University, Buraydah"
         ]
       },
       {
         "name": "فهد الزهراني",
         "affiliations": [
-          "قسم الهندسة البيئية، كلية الهندسة، جامعة الملك سعود، الرياض"
+          "قسم الهندسة البيئية، كلية الهندسة، جامعة الواحة، الرياض"
         ],
         "nameEn": "Fahad Al-Zahrani",
         "affiliationsEn": [
-          "Department of Environmental Engineering, College of Engineering, King Saud University, Riyadh"
+          "Department of Environmental Engineering, College of Engineering, Al-Waha University, Riyadh"
         ]
       }
     ],

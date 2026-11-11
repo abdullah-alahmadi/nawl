@@ -255,18 +255,18 @@
       {
         "name": "عبدالله الأحمدي",
         "affiliations": [
-          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة الأفق، بريدة"
         ],
         "email": "author@example.edu.sa"
       },
       {
         "name": "سارة القحطاني",
         "affiliations": [
-          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة القصيم، بريدة"
+          "قسم الهندسة الكهربائية، كلية الهندسة، جامعة الأفق، بريدة"
         ]
       }
     ],
-    "institute": "جامعة القصيم",
+    "institute": "جامعة الأفق",
     "date": "جمادى الأولى ١٤٤٧هـ"
   },
   "bibliography": "@article{alahmadi2021,\n  author = {الأحمدي, عبدالله and الحربي, فيصل},\n  title = {كفاءة استخدام المياه في المزارع الصغيرة بمنطقة القصيم},\n  journal = {المجلة السعودية للعلوم الزراعية},\n  volume = {18},\n  number = {2},\n  pages = {33--52},\n  year = {2021}\n}\n\n@book{aldosari2019,\n  author = {الدوسري, منى},\n  title = {أساسيات الري بالتنقيط وتصميم شبكاته},\n  publisher = {دار النشر العلمي},\n  address = {الرياض},\n  year = {2019}\n}\n\n@inproceedings{alsubaie2022,\n  author = {السبيعي, خالد and العنزي, نوف and الشهري, ريم},\n  title = {الاستشعار اللاسلكي لرطوبة التربة في البيئات الصحراوية},\n  booktitle = {وقائع المؤتمر السعودي للهندسة الزراعية},\n  pages = {88--97},\n  year = {2022}\n}\n\n@book{allen1998,\n  author = {Allen, Richard G. and Pereira, Luis S. and Raes, Dirk and Smith, Martin},\n  title = {Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements},\n  series = {FAO Irrigation and Drainage Paper 56},\n  publisher = {FAO},\n  address = {Rome},\n  year = {1998}\n}\n\n@article{hargreaves1985,\n  author = {Hargreaves, George H. and Samani, Zohrab A.},\n  title = {Reference Crop Evapotranspiration from Temperature},\n  journal = {Applied Engineering in Agriculture},\n  volume = {1},\n  number = {2},\n  pages = {96--99},\n  year = {1985}\n}\n\n@article{goap2018,\n  author = {Goap, Amarendra and Sharma, Deepak and Shukla, A. K. and Krishna, C. Rama},\n  title = {An IoT Based Smart Irrigation Management System Using Machine Learning and Open Source Technologies},\n  journal = {Computers and Electronics in Agriculture},\n  volume = {155},\n  pages = {41--49},\n  year = {2018},\n  doi = {10.1016/j.compag.2018.09.040}\n}\n\n@article{augustin2016,\n  author = {Augustin, Aloÿs and Yi, Jiazi and Clausen, Thomas and Townsley, William Mark},\n  title = {A Study of LoRa: Long Range \\& Low Power Networks for the Internet of Things},\n  journal = {Sensors},\n  volume = {16},\n  number = {9},\n  pages = {1466},\n  year = {2016},\n  doi = {10.3390/s16091466}\n}\n",
