@@ -2329,7 +2329,7 @@ dependencies = [
 
 [[package]]
 name = "nawl"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "biblatex",
  "nawl-codegen",
@@ -2352,7 +2352,7 @@ dependencies = [
 
 [[package]]
 name = "nawl-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -2364,7 +2364,7 @@ dependencies = [
 
 [[package]]
 name = "nawl-codegen"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "insta",
  "nawl-compile",
@@ -2375,7 +2375,7 @@ dependencies = [
 
 [[package]]
 name = "nawl-compile"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "flate2",
  "serde",
@@ -2385,7 +2385,7 @@ dependencies = [
 
 [[package]]
 name = "nawl-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "biblatex",
  "icu_calendar",
@@ -2396,7 +2396,7 @@ dependencies = [
 
 [[package]]
 name = "nawl-docx"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "nawl-codegen",
  "nawl-core",

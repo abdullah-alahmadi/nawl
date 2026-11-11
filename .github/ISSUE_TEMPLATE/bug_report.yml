@@ -39,8 +39,10 @@ body:
         - Windows 10
         - Ubuntu (.deb)
         - Ubuntu (snap)
+        - Fedora / openSUSE (.rpm)
+        - Linux (AppImage)
         - Other Linux · لينكس آخر
-        - macOS (untested) · ماك (غير مجرَّب)
+        - macOS (experimental) · ماك (تجريبي)
     validations:
       required: true
   - type: dropdown

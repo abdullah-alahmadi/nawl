@@ -34,11 +34,21 @@ part of the app. The pictures show version 0.1.
 ## 1. Getting started
 
 **Install.** Download the installer for your system from the
-[Releases page](https://github.com/abdullah-alahmadi/nawl/releases): `.exe` or `.msi`
-for Windows, `.deb` or the snap for Ubuntu. If no release is listed yet, build Nawl
-from source as the [README](../README.md#building-from-source) describes. The Windows
-installer is not code-signed, so Windows shows a SmartScreen warning the first time:
-choose **More info → Run anyway**.
+[Releases page](https://github.com/abdullah-alahmadi/nawl/releases) or the
+[website](https://abdullah-alahmadi.github.io/nawl/):
+
+- **Windows:** the `.exe` installer (or the `.msi`). It isn't code-signed, so Windows
+  shows a SmartScreen warning the first time: choose **More info → Run anyway**.
+- **Linux:** the `.deb` for Ubuntu, Debian and Mint (or the snap), the `.rpm` for Fedora
+  and openSUSE, or the `.AppImage` for any other distribution (make it executable and
+  run it).
+- **macOS (experimental):** the `.dmg`, for Apple Silicon and Intel Macs. It isn't signed
+  by Apple yet, so after dragging Nawl to Applications, open **System Settings → Privacy
+  & Security** and click **Open Anyway** (or run
+  `xattr -dr com.apple.quarantine /Applications/Nawl.app` in Terminal).
+
+If no release is listed yet, build Nawl from source as the
+[README](../README.md#building-from-source) describes.
 
 Nothing else is needed. The TeX engine (Tectonic) and the packages the built-in
 templates use come with the app, so documents compile without internet.

@@ -21,8 +21,8 @@ the headings, the title page) are designed visually instead of in code.
 > **Early preview (version 0.1).** Nawl is usable for real documents, but it is young:
 > expect rough edges, and keep copies of work that matters. File formats may still change
 > between versions. The installers are not code-signed, so Windows shows a SmartScreen
-> warning on first run. It is developed and tested on Windows and Ubuntu; macOS is
-> untested. Bug reports are welcome in the
+> warning on first run. It is developed and tested on Windows and Ubuntu; the macOS build
+> is experimental. Bug reports are welcome in the
 > [issues](https://github.com/abdullah-alahmadi/nawl/issues).
 
 ## Contents
@@ -118,12 +118,27 @@ An Arabic administrative order with a letterhead, both calendars and a signature
 ## Install
 
 Installers are attached to the
-[releases](https://github.com/abdullah-alahmadi/nawl/releases): `.exe` and `.msi` for
-Windows, `.deb` and a snap for Ubuntu. If no release is listed yet, build from source as
-described below.
+[releases](https://github.com/abdullah-alahmadi/nawl/releases):
+
+| System | File |
+|---|---|
+| Windows 10 and 11 | `.exe` installer (or the `.msi`) |
+| Ubuntu, Debian, Mint | `.deb` (or the snap) |
+| Fedora, RHEL, openSUSE | `.rpm` |
+| Any other Linux | `.AppImage`: make it executable and run it, no install needed |
+| macOS (Apple Silicon and Intel) | `.dmg`, experimental |
 
 On Windows the installer is not code-signed: choose **More info → Run anyway** when
 SmartScreen warns.
+
+**macOS (experimental).** The `.dmg` works on Apple Silicon and Intel Macs but hasn't
+been tested much, and it isn't signed by Apple yet, so macOS says it "can't be opened"
+or "is damaged". After dragging Nawl to Applications, open **System Settings → Privacy &
+Security** and click **Open Anyway**, or run this once in Terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Nawl.app
+```
 
 ## Documentation
 
@@ -186,15 +201,16 @@ cargo run -p nawl-cli -- check templates/senior-design/template.json --print-cls
 
 ## Packages
 
-Installers are built by GitHub Actions (`.github/workflows/packages.yml`): the Ubuntu
-`.deb` (built on Ubuntu 22.04, so it installs on 22.04 and newer), a snap made from that
-`.deb` (`snap/snapcraft.yaml`), and the Windows installers (`.exe` and `.msi`). Run the
+Installers are built by GitHub Actions (`.github/workflows/packages.yml`): the Linux
+`.deb`, `.rpm` and AppImage (built on Ubuntu 22.04, so they run on 22.04-era systems and
+newer), a snap made from the `.deb` (`snap/snapcraft.yaml`), the Windows installers
+(`.exe` and `.msi`), and a universal macOS `.dmg` (not signed by Apple). Run the
 **Packages** workflow from the Actions tab, or push a version tag to also get a draft
 release with the packages attached:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 Locally, on Linux:
@@ -203,11 +219,12 @@ Locally, on Linux:
 scripts/fetch-tectonic.sh
 node scripts/fetch-fonts.mjs         # Arabic font library (needs: pip install fonttools)
 node scripts/build-tex-cache.mjs     # TeX packages for compiling offline
-npm run tauri build -- --bundles deb
-sudo apt install ./target/release/bundle/deb/Nawl_0.1.0_amd64.deb
+npm run tauri build -- --bundles deb,rpm,appimage
+sudo apt install ./target/release/bundle/deb/Nawl_*_amd64.deb
 ```
 
-On Windows, `npm run tauri build -- --bundles nsis,msi`.
+On Windows, `npm run tauri build -- --bundles nsis,msi`. On a Mac,
+`npm run tauri build -- --bundles dmg` after `scripts/fetch-tectonic.sh` for that Mac's chip.
 
 The snap is strictly confined: it compiles with the bundled Tectonic, and can't see a
 TeX Live installed on the system (use the `.deb` for that). The app icon's source is
@@ -249,7 +266,7 @@ PDF بجوارها. أما القوالب (الصفحة والخطوط والع�
 > **نسخة تجريبية مبكرة (الإصدار 0.1).** يصلح نول لمستندات حقيقية، لكنه برنامج
 > ناشئ: توقّع بعض النواقص، واحتفظ بنسخ من عملك المهم. قد تتغير صيغ الملفات بين
 > الإصدارات. ملفات التثبيت غير موقّعة رقميًا، فيعرض ويندوز تحذير SmartScreen عند
-> التشغيل الأول. يُطوَّر ويُختبر على ويندوز وأوبونتو، ولم يُجرَّب على macOS. نرحب ببلاغات
+> التشغيل الأول. يُطوَّر ويُختبر على ويندوز وأوبونتو، ونسخة macOS تجريبية. نرحب ببلاغات
 > الأخطاء في [صفحة المشكلات](https://github.com/abdullah-alahmadi/nawl/issues).
 
 ### ما الذي يفعله
@@ -323,12 +340,30 @@ PDF بجوارها. أما القوالب (الصفحة والخطوط والع�
 ### التثبيت
 
 ملفات التثبيت مرفقة في
-[صفحة الإصدارات](https://github.com/abdullah-alahmadi/nawl/releases): ملفا `.exe`
-و `.msi` لويندوز، وملف `.deb` وحزمة snap لأوبونتو. إن لم يكن هناك إصدار منشور بعد
-فابنِ البرنامج من المصدر كما في قسم [Building from source](#building-from-source).
+[صفحة الإصدارات](https://github.com/abdullah-alahmadi/nawl/releases):
+
+| النظام | الملف |
+|---|---|
+| ويندوز ١٠ و١١ | ملف التثبيت `.exe` (أو `.msi`) |
+| أوبونتو وديبيان ومينت | `.deb` (أو حزمة snap) |
+| فيدورا و RHEL و openSUSE | `.rpm` |
+| أي توزيعة لينكس أخرى | `.AppImage`: اجعله قابلًا للتشغيل وشغّله، بلا تثبيت |
+| macOS (معالجات Apple و Intel) | `.dmg`، تجريبي |
 
 ملف التثبيت في ويندوز غير موقّع رقميًا: اختر **More info** ثم **Run anyway** عند تحذير
 SmartScreen.
+
+**macOS (تجريبي).** لم يُجرَّب ملف `.dmg` كثيرًا، ولم توقّعه Apple بعد، فيقول macOS إنه
+«لا يمكن فتحه» أو «تالف». بعد سحب نول إلى مجلد التطبيقات، افتح **إعدادات النظام ←
+الخصوصية والأمان** واضغط **فتح على أي حال**، أو نفّذ هذا الأمر مرة واحدة في Terminal:
+
+</div>
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Nawl.app
+```
+
+<div dir="rtl">
 
 ### التوثيق
 
