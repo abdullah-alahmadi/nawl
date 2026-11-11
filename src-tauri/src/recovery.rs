@@ -37,7 +37,7 @@ impl Recovery {
         Self { dir }
     }
 
-    /// Writes the document (a complete `.loom` file) and copies the figures it uses,
+    /// Writes the document (a complete `.nawl` file) and copies the figures it uses,
     /// so an unsaved document's images survive even when its temporary folder doesn't.
     pub fn write(&self, file: &Value, figures: &[String], figures_dir: &Path, original_path: Option<String>, chapter: Option<String>) -> std::io::Result<()> {
         std::fs::create_dir_all(&self.dir)?;
@@ -57,7 +57,7 @@ impl Recovery {
         Some(info.unwrap_or(RecoveryInfo { original_path: None, saved_at: 0, chapter: None }))
     }
 
-    /// The saved `.loom` text.
+    /// The saved `.nawl` text.
     pub fn read_document(&self) -> std::io::Result<String> {
         std::fs::read_to_string(self.dir.join(DOCUMENT))
     }

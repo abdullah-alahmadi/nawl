@@ -181,8 +181,8 @@ The code is laid out as:
 ## Command line
 
 ```bash
-cargo run -p nawl-cli -- render examples/senior-design-report.loom -t templates/senior-design/template.json -o report.pdf
-cargo run -p nawl-cli -- export examples/senior-design-report.loom -t templates/senior-design/template.json --out-dir build/
+cargo run -p nawl-cli -- render examples/senior-design-report.nawl -t templates/senior-design/template.json -o report.pdf
+cargo run -p nawl-cli -- export examples/senior-design-report.nawl -t templates/senior-design/template.json --out-dir build/
 cargo run -p nawl-cli -- check templates/senior-design/template.json --print-cls
 ```
 

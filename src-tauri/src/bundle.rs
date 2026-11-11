@@ -1,6 +1,6 @@
-//! Single-file documents: a `.loom` that is a zip holding the document
-//! (`document.loom`, the usual JSON) and the images it uses, so it can be emailed or
-//! uploaded as one file. Plain JSON `.loom` files (images in a folder next to them)
+//! Single-file documents: a `.nawl` that is a zip holding the document
+//! (`document.nawl`, the usual JSON) and the images it uses, so it can be emailed or
+//! uploaded as one file. Plain JSON `.nawl` files (images in a folder next to them)
 //! stay the default; both open the same way.
 
 use std::io::{Read, Write};
@@ -10,7 +10,7 @@ use nawl_core::tr;
 
 use crate::{files, AppError};
 
-/// The document inside a single-file `.loom`.
+/// The document inside a single-file `.nawl`.
 const DOCUMENT: &str = "document.loom";
 /// Largest image taken from a single-file document.
 const MAX_FILE: u64 = 100 * 1024 * 1024;
@@ -48,7 +48,7 @@ pub fn write(path: &Path, json: &str, images: &[(String, Vec<u8>)]) -> Result<()
     }
 }
 
-/// The document's JSON and its images from a single-file `.loom`.
+/// The document's JSON and its images from a single-file `.nawl`.
 pub fn read(path: &Path) -> Result<(String, Vec<(String, Vec<u8>)>), AppError> {
     let bad = |e: zip::result::ZipError| AppError::other(tr!("Not a valid Nawl document: {e}", "ليس مستند نول صالحًا: {e}"));
     let mut archive = zip::ZipArchive::new(std::fs::File::open(path)?).map_err(bad)?;

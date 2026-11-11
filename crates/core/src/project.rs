@@ -1,8 +1,8 @@
-//! Projects: a book or thesis written as one `.loom` file per chapter.
+//! Projects: a book or thesis written as one `.nawl` file per chapter.
 //!
-//! A project folder holds a project file (`.loomproj`) with what the whole book shares
+//! A project folder holds a project file (`.nawlproj`) with what the whole book shares
 //! (template, metadata, bibliography, chapter order) and the chapter files, which are
-//! ordinary `.loom` documents with only a body. See PLAN.md, "Projects".
+//! ordinary `.nawl` documents with only a body. See PLAN.md, "Projects".
 
 use std::collections::HashMap;
 
@@ -16,9 +16,15 @@ pub const PROJECT_FORMAT: &str = "texloom-project";
 /// Current project file version.
 pub const PROJECT_VERSION: u32 = 1;
 /// File extension of project files.
-pub const PROJECT_EXTENSION: &str = "loomproj";
+/// Before the rename to Nawl, documents were `.loom` and projects `.loomproj`; those
+/// still open, but new files get the new extensions.
+pub const PROJECT_EXTENSION: &str = "nawlproj";
+/// A document (and a project's chapter file).
+pub const DOC_EXTENSION: &str = "nawl";
+/// The project extensions that open as projects: the current one and Texloom's.
+pub const PROJECT_EXTENSIONS: [&str; 2] = ["nawlproj", "loomproj"];
 
-/// A `.loomproj` file. Like a `.loom`, it also embeds a copy of the template under
+/// A `.nawlproj` file. Like a `.nawl`, it also embeds a copy of the template under
 /// `"template"`, which the app reads and writes itself.
 ///
 /// Note: as for documents, code that saves projects should write the editor's JSON

@@ -195,7 +195,7 @@ pub fn copy_missing(files: &[String], from: &Path, to: &Path) -> std::io::Result
     Ok(())
 }
 
-/// The folder the open document's figures are resolved against: the `.loom` file's
+/// The folder the open document's figures are resolved against: the `.nawl` file's
 /// folder once saved, a temporary folder before that.
 pub struct DocumentFolder {
     dir: Mutex<PathBuf>,

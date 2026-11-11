@@ -1,5 +1,5 @@
-//! Projects: a book or thesis written as one `.loom` file per chapter, listed in a
-//! `.loomproj` file with what the whole book shares (template, metadata,
+//! Projects: a book or thesis written as one `.nawl` file per chapter, listed in a
+//! `.nawlproj` file with what the whole book shares (template, metadata,
 //! bibliography). See PLAN.md, "Projects".
 //!
 //! The backend holds the open project: its file and every chapter's body as on disk
@@ -30,7 +30,7 @@ use crate::{files, AppError, AppState, LocatedTexError};
 pub struct ProjectStore(Mutex<Option<OpenProject>>);
 
 struct OpenProject {
-    /// The `.loomproj` file.
+    /// The `.nawlproj` file.
     path: PathBuf,
     /// The project file's JSON as read, so fields this version doesn't know survive
     /// saving.
@@ -175,7 +175,7 @@ pub fn read_chapter(store: State<'_, ProjectStore>, file: String) -> Result<Valu
 }
 
 /// The `"project"` value of a chapter file: the project file, relative to the
-/// chapter's folder (`chapters/01.loom` → `../book.loomproj`).
+/// chapter's folder (`chapters/01.nawl` → `../book.nawlproj`).
 fn project_link(chapter: &str, project: &Path) -> String {
     let depth = chapter.replace('\\', "/").matches('/').count();
     let name = project.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -212,7 +212,7 @@ pub fn save_chapter(store: State<'_, ProjectStore>, file: String, doc: Value) ->
 }
 
 /// The project file's JSON: the editor's values over the file as read, with a copy
-/// of the active template (as in a `.loom`).
+/// of the active template (as in a `.nawl`).
 fn project_json(state: &AppState, raw: &Value, file: &ProjectFile) -> Result<Value, AppError> {
     let active = state.templates.current();
     let mut json = if raw.is_object() { raw.clone() } else { serde_json::json!({}) };
@@ -262,7 +262,7 @@ pub fn save_project(
 }
 
 /// Creates a chapter file starting with a chapter heading, under `chapters/`
-/// (`chapters/03.loom`, appendices `chapters/a1.loom`), and returns its path. The
+/// (`chapters/03.nawl`, appendices `chapters/a1.nawl`), and returns its path. The
 /// caller adds it to the chapter list and saves the project.
 #[tauri::command]
 pub fn new_chapter(store: State<'_, ProjectStore>, title: String, appendix: bool) -> Result<String, AppError> {
@@ -270,7 +270,7 @@ pub fn new_chapter(store: State<'_, ProjectStore>, title: String, appendix: bool
         let folder = p.folder();
         let taken = |name: &str| p.chapters.contains_key(name) || p.file.chapter_files().any(|f| f == name) || folder.join(name).exists();
         let name = (1..)
-            .map(|n| if appendix { format!("chapters/a{n}.loom") } else { format!("chapters/{n:02}.loom") })
+            .map(|n| if appendix { format!("chapters/a{n}.nawl") } else { format!("chapters/{n:02}.nawl") })
             .find(|n| !taken(n))
             .expect("a free name");
         let doc = serde_json::json!({ "type": "doc", "content": [
@@ -535,7 +535,8 @@ pub fn split_into_project(
     bibliography: Option<String>,
 ) -> Result<String, AppError> {
     let folder = PathBuf::from(folder);
-    let stem = name.trim().trim_end_matches(".loomproj").trim();
+    let stem = name.trim();
+    let stem = nawl_core::PROJECT_EXTENSIONS.iter().fold(stem, |s, ext| s.trim_end_matches(&format!(".{ext}") as &str)).trim();
     if stem.is_empty() || stem.contains(['/', '\\']) {
         return Err(AppError::other(tr!("Choose a name for the project", "اختر اسمًا للمشروع")));
     }
@@ -576,7 +577,7 @@ pub fn sample_project(state: State<'_, AppState>, name: Option<String>) -> Resul
 struct SampleProject {
     /// File name of the project, without the extension.
     stem: &'static str,
-    /// The example `.loom` (with its template, or none for the built-in one).
+    /// The example `.nawl` (with its template, or none for the built-in one).
     document: &'static str,
     files: &'static [(&'static str, &'static [u8])],
     /// Parts: the title, and how many chapters come before it.
@@ -655,10 +656,10 @@ fn split_blocks(doc: &Value) -> (Vec<ProjectEntry>, Vec<(String, Value)>) {
     for (appendix, content) in groups {
         let file = if appendix {
             a += 1;
-            format!("chapters/a{a}.loom")
+            format!("chapters/a{a}.nawl")
         } else {
             n += 1;
-            format!("chapters/{n:02}.loom")
+            format!("chapters/{n:02}.nawl")
         };
         entries.push(ProjectEntry::Chapter { file: file.clone(), appendix });
         chapters.push((file, serde_json::json!({ "type": "doc", "content": content })));
@@ -666,7 +667,7 @@ fn split_blocks(doc: &Value) -> (Vec<ProjectEntry>, Vec<(String, Value)>) {
     (entries, chapters)
 }
 
-/// Writes the whole project as one `.loom` at `path` (parts become nothing: a
+/// Writes the whole project as one `.nawl` at `path` (parts become nothing: a
 /// single document has no parts), with figures copied along when it's elsewhere.
 #[tauri::command]
 pub fn join_project(
@@ -749,8 +750,8 @@ mod tests {
         ]});
         let (entries, chapters) = split_blocks(&doc);
         let files: Vec<&str> = chapters.iter().map(|(f, _)| f.as_str()).collect();
-        assert_eq!(files, ["chapters/01.loom", "chapters/02.loom", "chapters/03.loom", "chapters/a1.loom"]);
-        assert_eq!(entries[3], ProjectEntry::Chapter { file: "chapters/a1.loom".into(), appendix: true });
+        assert_eq!(files, ["chapters/01.nawl", "chapters/02.nawl", "chapters/03.nawl", "chapters/a1.nawl"]);
+        assert_eq!(entries[3], ProjectEntry::Chapter { file: "chapters/a1.nawl".into(), appendix: true });
         let len = |i: usize| chapters[i].1["content"].as_array().unwrap().len();
         assert_eq!((len(0), len(1), len(2), len(3)), (1, 3, 2, 3));
         // Unknown node types are kept.
@@ -770,7 +771,7 @@ mod tests {
             {"type": "paragraph", "content": [{"type": "ref", "attrs": {"target": "eq"}}]}
         ]});
         let dir = tempfile::tempdir().unwrap();
-        let project_path = dir.path().join("book.loomproj");
+        let project_path = dir.path().join("book.nawlproj");
         let (entries, chapters) = split_blocks(&doc);
         for (file, body) in &chapters {
             write_chapter(&project_path, dir.path(), file, body).unwrap();
@@ -780,9 +781,9 @@ mod tests {
         std::fs::write(&project_path, serde_json::to_string(&file).unwrap()).unwrap();
 
         // A chapter file names its project, which a lone open finds.
-        let chapter_path = dir.path().join("chapters/02.loom");
+        let chapter_path = dir.path().join("chapters/02.nawl");
         let on_disk: Value = serde_json::from_str(&std::fs::read_to_string(&chapter_path).unwrap()).unwrap();
-        assert_eq!(on_disk["project"], "../book.loomproj");
+        assert_eq!(on_disk["project"], "../book.nawlproj");
         let found = project_of_chapter(&chapter_path, &on_disk).unwrap();
         assert_eq!(PathBuf::from(found), project_path, "a plain path, without ..");
 

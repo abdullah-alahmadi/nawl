@@ -5,7 +5,7 @@ use nawl_core::{DocumentFile, Template};
 
 fn engineering_report() -> (Template, nawl_core::Document) {
     let t: Template = serde_json::from_str(include_str!("../../../templates/engineering-report/template.json")).unwrap();
-    let doc: DocumentFile = serde_json::from_str(include_str!("../../../examples/engineering-report.loom")).unwrap();
+    let doc: DocumentFile = serde_json::from_str(include_str!("../../../examples/engineering-report.nawl")).unwrap();
     (t, doc.document)
 }
 

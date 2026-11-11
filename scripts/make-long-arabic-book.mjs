@@ -5,14 +5,14 @@
 // always give the same book.
 //
 //   node scripts/make-long-arabic-book.mjs [chapters] [out]
-//   (defaults: 85 chapters, about 1000 pages, examples/arabic-book-long.loom, which git ignores)
+//   (defaults: 85 chapters, about 1000 pages, examples/arabic-book-long.nawl, which git ignores)
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const chapters = Number(process.argv[2] ?? 85);
-const out = process.argv[3] ?? join(root, "examples", "arabic-book-long.loom");
+const out = process.argv[3] ?? join(root, "examples", "arabic-book-long.nawl");
 
 // A small deterministic random generator (mulberry32).
 let seed = 1447;

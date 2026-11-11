@@ -7,7 +7,7 @@ fn template() -> Template {
 }
 
 fn document() -> DocumentFile {
-    serde_json::from_str(include_str!("../../../examples/senior-design-report.loom")).expect("document parses")
+    serde_json::from_str(include_str!("../../../examples/senior-design-report.nawl")).expect("document parses")
 }
 
 #[test]

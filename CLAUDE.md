@@ -1,8 +1,9 @@
 # Nawl (نول)
 
-Formerly Texloom: the file format tags (`"format": "texloom"`), the LaTeX macro
-prefix (`\texloom…`) and the `.loom` / `.loomproj` extensions keep the old name, so
-existing documents and users' templates keep working.
+Formerly Texloom: the file format tags (`"format": "texloom"`) and the LaTeX macro
+prefix (`\texloom…`) keep the old name, so existing documents and users' templates
+keep working. New files are `.nawl` / `.nawlproj`; Texloom's `.loom` / `.loomproj`
+still open everywhere (dialogs, projects, CLI), so keep accepting both.
 
 A visual (WYSIWYG) LaTeX editor in the spirit of LyX, with a no-code template
 designer. Rust + Tauri 2 backend, React + TipTap frontend. README.md describes the

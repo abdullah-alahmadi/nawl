@@ -37,7 +37,7 @@ export const en = {
   "project.menuSplit": "Split into project…",
   "project.menuSplitTitle": "Turn this document into a project with one file per chapter",
   "project.menuJoin": "Join into single document…",
-  "project.menuJoinTitle": "Write the whole project as one .loom document",
+  "project.menuJoinTitle": "Write the whole project as one .nawl document",
   "project.splitFolderTitle": "Folder for the new project (an empty folder)",
   "project.newProject": "New project…",
   "project.newProjectTitle": "A book or thesis with one file per chapter, in a folder of its own",

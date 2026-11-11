@@ -18,7 +18,7 @@ fn template(id: &str) -> Template {
 }
 
 fn article() -> DocumentFile {
-    serde_json::from_str(&std::fs::read_to_string(root().join("examples/journal-article.loom")).unwrap()).unwrap()
+    serde_json::from_str(&std::fs::read_to_string(root().join("examples/journal-article.nawl")).unwrap()).unwrap()
 }
 
 #[test]

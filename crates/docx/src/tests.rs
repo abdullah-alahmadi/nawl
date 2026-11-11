@@ -50,7 +50,7 @@ fn assert_well_formed(parts: &HashMap<String, String>) {
 #[test]
 fn arabic_article_exports() {
     let t = template("arabic-article");
-    let doc = example("arabic-article.loom");
+    let doc = example("arabic-article.nawl");
     let mathml: HashMap<String, String> = [(
         "I = \\frac{\\left(\\theta_{fc} - \\theta\\right) D}{\\eta}".to_string(),
         "<math><mi>I</mi><mo>=</mo><mfrac><mrow><mo>(</mo><msub><mi>θ</mi><mi>fc</mi></msub><mo>-</mo><mi>θ</mi><mo>)</mo><mi>D</mi></mrow><mi>η</mi></mfrac></math>".to_string(),
@@ -85,7 +85,7 @@ fn arabic_article_exports() {
 #[test]
 fn author_year_citations_in_arabic() {
     let t = template("arabic-article");
-    let doc = example("arabic-load-forecasting.loom");
+    let doc = example("arabic-load-forecasting.nawl");
     let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap();
     let d = &unzip(&bytes)["word/document.xml"];
     // Years in the document's Arabic-Indic digits, as the numbered styles' numbers.
@@ -165,7 +165,7 @@ fn arabic_formulas_are_pictures() {
 #[test]
 fn english_report_with_merged_cells_and_crop() {
     let t = template("senior-design");
-    let mut doc = example("senior-design-report.loom");
+    let mut doc = example("senior-design-report.nawl");
     // Crop the figure and merge two cells, as the editor can.
     let mut json = serde_json::to_value(&doc.body).unwrap();
     fn visit(v: &mut serde_json::Value) {
@@ -199,7 +199,7 @@ fn english_report_with_merged_cells_and_crop() {
 #[test]
 fn slides_are_not_exported() {
     let t = template("beamer-presentation");
-    let doc = example("presentation.loom");
+    let doc = example("presentation.nawl");
     assert!(write(&Input { template: &t, doc: &doc, image: &|_| None, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).is_err());
 }
 
@@ -207,7 +207,7 @@ fn slides_are_not_exported() {
 /// columns they span both, in a section of their own that the columns continue.
 #[test]
 fn articles_start_on_the_first_page() {
-    let doc = example("article.loom");
+    let doc = example("article.nawl");
     let one = unzip(&write(&Input { template: &template("general-article"), doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
     assert_well_formed(&one);
     let d = &one["word/document.xml"];
@@ -230,7 +230,7 @@ fn articles_start_on_the_first_page() {
 #[test]
 fn thesis_dates_and_reference_lists() {
     let t = template("arabic-thesis");
-    let mut doc = example("arabic-article.loom");
+    let mut doc = example("arabic-article.nawl");
     doc.metadata.insert("date".into(), FieldValue::Text("2026-05-14".into()));
     let parts = unzip(&write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
     assert_well_formed(&parts);
@@ -253,7 +253,7 @@ fn library_fonts_are_embedded() {
     t.fonts.arabic = Some(nawl_core::FontChoice::Library { id: "cairo".into() });
     let regular = b"OTTO regular font bytes, longer than thirty-two bytes".to_vec();
     let font = |rel: &str| (rel == "fonts/cairo-Regular.ttf").then(|| regular.clone());
-    let parts = unzip(&write(&Input { template: &t, doc: &example("arabic-article.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
+    let parts = unzip(&write(&Input { template: &t, doc: &example("arabic-article.nawl"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
     assert_well_formed(&parts);
     let table = &parts["word/fontTable.xml"];
     assert!(table.contains("<w:font w:name=\"Cairo\">") && table.contains("<w:embedRegular r:id=\"rIdF1\" w:fontKey=\"{"), "{table}");
@@ -265,7 +265,7 @@ fn library_fonts_are_embedded() {
     assert_eq!(obfuscate(&obfuscate(&regular, key), key), regular);
     assert_ne!(obfuscate(&regular, key)[..32], regular[..32]);
     // Without library fonts, nothing of this.
-    let plain = unzip(&write(&Input { template: &template("arabic-article"), doc: &example("arabic-article.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
+    let plain = unzip(&write(&Input { template: &template("arabic-article"), doc: &example("arabic-article.nawl"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
     assert!(!plain.contains_key("word/fontTable.xml") && !plain["word/settings.xml"].contains("embedTrueType"));
 }
 
@@ -276,7 +276,7 @@ fn heading_fonts_reach_word() {
     let mut t = template("arabic-thesis");
     t.headings.levels[0].text.font = Some(nawl_core::FontChoice::Library { id: "reem-kufi".into() });
     let font = |rel: &str| (rel == "fonts/reem-kufi-Regular.ttf").then(|| b"font bytes, at least thirty-two of them".to_vec());
-    let parts = unzip(&write(&Input { template: &t, doc: &example("arabic-article.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
+    let parts = unzip(&write(&Input { template: &t, doc: &example("arabic-article.nawl"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
     let styles = &parts["word/styles.xml"];
     let heading = &styles[styles.find("w:styleId=\"Heading1\"").unwrap()..];
     let heading = &heading[..heading.find("</w:style>").unwrap()];
@@ -344,14 +344,14 @@ fn assert_schema_order(parts: &HashMap<String, String>) {
 
 #[test]
 fn properties_are_in_schema_order() {
-    for (tpl, ex) in [("arabic-article", "arabic-article.loom"), ("senior-design", "senior-design-report.loom")] {
+    for (tpl, ex) in [("arabic-article", "arabic-article.nawl"), ("senior-design", "senior-design-report.nawl")] {
         let t = template(tpl);
         let doc = example(ex);
         let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap();
         assert_schema_order(&unzip(&bytes));
     }
     let t = template("arabic-thesis");
-    let doc = example("arabic-article.loom");
+    let doc = example("arabic-article.nawl");
     let bytes = write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap();
     assert_schema_order(&unzip(&bytes));
 }
@@ -367,14 +367,14 @@ fn write_samples() {
     )]
     .into();
     for (tpl, ex, name) in [
-        ("arabic-article", "arabic-article.loom", "arabic-article.docx"),
-        ("arabic-thesis", "arabic-article.loom", "arabic-thesis.docx"),
-        ("senior-design", "senior-design-report.loom", "senior-design.docx"),
-        ("general-article", "article.loom", "general-article.docx"),
-        ("arabic-article-cairo", "arabic-article.loom", "arabic-article-cairo.docx"),
-        ("article-two-column", "article.loom", "article-two-column.docx"),
+        ("arabic-article", "arabic-article.nawl", "arabic-article.docx"),
+        ("arabic-thesis", "arabic-article.nawl", "arabic-thesis.docx"),
+        ("senior-design", "senior-design-report.nawl", "senior-design.docx"),
+        ("general-article", "article.nawl", "general-article.docx"),
+        ("arabic-article-cairo", "arabic-article.nawl", "arabic-article-cairo.docx"),
+        ("article-two-column", "article.nawl", "article-two-column.docx"),
         // Merged cells (rows and columns) in a right-to-left table.
-        ("arabic-article-two-column-arabic-only", "arabic-article-two-column-arabic-only.loom", "arabic-merged-cells.docx"),
+        ("arabic-article-two-column-arabic-only", "arabic-article-two-column-arabic-only.nawl", "arabic-merged-cells.docx"),
     ] {
         // "-cairo": the Arabic article with a library font, embedded (the fonts fetched
         // by scripts/fetch-fonts.mjs).
@@ -415,7 +415,7 @@ fn write_samples() {
 #[test]
 fn university_report_has_cover_pages_and_logo() {
     let t = template("engineering-report");
-    let doc = example("engineering-report.loom");
+    let doc = example("engineering-report.nawl");
     let parts = unzip(&write(&Input { template: &t, doc: &doc, image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
     assert_well_formed(&parts);
     let body = &parts["word/document.xml"];
@@ -431,7 +431,7 @@ fn university_report_has_cover_pages_and_logo() {
 #[test]
 fn authors_with_different_affiliations_are_numbered() {
     // The sample's two authors are at different universities.
-    let parts = unzip(&write(&Input { template: &template("arabic-article"), doc: &example("arabic-load-forecasting.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
+    let parts = unzip(&write(&Input { template: &template("arabic-article"), doc: &example("arabic-load-forecasting.nawl"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &|_| None }).unwrap());
     assert_well_formed(&parts);
     let body = &parts["word/document.xml"];
     let sup = "<w:vertAlign w:val=\"superscript\"/>";

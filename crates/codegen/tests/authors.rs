@@ -40,7 +40,7 @@ fn numbers_only_when_affiliations_differ() {
 #[test]
 fn numbered_authors_in_latex() {
     let t: Template = serde_json::from_str(include_str!("../../../templates/arabic-article/template.json")).unwrap();
-    let mut doc: DocumentFile = serde_json::from_str(include_str!("../../../examples/arabic-load-forecasting.loom")).unwrap();
+    let mut doc: DocumentFile = serde_json::from_str(include_str!("../../../examples/arabic-load-forecasting.nawl")).unwrap();
     doc.document.metadata.insert("authors".into(), FieldValue::Authors(vec![author("عبدالله الأحمدي", "Abdullah Al-Ahmadi", &[EE]), author("سارة القحطاني", "Sarah Al-Qahtani", &[ECE])]));
     let tex = nawl_codegen::document_to_tex(&t, &doc.document);
     let field = |id: &str| tex.lines().find(|l| l.starts_with(&format!("\\texloomfield{{{id}}}"))).unwrap_or_else(|| panic!("{id} missing")).to_string();

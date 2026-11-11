@@ -32,10 +32,10 @@ let failed = 0;
 // Each built-in template with a document that uses it. Arabic slides need LuaLaTeX
 // (an installed TeX), not Tectonic, so they're left out.
 const exampleFor = (id, t) => {
-  if (t.kind === "presentation") return t.language?.main === "arabic" ? null : "presentation.loom";
-  if (t.language?.main === "arabic") return "arabic-article.loom";
-  if (t.base) return "journal-article.loom";
-  return t.structure?.topLevel === "section" ? "article.loom" : "senior-design-report.loom";
+  if (t.kind === "presentation") return t.language?.main === "arabic" ? null : "presentation.nawl";
+  if (t.language?.main === "arabic") return "arabic-article.nawl";
+  if (t.base) return "journal-article.nawl";
+  return t.structure?.topLevel === "section" ? "article.nawl" : "senior-design-report.nawl";
 };
 for (const id of readdirSync(join(root, "templates"))) {
   const file = join(root, "templates", id, "template.json");

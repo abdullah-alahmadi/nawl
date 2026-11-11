@@ -15,7 +15,7 @@ pub const DOC_FORMAT: &str = "texloom";
 /// Current document file version.
 pub const DOC_VERSION: u32 = 1;
 
-/// A `.loom` document file: `{"format": "texloom", "version": 1, "metadata": {...}, "doc": {...}}`.
+/// A `.nawl` document file: `{"format": "texloom", "version": 1, "metadata": {...}, "doc": {...}}`.
 ///
 /// Note: re-serializing drops unknown node types. Code that saves documents should
 /// write the editor's JSON as-is and use this type only for reading.
@@ -26,7 +26,7 @@ pub struct DocumentFile {
     #[serde(flatten)]
     pub document: Document,
     /// For a chapter of a project: the project file, relative to the chapter's folder
-    /// (`"../my-thesis.loomproj"`). A chapter has no metadata or bibliography of its own.
+    /// (`"../my-thesis.nawlproj"`). A chapter has no metadata or bibliography of its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
 }

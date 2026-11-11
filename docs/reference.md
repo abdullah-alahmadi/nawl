@@ -22,8 +22,8 @@ type the caption below it; **Crop…** cuts off its edges by dragging), **tables
 (caption above; row and column buttons appear on the right while the cursor is in the
 table, and **Merge** joins the cells you drag across, spanning rows and columns) and
 **raw LaTeX blocks** (written into the PDF exactly as typed, for TikZ drawings and the
-like). Figure images are stored in a `figures/` folder next to the `.loom` file;
-**File → Save as single file…** puts them inside the `.loom` instead, to email or
+like). Figure images are stored in a `figures/` folder next to the `.nawl` file;
+**File → Save as single file…** puts them inside the `.nawl` instead, to email or
 upload one file (saving it again keeps it one file).
 
 **Ctrl+F** finds text in the document (headings, paragraphs, captions, tables) and
@@ -65,9 +65,9 @@ next start.
 
 ## Projects: a thesis or book as chapters
 
-A long document can be a **project**: a folder with a project file (`.loomproj`) and
-one `.loom` file per chapter. **File → New project…** asks for a template and a folder;
-**Open** takes a `.loomproj`, and the start window opens an example project (the Arabic
+A long document can be a **project**: a folder with a project file (`.nawlproj`) and
+one `.nawl` file per chapter. **File → New project…** asks for a template and a folder;
+**Open** takes a `.nawlproj`, and the start window opens an example project (the Arabic
 thesis).
 
 - The **Chapters** panel in the left rail lists parts, chapters and appendices: open
@@ -198,7 +198,7 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   and back). Changing the template's setting offers to convert the document's
   formulas. **File → Export Word…** places these formulas as pictures, since Word
   can't lay them out. Arabic mathematics on slides (LuaLaTeX) is untested. The example
-  document `examples/arabic-math.loom` shows what is covered.
+  document `examples/arabic-math.nawl` shows what is covered.
 - **Numbering:** appendices and second-level lists use abjad letters (الملحق ب، (ج)),
   in the editor, the PDF and Word; equation numbers sit on the left, at the end of the
   line. Section numbers read with the chapter on the right (section 1 of chapter 2 is
@@ -213,7 +213,7 @@ books and presentations, right to left, with Arabic fonts, headings and labels.
   right-to-left paragraphs and tables, Arabic and English fonts, headings Word's
   navigation pane and table of contents understand, editable equations, figures (with
   their crop), tables with merged cells, captions, the reference list and page numbers.
-  Nawl doesn't open Word files; the `.loom` stays the source.
+  Nawl doesn't open Word files; the `.nawl` stays the source.
 - **Authors in two languages:** in Arabic templates each author also has an English name
   and affiliations (Document info); the journal article's English section and the Word
   export use them. Title-block recipes can use `{name_en}`, `{affiliation_en}` and

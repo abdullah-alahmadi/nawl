@@ -488,7 +488,7 @@ mod tests {
         };
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
         let file: DocumentFile =
-            serde_json::from_str(&std::fs::read_to_string(root.join("examples/journal-article.loom")).unwrap()).unwrap();
+            serde_json::from_str(&std::fs::read_to_string(root.join("examples/journal-article.nawl")).unwrap()).unwrap();
         let only = std::env::var("NAWL_ONLY").ok();
         let mut failed = Vec::new();
         // Every class of a supported kind, skipped ones included (to see if they still fail).

@@ -14,7 +14,7 @@ fn template() -> Template {
 }
 
 fn deck() -> DocumentFile {
-    serde_json::from_str(&std::fs::read_to_string(root().join("examples/presentation.loom")).unwrap()).unwrap()
+    serde_json::from_str(&std::fs::read_to_string(root().join("examples/presentation.nawl")).unwrap()).unwrap()
 }
 
 #[test]

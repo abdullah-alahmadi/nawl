@@ -193,7 +193,7 @@ export const pdfToBlock = (page: number, x: number, y: number) => invoke<number 
 export const blockToPdf = (block: number) => invoke<PdfSpot | null>("block_to_pdf", { block });
 export const renderPdf = (d: DocState) => invoke<ArrayBuffer>("render_pdf", { ...d });
 export const toLatex = (d: DocState) => invoke<string>("to_latex", { ...d });
-/** Saves a document. `bundled`: one file with its images inside (true), a .loom with
+/** Saves a document. `bundled`: one file with its images inside (true), a .nawl with
  *  the images in a folder next to it (false), or the format the file already has. */
 export const saveDocument = (path: string, d: DocState, bundled?: boolean) => invoke<void>("save_document", { path, ...d, bundled });
 export const parseBibliography = (source: string) => invoke<BibInfo>("parse_bibliography", { source });
@@ -266,7 +266,7 @@ export interface EngineInfo {
 export const listEngines = () => invoke<EngineInfo[]>("list_engines");
 export const setEngine = (id: string) => invoke<void>("set_engine", { id });
 
-// Projects: a book written as one .loom per chapter (src-tauri/src/project.rs).
+// Projects: a book written as one .nawl per chapter (src-tauri/src/project.rs).
 export type { ProjectEntry, ProjectIndex, ChapterIndex, IndexTarget };
 export interface OpenedProject {
   path: string;

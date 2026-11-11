@@ -336,11 +336,11 @@ of this formula or of all formulas.
 **In Word.** Word can't lay these formulas out, so Export Word places them as pictures.
 
 **Limits.** Arabic mathematics on slides is untested. The example
-`examples/arabic-math.loom` shows what is covered.
+`examples/arabic-math.nawl` shows what is covered.
 
 ## 15. Projects: a thesis or book as chapters
 
-A long document can be a **project**: a folder with a project file (`.loomproj`) and
+A long document can be a **project**: a folder with a project file (`.nawlproj`) and
 one file per chapter. Each chapter opens on its own, so writing stays fast, and the
 chapters can be reordered, backed up or shared separately.
 
@@ -381,8 +381,9 @@ Choose **Presentation (Beamer)** in the gallery, or open the example presentatio
 
 ## 17. Saving and exporting
 
-- **Save** (Ctrl+S) writes a `.loom` file. Images are in a `figures/` folder next to
-  it. **Save as single file…** puts them inside the file, to send one file.
+- **Save** (Ctrl+S) writes a `.nawl` file. Images are in a `figures/` folder next to
+  it. **Save as single file…** puts them inside the file, to send one file. Files made
+  before the rename to Nawl (`.loom` documents and `.loomproj` projects) still open.
 - **Export PDF** (Ctrl+Shift+E) saves the PDF.
 - **Export LaTeX…** writes the `.tex`, the class and everything needed to compile it
   elsewhere, for the engine chosen in Settings.

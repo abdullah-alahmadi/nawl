@@ -32,14 +32,14 @@ use recovery::{Recovery, RecoveryInfo};
 use templates::{ActiveTemplate, TemplateInfo, TemplateStore};
 
 /// Opened on startup so there's something real to look at.
-const SAMPLE_DOCUMENT: &str = include_str!("../../examples/senior-design-report.loom");
+const SAMPLE_DOCUMENT: &str = include_str!("../../examples/senior-design-report.nawl");
 /// The example presentation (same image as the report).
-const SAMPLE_PRESENTATION: &str = include_str!("../../examples/presentation.loom");
+const SAMPLE_PRESENTATION: &str = include_str!("../../examples/presentation.nawl");
 /// The Arabic examples, offered when the interface is in Arabic.
-const SAMPLE_ARABIC_ARTICLE: &str = include_str!("../../examples/arabic-article.loom");
-const SAMPLE_ARABIC_PRESENTATION: &str = include_str!("../../examples/arabic-presentation.loom");
+const SAMPLE_ARABIC_ARTICLE: &str = include_str!("../../examples/arabic-article.nawl");
+const SAMPLE_ARABIC_PRESENTATION: &str = include_str!("../../examples/arabic-presentation.nawl");
 /// The Arabic thesis, offered as the example project.
-const SAMPLE_ARABIC_THESIS: &str = include_str!("../../examples/arabic-thesis.loom");
+const SAMPLE_ARABIC_THESIS: &str = include_str!("../../examples/arabic-thesis.nawl");
 const SAMPLE_THESIS_FILES: &[(&str, &[u8])] = &[
     ("figures/thesis-pipeline.png", include_bytes!("../../examples/figures/thesis-pipeline.png")),
     ("figures/thesis-f1.png", include_bytes!("../../examples/figures/thesis-f1.png")),
@@ -300,7 +300,7 @@ struct OpenedDocument {
     bibliography: String,
     #[serde(default, skip_deserializing)]
     template: Option<TemplateInfo>,
-    /// Opened from a single-file `.loom` (document and images in one zip): saving
+    /// Opened from a single-file `.nawl` (document and images in one zip): saving
     /// it again writes one too.
     #[serde(default, skip_deserializing)]
     bundled: bool,
@@ -310,7 +310,7 @@ struct OpenedDocument {
     project: Option<String>,
 }
 
-/// The template fields saved inside a `.loom` file.
+/// The template fields saved inside a `.nawl` file.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SavedTemplate {
@@ -898,7 +898,7 @@ fn to_latex(state: State<'_, AppState>, doc: Value, metadata: Metadata, bibliogr
     Ok(format!("{}\n%%%%%%%%%%%%%%%% {} %%%%%%%%%%%%%%%%\n\n{}", g.tex, g.cls_file_name(), g.cls))
 }
 
-/// A complete `.loom` file: the document with a copy of its template, so it opens
+/// A complete `.nawl` file: the document with a copy of its template, so it opens
 /// the same way even if the template file later moves or changes. The editor's JSON
 /// is written as-is so node types this version doesn't know survive.
 fn document_file(state: &AppState, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Value {
@@ -927,7 +927,7 @@ fn save_document(
     bibliography: Option<String>,
     bundled: Option<bool>,
 ) -> Result<(), AppError> {
-    // Unless asked, a file keeps its format: a single-file .loom stays one.
+    // Unless asked, a file keeps its format: a single-file .nawl stays one.
     let bundled = bundled.unwrap_or_else(|| {
         let mut head = [0u8; 4];
         std::fs::File::open(&path).and_then(|mut f| std::io::Read::read_exact(&mut f, &mut head)).is_ok() && bundle::is_bundle(&head)
@@ -984,7 +984,7 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
     Ok(opened)
 }
 
-/// Parses `.loom` text and makes its template the active one.
+/// Parses `.nawl` text and makes its template the active one.
 fn read_document(app: &AppHandle, state: &AppState, text: &str) -> Result<OpenedDocument, AppError> {
     let file: Value = serde_json::from_str(text).map_err(|e| AppError::other(tr!("Not a valid document: {e}", "ليس مستندًا صالحًا: {e}")))?;
     if file.get("format").and_then(Value::as_str) != Some(DOC_FORMAT) {
@@ -1607,7 +1607,7 @@ mod tests {
     #[ignore]
     fn blank_templates_compile() {
         use nawl_core::{DocumentFile, Paper};
-        let file: DocumentFile = serde_json::from_str(include_str!("../../examples/senior-design-report.loom")).unwrap();
+        let file: DocumentFile = serde_json::from_str(include_str!("../../examples/senior-design-report.nawl")).unwrap();
         let mut doc = file.document;
         doc.metadata.retain(|k, _| k == "title");
         let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../examples");

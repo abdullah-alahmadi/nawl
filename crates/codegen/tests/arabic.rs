@@ -111,7 +111,7 @@ fn arabic_report_tex() {
 /// The English sample article citing an Arabic source as well (no Arabic in its text).
 fn english_article_citing_arabic() -> (Template, Document) {
     let t = builtin("general-article");
-    let mut doc: nawl_core::DocumentFile = serde_json::from_str(include_str!("../../../examples/article.loom")).unwrap();
+    let mut doc: nawl_core::DocumentFile = serde_json::from_str(include_str!("../../../examples/article.nawl")).unwrap();
     doc.document.bibliography.push_str(
         "@article{alghamdi2021, author = {الغامدي, خالد and الزهراني, فهد}, title = {التنبؤ بالطلب على الطاقة الكهربائية في المنطقة الغربية باستخدام نماذج السلاسل الزمنية}, journal = {المجلة العربية للهندسة الكهربائية}, volume = {9}, pages = {77--98}, year = {2021}}\n",
     );
@@ -158,7 +158,7 @@ fn english_document_citing_arabic_compiles() {
 fn fonts_without_arabic_separators_compile() {
     let mut t = builtin("arabic-article");
     t.fonts.arabic = Some(nawl_core::FontChoice::Library { id: "aref-ruqaa".into() });
-    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-load-forecasting.loom")).unwrap();
+    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-load-forecasting.nawl")).unwrap();
     let compiler = nawl_compile::Compiler::locate(&[]).expect("tectonic");
     let g = nawl_codegen::generate(&t, &doc.document);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -244,7 +244,7 @@ fn arabic_math_compiles() {
 /// The Arabic mathematics example with the template it carries (the Arabic article
 /// with formulas the Arabic way).
 fn arabic_math_example() -> (Template, Document) {
-    let file: serde_json::Value = serde_json::from_str(&example_file("arabic-math.loom")).unwrap();
+    let file: serde_json::Value = serde_json::from_str(&example_file("arabic-math.nawl")).unwrap();
     let template: Template = serde_json::from_value(file["template"].clone()).unwrap();
     let doc: nawl_core::DocumentFile = serde_json::from_value(file).unwrap();
     (template, doc.document)
@@ -333,7 +333,7 @@ fn formula_pictures_compile() {
 #[test]
 fn english_document_with_arabic_words_gets_arabic() {
     let t: Template = serde_json::from_str(include_str!("../../../templates/senior-design/template.json")).unwrap();
-    let mut doc: nawl_core::DocumentFile = serde_json::from_str(include_str!("../../../examples/senior-design-report.loom")).unwrap();
+    let mut doc: nawl_core::DocumentFile = serde_json::from_str(include_str!("../../../examples/senior-design-report.nawl")).unwrap();
     let plain = nawl_codegen::document_to_tex(&t, &doc.document);
     assert!(!plain.contains("polyglossia"), "English documents stay as they were");
     assert!(!plain.contains("leqno"), "English equation numbers stay on the right");
@@ -535,7 +535,7 @@ fn arabic_samples() -> Vec<(&'static str, Template, Document)> {
         &[("title", "مدخل إلى علوم الحاسب"), ("subtitle", "الطبعة الأولى"), ("author", "عبدالله الأحمدي"), ("publisher", "دار المعرفة"), ("place", "جدة"), ("year", "٢٠٢٥"), ("preface", "هذا الكتاب مدخل ميسر.")],
     );
     let article: nawl_core::DocumentFile =
-        serde_json::from_str(include_str!("../../../examples/arabic-article.loom")).unwrap();
+        serde_json::from_str(include_str!("../../../examples/arabic-article.nawl")).unwrap();
     let slides = serde_json::json!({"type": "doc", "content": [
         {"type": "heading", "attrs": {"level": 1}, "content": [{"type": "text", "text": "مقدمة"}]},
         {"type": "slide", "content": [
@@ -634,14 +634,14 @@ fn decimal_numbers_stay_left_to_right() {
 
 /// The Arabic example documents and the built-in template each is written for.
 const EXAMPLES: [(&str, &str); 8] = [
-    ("arabic-article.loom", "arabic-article"),
-    ("arabic-load-forecasting.loom", "arabic-article"),
-    ("arabic-article-two-column.loom", "arabic-article-two-column"),
-    ("arabic-article-two-column-arabic-only.loom", "arabic-article-two-column-arabic-only"),
-    ("arabic-thesis.loom", "arabic-thesis"),
-    ("arabic-book.loom", "arabic-book"),
-    ("arabic-presentation.loom", "arabic-presentation"),
-    ("arabic-admin-order.loom", "arabic-admin-order"),
+    ("arabic-article.nawl", "arabic-article"),
+    ("arabic-load-forecasting.nawl", "arabic-article"),
+    ("arabic-article-two-column.nawl", "arabic-article-two-column"),
+    ("arabic-article-two-column-arabic-only.nawl", "arabic-article-two-column-arabic-only"),
+    ("arabic-thesis.nawl", "arabic-thesis"),
+    ("arabic-book.nawl", "arabic-book"),
+    ("arabic-presentation.nawl", "arabic-presentation"),
+    ("arabic-admin-order.nawl", "arabic-admin-order"),
 ];
 
 /// A system font may not be installed where the document is compiled (the
@@ -663,7 +663,7 @@ fn missing_system_fonts_fall_back() {
     // The Arabic body font too.
     let mut t = builtin("arabic-article");
     t.fonts.arabic = Some(nawl_core::FontChoice::System { family: "DecoType Naskh".into() });
-    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-article.loom")).unwrap();
+    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-article.nawl")).unwrap();
     let tex = nawl_codegen::document_to_tex(&t, &doc.document);
     assert!(tex.contains("\\IfFontExistsTF{DecoType Naskh}{\\def\\texloomarabicfont{DecoType Naskh}}{\\def\\texloomarabicfont{Amiri}}\n"), "{tex}");
     assert!(tex.contains(&format!("\\setmainfont[Script=Arabic,{shapes}]{{\\texloomarabicfont}}")), "{tex}");
@@ -705,7 +705,7 @@ fn arabic_examples_carry_their_templates() {
 fn arabic_only_article_has_no_english() {
     let t = builtin("arabic-article-two-column-arabic-only");
     assert!(t.fields.iter().all(|f| !f.id.ends_with("_en")), "{:?}", t.fields);
-    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-article-two-column-arabic-only.loom")).unwrap();
+    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-article-two-column-arabic-only.nawl")).unwrap();
     let g = nawl_codegen::generate(&t, &doc.document);
     let english: Vec<&str> = g.tex.lines().filter(|l| l.contains("\\textenglish") || l.contains("\\begin{english}")).collect();
     assert_eq!(english, ["\\texloomfield{authors_email}{\\textenglish{author@example.edu.sa}}"]);
@@ -718,7 +718,7 @@ fn arabic_only_article_has_no_english() {
 /// spanning columns starts on the right like the others (`l` would put it on the left).
 #[test]
 fn merged_cells_in_right_to_left_tables() {
-    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-article-two-column-arabic-only.loom")).unwrap();
+    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-article-two-column-arabic-only.nawl")).unwrap();
     let tex = nawl_codegen::document_to_tex(&builtin("arabic-article-two-column-arabic-only"), &doc.document);
     assert!(tex.contains(r"\multirow{2}{=}{الجنس} & ذكر"), "{tex}");
     assert!(tex.contains(r"\multirow{3}{=}{العمر}"), "{tex}");
@@ -729,7 +729,7 @@ fn merged_cells_in_right_to_left_tables() {
 /// in `verbatim`, the Latin code font would leave it blank.
 #[test]
 fn code_blocks_with_arabic() {
-    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-book.loom")).unwrap();
+    let doc: nawl_core::DocumentFile = serde_json::from_str(&example_file("arabic-book.nawl")).unwrap();
     let tex = nawl_codegen::document_to_tex(&builtin("arabic-book"), &doc.document);
     assert!(tex.contains(r#"name~=~input("\textarabic{ما~اسمك؟}~")\par"#), "{tex}");
     assert!(tex.contains(r"principal~=~10000~~~~~~\#~\textarabic{المبلغ~بالريال}\par"), "indentation and comments: {tex}");
@@ -764,7 +764,7 @@ fn arabic_examples_compile() {
         }
         .unwrap_or_else(|e| panic!("{file}: {e:?}"));
         if let Ok(dir) = std::env::var("NAWL_ARABIC_OUT") {
-            std::fs::write(std::path::Path::new(&dir).join(file.replace(".loom", ".pdf")), &out.pdf).unwrap();
+            std::fs::write(std::path::Path::new(&dir).join(file.replace(".nawl", ".pdf")), &out.pdf).unwrap();
         }
         let missing: Vec<&str> = out.log.lines().filter(|l| l.contains("Missing character")).collect();
         assert!(missing.is_empty(), "{file}: characters the fonts can't show: {missing:#?}");

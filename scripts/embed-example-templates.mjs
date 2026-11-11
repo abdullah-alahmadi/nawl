@@ -9,21 +9,21 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Example document → the built-in template it is written for. */
 export const EXAMPLES = {
-  "arabic-article.loom": "arabic-article",
-  "arabic-load-forecasting.loom": "arabic-article",
-  "arabic-article-two-column.loom": "arabic-article-two-column",
-  "arabic-article-two-column-arabic-only.loom": "arabic-article-two-column-arabic-only",
-  "arabic-thesis.loom": "arabic-thesis",
-  "arabic-book.loom": "arabic-book",
-  "arabic-presentation.loom": "arabic-presentation",
-  "arabic-admin-order.loom": "arabic-admin-order",
-  "arabic-math.loom": "arabic-article",
+  "arabic-article.nawl": "arabic-article",
+  "arabic-load-forecasting.nawl": "arabic-article",
+  "arabic-article-two-column.nawl": "arabic-article-two-column",
+  "arabic-article-two-column-arabic-only.nawl": "arabic-article-two-column-arabic-only",
+  "arabic-thesis.nawl": "arabic-thesis",
+  "arabic-book.nawl": "arabic-book",
+  "arabic-presentation.nawl": "arabic-presentation",
+  "arabic-admin-order.nawl": "arabic-admin-order",
+  "arabic-math.nawl": "arabic-article",
 };
 
 /** Changes an example makes to its built-in template. */
 const CHANGES = {
   // Formulas the Arabic way (right to left).
-  "arabic-math.loom": (t) => {
+  "arabic-math.nawl": (t) => {
     t.meta.id = "arabic-article-math";
     t.meta.name += " (رياضيات عربية)";
     t.language.math = "arabic";

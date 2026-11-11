@@ -3,7 +3,7 @@ import type { FieldValue } from "./FieldValue";
 import type { ProjectEntry } from "./ProjectEntry";
 
 /**
- * A `.loomproj` file. Like a `.loom`, it also embeds a copy of the template under
+ * A `.nawlproj` file. Like a `.nawl`, it also embeds a copy of the template under
  * `"template"`, which the app reads and writes itself.
  *
  * Note: as for documents, code that saves projects should write the editor's JSON

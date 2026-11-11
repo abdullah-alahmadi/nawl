@@ -1,7 +1,7 @@
 //! `nawl-cli`: render Nawl documents without the app.
 //!
-//!   nawl-cli render  report.loom --template templates/senior-design/template.json -o report.pdf
-//!   nawl-cli export  report.loom --template ... --out-dir build/
+//!   nawl-cli render  report.nawl --template templates/senior-design/template.json -o report.pdf
+//!   nawl-cli export  report.nawl --template ... --out-dir build/
 //!   nawl-cli check   templates/senior-design/template.json
 
 use std::path::{Path, PathBuf};

@@ -33,7 +33,7 @@ crates/
   core/      nawl-core: Document + Template models, placeholders, validation. No UI, no TeX.
   codegen/   nawl-codegen: Template → .cls, Document → .tex
   compile/   nawl-compile: Tectonic runner, log parsing → friendly errors
-  cli/       nawl-cli: `render doc.loom -t template.json`, `export`, `check`
+  cli/       nawl-cli: `render doc.nawl -t template.json`, `export`, `check`
 templates/   built-in templates (senior-design/template.json is the reference)
 examples/    sample documents
 src-tauri/   Tauri app: commands that call the crates
@@ -46,10 +46,10 @@ scripts/     fetch-tectonic.sh (sidecar binary), copy-mathlive-assets.mjs (posti
 
 ## File formats
 
-- **Document** (`.loom`): currently JSON `{"format": "texloom", "version": 1, "metadata": {...}, "doc": <ProseMirror JSON>}`.
+- **Document** (`.nawl`): currently JSON `{"format": "texloom", "version": 1, "metadata": {...}, "doc": <ProseMirror JSON>}`.
   The `doc` JSON *is* the typed model (`nawl_core::Body`), so no conversion layer exists.
   It embeds a copy of the template. **Save as single file…** writes the same JSON as
-  `document.loom` inside a zip with the images (`figures/…`); opening detects either.
+  `document.nawl` inside a zip with the images (`figures/…`); opening detects either.
 - **Template**: currently `template.json` with assets resolved relative to its folder.
   Later (zip): `template.json` + `assets/` (logos, fonts).
 - **Export** (zip): `report.tex` + `<template>.cls` + assets + bibliography. Compiles
@@ -87,7 +87,7 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 
 ### Phase 0: Prove the risky parts first (~1–2 weeks)
 - [x] Tauri 2 + React + TipTap app; save/load JSON through a Rust command
-      (Phase 0 saves plain JSON `.loom`; the zip format comes in Phase 2)
+      (Phase 0 saves plain JSON `.nawl`; the zip format comes in Phase 2)
 - [x] Compile with the Tectonic sidecar; show the PDF in pdf.js (debounced, stale results dropped)
 - [x] MathLive equation as a custom TipTap node storing LaTeX (`$$ ` shortcut, toolbar button)
 - [x] Throwaway `codegen` crate: ProseMirror JSON → LaTeX (replaced by typed model in Phase 1)
@@ -101,7 +101,7 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] `compile`: Tectonic runner + readable errors
 - [x] `cli` + snapshot tests; hand-written `senior-design` reference template + sample report
 - [x] App uses the new pipeline with the built-in template; basic "Document info" form
-      (generated from the template's fields), metadata saved in `.loom` files
+      (generated from the template's fields), metadata saved in `.nawl` files
 - [x] App: open a `template.json` (Template menu or `NAWL_TEMPLATE`), live reload on
       save, template errors shown while the last valid version stays active; documents
       save their template path + an embedded copy and reopen with it
@@ -120,7 +120,7 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [ ] New/blank document command
 - [x] Table cells spanning rows (Merge/Split; \multirow, \cline); image cropping (adjustbox trim)
 - [x] Find and replace (Ctrl+F / Ctrl+H) with match marks and one-step Replace all
-- [x] Single-file .loom (zip with the images) via Save as single file…; plain .loom stays the default
+- [x] Single-file .nawl (zip with the images) via Save as single file…; plain .nawl stays the default
 
 ### Phase 3: Template designer v1, styles (~3–4 weeks)
 - [x] Template mode with panels: info, page, fonts (built-in + system), structure &
@@ -310,7 +310,7 @@ out from the text, numbers and function names in the text font.
       the log); the app draws the pages with pdf.js (288 px per inch, no background)
       and `nawl_docx::write_with` places them on the text's baseline. Without
       pictures (the compile failed) they're Word equations as before
-- [x] `examples/arabic-math.loom`: algebra, limits, derivatives, integrals, a sum,
+- [x] `examples/arabic-math.nawl`: algebra, limits, derivatives, integrals, a sum,
       cases, a matrix, one international formula; compile tests for it, for a
       document of every kind of formula, and for the formula pictures
 - [ ] Not checked yet: the Word file opened in Word; Arabic slides (LuaLaTeX)
@@ -324,7 +324,7 @@ chapters. Writing gets faster as a side effect: the editor holds one chapter (th
 LaTeX can recompile just the chapter being written. This is the same idea as LaTeX's
 `\include` and LyX's master/child documents.
 
-**Not a replacement for single files.** A `.loom` stays the default. A project is for
+**Not a replacement for single files.** A `.nawl` stays the default. A project is for
 documents that have chapters (book, thesis, long report). The templates are the same.
 
 #### File format
@@ -333,21 +333,21 @@ A project is a folder:
 
 ```
 my-thesis/
-  my-thesis.loomproj      project file
+  my-thesis.nawlproj      project file
   chapters/
-    01-introduction.loom  one chapter per file
-    02-literature.loom
-    a1-survey.loom        appendix
+    01-introduction.nawl  one chapter per file
+    02-literature.nawl
+    a1-survey.nawl        appendix
   figures/                shared by all chapters
 ```
 
-- **Project file** (`.loomproj`, JSON):
+- **Project file** (`.nawlproj`, JSON):
   `{"format": "texloom-project", "version": 1, "template": {...}, "metadata": {...},
   "bibliography": "...", "chapters": [{"part": "الباب الأول: الإطار النظري"},
-  {"file": "chapters/01-introduction.loom"}, …, {"file": "chapters/a1-survey.loom",
+  {"file": "chapters/01-introduction.nawl"}, …, {"file": "chapters/a1-survey.nawl",
   "appendix": true}]}`.
   Everything the whole book shares lives here: the template (embedded, as in a
-  `.loom`), title-page metadata, front matter fields, the bibliography and the
+  `.nawl`), title-page metadata, front matter fields, the bibliography and the
   chapter order.
   - **Parts** ("الباب الأول") are entries in the chapter list, not files: a title,
     followed by the chapters it groups until the next part. Books without parts don't
@@ -355,15 +355,15 @@ my-thesis/
   - **Front matter written as text** (abstract, dedication, acknowledgments, الإهداء,
     الشكر والتقدير) stays as the template's metadata fields, edited in Document
     info, as for single documents.
-- **Chapter file**: an ordinary `.loom` (`format`, `version`, `doc`) with
-  `"project": "../my-thesis.loomproj"` and no template, metadata or bibliography of its
+- **Chapter file**: an ordinary `.nawl` (`format`, `version`, `doc`) with
+  `"project": "../my-thesis.nawlproj"` and no template, metadata or bibliography of its
   own. It starts with its chapter heading.
   - A chapter opened on its own (double-clicked) finds its project and opens the
     project at that chapter.
   - If the project file is missing, the chapter opens as a single document with the
     default template, with a notice.
 - **Paths** in the project file are relative, so the folder can be moved, zipped or
-  synced. "Save as single file…" zips the folder (`.loomproj` inside; opening it
+  synced. "Save as single file…" zips the folder (`.nawlproj` inside; opening it
   detects either kind).
 
 #### Writing
@@ -371,7 +371,7 @@ my-thesis/
 - **Chapters panel:** the side rail gets a Chapters tab, listing chapters by their
   titles (from each file's first heading), grouped under their parts, with appendices
   after a separator. From there you can:
-  - add a new chapter, or an existing `.loom` as a chapter;
+  - add a new chapter, or an existing `.nawl` as a chapter;
   - add, rename or remove a part (removing a part keeps its chapters);
   - rename (the heading and the file name);
   - drag to reorder;
@@ -459,7 +459,7 @@ The editor uses the index to:
 
 #### Moving between single files and projects
 
-- **Split into project…** (File menu, for a `.loom` with chapters): writes a project
+- **Split into project…** (File menu, for a `.nawl` with chapters): writes a project
   folder, one file per top-level chapter heading, splitting at `appendixStart`.
   Figures are copied into `figures/`, and ids are kept so references still work.
 - **Join into single document…**: the reverse, for sending one file, or for a project
@@ -520,12 +520,12 @@ The editor uses the index to:
       end, CSS counters too, appendix chapters in letters), references to other
       chapters (picker, labels, Ctrl-click opens the chapter at the target), ids
       unique across chapters, citations in book order, chapter / book word count,
-      PDF ↔ editor jumps and error jumps across chapters; Open takes `.loomproj` and
+      PDF ↔ editor jumps and error jumps across chapters; Open takes `.nawlproj` and
       chapter files (opens the project there); Split into project / Join into single
       document; PDF and LaTeX export of the whole book
 - [ ] Frontend: search across chapters, the Outline with the other chapters
 - [x] Compile switch (this chapter / whole book)
-- [ ] CLI: `render`, `export` and `check` accept a `.loomproj`
+- [ ] CLI: `render`, `export` and `check` accept a `.nawlproj`
 - [x] New project (File menu and start window: a folder, the current template, a first
       chapter titled in the document's language)
 - [x] An example project (start window and File menu): the Arabic thesis example in

@@ -63,9 +63,12 @@ const TEMPLATE_DEBOUNCE_MS = 400;
 /** Unsaved changes are copied for crash recovery after this pause in typing. */
 const RECOVERY_DELAY_MS = 3000;
 // Functions, not constants: the filter names follow the interface language.
-const docFilter = () => [{ name: tNow("app.filterDocument"), extensions: ["loom"] }];
+// New files are .nawl / .nawlproj; Texloom's .loom / .loomproj still open.
+const docFilter = () => [{ name: tNow("app.filterDocument"), extensions: ["nawl"] }];
 /** Opening: documents and projects. */
-const openFilter = () => [{ name: tNow("project.filterAll"), extensions: ["loom", "loomproj"] }];
+const openFilter = () => [{ name: tNow("project.filterAll"), extensions: ["nawl", "nawlproj", "loom", "loomproj"] }];
+/** A file name without its document or project extension. */
+const stripExtension = (name: string) => name.replace(/\.(nawl|loom)(proj)?$/i, "");
 const templateFilter = () => [{ name: tNow("app.filterTemplate"), extensions: ["json"] }];
 
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
@@ -115,7 +118,7 @@ type SidePanel = "chapters" | "outline" | "info" | "refs" | "checks";
 
 /** The open project (a book as one file per chapter), when one is open. */
 interface OpenProject {
-  /** The .loomproj file. */
+  /** The .nawlproj file. */
   path: string;
   entries: api.ProjectEntry[];
   index: api.ProjectIndex;
@@ -871,7 +874,7 @@ export default function App() {
     if (!editor) return;
     // A project's chapters are saved in place (Join makes a single document).
     if (projectRef.current) return saveProjectFiles().then(compileAfterSave, report);
-    const target = await save({ filters: docFilter(), defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom") });
+    const target = await save({ filters: docFilter(), defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.nawl") });
     if (!target) return;
     await api.saveDocument(target, docState()).then(() => {
       setPath(target);
@@ -881,13 +884,13 @@ export default function App() {
     }, report);
   }, [editor, path, markClean, addRecent, settingsRef, compileAfterSave]);
 
-  /** Saves the document and its images as one .loom file, to email or upload. */
+  /** Saves the document and its images as one .nawl file, to email or upload. */
   const saveAsSingleFile = async () => {
     if (!editor) return;
     const target = await save({
       title: tr("app.saveSingleFileTitle"),
       filters: docFilter(),
-      defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.loom"),
+      defaultPath: path ?? inFolder(settingsRef.current.defaultFolder, "report.nawl"),
     });
     if (!target) return;
     await api.saveDocument(target, docState(), true).then(() => {
@@ -1053,7 +1056,7 @@ export default function App() {
     if (!editor) return;
     const folder = await open({ directory: true, multiple: false, title: tr("project.splitFolderTitle"), defaultPath: settings.defaultFolder || undefined });
     if (!folder) return;
-    const name = path ? fileNameOf(path).replace(/\.loom$/, "") : folder.split(/[\\/]/).filter(Boolean).pop() ?? "book";
+    const name = path ? stripExtension(fileNameOf(path)) : folder.split(/[\\/]/).filter(Boolean).pop() ?? "book";
     try {
       const projectPath = await api.splitIntoProject(folder, name, docState());
       // Its content is in the project now; the document itself is left as it was.
@@ -1106,7 +1109,7 @@ export default function App() {
   const joinProject = async () => {
     const p = projectRef.current;
     if (!p) return;
-    const target = await save({ filters: docFilter(), defaultPath: p.path.replace(/\.loomproj$/, ".loom") });
+    const target = await save({ filters: docFilter(), defaultPath: stripExtension(p.path) + ".nawl" });
     if (!target) return;
     try {
       await api.joinProject(target, projectState());
@@ -1125,7 +1128,7 @@ export default function App() {
       if (!picked) return;
       target = picked;
     }
-    if (target.toLowerCase().endsWith(".loomproj")) return openProject(target);
+    if (/\.(nawl|loom)proj$/i.test(target)) return openProject(target);
     try {
       const opened = await api.openDocument(target);
       if (opened.project) {
@@ -1155,7 +1158,7 @@ export default function App() {
 
   const exportPdfFile = async () => {
     if (!editor) return;
-    const name = (path ? fileNameOf(path).replace(/\.loom(proj)?$/, "") : "report") + ".pdf";
+    const name = (path ? stripExtension(fileNameOf(path)) : "report") + ".pdf";
     const target = await save({ filters: [{ name: "PDF", extensions: ["pdf"] }], defaultPath: path ? name : inFolder(settings.defaultFolder, name) });
     if (target) await (projectRef.current ? api.exportProjectPdf(target, projectState()) : api.exportPdf(target, docState())).catch(report);
   };
@@ -1171,7 +1174,7 @@ export default function App() {
 
   const exportWord = async () => {
     if (!editor) return;
-    const name = (path ? fileNameOf(path).replace(/\.loom(proj)?$/, "") : "report") + ".docx";
+    const name = (path ? stripExtension(fileNameOf(path)) : "report") + ".docx";
     const target = await save({ filters: [{ name: "Word", extensions: ["docx"] }], defaultPath: path ? name : inFolder(settings.defaultFolder, name) });
     if (!target) return;
     const state = docState();
