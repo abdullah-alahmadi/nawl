@@ -19,8 +19,8 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State};
-use texloom_compile::{Asset, CompileError, PdfSpot, SyncTex};
-use texloom_core::{tr, Body, Issue, Metadata, Project, ProjectEntry, ProjectFile, ProjectIndex, Severity, DOC_FORMAT, DOC_VERSION};
+use nawl_compile::{Asset, CompileError, PdfSpot, SyncTex};
+use nawl_core::{tr, Body, Issue, Metadata, Project, ProjectEntry, ProjectFile, ProjectIndex, Severity, DOC_FORMAT, DOC_VERSION};
 
 use crate::templates::TemplateInfo;
 use crate::{files, AppError, AppState, LocatedTexError};
@@ -97,7 +97,7 @@ fn read_chapter_file(path: &Path) -> Result<Value, String> {
     let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let mut file: Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
     if file.get("format").and_then(Value::as_str) != Some(DOC_FORMAT) {
-        return Err(tr!("not a Texloom document", "ليس مستند Texloom"));
+        return Err(tr!("not a Nawl document", "ليس مستند نول"));
     }
     let doc = file.get_mut("doc").map(Value::take).ok_or_else(|| tr!("no document body", "لا يوجد متن للمستند"))?;
     serde_json::from_value::<Body>(doc.clone()).map_err(|e| e.to_string())?;
@@ -119,7 +119,7 @@ pub fn open_project(app: AppHandle, state: State<'_, AppState>, store: State<'_,
     let folder = path.parent().map(Path::to_path_buf).unwrap_or_default();
     let mut chapters = HashMap::new();
     for name in file.chapter_files() {
-        if !texloom_core::is_safe_chapter_path(name) {
+        if !nawl_core::is_safe_chapter_path(name) {
             continue;
         }
         match read_chapter_file(&folder.join(name)) {
@@ -183,7 +183,7 @@ fn project_link(chapter: &str, project: &Path) -> String {
 }
 
 fn write_chapter(project: &Path, folder: &Path, file: &str, doc: &Value) -> Result<(), AppError> {
-    if !texloom_core::is_safe_chapter_path(file) {
+    if !nawl_core::is_safe_chapter_path(file) {
         return Err(AppError::other(tr!("Chapter file \"{file}\" must be inside the project folder", "يجب أن يكون ملف الفصل \"{file}\" داخل مجلد المشروع")));
     }
     let json = serde_json::json!({
@@ -296,7 +296,7 @@ pub fn project_index(store: State<'_, ProjectStore>, file: Option<String>, doc: 
 /// the template, the engine, the bibliography, the chapter list, and each chapter's
 /// numbered targets and citations. A one-chapter compile is right only while this
 /// is what the last full compile was made from.
-fn signature(template: &texloom_core::Template, engine: &str, project: &Project, entries: &[ProjectEntry]) -> u64 {
+fn signature(template: &nawl_core::Template, engine: &str, project: &Project, entries: &[ProjectEntry]) -> u64 {
     let mut h = std::collections::hash_map::DefaultHasher::new();
     serde_json::to_string(template).unwrap_or_default().hash(&mut h);
     engine.hash(&mut h);
@@ -315,7 +315,7 @@ fn signature(template: &texloom_core::Template, engine: &str, project: &Project,
 fn build_folder(app: &AppHandle, project: &Path, engine: &str) -> PathBuf {
     let mut h = std::collections::hash_map::DefaultHasher::new();
     project.hash(&mut h);
-    let cache = app.path().app_cache_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom-cache"));
+    let cache = app.path().app_cache_dir().unwrap_or_else(|_| std::env::temp_dir().join("nawl-cache"));
     cache.join("projects").join(format!("{:016x}-{engine}", h.finish()))
 }
 
@@ -385,9 +385,9 @@ async fn compile_project(
     let open_index = file.as_deref().and_then(|f| project.chapters().position(|(name, _, _)| name == f));
     let only = open_index.filter(|_| only_chapter && last_full == Some(sig) && dir.join("main.aux").is_file());
 
-    let generated = texloom_codegen::generate_project_for(&active.template, &project, target, only);
+    let generated = nawl_codegen::generate_project_for(&active.template, &project, target, only);
     let mut assets = active.load_assets(&generated.assets)?;
-    assets.extend(active.load_kit_files(&generated.kit_files, target)?);
+    assets.extend(active.load_kit_files(&generated.kit_files)?);
     assets.extend(state.doc_folder.load(&generated.figures)?);
     assets.extend(crate::load_library_fonts(&generated.fonts)?);
     let chapter_files: Vec<String> = project.chapters().map(|(name, _, _)| name.to_string()).collect();
@@ -421,7 +421,7 @@ async fn compile_project(
 }
 
 /// The chapter and block a TeX error came from (errors in the main file: none).
-fn locate(error: texloom_compile::TexError, tex_paths: &[String], chapters: &[String], lines: &[Vec<u32>]) -> LocatedTexError {
+fn locate(error: nawl_compile::TexError, tex_paths: &[String], chapters: &[String], lines: &[Vec<u32>]) -> LocatedTexError {
     let file = error.file.as_deref().map(|f| f.replace('\\', "/"));
     let chapter = file.and_then(|f| tex_paths.iter().position(|p| f == *p || f.ends_with(&format!("/{p}"))));
     let block = chapter.zip(error.line).and_then(|(c, line)| {
@@ -479,13 +479,13 @@ pub fn export_project_tex(
     let active = state.templates.current();
     let combined = project.combined();
     let mut target = state.engine().target();
-    if target == texloom_codegen::Engine::Pdf && texloom_codegen::language::Languages::of(&active.template, &combined).need_unicode_engine() {
+    if target == nawl_codegen::Engine::Pdf && nawl_codegen::language::Languages::of(&active.template, &combined).need_unicode_engine() {
         // Arabic can't be typeset by pdfLaTeX: written for XeLaTeX instead.
-        target = texloom_codegen::Engine::Xe;
+        target = nawl_codegen::Engine::Xe;
     }
-    let g = texloom_codegen::generate_project_for(&active.template, &project, target, None);
+    let g = nawl_codegen::generate_project_for(&active.template, &project, target, None);
     let mut assets = active.load_assets(&g.assets)?;
-    assets.extend(active.load_kit_files(&g.kit_files, target)?);
+    assets.extend(active.load_kit_files(&g.kit_files)?);
     assets.extend(state.doc_folder.load(&g.figures)?);
     assets.extend(crate::load_library_fonts(&g.fonts)?);
     let path = Path::new(&path);
@@ -539,7 +539,7 @@ pub fn split_into_project(
     if stem.is_empty() || stem.contains(['/', '\\']) {
         return Err(AppError::other(tr!("Choose a name for the project", "اختر اسمًا للمشروع")));
     }
-    let path = folder.join(format!("{stem}.{}", texloom_core::PROJECT_EXTENSION));
+    let path = folder.join(format!("{stem}.{}", nawl_core::PROJECT_EXTENSION));
     if path.exists() || folder.join("chapters").exists() {
         return Err(AppError::other(tr!(
             "The folder already holds a project; choose an empty folder",
@@ -599,7 +599,7 @@ impl SampleProject {
     /// Splits the example into chapter files in `folder` and writes the project file.
     fn write(&self, folder: &Path) -> Result<PathBuf, AppError> {
         let source: Value = serde_json::from_str(self.document).map_err(AppError::other)?;
-        let path = folder.join(format!("{}.{}", self.stem, texloom_core::PROJECT_EXTENSION));
+        let path = folder.join(format!("{}.{}", self.stem, nawl_core::PROJECT_EXTENSION));
         let (chapters, bodies) = split_blocks(&source["doc"]);
         for (file, body) in &bodies {
             write_chapter(&path, folder, file, body)?;
@@ -788,8 +788,8 @@ mod tests {
 
         let project = Project::load(&file, |name| read_chapter_file(&dir.path().join(name)).and_then(|d| serde_json::from_value::<Body>(d).map_err(|e| e.to_string()))).unwrap();
         assert!(project.validate().is_empty(), "{:?}", project.validate());
-        let template: texloom_core::Template = serde_json::from_str(include_str!("../../templates/arabic-book/template.json")).unwrap();
-        let g = texloom_codegen::generate_project_for(&template, &project, texloom_codegen::Engine::Xe, None);
+        let template: nawl_core::Template = serde_json::from_str(include_str!("../../templates/arabic-book/template.json")).unwrap();
+        let g = nawl_codegen::generate_project_for(&template, &project, nawl_codegen::Engine::Xe, None);
         assert_eq!(g.chapters.len(), 2);
         assert!(g.chapters[1].tex.contains("\\eqref{tl:eq}"));
     }
@@ -812,19 +812,19 @@ mod tests {
             }
             let project = Project::load(&file, |f| read_chapter_file(&dir.path().join(f)).and_then(|d| serde_json::from_value::<Body>(d).map_err(|e| e.to_string()))).unwrap();
             assert!(project.validate().is_empty(), "{name:?}: {:?}", project.validate());
-            let template: texloom_core::Template = serde_json::from_value(raw["template"].clone()).unwrap();
+            let template: nawl_core::Template = serde_json::from_value(raw["template"].clone()).unwrap();
             let document = project.combined();
             assert!(template.check_metadata(&document.metadata).is_empty(), "{name:?}");
             let figures = document.body.figure_sources();
             assert!(!figures.is_empty() && figures.iter().all(|f| sample.files.iter().any(|(p, _)| p == f)), "{name:?}: {figures:?}");
-            let g = texloom_codegen::generate_project_for(&template, &project, texloom_codegen::Engine::Xe, None);
+            let g = nawl_codegen::generate_project_for(&template, &project, nawl_codegen::Engine::Xe, None);
             assert_eq!(g.tex.matches("\\texloompart{").count(), parts, "{name:?}");
         }
     }
 
     /// The example projects compile, with their references resolved.
-    /// Run with TEXLOOM_TECTONIC=… cargo test -p texloom sample_projects_compile -- --ignored
-    /// (TEXLOOM_SAVE_PDF=<folder> keeps the PDFs).
+    /// Run with NAWL_TECTONIC=… cargo test -p nawl sample_projects_compile -- --ignored
+    /// (NAWL_SAVE_PDF=<folder> keeps the PDFs).
     #[test]
     #[ignore]
     fn sample_projects_compile() {
@@ -835,14 +835,14 @@ mod tests {
             let raw: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
             let file: ProjectFile = serde_json::from_value(raw.clone()).unwrap();
             let project = Project::load(&file, |f| read_chapter_file(&dir.path().join(f)).and_then(|d| serde_json::from_value::<Body>(d).map_err(|e| e.to_string()))).unwrap();
-            let template: texloom_core::Template = serde_json::from_value(raw["template"].clone()).unwrap();
-            let g = texloom_codegen::generate_project_for(&template, &project, texloom_codegen::Engine::Xe, None);
+            let template: nawl_core::Template = serde_json::from_value(raw["template"].clone()).unwrap();
+            let g = nawl_codegen::generate_project_for(&template, &project, nawl_codegen::Engine::Xe, None);
             let support = g.support_files();
             let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), sample.files.iter().find(|(p, _)| p == f).unwrap().1.to_vec())).collect();
             let files: Vec<Asset> = support.iter().chain(figures.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
-            let out = texloom_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files).unwrap_or_else(|e| panic!("{name:?}: {e:?}"));
+            let out = nawl_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files).unwrap_or_else(|e| panic!("{name:?}: {e:?}"));
             assert!(out.pdf.starts_with(b"%PDF"));
-            if let Some(save) = std::env::var_os("TEXLOOM_SAVE_PDF") {
+            if let Some(save) = std::env::var_os("NAWL_SAVE_PDF") {
                 std::fs::write(Path::new(&save).join(format!("{}.pdf", sample.stem)), &out.pdf).unwrap();
             }
             let undefined: Vec<&str> = out.log.lines().filter(|l| l.contains("undefined")).collect();
@@ -863,7 +863,7 @@ mod tests {
         let tex_paths = vec!["chapters/ch01.tex".to_string(), "chapters/ch02.tex".to_string()];
         let chapters = vec!["chapters/01.loom".to_string(), "chapters/02.loom".to_string()];
         let lines = vec![vec![2, 5], vec![2, 9, 14]];
-        let err = |file: Option<&str>, line| texloom_compile::TexError { file: file.map(String::from), line, message: "x".into() };
+        let err = |file: Option<&str>, line| nawl_compile::TexError { file: file.map(String::from), line, message: "x".into() };
         let e = locate(err(Some("./chapters/ch02.tex"), Some(10)), &tex_paths, &chapters, &lines);
         assert_eq!((e.chapter.as_deref(), e.block), (Some("chapters/02.loom"), Some(1)));
         let e = locate(err(Some("main.tex"), Some(40)), &tex_paths, &chapters, &lines);

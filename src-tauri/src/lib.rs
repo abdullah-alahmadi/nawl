@@ -23,9 +23,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State};
-use texloom_compile::{Asset, CompileError, CompileOutput, Compiler, LatexProgram, PdfSpot, SyncTex, SystemLatex, TexError};
-use texloom_core::{bib, tr};
-use texloom_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
+use nawl_compile::{Asset, CompileError, CompileOutput, Compiler, LatexProgram, PdfSpot, SyncTex, SystemLatex, TexError};
+use nawl_core::{bib, tr};
+use nawl_core::{Body, Document, Issue, Metadata, Template, DOC_FORMAT, DOC_VERSION};
 
 use library::{Library, LibraryEntry};
 use recovery::{Recovery, RecoveryInfo};
@@ -60,9 +60,9 @@ pub struct AppState {
     /// Where the open document's figures live.
     doc_folder: files::DocumentFolder,
     /// Journal classes of the installed TeX, looked up once.
-    installed: std::sync::Mutex<Option<Vec<texloom_compile::installed::InstalledClass>>>,
+    installed: std::sync::Mutex<Option<Vec<nawl_compile::installed::InstalledClass>>>,
     /// Beamer themes of the installed TeX, looked up once.
-    beamer_themes: std::sync::Mutex<Option<texloom_compile::installed::BeamerThemes>>,
+    beamer_themes: std::sync::Mutex<Option<nawl_compile::installed::BeamerThemes>>,
     /// SyncTeX data of the last compile, for jumps between the PDF and the editor.
     sync: std::sync::Mutex<Option<SyncState>>,
 }
@@ -95,7 +95,7 @@ impl SyncState {
 
 impl AppState {
     /// The installed TeX's journal classes (looked up on first use). Blocking.
-    fn installed_classes(&self) -> Vec<texloom_compile::installed::InstalledClass> {
+    fn installed_classes(&self) -> Vec<nawl_compile::installed::InstalledClass> {
         let mut cache = self.installed.lock().expect("installed lock");
         cache.get_or_insert_with(installed::find).clone()
     }
@@ -179,11 +179,11 @@ impl EngineChoice {
     }
 
     /// What the generated LaTeX is written for.
-    fn target(self) -> texloom_codegen::Engine {
+    fn target(self) -> nawl_codegen::Engine {
         match self {
-            Self::Tectonic | Self::System(LatexProgram::XeLatex) => texloom_codegen::Engine::Xe,
-            Self::System(LatexProgram::PdfLatex) => texloom_codegen::Engine::Pdf,
-            Self::System(LatexProgram::LuaLatex) => texloom_codegen::Engine::Lua,
+            Self::Tectonic | Self::System(LatexProgram::XeLatex) => nawl_codegen::Engine::Xe,
+            Self::System(LatexProgram::PdfLatex) => nawl_codegen::Engine::Pdf,
+            Self::System(LatexProgram::LuaLatex) => nawl_codegen::Engine::Lua,
         }
     }
 }
@@ -220,11 +220,11 @@ impl Runner {
 }
 
 /// An engine that can typeset Arabic: Tectonic, else an installed XeLaTeX or LuaLaTeX.
-fn unicode_runner(state: &AppState) -> Option<(Runner, texloom_codegen::Engine)> {
+fn unicode_runner(state: &AppState) -> Option<(Runner, nawl_codegen::Engine)> {
     if let Ok(c) = &state.compiler {
-        return Some((Runner::Tectonic(c.clone()), texloom_codegen::Engine::Xe));
+        return Some((Runner::Tectonic(c.clone()), nawl_codegen::Engine::Xe));
     }
-    [(LatexProgram::XeLatex, texloom_codegen::Engine::Xe), (LatexProgram::LuaLatex, texloom_codegen::Engine::Lua)]
+    [(LatexProgram::XeLatex, nawl_codegen::Engine::Xe), (LatexProgram::LuaLatex, nawl_codegen::Engine::Lua)]
         .into_iter()
         .find_map(|(p, e)| SystemLatex::find(p).map(|s| (Runner::System(s), e)))
 }
@@ -390,7 +390,7 @@ fn open_template(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
     Ok(info)
 }
 
-/// The templates that ship with Texloom (report, IEEE, Elsevier, ACM, Springer, APS).
+/// The templates that ship with Nawl (report, IEEE, Elsevier, ACM, Springer, APS).
 #[tauri::command]
 fn list_builtin_templates() -> Vec<templates::BuiltinInfo> {
     templates::builtin_list()
@@ -431,7 +431,7 @@ async fn list_beamer_themes(app: AppHandle) -> Result<BeamerThemeList, AppError>
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         let mut cache = state.beamer_themes.lock().expect("themes lock");
-        let t = cache.get_or_insert_with(texloom_compile::installed::beamer_themes).clone();
+        let t = cache.get_or_insert_with(nawl_compile::installed::beamer_themes).clone();
         let themes = t.themes.into_iter().filter(|n| !themes::BROKEN_THEMES.contains(&n.as_str())).collect();
         BeamerThemeList { themes, color_themes: t.color_themes, font_themes: t.font_themes }
     })
@@ -462,7 +462,7 @@ async fn theme_preview(
         EngineChoice::Tectonic => "tectonic",
         EngineChoice::System(p) => p.command(),
     };
-    let cache = app.path().app_cache_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom-cache"));
+    let cache = app.path().app_cache_dir().unwrap_or_else(|_| std::env::temp_dir().join("nawl-cache"));
     let file = themes::cache_path(&cache, engine_id, &theme, &color_theme, &font_theme);
     if let Ok(bytes) = std::fs::read(&file) {
         return Ok(Response::new(bytes));
@@ -631,7 +631,7 @@ fn import_kit_zip(state: State<'_, AppState>, source: String) -> Result<Vec<Stri
 #[tauri::command]
 async fn list_system_fonts() -> Vec<String> {
     tauri::async_runtime::spawn_blocking(|| {
-        let mut families: Vec<String> = match texloom_compile::tool("fc-list").args([":", "family"]).output() {
+        let mut families: Vec<String> = match nawl_compile::tool("fc-list").args([":", "family"]).output() {
             Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout)
                 .lines()
                 // "DejaVu Sans,DejaVu Sans Condensed" → the first name is the family.
@@ -655,7 +655,7 @@ async fn list_system_fonts() -> Vec<String> {
 #[tauri::command]
 async fn list_arabic_system_fonts() -> Vec<String> {
     tauri::async_runtime::spawn_blocking(|| {
-        let mut families: Vec<String> = match texloom_compile::tool("fc-list").args([":lang=ar", "family"]).output() {
+        let mut families: Vec<String> = match nawl_compile::tool("fc-list").args([":lang=ar", "family"]).output() {
             Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout)
                 .lines()
                 .filter_map(|l| l.split(',').next())
@@ -681,7 +681,7 @@ fn windows_arabic_font_families() -> Vec<String> {
     let key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts";
     let mut out = Vec::new();
     for root in ["HKLM", "HKCU"] {
-        let Ok(o) = texloom_compile::tool("reg").args(["query", &format!("{root}\\{key}")]).output() else { continue };
+        let Ok(o) = nawl_compile::tool("reg").args(["query", &format!("{root}\\{key}")]).output() else { continue };
         for line in String::from_utf8_lossy(&o.stdout).lines() {
             let (Some(family), Some((_, file))) = (font_family_from_registry(line), line.split_once("REG_SZ")) else { continue };
             // The machine's fonts are named by file; a user's own by full path.
@@ -712,7 +712,7 @@ fn windows_font_families() -> Vec<String> {
     let key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts";
     let mut out = Vec::new();
     for root in ["HKLM", "HKCU"] {
-        let Ok(o) = texloom_compile::tool("reg").args(["query", &format!("{root}\\{key}")]).output() else { continue };
+        let Ok(o) = nawl_compile::tool("reg").args(["query", &format!("{root}\\{key}")]).output() else { continue };
         // Bitmap fonts (.fon: "8514fix", "Terminal") are for the screen; TeX can't use them.
         out.extend(String::from_utf8_lossy(&o.stdout).lines().filter(|l| !l.trim_end().to_lowercase().ends_with(".fon")).filter_map(font_family_from_registry));
     }
@@ -782,7 +782,7 @@ fn read_bib_file(path: String) -> Result<String, AppError> {
 #[tauri::command]
 fn new_document(state: State<'_, AppState>) -> Result<OpenedDocument, AppError> {
     // A presentation starts with one empty slide.
-    let content = if state.templates.current().template.kind == texloom_core::DocumentKind::Presentation {
+    let content = if state.templates.current().template.kind == nawl_core::DocumentKind::Presentation {
         vec![serde_json::json!({ "type": "slide", "content": [{ "type": "slideTitle" }, { "type": "paragraph" }] })]
     } else {
         vec![serde_json::json!({ "type": "paragraph" })]
@@ -818,9 +818,9 @@ async fn compile_document(
     }
     let document = to_document(doc, metadata, bibliography)?;
     let (runner, target) = choose_runner(state, &active.template, &document)?;
-    let generated = texloom_codegen::generate_for(&active.template, &document, target);
+    let generated = nawl_codegen::generate_for(&active.template, &document, target);
     let mut assets = active.load_assets(&generated.assets)?;
-    assets.extend(active.load_kit_files(&generated.kit_files, target)?);
+    assets.extend(active.load_kit_files(&generated.kit_files)?);
     assets.extend(state.doc_folder.load(&generated.figures)?);
     assets.extend(load_library_fonts(&generated.fonts)?);
     let block_lines = generated.block_lines.clone();
@@ -845,10 +845,10 @@ async fn compile_document(
 
 /// The engine for a document: the chosen one, except where it can't typeset it
 /// (Arabic slides need LuaLaTeX; pdfLaTeX can't typeset Arabic).
-fn choose_runner(state: &AppState, template: &Template, document: &Document) -> Result<(Runner, texloom_codegen::Engine), AppError> {
+fn choose_runner(state: &AppState, template: &Template, document: &Document) -> Result<(Runner, nawl_codegen::Engine), AppError> {
     let mut runner = state.runner()?;
     let mut target = state.engine().target();
-    if needs_lualatex(template) && target != texloom_codegen::Engine::Lua {
+    if needs_lualatex(template) && target != nawl_codegen::Engine::Lua {
         // Right-to-left slides only work with LuaLaTeX (beamer-rl): the installed one,
         // whatever engine is chosen for everything else.
         let lua = SystemLatex::find(LatexProgram::LuaLatex).ok_or_else(|| {
@@ -858,9 +858,9 @@ fn choose_runner(state: &AppState, template: &Template, document: &Document) -> 
             ))
         })?;
         runner = Runner::System(lua);
-        target = texloom_codegen::Engine::Lua;
+        target = nawl_codegen::Engine::Lua;
     }
-    if target == texloom_codegen::Engine::Pdf && texloom_codegen::language::Languages::of(template, document).need_unicode_engine() {
+    if target == nawl_codegen::Engine::Pdf && nawl_codegen::language::Languages::of(template, document).need_unicode_engine() {
         // pdfLaTeX can't typeset Arabic: such documents use the built-in Tectonic
         // (or an installed XeLaTeX/LuaLaTeX) whatever engine is chosen for the rest.
         (runner, target) = unicode_runner(state).ok_or_else(|| {
@@ -875,7 +875,7 @@ fn choose_runner(state: &AppState, template: &Template, document: &Document) -> 
 
 /// Presentations in a right-to-left language: beamer-rl, which needs LuaLaTeX.
 fn needs_lualatex(t: &Template) -> bool {
-    t.kind == texloom_core::DocumentKind::Presentation && t.lang().main.rtl()
+    t.kind == nawl_core::DocumentKind::Presentation && t.lang().main.rtl()
 }
 
 /// The top-level block of the document behind a point of the PDF preview (in PDF
@@ -894,7 +894,7 @@ fn block_to_pdf(state: State<'_, AppState>, block: usize) -> Option<PdfSpot> {
 /// The generated `.tex` followed by the class, for the source view.
 #[tauri::command]
 fn to_latex(state: State<'_, AppState>, doc: Value, metadata: Metadata, bibliography: Option<String>) -> Result<String, AppError> {
-    let g = texloom_codegen::generate_for(&state.templates.current().template, &to_document(doc, metadata, bibliography)?, state.engine().target());
+    let g = nawl_codegen::generate_for(&state.templates.current().template, &to_document(doc, metadata, bibliography)?, state.engine().target());
     Ok(format!("{}\n%%%%%%%%%%%%%%%% {} %%%%%%%%%%%%%%%%\n\n{}", g.tex, g.cls_file_name(), g.cls))
 }
 
@@ -935,7 +935,7 @@ fn save_document(
     if bundled {
         // One file with the images inside; the images stay where they are for now.
         let document = to_document(doc.clone(), metadata.clone(), bibliography.clone())?;
-        let images: Vec<(String, Vec<u8>)> = texloom_codegen::generate(&state.templates.current().template, &document)
+        let images: Vec<(String, Vec<u8>)> = nawl_codegen::generate(&state.templates.current().template, &document)
             .figures
             .into_iter()
             .filter_map(|rel| state.doc_folder.load(std::slice::from_ref(&rel)).ok())
@@ -967,7 +967,7 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
         opened.bundled = true;
         return Ok(opened);
     }
-    let text = String::from_utf8(bytes).map_err(|_| AppError::other(tr!("Not a Texloom document", "ليس مستند Texloom")))?;
+    let text = String::from_utf8(bytes).map_err(|_| AppError::other(tr!("Not a Nawl document", "ليس مستند نول")))?;
     if let Some(project) = serde_json::from_str::<Value>(&text).ok().and_then(|f| project::project_of_chapter(Path::new(&path), &f)) {
         // A chapter of a project: the editor opens the project instead.
         return Ok(OpenedDocument {
@@ -988,7 +988,7 @@ fn open_document(app: AppHandle, state: State<'_, AppState>, path: String) -> Re
 fn read_document(app: &AppHandle, state: &AppState, text: &str) -> Result<OpenedDocument, AppError> {
     let file: Value = serde_json::from_str(text).map_err(|e| AppError::other(tr!("Not a valid document: {e}", "ليس مستندًا صالحًا: {e}")))?;
     if file.get("format").and_then(Value::as_str) != Some(DOC_FORMAT) {
-        return Err(AppError::other(tr!("Not a Texloom document", "ليس مستند Texloom")));
+        return Err(AppError::other(tr!("Not a Nawl document", "ليس مستند نول")));
     }
     let mut opened: OpenedDocument =
         serde_json::from_value(file.clone()).map_err(|e| AppError::other(tr!("Not a valid document: {e}", "ليس مستندًا صالحًا: {e}")))?;
@@ -1028,7 +1028,7 @@ fn write_recovery(
     Ok(recovery.write(&file, &figures, &state.doc_folder.get(), original_path, chapter)?)
 }
 
-/// Unsaved changes left behind by a previous run (Texloom closed without saving).
+/// Unsaved changes left behind by a previous run (Nawl closed without saving).
 #[tauri::command]
 fn recovery_info(recovery: State<'_, Recovery>) -> Option<RecoveryInfo> {
     recovery.info()
@@ -1103,6 +1103,39 @@ fn export_template(state: State<'_, AppState>, path: String) -> Result<(), AppEr
     library::export_package(&active.template, active.path.as_deref().and_then(Path::parent), Path::new(&path))
 }
 
+/// The app was called Texloom before (identifier com.abdullah.texloom), so its
+/// folders have that name. On the first start as Nawl, `dir` (one of the app's
+/// folders, named com.abdullah.nawl) doesn't exist yet: copy the old one there, so
+/// settings, recent files, My templates and unsaved work carry over. The old folder
+/// stays, for an old installation still in use. The TeX package cache is left out:
+/// it's refilled from the packages that ship with the app.
+fn adopt_texloom_folder(dir: &Path) {
+    if dir.exists() || dir.file_name().is_none_or(|n| n != "com.abdullah.nawl") {
+        return;
+    }
+    let old = dir.with_file_name("com.abdullah.texloom");
+    let Ok(entries) = std::fs::read_dir(&old) else { return };
+    let copy = || -> std::io::Result<()> {
+        std::fs::create_dir_all(dir)?;
+        for entry in entries.flatten() {
+            let (src, dest) = (entry.path(), dir.join(entry.file_name()));
+            if entry.file_name() == "tex-cache" {
+                continue;
+            }
+            if src.is_dir() {
+                library::copy_dir(&src, &dest)?;
+            } else {
+                std::fs::copy(&src, &dest)?;
+            }
+        }
+        Ok(())
+    };
+    match copy() {
+        Ok(()) => log!("Copied Texloom's folder {} to {}", old.display(), dir.display()),
+        Err(e) => log!("Warning: couldn't copy Texloom's folder {}: {e}", old.display()),
+    }
+}
+
 /// Where the user's settings live (settings.json in the app's config folder).
 struct SettingsFile(PathBuf);
 
@@ -1157,13 +1190,13 @@ fn export_tex(state: State<'_, AppState>, path: String, doc: Value, metadata: Me
     // Written for the chosen engine (Overleaf and most editors default to pdfLaTeX).
     let document = to_document(doc, metadata, bibliography)?;
     let mut target = state.engine().target();
-    if target == texloom_codegen::Engine::Pdf && texloom_codegen::language::Languages::of(&active.template, &document).need_unicode_engine() {
+    if target == nawl_codegen::Engine::Pdf && nawl_codegen::language::Languages::of(&active.template, &document).need_unicode_engine() {
         // Arabic can't be typeset by pdfLaTeX: write it for XeLaTeX instead.
-        target = texloom_codegen::Engine::Xe;
+        target = nawl_codegen::Engine::Xe;
     }
-    let g = texloom_codegen::generate_for(&active.template, &document, target);
+    let g = nawl_codegen::generate_for(&active.template, &document, target);
     let mut assets = active.load_assets(&g.assets)?;
-    assets.extend(active.load_kit_files(&g.kit_files, target)?);
+    assets.extend(active.load_kit_files(&g.kit_files)?);
     assets.extend(state.doc_folder.load(&g.figures)?);
     assets.extend(load_library_fonts(&g.fonts)?);
     let path = Path::new(&path);
@@ -1200,9 +1233,9 @@ fn load_library_fonts(files: &[String]) -> Result<Vec<(String, Vec<u8>)>, AppErr
         .map(|rel| {
             let name = rel.strip_prefix("fonts/").unwrap_or(rel);
             std::fs::read(dir.join(name)).map(|b| (rel.clone(), b)).map_err(|_| {
-                AppError::other(texloom_core::tr!(
-                    "The font file {name} isn't installed with Texloom. Reinstall Texloom, or in a checkout run: node scripts/fetch-fonts.mjs",
-                    "ملف الخط {name} غير مثبت مع Texloom. أعد تثبيت Texloom، أو شغّل في نسخة المصدر: node scripts/fetch-fonts.mjs"
+                AppError::other(nawl_core::tr!(
+                    "The font file {name} isn't installed with Nawl. Reinstall Nawl, or in a checkout run: node scripts/fetch-fonts.mjs",
+                    "ملف الخط {name} غير مثبت مع نول. أعد تثبيت نول، أو شغّل في نسخة المصدر: node scripts/fetch-fonts.mjs"
                 ))
             })
         })
@@ -1224,7 +1257,7 @@ struct LibraryFontInfo {
 #[tauri::command]
 fn list_library_fonts() -> Vec<LibraryFontInfo> {
     let dir = font_library_dir();
-    texloom_core::fonts::library()
+    nawl_core::fonts::library()
         .iter()
         .map(|f| LibraryFontInfo {
             id: f.id.clone(),
@@ -1239,7 +1272,7 @@ fn list_library_fonts() -> Vec<LibraryFontInfo> {
 /// A library font's regular or bold file, for the editor (`bold` picks which).
 #[tauri::command]
 fn read_library_font(id: String, bold: bool) -> Result<Response, AppError> {
-    let font = texloom_core::fonts::find(&id).ok_or_else(|| AppError::other(texloom_core::tr!("Unknown font {id}", "خط غير معروف {id}")))?;
+    let font = nawl_core::fonts::find(&id).ok_or_else(|| AppError::other(nawl_core::tr!("Unknown font {id}", "خط غير معروف {id}")))?;
     let file = if bold { font.bold_file().unwrap_or_else(|| font.regular_file()) } else { font.regular_file() };
     Ok(Response::new(std::fs::read(font_library_dir().join(file))?))
 }
@@ -1248,7 +1281,7 @@ fn read_library_font(id: String, bold: bool) -> Result<Response, AppError> {
 /// interface's.
 #[tauri::command]
 fn set_message_language(arabic: bool) {
-    texloom_core::msg::set_arabic(arabic);
+    nawl_core::msg::set_arabic(arabic);
 }
 
 /// Writes the document as a Word file. `mathml` maps each formula's LaTeX to
@@ -1283,7 +1316,7 @@ struct FormulaPages {
     sizes: Vec<[f32; 3]>,
 }
 
-/// A formula's picture from the app (see `FormulaPages`), by `texloom_docx::formula_key`.
+/// A formula's picture from the app (see `FormulaPages`), by `nawl_docx::formula_key`.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct FormulaPictureIn {
@@ -1300,7 +1333,7 @@ async fn formula_pictures(state: State<'_, AppState>, formulas: Vec<FormulaReque
     let empty = Document { metadata: Metadata::new(), body: Body::default(), bibliography: String::new() };
     let (runner, target) = choose_runner(&state, &active.template, &empty)?;
     let formulas: Vec<(String, bool)> = formulas.into_iter().map(|f| (f.latex, f.display)).collect();
-    let generated = texloom_codegen::formula_pictures(&active.template, &formulas, target);
+    let generated = nawl_codegen::formula_pictures(&active.template, &formulas, target);
     let mut assets = active.load_assets(&generated.assets)?;
     assets.extend(load_library_fonts(&generated.fonts)?);
     let out = tauri::async_runtime::spawn_blocking(move || {
@@ -1310,7 +1343,7 @@ async fn formula_pictures(state: State<'_, AppState>, formulas: Vec<FormulaReque
     })
     .await
     .map_err(AppError::other)??;
-    let sizes = texloom_codegen::formula_picture_sizes(&out.log);
+    let sizes = nawl_codegen::formula_picture_sizes(&out.log);
     Ok(FormulaPages { pdf: out.pdf, sizes })
 }
 
@@ -1330,12 +1363,12 @@ async fn write_docx(
         let asset = |rel: &str| active.load_assets(&[rel.to_string()]).ok().and_then(|mut v| v.pop()).map(|(_, b)| b);
         // Library fonts are embedded, so the file shows them where they aren't installed.
         let font = |rel: &str| load_library_fonts(&[rel.to_string()]).ok().and_then(|mut v| v.pop()).map(|(_, b)| b);
-        let input = texloom_docx::Input { template: &active.template, doc: &document, image: &image, asset: &asset, mathml: &mathml, font: &font };
-        let pictures: HashMap<String, texloom_docx::FormulaPicture> = pictures
+        let input = nawl_docx::Input { template: &active.template, doc: &document, image: &image, asset: &asset, mathml: &mathml, font: &font };
+        let pictures: HashMap<String, nawl_docx::FormulaPicture> = pictures
             .into_iter()
-            .map(|(key, p)| (key, texloom_docx::FormulaPicture { png: p.png, width_pt: p.width_pt, height_pt: p.height_pt, depth_pt: p.depth_pt }))
+            .map(|(key, p)| (key, nawl_docx::FormulaPicture { png: p.png, width_pt: p.width_pt, height_pt: p.height_pt, depth_pt: p.depth_pt }))
             .collect();
-        let bytes = texloom_docx::write_with(&input, &pictures).map_err(AppError::other)?;
+        let bytes = nawl_docx::write_with(&input, &pictures).map_err(AppError::other)?;
         std::fs::write(&path, bytes)?;
         Ok(())
     })
@@ -1368,7 +1401,11 @@ pub fn run() {
         .manage(project::ProjectStore::default())
         .setup(|app| {
             enable_spell_checking(app);
-            let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("texloom"));
+            let data = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("nawl"));
+            adopt_texloom_folder(&data);
+            if let Ok(config) = app.path().app_config_dir() {
+                adopt_texloom_folder(&config);
+            }
             if let Ok(resources) = app.path().resource_dir() {
                 let _ = RESOURCES.set(resources);
             }
@@ -1380,9 +1417,9 @@ pub fn run() {
                 let shipped = resources.join("tex-cache");
                 if shipped.join("texloom-cache-version").is_file() {
                     let cache = data.join("tex-cache");
-                    texloom_compile::set_cache_dir(cache.clone());
+                    nawl_compile::set_cache_dir(cache.clone());
                     std::thread::spawn(move || {
-                        if let Err(e) = texloom_compile::fill_cache(&shipped, &cache) {
+                        if let Err(e) = nawl_compile::fill_cache(&shipped, &cache) {
                             log!("Warning: couldn't copy the bundled TeX packages: {e}");
                         }
                     });
@@ -1392,13 +1429,13 @@ pub fn run() {
             let config = app.path().app_config_dir().unwrap_or_else(|_| data.clone());
             app.manage(SettingsFile(config.join("settings.json")));
             app.manage(Library::new(data.join("templates")));
-            // Start with a template file (and watch it): TEXLOOM_TEMPLATE=path/template.json
-            if let Some(path) = std::env::var_os("TEXLOOM_TEMPLATE") {
+            // Start with a template file (and watch it): NAWL_TEMPLATE=path/template.json
+            if let Some(path) = std::env::var_os("NAWL_TEMPLATE") {
                 let path = std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
                 match templates::load_file(&path) {
                     Ok(t) => app.state::<AppState>().templates.set(app.handle(), t),
                     Err(issues) => {
-                        log!("TEXLOOM_TEMPLATE {} has errors:", path.display());
+                        log!("NAWL_TEMPLATE {} has errors:", path.display());
                         issues.iter().for_each(|i| log!("  {i}"));
                     }
                 }
@@ -1538,17 +1575,17 @@ mod tests {
 
     #[test]
     fn blank_templates_are_valid_and_plain() {
-        use texloom_core::{FrontMatterItem, Paper, TopLevel};
+        use nawl_core::{FrontMatterItem, Paper, TopLevel};
         for presentation in [false, true] {
             for chapters in [false, true] {
                 for (paper, arabic) in [(Paper::A4, false), (Paper::Letter, false), (Paper::A4, true)] {
                     let t = templates::blank_template(templates::BlankSpec { presentation, paper, chapters, arabic });
                     assert_eq!(t.lang().main.rtl(), arabic);
                     let issues = t.validate();
-                    assert!(!texloom_core::has_errors(&issues), "{presentation} {chapters} {paper:?}: {issues:?}");
+                    assert!(!nawl_core::has_errors(&issues), "{presentation} {chapters} {paper:?}: {issues:?}");
                     assert!(t.skeleton.is_empty(), "no required chapters");
                     if presentation {
-                        assert_eq!(t.kind, texloom_core::DocumentKind::Presentation);
+                        assert_eq!(t.kind, nawl_core::DocumentKind::Presentation);
                         continue;
                     }
                     assert_eq!(t.page.paper, paper);
@@ -1558,31 +1595,31 @@ mod tests {
                     // The title page is centred on the paper.
                     assert_eq!(t.title_page.items[0].x_mm, paper.size_mm().0 / 2.0);
                     // The class generates and the sample document still works with it.
-                    assert!(texloom_codegen::template_to_cls(&t).contains("\\ProvidesClass"));
+                    assert!(nawl_codegen::template_to_cls(&t).contains("\\ProvidesClass"));
                 }
             }
         }
     }
 
     /// Blank templates compile with the example report's text (Tectonic, and pdfLaTeX
-    /// when installed). Run with TEXLOOM_TECTONIC=… cargo test -p texloom blank -- --ignored
+    /// when installed). Run with NAWL_TECTONIC=… cargo test -p nawl blank -- --ignored
     #[test]
     #[ignore]
     fn blank_templates_compile() {
-        use texloom_core::{DocumentFile, Paper};
+        use nawl_core::{DocumentFile, Paper};
         let file: DocumentFile = serde_json::from_str(include_str!("../../examples/senior-design-report.loom")).unwrap();
         let mut doc = file.document;
         doc.metadata.retain(|k, _| k == "title");
         let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../examples");
         for chapters in [false, true] {
             let t = templates::blank_template(templates::BlankSpec { presentation: false, paper: Paper::Letter, chapters, arabic: false });
-            for engine in [texloom_codegen::Engine::Xe, texloom_codegen::Engine::Pdf] {
-                let g = texloom_codegen::generate_for(&t, &doc, engine);
+            for engine in [nawl_codegen::Engine::Xe, nawl_codegen::Engine::Pdf] {
+                let g = nawl_codegen::generate_for(&t, &doc, engine);
                 let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
                 let support = g.support_files();
                 let files: Vec<Asset> = support.iter().chain(figures.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
                 let out = match engine {
-                    texloom_codegen::Engine::Pdf => match SystemLatex::find(LatexProgram::PdfLatex) {
+                    nawl_codegen::Engine::Pdf => match SystemLatex::find(LatexProgram::PdfLatex) {
                         Some(latex) => latex.compile(&g.tex, &files),
                         None => continue,
                     },
@@ -1597,7 +1634,7 @@ mod tests {
     fn all_builtin_templates_are_valid() {
         for info in templates::builtin_list() {
             let active = ActiveTemplate::builtin_by_id(&info.id).unwrap();
-            let errors: Vec<_> = active.template.validate().into_iter().filter(|i| i.severity == texloom_core::Severity::Error).collect();
+            let errors: Vec<_> = active.template.validate().into_iter().filter(|i| i.severity == nawl_core::Severity::Error).collect();
             assert!(errors.is_empty(), "{}: {errors:?}", info.id);
             assert!(active.missing_kit().is_none(), "{}: built-in templates must work without downloads", info.id);
         }
@@ -1611,7 +1648,7 @@ mod tests {
         let sample = sample(None).unwrap();
         let doc = to_document(sample.doc, sample.metadata, Some(sample.bibliography)).unwrap();
         assert!(template.check_metadata(&doc.metadata).is_empty());
-        assert!(texloom_codegen::generate(&template, &doc).tex.contains("\\chapter{Introduction}"));
+        assert!(nawl_codegen::generate(&template, &doc).tex.contains("\\chapter{Introduction}"));
     }
 
     #[test]
@@ -1631,7 +1668,7 @@ mod tests {
 
     #[test]
     fn template_file_errors_are_reported() {
-        let dir = std::env::temp_dir().join(format!("texloom-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("nawl-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("template.json");
 
@@ -1656,7 +1693,7 @@ mod tests {
 
     #[test]
     fn importing_assets_never_overwrites_different_files() {
-        let root = std::env::temp_dir().join(format!("texloom-import-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("nawl-import-{}", std::process::id()));
         std::fs::create_dir_all(&root).unwrap();
         let template = root.join("template.json");
         let (a, b) = (root.join("My Logo.png"), root.join("other.png"));
@@ -1677,7 +1714,7 @@ mod tests {
 
     #[test]
     fn save_as_copies_assets_and_refuses_invalid_templates() {
-        let root = std::env::temp_dir().join(format!("texloom-save-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("nawl-save-{}", std::process::id()));
         let (old_dir, new_dir) = (root.join("old"), root.join("new"));
         std::fs::create_dir_all(old_dir.join("assets")).unwrap();
         std::fs::create_dir_all(&new_dir).unwrap();
@@ -1685,7 +1722,7 @@ mod tests {
 
         let mut t = (*ActiveTemplate::builtin().template).clone();
         t.title_page.items[0].content =
-            texloom_core::TitleContent::Image { asset: "assets/logo.png".into(), width_mm: 30.0 };
+            nawl_core::TitleContent::Image { asset: "assets/logo.png".into(), width_mm: 30.0 };
         let old_file = old_dir.join("template.json");
         let dest = new_dir.join("copy.json");
 

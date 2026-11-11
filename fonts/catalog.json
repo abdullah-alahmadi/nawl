@@ -1,5 +1,5 @@
 {
-  "_comment": "Texloom's Arabic font library: free fonts (SIL Open Font License) from github.com/google/fonts, shipped with the app (scripts/fetch-fonts.mjs). 'source' is the folder there; variable fonts are cut into static Regular and Bold files at the given axis values, since XeTeX handles variable fonts poorly.",
+  "_comment": "Nawl's Arabic font library: free fonts (SIL Open Font License) from github.com/google/fonts, shipped with the app (scripts/fetch-fonts.mjs). 'source' is the folder there; variable fonts are cut into static Regular and Bold files at the given axis values, since XeTeX handles variable fonts poorly.",
   "fonts": [
     { "id": "noto-naskh-arabic", "name": "Noto Naskh Arabic", "category": "naskh", "source": "notonaskharabic", "variable": "NotoNaskhArabic[wght].ttf" },
     { "id": "scheherazade-new", "name": "Scheherazade New", "category": "naskh", "source": "scheherazadenew", "regular": "ScheherazadeNew-Regular.ttf", "bold": "ScheherazadeNew-Bold.ttf" },

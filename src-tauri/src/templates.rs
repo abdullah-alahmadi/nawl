@@ -10,14 +10,14 @@ use notify_debouncer_mini::notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
-use texloom_core::{has_errors, tr, Issue, Paper, Severity, Template, TitleContent};
+use nawl_core::{has_errors, tr, Issue, Paper, Severity, Template, TitleContent};
 
 use crate::AppError;
 
 /// The built-in template until the designer (Phase 3) can create new ones.
 pub const BUILTIN_TEMPLATE: &str = include_str!("../../templates/senior-design/template.json");
 
-/// Templates that ship with Texloom, by id (the first is the default).
+/// Templates that ship with Nawl, by id (the first is the default).
 pub const BUILTIN_TEMPLATES: &[(&str, &str)] = &[
     ("senior-design", BUILTIN_TEMPLATE),
     ("engineering-report", include_str!("../../templates/engineering-report/template.json")),
@@ -159,11 +159,11 @@ pub struct BuiltinInfo {
     pub description: String,
     /// The publisher class it's built on, if any (e.g. "IEEEtran").
     pub class: Option<String>,
-    pub kind: texloom_core::DocumentKind,
+    pub kind: nawl_core::DocumentKind,
     /// The document language (the gallery lists Arabic templates together).
-    pub language: texloom_core::Language,
+    pub language: nawl_core::Language,
     /// Sections at the top (articles) or chapters (reports, theses).
-    pub top_level: texloom_core::TopLevel,
+    pub top_level: nawl_core::TopLevel,
 }
 
 pub fn builtin_list() -> Vec<BuiltinInfo> {
@@ -247,14 +247,12 @@ impl ActiveTemplate {
     }
 
     /// A publisher's kit files, placed next to the main file (by file name).
-    pub fn load_kit_files(&self, files: &[String], engine: texloom_codegen::Engine) -> Result<Vec<(String, Vec<u8>)>, AppError> {
+    pub fn load_kit_files(&self, files: &[String]) -> Result<Vec<(String, Vec<u8>)>, AppError> {
         let loaded = self.load_assets(files)?;
         Ok(loaded
             .into_iter()
             .map(|(rel, bytes)| {
-                let name = texloom_codegen::kit_destination(&rel);
-                // pdfLaTeX-only kit files get a stand-in unless pdfLaTeX itself runs.
-                let bytes = texloom_codegen::kit_override(&name, engine).map(|s| s.as_bytes().to_vec()).unwrap_or(bytes);
+                let name = nawl_codegen::kit_destination(&rel);
                 (name, bytes)
             })
             .collect())
@@ -295,7 +293,7 @@ pub fn check(template: &Template, dir: Option<&Path>) -> Vec<Issue> {
     let mut issues = template.validate();
     if let Some(base) = &template.base {
         for (field, recipe) in [("base.titleBlock", &base.title_block), ("base.endBlock", &base.end_block)] {
-            for problem in recipe.as_deref().map(texloom_codegen::check_recipe).unwrap_or_default() {
+            for problem in recipe.as_deref().map(nawl_codegen::check_recipe).unwrap_or_default() {
                 issues.push(issue(field, problem));
             }
         }

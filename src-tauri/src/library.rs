@@ -1,7 +1,7 @@
 //! The user's template library ("My templates"): templates imported into the app's
 //! data folder, one folder each (`<id>/template.json` plus its `assets/`).
 //!
-//! Import accepts a Texloom template (`.json`), a shared template package (a `.zip`
+//! Import accepts a Nawl template (`.json`), a shared template package (a `.zip`
 //! holding `template.json`), or a publisher's LaTeX kit (any other `.zip`), from
 //! which a journal template is created around the kit's class.
 
@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
-use texloom_core::{tr, ClassBase, FieldKind, FrontMatterStyle, MetadataField, Template};
+use nawl_core::{tr, ClassBase, FieldKind, FrontMatterStyle, MetadataField, Template};
 
 use crate::{files, templates, AppError};
 
@@ -30,7 +30,7 @@ const KIT_TITLE_BLOCK: &str = r"\title{{title}}
 /// Largest file taken from a template package.
 const MAX_PACKAGE_FILE: u64 = 50 * 1024 * 1024;
 
-/// How Texloom writes the title block for a publisher class it knows: the style,
+/// How Nawl writes the title block for a publisher class it knows: the style,
 /// whether author biographies are printed, and fields the class needs beyond title,
 /// authors, abstract and keywords. Unknown classes get the generic recipe.
 struct KnownClass {
@@ -43,13 +43,6 @@ struct KnownClass {
 fn known_class(class: &str) -> Option<KnownClass> {
     let k = |style, label, biographies, extra_fields| Some(KnownClass { style, label, biographies, extra_fields });
     match class {
-        // ieeeaccess's \maketitle needs \doi, \history… which the generic recipe lacks.
-        "ieeeaccess" => k(
-            FrontMatterStyle::IeeeAccess,
-            "IEEE Access",
-            true,
-            &[("funding", "Funding", FieldKind::Paragraphs), ("doi", "DOI", FieldKind::Text), ("history", "History (received, accepted…)", FieldKind::Text)],
-        ),
         "IEEEtran" => k(FrontMatterStyle::IeeeJournal, "IEEE", true, &[]),
         "elsarticle" => k(FrontMatterStyle::Elsevier, "Elsevier", false, &[]),
         "llncs" => k(FrontMatterStyle::Lncs, "Springer LNCS", false, &[]),
@@ -127,8 +120,8 @@ impl Library {
                 }
             },
             _ => return Err(AppError::other(tr!(
-                "Choose a Texloom template (.json), a template package or a publisher's LaTeX kit (.zip)",
-                "اختر قالب Texloom ‏(.json) أو حزمة قالب أو حزمة LaTeX من ناشر (.zip)"
+                "Choose a Nawl template (.json), a template package or a publisher's LaTeX kit (.zip)",
+                "اختر قالب نول ‏(.json) أو حزمة قالب أو حزمة LaTeX من ناشر (.zip)"
             ))),
         };
         match result {
@@ -197,10 +190,10 @@ impl Library {
 }
 
 fn read_template(bytes: &[u8]) -> Result<Template, AppError> {
-    serde_json::from_slice(bytes).map_err(|e| AppError::other(tr!("Not a Texloom template: {e}", "ليس قالب Texloom: {e}")))
+    serde_json::from_slice(bytes).map_err(|e| AppError::other(tr!("Not a Nawl template: {e}", "ليس قالب نول: {e}")))
 }
 
-/// A Texloom template file, with the `assets/` folder next to it if there is one.
+/// A Nawl template file, with the `assets/` folder next to it if there is one.
 fn import_json(source: &Path, folder: &Path) -> Result<(), AppError> {
     std::fs::copy(source, folder.join("template.json"))?;
     if let Some(assets) = source.parent().map(|d| d.join("assets")).filter(|d| d.is_dir()) {
@@ -209,7 +202,7 @@ fn import_json(source: &Path, folder: &Path) -> Result<(), AppError> {
     Ok(())
 }
 
-fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
+pub(crate) fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(to)?;
     for entry in std::fs::read_dir(from)?.flatten() {
         let (src, dest) = (entry.path(), to.join(entry.file_name()));
@@ -331,7 +324,7 @@ pub struct JournalSpec {
 }
 
 /// A journal template around a publisher class. Fields (title, authors, abstract,
-/// keywords) and body settings come from the Elsevier template; classes Texloom
+/// keywords) and body settings come from the Elsevier template; classes Nawl
 /// knows get their own title block style, others the given or the generic recipe.
 pub fn journal_template(spec: JournalSpec) -> Template {
     let (_, base_json) = templates::BUILTIN_TEMPLATES
@@ -345,7 +338,7 @@ pub fn journal_template(spec: JournalSpec) -> Template {
     t.meta.version = "0.1.0".into();
     t.meta.author = None;
     if spec.chapters {
-        t.structure.top_level = texloom_core::TopLevel::Chapter;
+        t.structure.top_level = nawl_core::TopLevel::Chapter;
     }
     let known = known_class(&spec.class);
     if let Some(k) = &known {
@@ -485,7 +478,7 @@ mod tests {
     }
 
     fn temp(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("texloom-lib-{name}-{}", std::process::id()));
+        let d = std::env::temp_dir().join(format!("nawl-lib-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
@@ -529,23 +522,21 @@ mod tests {
     #[test]
     fn known_classes_get_their_own_title_block() {
         let root = temp("known");
-        let zip = root.join("ACCESS_latex_template.zip");
+        let zip = root.join("IEEE_latex_template.zip");
         write_zip(
             &zip,
             &[
-                ("k/ieeeaccess.cls", "cls"),
                 ("k/IEEEtran.cls", "cls"),
                 ("k/IEEEtran.bst", "bst"),
-                ("k/access.tex", "\\documentclass{ieeeaccess}\n\\bibliographystyle{IEEEtran}"),
+                ("k/bare_jrnl.tex", "\\documentclass[journal]{IEEEtran}\n\\bibliographystyle{IEEEtran}"),
             ],
         );
         let file = Library::new(root.join("library")).import(&zip).unwrap();
         let t: Template = serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
         let base = t.base.unwrap();
-        assert_eq!(base.class, "ieeeaccess", "the sample's class wins over IEEEtran.cls");
-        assert_eq!(base.front_matter, FrontMatterStyle::IeeeAccess);
+        assert_eq!(base.class, "IEEEtran");
+        assert_eq!(base.front_matter, FrontMatterStyle::IeeeJournal);
         assert!(base.biographies && base.title_block.is_none());
-        assert!(t.fields.iter().any(|f| f.id == "doi") && t.fields.iter().any(|f| f.id == "history"));
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -580,8 +571,8 @@ mod tests {
         std::fs::write(src.join("assets/logo.png"), b"png").unwrap();
         std::fs::write(src.join("assets/myclass.cls"), b"cls").unwrap();
         let mut t: Template = serde_json::from_str(templates::BUILTIN_TEMPLATE).unwrap();
-        t.title_page.items.push(texloom_core::TitleItem {
-            content: texloom_core::TitleContent::Image { asset: "assets/logo.png".into(), width_mm: 30.0 },
+        t.title_page.items.push(nawl_core::TitleItem {
+            content: nawl_core::TitleContent::Image { asset: "assets/logo.png".into(), width_mm: 30.0 },
             ..t.title_page.items[0].clone()
         });
         let mut journal = journal_template(JournalSpec {
@@ -622,14 +613,14 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 
-    /// Leaves a kit-made template in $TEXLOOM_KIT_OUT for a real compile with the CLI
-    /// (from $TEXLOOM_KIT_ZIP when set).
+    /// Leaves a kit-made template in $NAWL_KIT_OUT for a real compile with the CLI
+    /// (from $NAWL_KIT_ZIP when set).
     #[test]
     #[ignore]
     fn kit_template_for_cli() {
-        let out = PathBuf::from(std::env::var("TEXLOOM_KIT_OUT").expect("TEXLOOM_KIT_OUT"));
-        // A real kit with TEXLOOM_KIT_ZIP, else a tiny class built on article.
-        if let Ok(real) = std::env::var("TEXLOOM_KIT_ZIP") {
+        let out = PathBuf::from(std::env::var("NAWL_KIT_OUT").expect("NAWL_KIT_OUT"));
+        // A real kit with NAWL_KIT_ZIP, else a tiny class built on article.
+        if let Ok(real) = std::env::var("NAWL_KIT_ZIP") {
             let file = Library::new(out.join("library")).import(Path::new(&real)).unwrap();
             println!("TEMPLATE {}", file.display());
             return;

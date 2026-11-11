@@ -1,4 +1,4 @@
-//! Reference lists Texloom writes itself, for documents with Arabic.
+//! Reference lists Nawl writes itself, for documents with Arabic.
 //!
 //! BibTeX can't set a right-to-left document's English entries (or an English
 //! document's Arabic ones) in their own direction, so for these documents the list
@@ -6,8 +6,8 @@
 //! al." / "وآخرون"), in the template's style: IEEE, numeric or author-year. Other
 //! documents keep BibTeX exactly as before. The Word export uses the same text.
 
-use texloom_core::bib::{self, BibEntry};
-use texloom_core::{walk_inlines, BibStyle, Document, Inline, Language, Template};
+use nawl_core::bib::{self, BibEntry};
+use nawl_core::{walk_inlines, BibStyle, Document, Inline, Language, Template};
 
 use crate::language::{self, Languages};
 use crate::strings::{words, Words};
@@ -40,7 +40,7 @@ pub fn cited_keys(doc: &Document) -> Vec<String> {
     keys
 }
 
-/// Whether Texloom writes the list itself: the document is Arabic, or a cited
+/// Whether Nawl writes the list itself: the document is Arabic, or a cited
 /// entry is.
 pub fn needed(doc: &Document, langs: &Languages) -> bool {
     if langs.english_only() || doc.bibliography.trim().is_empty() {
@@ -59,8 +59,8 @@ pub fn needed(doc: &Document, langs: &Languages) -> bool {
 /// the Arabic journal article, keeps its style and loads natbib for author-year).
 pub fn style_of(t: &Template) -> BibStyle {
     match &t.base {
-        _ if t.kind == texloom_core::DocumentKind::Presentation => BibStyle::Numeric,
-        Some(base) if base.front_matter != texloom_core::FrontMatterStyle::Custom => BibStyle::Ieee,
+        _ if t.kind == nawl_core::DocumentKind::Presentation => BibStyle::Numeric,
+        Some(base) if base.front_matter != nawl_core::FrontMatterStyle::Custom => BibStyle::Ieee,
         _ => t.bibliography.style,
     }
 }
@@ -106,7 +106,7 @@ pub fn split_by_language(refs: &[Reference], main: Language) -> (&[Reference], &
     refs.split_at(at)
 }
 
-/// The preamble lines that replace BibTeX with Texloom's list (empty when BibTeX
+/// The preamble lines that replace BibTeX with Nawl's list (empty when BibTeX
 /// does the job).
 pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
     if !needed(doc, langs) {
@@ -155,7 +155,7 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
         };
         format!("\\bibitem{label}{{{}}} {body}\n", r.key)
     };
-    let mut o = String::from("% Reference list written by Texloom: BibTeX can't set entries in two directions\n\\makeatletter\n");
+    let mut o = String::from("% Reference list written by Nawl: BibTeX can't set entries in two directions\n\\makeatletter\n");
     // bidi (XeTeX) keeps the list's indents on the list's side in a paragraph of the
     // other direction: the hang would be on the wrong side and the first line (with
     // its label) would stick out into the margin. Shifting the lines by the list's
@@ -176,7 +176,7 @@ pub fn preamble(t: &Template, doc: &Document, langs: &Languages) -> String {
         // Under the list's heading, a list for each language with its own heading;
         // numbers run on from the first list into the second.
         let words = words(langs.main);
-        let chapters = t.base.is_none() && t.structure.top_level == texloom_core::TopLevel::Chapter;
+        let chapters = t.base.is_none() && t.structure.top_level == nawl_core::TopLevel::Chapter;
         let (heading, group) = if chapters { ("chapter", "section") } else { ("section", "subsection") };
         o.push_str(&format!("\\def\\tl@reflist{{\\{heading}*{{\\refname}}\\@mkboth{{\\refname}}{{\\refname}}%\n"));
         o.push_str(&format!("\\def\\bibname{{\\refname}}\\let\\tl@nohead\\@gobbletwo\n"));
@@ -642,7 +642,7 @@ mod tests {
     fn written_only_for_documents_with_arabic() {
         let english = Languages { main: Language::English, others: vec![], digits: Default::default() };
         let mut d = doc();
-        // English document citing an Arabic entry: Texloom writes the list.
+        // English document citing an Arabic entry: Nawl writes the list.
         let mixed = Languages { main: Language::English, others: vec![Language::Arabic], digits: Default::default() };
         assert!(needed(&d, &mixed));
         assert!(!needed(&d, &english), "English only: BibTeX as before");
@@ -657,11 +657,11 @@ mod tests {
     }
 
     fn indic() -> Languages {
-        Languages { main: Language::Arabic, others: vec![Language::English], digits: texloom_core::Digits::ArabicIndic }
+        Languages { main: Language::Arabic, others: vec![Language::English], digits: nawl_core::Digits::ArabicIndic }
     }
 
     fn western() -> Languages {
-        Languages { digits: texloom_core::Digits::Western, ..indic() }
+        Languages { digits: nawl_core::Digits::Western, ..indic() }
     }
 
     #[test]
@@ -688,7 +688,7 @@ mod tests {
         assert!(p.contains("\\bibitem[\\textenglish{Smith et al.}(٢٠٢١)]{smith2021}"), "{p}");
         assert!(p.contains("\\bibitem[الأحمدي وعلي(٢٠٢٠)]{ahmadi2020}"), "{p}");
         // Western digits: years as written.
-        let western = Languages { digits: texloom_core::Digits::Western, ..indic() };
+        let western = Languages { digits: nawl_core::Digits::Western, ..indic() };
         assert!(preamble(&t, &doc(), &western).contains("\\bibitem[\\textenglish{Smith et al.}(2021)]{smith2021}"));
     }
 
@@ -728,7 +728,7 @@ mod tests {
         assert!(p.contains("\\bibitem[٢]{ahmadi2020} عبدالله"), "{p}");
         assert!(p.contains("\\bibitem[٣]{lora2019}"), "{p}");
         // Western digits: LaTeX numbers them itself.
-        let western = Languages { digits: texloom_core::Digits::Western, ..indic() };
+        let western = Languages { digits: nawl_core::Digits::Western, ..indic() };
         assert!(preamble(&t, &doc(), &western).contains("\\bibitem{smith2021} "));
         // An Arabic comma between numbers: LaTeX's \cite (or natbib's, cite's setting).
         let p = preamble(&t, &doc(), &indic());

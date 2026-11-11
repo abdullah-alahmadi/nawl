@@ -1,5 +1,5 @@
 // The theme picker for presentations: every beamer theme (and colour theme) as a
-// preview rendered by the real theme, Texloom's own list plus whatever the installed
+// preview rendered by the real theme, Nawl's own list plus whatever the installed
 // TeX has, and a main colour of the user's own. Choosing restyles the deck at once.
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
@@ -134,7 +134,7 @@ export function ThemePicker({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Texloom's list first (they work with every engine), then the installed TeX's others.
+  // Nawl's list first (they work with every engine), then the installed TeX's others.
   const merge = (own: string[], extra: string[]) => {
     const lower = new Set(own.map((n) => n.toLowerCase()));
     return [...own.map((name) => ({ name, installedOnly: false })), ...extra.filter((n) => !lower.has(n.toLowerCase())).map((name) => ({ name, installedOnly: true }))];

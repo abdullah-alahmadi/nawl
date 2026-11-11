@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Fills a Tectonic package cache with everything Texloom's built-in templates and
+// Fills a Tectonic package cache with everything Nawl's built-in templates and
 // beamer theme previews need, so the installed app compiles them without internet
-// (src-tauri/tex-cache, shipped as a resource; see texloom_compile::set_cache_dir).
+// (src-tauri/tex-cache, shipped as a resource; see nawl_compile::set_cache_dir).
 //
 //   scripts/fetch-tectonic.sh && node scripts/build-tex-cache.mjs
 //
-// Needs the Tectonic sidecar (scripts/fetch-tectonic.sh) and builds texloom-cli.
+// Needs the Tectonic sidecar (scripts/fetch-tectonic.sh) and builds nawl-cli.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,11 +22,11 @@ if (!tectonic) throw new Error("No Tectonic in src-tauri/binaries: run scripts/f
 // A fresh cache (the README that keeps the folder in git stays).
 mkdirSync(cache, { recursive: true });
 for (const f of readdirSync(cache)) if (f !== "README.md") rmSync(join(cache, f), { recursive: true, force: true });
-const env = { ...process.env, TECTONIC_CACHE_DIR: cache, TEXLOOM_TECTONIC: tectonic };
+const env = { ...process.env, TECTONIC_CACHE_DIR: cache, NAWL_TECTONIC: tectonic };
 
-execFileSync("cargo", ["build", "--release", "-p", "texloom-cli"], { cwd: root, stdio: "inherit" });
-const cli = join(root, "target", "release", "texloom-cli" + (windows ? ".exe" : ""));
-const work = mkdtempSync(join(tmpdir(), "texloom-cache-"));
+execFileSync("cargo", ["build", "--release", "-p", "nawl-cli"], { cwd: root, stdio: "inherit" });
+const cli = join(root, "target", "release", "nawl-cli" + (windows ? ".exe" : ""));
+const work = mkdtempSync(join(tmpdir(), "nawl-cache-"));
 let failed = 0;
 
 // Each built-in template with a document that uses it. Arabic slides need LuaLaTeX

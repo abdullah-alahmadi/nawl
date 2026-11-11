@@ -1,6 +1,6 @@
 # Arabic font library
 
-Free Arabic fonts (SIL Open Font License) shipped with Texloom, listed in
+Free Arabic fonts (SIL Open Font License) shipped with Nawl, listed in
 `fonts/catalog.json`. They are downloaded, not kept in git:
 
 ```bash

@@ -24,7 +24,7 @@ export function dynamicPlaceholders(tr: Translate): PlaceholderOption[] {
 }
 
 /** What an authors field gives besides the names (`{authors_affiliations}`…), as in
- *  `texloom_core::AUTHOR_SUFFIXES`, with each one's description key. */
+ *  `nawl_core::AUTHOR_SUFFIXES`, with each one's description key. */
 export const AUTHOR_SUFFIXES: [string, MessageKey][] = [
   ["_affiliations", "designer.authorsAffiliations"],
   ["_en", "designer.authorsEnglish"],
@@ -66,7 +66,7 @@ export function placeholderNames(text: string): string[] {
   return [...text.replace(/\{\{|\}\}/g, "").matchAll(/\{([a-z][a-z0-9_]*)\}/g)].map((m) => m[1]);
 }
 
-/** Where a Texloom layout shows each field: the title page, headers and footers,
+/** Where a Nawl layout shows each field: the title page, headers and footers,
  *  front-matter pages (the abstract), the raw preamble. Publisher classes and
  *  presentations write fields into their own title blocks by id, so there every field
  *  counts as used ("the class's title block"). The places are said in the interface

@@ -2,8 +2,8 @@
 //! \include's one .tex per chapter.
 
 use serde_json::{json, Value};
-use texloom_codegen::{chapter_tex_path, generate_for, generate_project_for, Engine, Generated};
-use texloom_core::{Body, FieldValue, Project, ProjectFile, Template};
+use nawl_codegen::{chapter_tex_path, generate_for, generate_project_for, Engine, Generated};
+use nawl_core::{Body, FieldValue, Project, ProjectFile, Template};
 
 fn builtin(name: &str) -> Template {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../templates/{name}/template.json"));
@@ -176,15 +176,15 @@ fn joined(g: &Generated) -> String {
 /// without one, the base class's \part.
 #[test]
 fn part_style_in_the_class() {
-    let arabic = texloom_codegen::template_to_cls(&builtin("arabic-book"));
+    let arabic = nawl_codegen::template_to_cls(&builtin("arabic-book"));
     let line = arabic.lines().find(|l| l.starts_with("\\newcommand\\texloompart")).expect("defined");
     assert!(line.contains("\\cleardoublepage") && line.contains("\\addcontentsline{toc}{part}"), "{line}");
     assert!(arabic.contains("الأول\\or") && arabic.contains("العشرون"), "Arabic ordinals");
     assert!(line.contains("\\tl@partword{\\number\\value{tl@part}}"));
 
     let mut english = builtin("senior-design");
-    assert!(texloom_codegen::template_to_cls(&english).contains("\\newcommand\\texloompart[1]{\\part{#1}}"));
-    english.headings.part = Some(texloom_core::PartStyle {
+    assert!(nawl_codegen::template_to_cls(&english).contains("\\newcommand\\texloompart[1]{\\part{#1}}"));
+    english.headings.part = Some(nawl_core::PartStyle {
         text: english.headings.levels[0].text.clone(),
         label: "Part {n}".into(),
         number_words: true,
@@ -193,7 +193,7 @@ fn part_style_in_the_class() {
         label_gap_pt: 6.0,
     });
     assert!(english.validate().is_empty(), "{:?}", english.validate());
-    let cls = texloom_codegen::template_to_cls(&english);
+    let cls = nawl_codegen::template_to_cls(&english);
     assert!(cls.contains("One\\or Two"), "English numbers");
     let line = cls.lines().find(|l| l.starts_with("\\newcommand\\texloompart")).unwrap();
     assert!(!line.contains("cleardoublepage") && !line.contains("addcontentsline"), "{line}");
@@ -207,17 +207,17 @@ fn project_metadata_fills_the_title_page() {
     assert!(g.tex.contains("\\texloomfield{title}{A Test Book}"), "{}", g.tex);
 }
 
-/// Run with: TEXLOOM_TECTONIC=… cargo test -p texloom-codegen --test project -- --ignored
+/// Run with: NAWL_TECTONIC=… cargo test -p nawl-codegen --test project -- --ignored
 #[test]
 #[ignore]
 fn projects_compile_with_tectonic() {
-    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let compiler = nawl_compile::Compiler::locate(&[]).expect("tectonic");
     for (template, arabic) in [("arabic-book", true), ("senior-design", false)] {
         let g = generate_project_for(&builtin(template), &project(arabic, true), Engine::Xe, None);
         let out = compile(&g, |tex, files| compiler.compile(tex, files));
         assert!(out.pdf.starts_with(b"%PDF"), "{template}");
-        // To look at them: TEXLOOM_SAVE_PDF=<folder>.
-        if let Some(dir) = std::env::var_os("TEXLOOM_SAVE_PDF") {
+        // To look at them: NAWL_SAVE_PDF=<folder>.
+        if let Some(dir) = std::env::var_os("NAWL_SAVE_PDF") {
             std::fs::write(std::path::Path::new(&dir).join(format!("project-{template}.pdf")), &out.pdf).unwrap();
         }
         assert_resolved(&out.log, template);
@@ -227,13 +227,13 @@ fn projects_compile_with_tectonic() {
 /// A one-chapter compile in the folder of a full compile (Tectonic keeping its
 /// intermediate files with -k): only that chapter is typeset, and its references to
 /// other chapters still resolve, from their .aux files.
-/// Run with: TEXLOOM_TECTONIC=… cargo test -p texloom-codegen --test project -- --ignored
+/// Run with: NAWL_TECTONIC=… cargo test -p nawl-codegen --test project -- --ignored
 #[test]
 #[ignore]
 fn one_chapter_compile_keeps_other_chapters_numbers() {
-    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let compiler = nawl_compile::Compiler::locate(&[]).expect("tectonic");
     let dir = tempfile::tempdir().unwrap();
-    let run = |only: Option<usize>| -> (texloom_compile::CompileOutput, Vec<String>) {
+    let run = |only: Option<usize>| -> (nawl_compile::CompileOutput, Vec<String>) {
         let g = generate_project_for(&builtin("arabic-book"), &project(true, true), Engine::Xe, only);
         let out = compile(&g, |tex, files| compiler.compile_in(dir.path(), tex, files));
         (out, g.chapters.iter().map(|c| format!("{}.tex", c.path)).collect())
@@ -242,7 +242,7 @@ fn one_chapter_compile_keeps_other_chapters_numbers() {
     assert!(full.log.contains("chapters/ch01.tex") && full.log.contains("chapters/ch02.tex"));
     assert!(dir.path().join("chapters/ch01.aux").is_file(), "the build folder keeps each chapter's .aux");
     // SyncTeX knows the chapter files: some place in the PDF comes from chapter 2.
-    let sync = texloom_compile::SyncTex::read_with(dir.path(), "main", &paths).expect("synctex");
+    let sync = nawl_compile::SyncTex::read_with(dir.path(), "main", &paths).expect("synctex");
     let from_chapter_two = (1..=12).any(|page| (0..20).any(|i| sync.place_at(page, 300.0, 40.0 * i as f32).is_some_and(|(f, _)| f == 2)));
     assert!(from_chapter_two);
 
@@ -254,11 +254,11 @@ fn one_chapter_compile_keeps_other_chapters_numbers() {
     assert!(one.pdf.len() < full.pdf.len(), "fewer pages");
 }
 
-/// Run with: cargo test -p texloom-codegen --test project pdflatex -- --ignored
+/// Run with: cargo test -p nawl-codegen --test project pdflatex -- --ignored
 #[test]
 #[ignore]
 fn english_project_compiles_with_pdflatex() {
-    let Some(latex) = texloom_compile::SystemLatex::find(texloom_compile::LatexProgram::PdfLatex) else {
+    let Some(latex) = nawl_compile::SystemLatex::find(nawl_compile::LatexProgram::PdfLatex) else {
         eprintln!("no pdfLaTeX installed");
         return;
     };
@@ -270,12 +270,12 @@ fn english_project_compiles_with_pdflatex() {
 
 fn compile(
     g: &Generated,
-    run: impl FnOnce(&str, &[texloom_compile::Asset]) -> Result<texloom_compile::CompileOutput, texloom_compile::CompileError>,
-) -> texloom_compile::CompileOutput {
+    run: impl FnOnce(&str, &[nawl_compile::Asset]) -> Result<nawl_compile::CompileOutput, nawl_compile::CompileError>,
+) -> nawl_compile::CompileOutput {
     let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
     let figures: Vec<(String, Vec<u8>)> = g.figures.iter().map(|f| (f.clone(), std::fs::read(examples.join(f)).unwrap())).collect();
     let support = g.support_files();
-    let files: Vec<texloom_compile::Asset> = support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+    let files: Vec<nawl_compile::Asset> = support.iter().chain(figures.iter()).map(|(p, b)| nawl_compile::Asset { path: p, bytes: b }).collect();
     run(&g.tex, &files).unwrap_or_else(|e| panic!("{e:?}"))
 }
 

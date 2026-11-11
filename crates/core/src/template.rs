@@ -21,7 +21,7 @@ pub struct Template {
     #[ts(optional)]
     pub presentation: Option<PresentationSettings>,
     /// Build on a publisher's official class (IEEEtran, elsarticle…) instead of
-    /// Texloom's own layout. The class then decides page layout, fonts, headings and
+    /// Nawl's own layout. The class then decides page layout, fonts, headings and
     /// captions; the rest of the template only styles the on-screen editor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
@@ -251,7 +251,7 @@ pub struct ClassBase {
     /// BibTeX style, e.g. `IEEEtran`, `elsarticle-num`; empty when the class sets it.
     pub bib_style: String,
     /// Extra files from the template's folder copied next to the document when it
-    /// compiles (a publisher's .cls/.sty/.bst/logos), e.g. `assets/ieeeaccess.cls`.
+    /// compiles (a publisher's .cls/.sty/.bst/logos), e.g. `assets/sn-jnl.cls`.
     #[serde(default)]
     pub files: Vec<String>,
     /// Print author biographies (with photos) at the end, IEEE style.
@@ -277,11 +277,11 @@ pub struct ClassBase {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct PublisherKit {
-    /// E.g. "IEEE Access LaTeX template".
+    /// E.g. "Springer Nature LaTeX template".
     pub name: String,
     /// Where to download it.
     pub url: String,
-    /// Files that must have been imported, e.g. `["ieeeaccess.cls"]`.
+    /// Files that must have been imported, e.g. `["sn-jnl.cls"]`.
     pub required: Vec<String>,
 }
 
@@ -302,8 +302,6 @@ pub enum FrontMatterStyle {
     Lncs,
     /// APS REVTeX: per-author affiliation, abstract before \maketitle.
     Revtex,
-    /// IEEE Access: \history, \doi, \authorrefmark, \address, \corresp, \EOD.
-    IeeeAccess,
     /// Written from the template's own `title_block` recipe.
     Custom,
 }
@@ -396,7 +394,7 @@ pub struct ParagraphStyle {
 
 // ---------------------------------------------------------------- language
 
-/// A language Texloom typesets.
+/// A language Nawl typesets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -540,7 +538,7 @@ pub enum FontChoice {
     Builtin { font: BuiltinFont },
     /// A font installed on the system, by family name.
     System { family: String },
-    /// A font from Texloom's Arabic font library (shipped with the app, see
+    /// A font from Nawl's Arabic font library (shipped with the app, see
     /// [`crate::fonts`]): its files go with the document.
     Library { id: String },
 }

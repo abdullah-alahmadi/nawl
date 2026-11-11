@@ -34,6 +34,7 @@ const SHORTCUTS: [string | { key: MessageKey }, MessageKey][] = [
   ["Ctrl+Shift+E", "dialogs.shortcutExportPdf"],
   ["Ctrl+Enter", "dialogs.shortcutCompileNow"],
   ["Ctrl+,", "dialogs.settings"],
+  ["F1", "app.menuHelp"],
   ["Ctrl+Z / Ctrl+Shift+Z", "dialogs.shortcutUndoRedo"],
   ["Ctrl+B / Ctrl+I / Ctrl+E", "dialogs.shortcutBoldItalicCode"],
   ["Ctrl+M", "dialogs.shortcutInlineMath"],

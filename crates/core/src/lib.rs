@@ -1,4 +1,4 @@
-//! Texloom's data models, shared by the code generator, the CLI and the app.
+//! Nawl's data models, shared by the code generator, the CLI and the app.
 //!
 //! - [`Template`]: what the visual template designer edits; compiles to a `.cls`.
 //! - [`Document`]: metadata values plus the editor's body (ProseMirror JSON shape).

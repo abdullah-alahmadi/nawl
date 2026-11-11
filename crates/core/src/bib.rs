@@ -1,5 +1,5 @@
 //! Reading BibTeX: the entry list for the editor's citation picker and on-screen
-//! citation labels, and the entries Texloom formats itself for reference lists
+//! citation labels, and the entries Nawl formats itself for reference lists
 //! with Arabic (BibTeX runs for the others) and for Word.
 
 use std::collections::{BTreeMap, HashSet};

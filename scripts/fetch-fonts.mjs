@@ -28,7 +28,7 @@ async function download(url, dest) {
   writeFileSync(dest, Buffer.from(await r.arrayBuffer()));
 }
 
-const work = mkdtempSync(join(tmpdir(), "texloom-fonts-"));
+const work = mkdtempSync(join(tmpdir(), "nawl-fonts-"));
 for (const f of catalog) {
   const src = (file) => `${base}/${f.source}/${encodeURIComponent(file)}`;
   if (f.variable) {

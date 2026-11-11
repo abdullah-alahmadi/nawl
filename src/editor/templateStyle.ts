@@ -77,7 +77,7 @@ function textRules(s: TextStyle, px: (pt: number) => string): string {
 
 // ---------------------------------------------------------------- presentations
 
-/** Beamer themes Texloom offers, roughly by look. */
+/** Beamer themes Nawl offers, roughly by look. */
 export const BEAMER_THEMES = [
   "default", "Madrid", "metropolis", "CambridgeUS", "Boadilla", "AnnArbor", "Antibes", "Bergen", "Berkeley", "Berlin",
   "Copenhagen", "Darmstadt", "Dresden", "Frankfurt", "Goettingen", "Hannover", "Ilmenau", "JuanLesPins", "Luebeck",

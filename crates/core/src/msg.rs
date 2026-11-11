@@ -1,10 +1,10 @@
-//! The language of messages Texloom shows people (validation problems, the app's
+//! The language of messages Nawl shows people (validation problems, the app's
 //! errors): English unless the app's interface is Arabic. Each message is written in
 //! both languages where it's made, with [`tr!`](crate::tr):
 //!
 //! ```
 //! let field = "title";
-//! let m = texloom_core::tr!("unknown field {field}", "حقل غير معروف {field}");
+//! let m = nawl_core::tr!("unknown field {field}", "حقل غير معروف {field}");
 //! assert_eq!(m, "unknown field title");
 //! ```
 //!

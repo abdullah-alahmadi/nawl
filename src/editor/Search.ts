@@ -20,7 +20,7 @@ export interface SearchState {
   current: number;
 }
 
-export const searchKey = new PluginKey<SearchState>("texloomSearch");
+export const searchKey = new PluginKey<SearchState>("nawlSearch");
 
 const EMPTY: SearchState = { query: "", caseSensitive: false, matches: [], current: -1 };
 
@@ -88,7 +88,7 @@ export function findMatches(doc: PMNode, query: string, caseSensitive: boolean):
 type Meta = { query?: string; caseSensitive?: boolean; current?: number };
 
 export const Search = Extension.create({
-  name: "texloomSearch",
+  name: "nawlSearch",
   addProseMirrorPlugins() {
     return [
       new Plugin<SearchState>({

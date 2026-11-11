@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use texloom_core::{Document, Template};
+use nawl_core::{Document, Template};
 
 use crate::templates;
 
@@ -58,13 +58,13 @@ pub fn preview_template(theme: &str, color_theme: &str, font_theme: &str) -> Tem
     p.theme = theme.into();
     p.color_theme = color_theme.into();
     p.font_theme = font_theme.into();
-    t.meta.id = "texloom-theme-preview".into();
+    t.meta.id = "nawl-theme-preview".into();
     t
 }
 
 /// The LaTeX for a preview: `(main .tex, [(file, bytes)])`.
-pub fn preview_files(t: &Template, engine: texloom_codegen::Engine) -> (String, Vec<(String, Vec<u8>)>) {
-    let g = texloom_codegen::generate_for(t, &sample(), engine);
+pub fn preview_files(t: &Template, engine: nawl_codegen::Engine) -> (String, Vec<(String, Vec<u8>)>) {
+    let g = nawl_codegen::generate_for(t, &sample(), engine);
     let files = g.support_files();
     (g.tex, files)
 }
@@ -91,7 +91,7 @@ mod tests {
     fn preview_deck_uses_the_theme() {
         let t = preview_template("Warsaw", "beaver", "");
         assert!(t.validate().is_empty(), "{:?}", t.validate());
-        let (tex, files) = preview_files(&t, texloom_codegen::Engine::Xe);
+        let (tex, files) = preview_files(&t, nawl_codegen::Engine::Xe);
         assert!(tex.contains("\\titlepage"));
         assert!(tex.contains("\\begin{frame}{Slide title}"));
         let cls = String::from_utf8(files[0].1.clone()).unwrap();
@@ -107,19 +107,19 @@ mod tests {
 #[cfg(test)]
 mod survey {
     use super::*;
-    use texloom_compile::{Asset, LatexProgram, SystemLatex};
+    use nawl_compile::{Asset, LatexProgram, SystemLatex};
 
     /// Compiles the preview deck with every installed theme (pdfLaTeX, or XeLaTeX with
-    /// TEXLOOM_ENGINE=xelatex) and prints the
-    /// ones that fail. Run with: cargo test -p texloom theme_survey -- --ignored --nocapture
+    /// NAWL_ENGINE=xelatex) and prints the
+    /// ones that fail. Run with: cargo test -p nawl theme_survey -- --ignored --nocapture
     #[test]
     #[ignore]
     fn theme_survey() {
-        let xe = std::env::var("TEXLOOM_ENGINE").as_deref() == Ok("xelatex");
+        let xe = std::env::var("NAWL_ENGINE").as_deref() == Ok("xelatex");
         let (program, target) =
-            if xe { (LatexProgram::XeLatex, texloom_codegen::Engine::Xe) } else { (LatexProgram::PdfLatex, texloom_codegen::Engine::Pdf) };
+            if xe { (LatexProgram::XeLatex, nawl_codegen::Engine::Xe) } else { (LatexProgram::PdfLatex, nawl_codegen::Engine::Pdf) };
         let tex = SystemLatex::find(program).expect("installed TeX");
-        let found = texloom_compile::installed::beamer_themes();
+        let found = nawl_compile::installed::beamer_themes();
         let mut failed = Vec::new();
         let start = std::time::Instant::now();
         for theme in &found.themes {
@@ -127,7 +127,7 @@ mod survey {
             let assets: Vec<Asset> = files.iter().map(|(p, b)| Asset { path: p, bytes: b }).collect();
             if let Err(e) = tex.compile(&main, &assets) {
                 let msg = match e {
-                    texloom_compile::CompileError::Failed { errors, .. } => errors.first().map(|e| e.message.lines().next().unwrap_or("").to_string()).unwrap_or_default(),
+                    nawl_compile::CompileError::Failed { errors, .. } => errors.first().map(|e| e.message.lines().next().unwrap_or("").to_string()).unwrap_or_default(),
                     other => other.to_string(),
                 };
                 println!("FAIL {theme}: {msg}");
@@ -141,9 +141,9 @@ mod survey {
 #[cfg(test)]
 mod tectonic_previews {
     use super::*;
-    use texloom_compile::{Asset, Compiler};
+    use nawl_compile::{Asset, Compiler};
 
-    /// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p texloom previews_compile -- --ignored
+    /// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl previews_compile -- --ignored
     #[test]
     #[ignore]
     fn previews_compile_with_tectonic() {
@@ -153,7 +153,7 @@ mod tectonic_previews {
             if theme == "default" {
                 t.presentation.as_mut().unwrap().accent_color = Some("#2e7d32".into());
             }
-            let (main, files) = preview_files(&t, texloom_codegen::Engine::Xe);
+            let (main, files) = preview_files(&t, nawl_codegen::Engine::Xe);
             let assets: Vec<Asset> = files.iter().map(|(p, b)| Asset { path: p, bytes: b }).collect();
             let start = std::time::Instant::now();
             let out = compiler.compile(&main, &assets).unwrap_or_else(|e| panic!("{theme}: {e:?}"));

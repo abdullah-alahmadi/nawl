@@ -12,7 +12,7 @@
 //! otherwise), so they stand out from the text; numbers, words and function names
 //! are in the text font.
 
-use texloom_core::Digits;
+use nawl_core::Digits;
 
 use crate::language::Languages;
 
@@ -456,7 +456,7 @@ fn arabic_name(run: &[char]) -> Option<(usize, &'static str, bool)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use texloom_core::Language;
+    use nawl_core::Language;
 
     fn langs(digits: Digits) -> Languages {
         Languages { main: Language::Arabic, others: vec![Language::English], digits }

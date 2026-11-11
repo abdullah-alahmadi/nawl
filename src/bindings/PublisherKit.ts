@@ -5,7 +5,7 @@
  */
 export type PublisherKit = { 
 /**
- * E.g. "IEEE Access LaTeX template".
+ * E.g. "Springer Nature LaTeX template".
  */
 name: string, 
 /**
@@ -13,6 +13,6 @@ name: string,
  */
 url: string, 
 /**
- * Files that must have been imported, e.g. `["ieeeaccess.cls"]`.
+ * Files that must have been imported, e.g. `["sn-jnl.cls"]`.
  */
 required: Array<string>, };

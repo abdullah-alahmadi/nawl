@@ -5,7 +5,7 @@ use std::io::{Cursor, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use texloom_core::tr;
+use nawl_core::tr;
 
 use crate::AppError;
 
@@ -39,7 +39,7 @@ const MAX_KIT_FILE: u64 = 50 * 1024 * 1024;
 
 /// Imports a publisher's kit `.zip` into `<template folder>/assets/`: class, style,
 /// font and logo files. The kit's sample paper (`.tex`, its PDF and build output)
-/// is skipped. Returns the imported paths (`assets/ieeeaccess.cls`…).
+/// is skipped. Returns the imported paths (`assets/journal.cls`…).
 pub fn import_kit_zip(template_file: &Path, zip_path: &Path) -> Result<Vec<String>, AppError> {
     let file = std::fs::File::open(zip_path)?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| AppError::other(tr!("Not a zip file: {e}", "ليس ملف zip: {e}")))?;
@@ -206,7 +206,7 @@ pub struct DocumentFolder {
 impl DocumentFolder {
     /// Starts with a temporary folder holding the sample document's images.
     pub fn new(seed: &[(&str, &[u8])]) -> std::io::Result<Self> {
-        let scratch = tempfile::Builder::new().prefix("texloom-unsaved-").tempdir()?;
+        let scratch = tempfile::Builder::new().prefix("nawl-unsaved-").tempdir()?;
         for (rel, bytes) in seed {
             let dest = scratch.path().join(rel);
             if let Some(parent) = dest.parent() {
@@ -224,7 +224,7 @@ impl DocumentFolder {
 
     /// A fresh temporary folder holding `seed` (an example document's images).
     pub fn reset_with(&self, seed: &[(&str, &[u8])]) -> std::io::Result<()> {
-        let scratch = tempfile::Builder::new().prefix("texloom-unsaved-").tempdir()?;
+        let scratch = tempfile::Builder::new().prefix("nawl-unsaved-").tempdir()?;
         for (rel, bytes) in seed {
             let dest = scratch.path().join(rel);
             if let Some(parent) = dest.parent() {
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn kit_zip_import_skips_the_sample_paper() {
         use std::io::Write as _;
-        let root = std::env::temp_dir().join(format!("texloom-kit-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("nawl-kit-{}", std::process::id()));
         std::fs::create_dir_all(&root).unwrap();
         let zip_path = root.join("kit.zip");
         {
@@ -314,24 +314,9 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 
-    /// With IEEE's real kit: TEXLOOM_KIT_ZIP=/path/to/ieee-access.zip cargo test -p texloom -- --ignored
-    #[test]
-    #[ignore]
-    fn real_ieee_access_kit_imports() {
-        let zip_path = std::env::var("TEXLOOM_KIT_ZIP").expect("TEXLOOM_KIT_ZIP");
-        let root = std::env::temp_dir().join(format!("texloom-realkit-{}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
-        let imported = import_kit_zip(&root.join("template.json"), Path::new(&zip_path)).unwrap();
-        for needed in ["assets/ieeeaccess.cls", "assets/spotcolor.sty", "assets/t1-formata.map", "assets/logo.png"] {
-            assert!(imported.iter().any(|f| f == needed), "{needed} in {imported:?}");
-        }
-        assert!(!imported.iter().any(|f| f.ends_with(".tex") || f == "assets/access.pdf"), "{imported:?}");
-        std::fs::remove_dir_all(root).unwrap();
-    }
-
     #[test]
     fn copies_figures_without_overwriting() {
-        let root = std::env::temp_dir().join(format!("texloom-copy-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("nawl-copy-{}", std::process::id()));
         let (a, b) = (root.join("a"), root.join("b"));
         std::fs::create_dir_all(a.join("figures")).unwrap();
         std::fs::write(a.join("figures/x.png"), b"x").unwrap();

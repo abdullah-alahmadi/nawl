@@ -30,7 +30,7 @@ export function formulasAsMathMl(doc: JSONContent): Record<string, string> {
 }
 
 /** The key of a formula's picture, as the Word export looks it up
- *  (`texloom_docx::formula_key`): displayed equations are set larger than inline ones. */
+ *  (`nawl_docx::formula_key`): displayed equations are set larger than inline ones. */
 const pictureKey = (latex: string, display: boolean) => `${display ? "D" : "I"}:${latex.trim()}`;
 
 /** Pixels per PDF point in the pictures: 288 per inch, sharp in print. */

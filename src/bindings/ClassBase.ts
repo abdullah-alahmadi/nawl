@@ -21,7 +21,7 @@ frontMatter: FrontMatterStyle,
 bibStyle: string, 
 /**
  * Extra files from the template's folder copied next to the document when it
- * compiles (a publisher's .cls/.sty/.bst/logos), e.g. `assets/ieeeaccess.cls`.
+ * compiles (a publisher's .cls/.sty/.bst/logos), e.g. `assets/sn-jnl.cls`.
  */
 files: Array<string>, 
 /**

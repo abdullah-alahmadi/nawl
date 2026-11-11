@@ -16,8 +16,8 @@ const TARGET_TYPES = ["heading", "figure", "tableFigure", "equation"];
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
-/** What node views need from the app; changed with `setTexloomContext`. */
-export interface TexloomContext {
+/** What node views need from the app; changed with `setNawlContext`. */
+export interface NawlContext {
   template: Template | null;
   bibEntries: BibEntry[];
   /** The open document is a chapter of a project. */
@@ -40,7 +40,7 @@ export interface ProjectContext {
 
 declare module "@tiptap/react" {
   interface Storage {
-    texloom: TexloomContext;
+    nawl: NawlContext;
   }
   interface Commands<ReturnType> {
     academic: {
@@ -57,8 +57,8 @@ declare module "@tiptap/react" {
  * Gives headings, figures, tables and equations a stable `id`, and keeps ids unique
  * (copy-paste duplicates them). References store these ids, so they survive edits.
  */
-export const TexloomIds = Extension.create<object, TexloomContext>({
-  name: "texloom",
+export const NawlIds = Extension.create<object, NawlContext>({
+  name: "nawl",
 
   addStorage() {
     return { template: null, bibEntries: [], project: null };
@@ -109,7 +109,7 @@ export const TexloomIds = Extension.create<object, TexloomContext>({
   addProseMirrorPlugins() {
     return [
       new Plugin({
-        key: new PluginKey("texloom-ids"),
+        key: new PluginKey("nawl-ids"),
         appendTransaction: (transactions, _old, state) => {
           if (!transactions.some((tr) => tr.docChanged) && _old.doc.eq(state.doc)) return null;
           // In a project, ids are unique across chapters too: a figure copied from
@@ -136,9 +136,9 @@ export const TexloomIds = Extension.create<object, TexloomContext>({
 });
 
 /** Updates what node views read (template, bibliography) and redraws them. */
-export function setTexloomContext(editor: Editor, ctx: Partial<TexloomContext>) {
-  Object.assign(editor.storage.texloom, ctx);
-  editor.view.dispatch(editor.state.tr.setMeta("texloom-context", true));
+export function setNawlContext(editor: Editor, ctx: Partial<NawlContext>) {
+  Object.assign(editor.storage.nawl, ctx);
+  editor.view.dispatch(editor.state.tr.setMeta("nawl-context", true));
 }
 
 type Numbering = { template: unknown; project: unknown; items: NumberedItem[]; byId: Map<string, NumberedItem> };
@@ -150,7 +150,7 @@ const numberingCache = new WeakMap<PMNode, Numbering>();
  *  computed per view, typing in a long book redid it hundreds of times a keystroke.
  *  In a project, `byId` also has the other chapters' targets. */
 function numberingOf(editor: Editor): Numbering {
-  const { template, project } = editor.storage.texloom;
+  const { template, project } = editor.storage.nawl;
   if (!template) return NO_NUMBERING;
   const doc = editor.state.doc;
   let cached = numberingCache.get(doc);
@@ -266,7 +266,7 @@ export function useReferenceTargets(editor: Editor): NumberedItem[] {
     editor,
     selector: ({ editor }) => {
       const own = numberingOf(editor).items;
-      const others = editor.storage.texloom.project?.others ?? [];
+      const others = editor.storage.nawl.project?.others ?? [];
       return others.length ? [...own, ...others] : own;
     },
     equalityFn: (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b),
@@ -293,7 +293,7 @@ function refView(node: PMNode, editor: Editor): NodeView {
     const target = numberingOf(editor).byId.get(view.node.attrs.target);
     if (!target || !(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    if (target.chapter && target.id) editor.storage.texloom.project?.openTarget(target.chapter, target.id);
+    if (target.chapter && target.id) editor.storage.nawl.project?.openTarget(target.chapter, target.id);
     else editor.chain().focus().setTextSelection(target.pos + 1).scrollIntoView().run();
   });
   return view;
@@ -331,7 +331,7 @@ const citationCache = new WeakMap<PMNode, { template: unknown; bibEntries: unkno
 /** On-screen citation labels, matching the template's bibliography style: computed
  *  once per version of the document and shared by every citation on the page. */
 export function citationLabels(editor: Editor): Map<string, string> {
-  const { template, bibEntries, project } = editor.storage.texloom;
+  const { template, bibEntries, project } = editor.storage.nawl;
   const doc = editor.state.doc;
   const cached = citationCache.get(doc);
   if (cached && cached.template === template && cached.bibEntries === bibEntries && cached.project === project) return cached.labels;
@@ -341,12 +341,12 @@ export function citationLabels(editor: Editor): Map<string, string> {
 }
 
 function computeCitationLabels(editor: Editor): Map<string, string> {
-  const { template, bibEntries } = editor.storage.texloom;
+  const { template, bibEntries } = editor.storage.nawl;
   const labels = new Map<string, string>();
   if (!template) return labels;
   const byKey = new Map(bibEntries.map((e) => [e.key, e]));
   // Keys in the order they're first cited (in a project: in the whole book).
-  const project = editor.storage.texloom.project;
+  const project = editor.storage.nawl.project;
   const seen = new Set<string>(project?.citationsBefore ?? []);
   editor.state.doc.descendants((n) => {
     if (n.type.name === "citation") for (const k of n.attrs.keys as string[]) seen.add(k);
@@ -385,14 +385,14 @@ function drawCitation(dom: HTMLSpanElement, node: PMNode, editor: Editor) {
   const keys: string[] = node.attrs.keys;
   const all = citationLabels(editor);
   const own = keys.map((k) => all.get(k) ?? null);
-  const authorYear = editor.storage.texloom.template?.bibliography.style === "authorYear";
+  const authorYear = editor.storage.nawl.template?.bibliography.style === "authorYear";
   const parts = own.map((l) => l ?? "?");
   const text = authorYear ? `(${parts.join("; ")})` : `[${parts.join(", ")}]`;
   setLabel(dom, "citation", own.includes(null), text);
 }
 
 function citationTooltip(node: PMNode, editor: Editor): string {
-  const entries = editor.storage.texloom.bibEntries;
+  const entries = editor.storage.nawl.bibEntries;
   return (node.attrs.keys as string[])
     .map((k) => {
       const e = entries.find((x) => x.key === k);

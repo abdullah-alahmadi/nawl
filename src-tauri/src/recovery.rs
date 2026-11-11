@@ -1,5 +1,5 @@
 //! Crash recovery: while a document has unsaved changes, the editor writes it to the
-//! app's data folder every few seconds. If Texloom closes without saving (a crash, a
+//! app's data folder every few seconds. If Nawl closes without saving (a crash, a
 //! power cut), the next start offers to bring those changes back.
 
 use std::path::{Path, PathBuf};
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn writes_restores_and_discards() {
-        let root = std::env::temp_dir().join(format!("texloom-recovery-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("nawl-recovery-{}", std::process::id()));
         let doc_dir = root.join("doc");
         std::fs::create_dir_all(doc_dir.join("figures")).unwrap();
         std::fs::write(doc_dir.join("figures/a.png"), b"png").unwrap();

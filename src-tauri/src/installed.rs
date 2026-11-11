@@ -1,11 +1,11 @@
 //! Journal templates from the installed TeX distribution: every journal or
 //! conference class TeX Live lists (TeX Catalogue topic "journalpub") becomes a
 //! template in the gallery, built on the class as installed, so nothing is copied.
-//! Classes Texloom knows get a tuned title block; others the generic one.
+//! Classes Nawl knows get a tuned title block; others the generic one.
 
 use serde::Serialize;
-use texloom_compile::installed::{self, InstalledClass};
-use texloom_core::{tr, Template};
+use nawl_compile::installed::{self, InstalledClass};
+use nawl_core::{tr, Template};
 
 use crate::library::{journal_template, JournalSpec};
 
@@ -105,7 +105,7 @@ const MNRAS: &str = r"\title{{title}}
 {keywords}
 \end{keywords}{/keywords}";
 
-/// Classes Texloom knows. Also looked up by name when TeX has no package database
+/// Classes Nawl knows. Also looked up by name when TeX has no package database
 /// (MiKTeX), so these show up there too.
 const PROFILES: &[Profile] = &[
     recipe("mnras", "Monthly Notices of the RAS", &["usenatbib"], MNRAS),
@@ -153,7 +153,7 @@ const PROFILES: &[Profile] = &[
     p("acmart", "ACM (acmart)"),
 ];
 
-/// Installed classes that don't compile with Texloom's standard title block and sample
+/// Installed classes that don't compile with Nawl's standard title block and sample
 /// document (pdfLaTeX, full TeX Live): they need commands of their own, particular
 /// fonts or files (logos, Chinese fonts), another engine, or aren't for documents
 /// at all (issues, covers, superseded versions). Found with
@@ -208,7 +208,7 @@ pub enum Category {
     Book,
     /// General articles, reports, essays and proposals.
     General,
-    // Kinds of document Texloom can't write yet: listed, not offered.
+    // Kinds of document Nawl can't write yet: listed, not offered.
     Letter,
     Cv,
     Poster,
@@ -217,7 +217,7 @@ pub enum Category {
 }
 
 impl Category {
-    /// Texloom can make a template around classes of this kind.
+    /// Nawl can make a template around classes of this kind.
     pub fn supported(self) -> bool {
         matches!(self, Category::Journal | Category::Thesis | Category::Book | Category::General)
     }
@@ -248,7 +248,7 @@ pub fn category(c: &InstalledClass) -> Option<Category> {
     } else if ["article-like", "report-like", "essay", "proposal", "std-conform"].iter().any(|t| has(t)) {
         Category::General
     } else if c.topics.is_empty() {
-        // Found without a package database (MiKTeX): one of Texloom's journal classes.
+        // Found without a package database (MiKTeX): one of Nawl's journal classes.
         Category::Journal
     } else {
         return None;
@@ -268,7 +268,7 @@ pub struct InstalledTemplate {
     pub pdflatex_only: bool,
 }
 
-/// Installed classes of a kind Texloom can't write yet, for a note in the gallery.
+/// Installed classes of a kind Nawl can't write yet, for a note in the gallery.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Waiting {
@@ -293,7 +293,7 @@ fn profile(class: &str) -> Option<&'static Profile> {
 pub fn find() -> Vec<InstalledClass> {
     let mut found = installed::document_classes();
     if found.is_empty() {
-        // No package database: look for the classes Texloom knows.
+        // No package database: look for the classes Nawl knows.
         let files: Vec<String> = PROFILES.iter().map(|p| format!("{}.cls", p.class)).collect();
         let names: Vec<&str> = files.iter().map(String::as_str).collect();
         found = installed::find_files(&names)
@@ -308,7 +308,7 @@ pub fn find() -> Vec<InstalledClass> {
     found
 }
 
-/// The templates Texloom can offer (supported kinds, minus classes known not to work
+/// The templates Nawl can offer (supported kinds, minus classes known not to work
 /// with it), and how many classes of the other kinds are installed.
 pub fn list(found: &[InstalledClass]) -> InstalledList {
     let mut templates: Vec<InstalledTemplate> = found
@@ -336,7 +336,7 @@ pub fn list(found: &[InstalledClass]) -> InstalledList {
     templates.sort_by_key(|t| t.name.to_lowercase());
     let mut waiting: Vec<Waiting> = Vec::new();
     for c in found {
-        // Beamer itself is how Texloom makes presentations.
+        // Beamer itself is how Nawl makes presentations.
         if c.package == "beamer" {
             continue;
         }
@@ -426,8 +426,8 @@ pub fn template(c: &InstalledClass) -> Template {
 mod tests {
     use super::*;
     use std::path::Path;
-    use texloom_compile::{Asset, LatexProgram, SystemLatex};
-    use texloom_core::DocumentFile;
+    use nawl_compile::{Asset, LatexProgram, SystemLatex};
+    use nawl_core::DocumentFile;
 
     #[test]
     fn templates_are_valid_for_any_class() {
@@ -463,25 +463,25 @@ mod tests {
     }
 
     /// Compiles the sample article with every installed journal class and prints
-    /// what fails. Run with: cargo test -p texloom installed -- --ignored --nocapture
-    /// (TEXLOOM_ENGINE=xelatex|lualatex to try another engine; TEXLOOM_ONLY=class).
+    /// what fails. Run with: cargo test -p nawl installed -- --ignored --nocapture
+    /// (NAWL_ENGINE=xelatex|lualatex to try another engine; NAWL_ONLY=class).
     #[test]
     #[ignore]
     fn installed_journal_templates_compile() {
-        // TEXLOOM_ENGINE=tectonic needs TEXLOOM_TECTONIC (the binary's path).
-        let choice = std::env::var("TEXLOOM_ENGINE").unwrap_or_default();
+        // NAWL_ENGINE=tectonic needs NAWL_TECTONIC (the binary's path).
+        let choice = std::env::var("NAWL_ENGINE").unwrap_or_default();
         let program = match choice.as_str() {
             "xelatex" | "tectonic" => LatexProgram::XeLatex,
             "lualatex" => LatexProgram::LuaLatex,
             _ => LatexProgram::PdfLatex,
         };
         let engine = match program {
-            LatexProgram::PdfLatex => texloom_codegen::Engine::Pdf,
-            LatexProgram::XeLatex => texloom_codegen::Engine::Xe,
-            LatexProgram::LuaLatex => texloom_codegen::Engine::Lua,
+            LatexProgram::PdfLatex => nawl_codegen::Engine::Pdf,
+            LatexProgram::XeLatex => nawl_codegen::Engine::Xe,
+            LatexProgram::LuaLatex => nawl_codegen::Engine::Lua,
         };
         let system = SystemLatex::find(program).expect("installed TeX");
-        let tectonic = (choice == "tectonic").then(|| texloom_compile::Compiler::locate(&[]).expect("tectonic"));
+        let tectonic = (choice == "tectonic").then(|| nawl_compile::Compiler::locate(&[]).expect("tectonic"));
         let compile = |tex: &str, assets: &[Asset]| match &tectonic {
             Some(t) => t.compile(tex, assets),
             None => system.compile(tex, assets),
@@ -489,24 +489,24 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
         let file: DocumentFile =
             serde_json::from_str(&std::fs::read_to_string(root.join("examples/journal-article.loom")).unwrap()).unwrap();
-        let only = std::env::var("TEXLOOM_ONLY").ok();
+        let only = std::env::var("NAWL_ONLY").ok();
         let mut failed = Vec::new();
         // Every class of a supported kind, skipped ones included (to see if they still fail).
         let found: Vec<InstalledClass> =
             find().into_iter().filter(|c| category(c).is_some_and(Category::supported)).collect();
         for c in found.iter().filter(|c| only.as_deref().is_none_or(|o| o == c.class)) {
-            let g = texloom_codegen::generate_for(&template(c), &file.document, engine);
+            let g = nawl_codegen::generate_for(&template(c), &file.document, engine);
             let figures: Vec<(String, Vec<u8>)> =
                 g.figures.iter().map(|f| (f.clone(), std::fs::read(root.join("examples").join(f)).unwrap())).collect();
             let support = g.support_files();
             let assets: Vec<Asset> = support.iter().chain(figures.iter()).map(|(p, b)| Asset { path: p, bytes: b }).collect();
-            if let Some(dir) = std::env::var_os("TEXLOOM_DUMP") {
+            if let Some(dir) = std::env::var_os("NAWL_DUMP") {
                 std::fs::write(Path::new(&dir).join(format!("{}.tex", c.class)), &g.tex).unwrap();
                 std::fs::write(Path::new(&dir).join(g.cls_file_name()), &g.cls).unwrap();
             }
             match compile(&g.tex, &assets) {
                 Ok(_) => println!("ok    {:24} {:?} {}", c.class, category(c).unwrap(), display_name(c)),
-                Err(texloom_compile::CompileError::Failed { errors, .. }) => {
+                Err(nawl_compile::CompileError::Failed { errors, .. }) => {
                     let first = errors.first().map(|e| format!("l.{:?} {}", e.line, e.message.lines().next().unwrap_or(""))).unwrap_or_default();
                     println!("FAIL  {:24} {:?} {}", c.class, category(c).unwrap(), first);
                     failed.push(c.class.clone());

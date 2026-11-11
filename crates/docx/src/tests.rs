@@ -8,7 +8,7 @@ fn template(name: &str) -> Template {
 
 fn example(name: &str) -> Document {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../examples/{name}"));
-    let f: texloom_core::DocumentFile = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let f: nawl_core::DocumentFile = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     f.document
 }
 
@@ -128,7 +128,7 @@ fn aligned_paragraphs() {
 #[test]
 fn arabic_formulas_are_pictures() {
     let mut t = template("arabic-article");
-    t.language.as_mut().unwrap().math = texloom_core::MathStyle::Arabic;
+    t.language.as_mut().unwrap().math = nawl_core::MathStyle::Arabic;
     let body = serde_json::json!({"type": "doc", "content": [
         {"type": "paragraph", "content": [{"type": "text", "text": "حيث "}, {"type": "inlineMath", "attrs": {"latex": "س^2"}}, {"type": "text", "text": " مربع."}]},
         {"type": "equation", "attrs": {"latex": "س^2", "numbered": true}},
@@ -250,7 +250,7 @@ fn thesis_dates_and_reference_lists() {
 #[test]
 fn library_fonts_are_embedded() {
     let mut t = template("arabic-article");
-    t.fonts.arabic = Some(texloom_core::FontChoice::Library { id: "cairo".into() });
+    t.fonts.arabic = Some(nawl_core::FontChoice::Library { id: "cairo".into() });
     let regular = b"OTTO regular font bytes, longer than thirty-two bytes".to_vec();
     let font = |rel: &str| (rel == "fonts/cairo-Regular.ttf").then(|| regular.clone());
     let parts = unzip(&write(&Input { template: &t, doc: &example("arabic-article.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
@@ -274,7 +274,7 @@ fn library_fonts_are_embedded() {
 #[test]
 fn heading_fonts_reach_word() {
     let mut t = template("arabic-thesis");
-    t.headings.levels[0].text.font = Some(texloom_core::FontChoice::Library { id: "reem-kufi".into() });
+    t.headings.levels[0].text.font = Some(nawl_core::FontChoice::Library { id: "reem-kufi".into() });
     let font = |rel: &str| (rel == "fonts/reem-kufi-Regular.ttf").then(|| b"font bytes, at least thirty-two of them".to_vec());
     let parts = unzip(&write(&Input { template: &t, doc: &example("arabic-article.loom"), image: &figure, asset: &|_| None, mathml: &HashMap::new(), font: &font }).unwrap());
     let styles = &parts["word/styles.xml"];
@@ -356,11 +356,11 @@ fn properties_are_in_schema_order() {
     assert_schema_order(&unzip(&bytes));
 }
 
-/// Writes the exports to $TEXLOOM_DOCX_OUT, to open in Word.
+/// Writes the exports to $NAWL_DOCX_OUT, to open in Word.
 #[test]
 #[ignore]
 fn write_samples() {
-    let out = std::path::PathBuf::from(std::env::var("TEXLOOM_DOCX_OUT").expect("TEXLOOM_DOCX_OUT"));
+    let out = std::path::PathBuf::from(std::env::var("NAWL_DOCX_OUT").expect("NAWL_DOCX_OUT"));
     let mathml: HashMap<String, String> = [(
         r"g = \frac{post - pre}{100 - pre}".to_string(),
         "<math><mi>g</mi><mo>=</mo><mfrac><mrow><mi>post</mi><mo>-</mo><mi>pre</mi></mrow><mrow><mn>100</mn><mo>-</mo><mi>pre</mi></mrow></mfrac></math>".to_string(),
@@ -381,7 +381,7 @@ fn write_samples() {
         let t = match tpl.strip_suffix("-cairo") {
             Some(base) => {
                 let mut t = template(base);
-                t.fonts.arabic = Some(texloom_core::FontChoice::Library { id: "cairo".into() });
+                t.fonts.arabic = Some(nawl_core::FontChoice::Library { id: "cairo".into() });
                 t
             }
             None => template(tpl),
@@ -393,7 +393,7 @@ fn write_samples() {
         std::fs::write(out.join(name), bytes).unwrap();
     }
     // Formulas as MathLive converts them (a JSON map of LaTeX → MathML), one per equation.
-    if let Ok(path) = std::env::var("TEXLOOM_MATHML") {
+    if let Ok(path) = std::env::var("NAWL_MATHML") {
         let mathml: HashMap<String, String> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
         let mut blocks: Vec<serde_json::Value> = mathml.keys().map(|l| serde_json::json!({"type": "equation", "attrs": {"latex": l}})).collect();
         blocks.insert(0, serde_json::json!({"type": "paragraph", "content": [{"type": "text", "text": "Inline "}, {"type": "inlineMath", "attrs": {"latex": mathml.keys().next().unwrap()}}]}));

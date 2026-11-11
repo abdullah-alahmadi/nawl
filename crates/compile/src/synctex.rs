@@ -1,5 +1,5 @@
 //! Reads the SyncTeX file TeX writes next to the PDF (`main.synctex.gz`), which says
-//! which line of which input made each box on each page. Texloom needs the main
+//! which line of which input made each box on each page. Nawl needs the main
 //! `.tex` file's lines (they map to the editor's blocks), and for a project also its
 //! chapter files' lines.
 //!

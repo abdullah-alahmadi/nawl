@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use texloom_core::{DocumentFile, Template};
+use nawl_core::{DocumentFile, Template};
 
 const JOURNALS: &[&str] =
     &["ieee-journal", "ieee-conference", "elsevier-article", "acm-conference", "springer-lncs", "aps-physical-review"];
@@ -27,33 +27,33 @@ fn journal_templates_generate_publisher_front_matter() {
     for id in JOURNALS {
         let t = template(id);
         assert!(t.validate().is_empty(), "{id}: {:?}", t.validate());
-        let g = texloom_codegen::generate(&t, &doc);
+        let g = nawl_codegen::generate(&t, &doc);
         let class = &t.base.as_ref().unwrap().class;
         assert!(g.cls.contains(&format!("{{{class}}}")), "{id} loads {class}");
         assert!(g.tex.contains("\\title{Sensor-Driven Irrigation"), "{id} has the title");
         assert!(!g.tex.contains("\\texloomfrontmatter"), "{id} uses the publisher title block");
     }
-    let ieee = texloom_codegen::document_to_tex(&template("ieee-journal"), &doc);
+    let ieee = nawl_codegen::document_to_tex(&template("ieee-journal"), &doc);
     assert!(ieee.contains("Sara Ahmed and Omar Khalid are with Department of Electrical Engineering"));
     assert!(ieee.contains("\\begin{IEEEkeywords}"));
-    let els = texloom_codegen::document_to_tex(&template("elsevier-article"), &doc);
+    let els = nawl_codegen::document_to_tex(&template("elsevier-article"), &doc);
     assert!(els.contains("\\affiliation[2]{organization={Institute of Agricultural Engineering"));
     assert!(els.contains("irrigation \\sep LoRa"));
 }
 
-/// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p texloom-codegen -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen -- --ignored
 #[test]
 #[ignore]
 fn journal_templates_compile() {
-    let compiler = texloom_compile::Compiler::locate(&[]).expect("tectonic");
+    let compiler = nawl_compile::Compiler::locate(&[]).expect("tectonic");
     let doc = article().document;
     for id in JOURNALS {
-        let g = texloom_codegen::generate(&template(id), &doc);
+        let g = nawl_codegen::generate(&template(id), &doc);
         let figures: Vec<(String, Vec<u8>)> =
             g.figures.iter().map(|f| (f.clone(), std::fs::read(root().join("examples").join(f)).unwrap())).collect();
         let support = g.support_files();
-        let files: Vec<texloom_compile::Asset> =
-            support.iter().chain(figures.iter()).map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+        let files: Vec<nawl_compile::Asset> =
+            support.iter().chain(figures.iter()).map(|(p, b)| nawl_compile::Asset { path: p, bytes: b }).collect();
         let out = compiler.compile(&g.tex, &files).unwrap_or_else(|e| panic!("{id}: {e:?}"));
         assert!(out.pdf.starts_with(b"%PDF"), "{id}");
     }
@@ -62,10 +62,10 @@ fn journal_templates_compile() {
 #[test]
 fn revtex_tables_avoid_tabularx() {
     let (t, doc) = (template("aps-physical-review"), article().document);
-    let tex = texloom_codegen::document_to_tex(&t, &doc);
+    let tex = nawl_codegen::document_to_tex(&t, &doc);
     assert!(!tex.contains("tabularx") && tex.contains("\\begin{tabular}{|p{\\dimexpr"), "{tex}");
     assert!(tex.contains("\\tabularnewline \\hline"));
-    assert!(!texloom_codegen::template_to_cls(&t).contains("tabularx"));
-    let ieee = texloom_codegen::document_to_tex(&template("ieee-journal"), &doc);
+    assert!(!nawl_codegen::template_to_cls(&t).contains("tabularx"));
+    let ieee = nawl_codegen::document_to_tex(&template("ieee-journal"), &doc);
     assert!(ieee.contains("\\begin{tabularx}"));
 }

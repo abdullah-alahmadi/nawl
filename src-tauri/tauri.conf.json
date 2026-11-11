@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Texloom",
+  "productName": "Nawl",
   "version": "0.1.0",
-  "identifier": "com.abdullah.texloom",
+  "identifier": "com.abdullah.nawl",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Texloom",
+        "title": "Nawl",
         "width": 1400,
         "height": 900,
         "maximized": true
@@ -45,7 +45,7 @@
     "license": "Apache-2.0",
     "category": "Productivity",
     "shortDescription": "Visual LaTeX editor with a no-code template designer",
-    "longDescription": "Texloom is a visual (WYSIWYG) LaTeX editor in the spirit of LyX. Write reports, journal articles, theses and beamer presentations on a page that looks like the PDF, design templates without code, and compile with the bundled Tectonic or an installed TeX distribution.",
+    "longDescription": "Nawl is a visual (WYSIWYG) LaTeX editor in the spirit of LyX. Write reports, journal articles, theses and beamer presentations on a page that looks like the PDF, design templates without code, and compile with the bundled Tectonic or an installed TeX distribution.",
     "linux": {
       "deb": {
         "section": "tex"

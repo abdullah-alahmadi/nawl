@@ -14,7 +14,7 @@ import { Caption, CaptionedTable, Figure, pickFigureImage } from "./editor/Figur
 import { Outline } from "./editor/Outline";
 import { ChaptersPanel } from "./editor/ChaptersPanel";
 import { bookNumbering } from "./editor/numbering";
-import { AppendixStart, Citation, CrossRef, TexloomIds, setTexloomContext } from "./editor/Academic";
+import { AppendixStart, Citation, CrossRef, NawlIds, setNawlContext } from "./editor/Academic";
 import { CitePicker, ReferencesPanel, RefPicker } from "./editor/Pickers";
 import { PAGE_WIDTH_PX, templateCss, type DeckInfo } from "./editor/templateStyle";
 import { useDocumentImage } from "./editor/Figures";
@@ -50,9 +50,13 @@ import {
   BookMarked, Bold, FileInput, FileOutput, Sparkles, Braces, ChevronDown, CircleAlert, CircleCheck, Code, Copy, Check, Columns3, FileCode2, FileDown, FilePlus2,
   FileText, FolderOpen, Hash, History, IdCard, Image, Italic, LayoutTemplate, Library, Link2, List, ListOrdered, ListTree,
   LoaderCircle, Menu as MenuIcon, PenLine, Play, Quote, Redo2, Rows3, Save, Settings as SettingsIcon, Palette, Columns2, SquareStack, Pause, GalleryVerticalEnd, Sigma, Superscript,
-  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit, ArrowRightLeft, AlignLeft, AlignCenter, AlignRight, Files, Split, Merge,
+  Table, TextQuote, Trash2, TriangleAlert, Undo2, X, ZoomIn, ZoomOut, LocateFixed, TableCellsMerge, TableCellsSplit, ArrowRightLeft, AlignLeft, AlignCenter, AlignRight, Files, Split, Merge, CircleHelp,
 } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import "./App.css";
+
+/** Where the user guide is published (docs/help.md and docs/help.ar.md). */
+const HELP_URL = "https://github.com/abdullah-alahmadi/nawl/blob/main/docs";
 
 /** Designer edits are validated after this pause, then the preview recompiles. */
 const TEMPLATE_DEBOUNCE_MS = 400;
@@ -198,7 +202,7 @@ export default function App() {
   const [templateProblem, setTemplateProblem] = useState<{ path: string; issues: api.Issue[] } | null>(null);
   const [builtins, setBuiltins] = useState<api.BuiltinTemplate[]>([]);
   const [installedTemplates, setInstalledTemplates] = useState<api.InstalledTemplate[]>([]);
-  /** Installed classes of kinds Texloom can't write yet (letters, CVs…). */
+  /** Installed classes of kinds Nawl can't write yet (letters, CVs…). */
   const [installedWaiting, setInstalledWaiting] = useState<api.InstalledList["waiting"]>([]);
   /** Beamer themes the installed TeX adds to the theme picker. */
   const [installedThemeCount, setInstalledThemeCount] = useState(0);
@@ -351,7 +355,7 @@ export default function App() {
       if (bibRef.current !== source) return; // a newer edit superseded this one
       setBibInfo(info);
       const editor = editorRef.current;
-      if (editor && !info.error) setTexloomContext(editor, { bibEntries: info.entries });
+      if (editor && !info.error) setNawlContext(editor, { bibEntries: info.entries });
     });
   }, []);
 
@@ -360,7 +364,7 @@ export default function App() {
       StarterKit.configure({ document: false }),
       DeckDocument,
       ...SLIDE_EXTENSIONS,
-      TexloomIds,
+      NawlIds,
       CrossRef,
       Citation,
       AppendixStart,
@@ -438,7 +442,7 @@ export default function App() {
       const p = projectRef.current;
       if (!p || p.chapter !== info.chapter) return true; // the project couldn't open; its error shows
       const r = await api.restoreRecovery();
-      editor.storage.texloom.project = null; // see openChapter
+      editor.storage.nawl.project = null; // see openChapter
       showDocument(editor, r.doc);
       setProject({ ...p });
       setBibliography(r.bibliography ?? "");
@@ -524,7 +528,7 @@ export default function App() {
     if (editor && activeTemplate) {
       // Paragraphs switch to the other direction relative to the document's.
       editor.storage.direction.rtl = docLanguage(activeTemplate).rtl;
-      setTexloomContext(editor, { template: activeTemplate });
+      setNawlContext(editor, { template: activeTemplate });
     }
   }, [editor, activeTemplate]);
 
@@ -536,13 +540,13 @@ export default function App() {
   useEffect(() => {
     if (!editor || !activeTemplate) return;
     if (!projectIndexData || !projectChapter) {
-      if (editor.storage.texloom.project) setTexloomContext(editor, { project: null });
+      if (editor.storage.nawl.project) setNawlContext(editor, { project: null });
       return;
     }
     const chapters = projectIndexData.chapters;
     const at = chapters.findIndex((c) => c.file === projectChapter);
     const { start, others } = bookNumbering(chapters, projectChapter, activeTemplate);
-    setTexloomContext(editor, {
+    setNawlContext(editor, {
       project: {
         start,
         others,
@@ -957,7 +961,7 @@ export default function App() {
         // The context still describes the previous chapter, whose "other chapters"
         // include this one: its ids would look like duplicates and be renamed. The
         // effect sets the new chapter's context once the state below is applied.
-        editor.storage.texloom.project = null;
+        editor.storage.nawl.project = null;
         loadDocument(editor, doc);
         setProject({ ...(projectRef.current ?? p), chapter: file });
         if (!then) focusStart(editor, editorScroll.current);
@@ -982,7 +986,7 @@ export default function App() {
       const doc = first ? await api.readChapter(first) : EMPTY_DOC;
       // Not the example project: its folder is temporary.
       if (recent) addRecent(target);
-      editor.storage.texloom.project = null; // see openChapter
+      editor.storage.nawl.project = null; // see openChapter
       showDocument(editor, doc);
       focusStart(editor, editorScroll.current);
       setBibliography(opened.bibliography ?? "");
@@ -1162,6 +1166,9 @@ export default function App() {
     if (target) await (projectRef.current ? api.exportProjectTex(target, projectState()) : api.exportTex(target, docState())).catch(report);
   };
 
+  // The user guide, in the interface language (a page on the web: it needs internet).
+  const openHelp = () => void openUrl(uiLang === "ar" ? `${HELP_URL}/help.ar.md` : `${HELP_URL}/help.md`).catch(() => {});
+
   const exportWord = async () => {
     if (!editor) return;
     const name = (path ? fileNameOf(path).replace(/\.loom(proj)?$/, "") : "report") + ".docx";
@@ -1333,6 +1340,11 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "F1") {
+        e.preventDefault();
+        openHelp();
+        return;
+      }
       if (!(e.ctrlKey || e.metaKey)) return;
       const key = e.key.toLowerCase();
       const run = (f: () => unknown) => {
@@ -1525,6 +1537,7 @@ export default function App() {
                   />
                   <MenuSeparator />
                   <MenuItem icon={<SettingsIcon />} label={tr("app.settings")} shortcut="Ctrl+," onClick={act(() => setShowSettings(true))} />
+                  <MenuItem icon={<CircleHelp />} label={tr("app.menuHelp")} shortcut="F1" onClick={act(openHelp)} title={tr("app.menuHelpTitle")} />
                 </>
               );
             }}

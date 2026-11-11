@@ -1,4 +1,4 @@
-//! Texloom's Arabic font library: free fonts (SIL Open Font License) shipped with the
+//! Nawl's Arabic font library: free fonts (SIL Open Font License) shipped with the
 //! app (`fonts/catalog.json`, downloaded by `scripts/fetch-fonts.mjs`). A template
 //! chooses one with [`FontChoice::Library`](crate::FontChoice::Library); its files go
 //! into the build folder (`fonts/<id>-Regular.ttf`, `-Bold.ttf`), so a document

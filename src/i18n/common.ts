@@ -1,5 +1,6 @@
 // Words used all over the interface: see index.ts. Keys start with "common.".
 export const en = {
+  "common.appName": "Nawl",
   "common.ok": "OK",
   "common.cancel": "Cancel",
   "common.close": "Close",
@@ -40,6 +41,7 @@ export const en = {
 } satisfies Record<string, string>;
 
 export const ar: Record<keyof typeof en, string> = {
+  "common.appName": "نول",
   "common.ok": "موافق",
   "common.cancel": "إلغاء",
   "common.close": "إغلاق",

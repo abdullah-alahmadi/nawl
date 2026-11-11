@@ -1,7 +1,7 @@
-//! Texloom's own article templates: a title block on the first page, the abstract
+//! Nawl's own article templates: a title block on the first page, the abstract
 //! under it, one or two columns.
 
-use texloom_core::{DocumentFile, Template, has_errors};
+use nawl_core::{DocumentFile, Template, has_errors};
 
 const ARTICLES: [&str; 3] = ["general-article", "article-two-column", "short-paper"];
 
@@ -42,7 +42,7 @@ fn layout_settings_are_checked() {
 /// so a long title pushes the authors (and the text) down instead of overlapping.
 #[test]
 fn title_block_is_on_the_first_page() {
-    let cls = texloom_codegen::template_to_cls(&template("general-article"));
+    let cls = nawl_codegen::template_to_cls(&template("general-article"));
     assert!(!cls.contains("\\begin{titlepage}"), "no page of its own");
     assert!(cls.contains("\\par\\noindent\\begin{tikzpicture}\\path (0,0) -- (\\linewidth,0);"), "{cls}");
     assert!(cls.contains("\\coordinate (tl@row1) at (current bounding box.south -| 0,0);"), "{cls}");
@@ -58,7 +58,7 @@ fn title_block_is_on_the_first_page() {
 
 #[test]
 fn two_columns_span_the_title_block() {
-    let cls = texloom_codegen::template_to_cls(&template("article-two-column"));
+    let cls = nawl_codegen::template_to_cls(&template("article-two-column"));
     assert!(cls.contains("\\LoadClass[10pt,oneside,twocolumn]{article}"), "{cls}");
     assert!(cls.contains("\\setlength\\columnsep{6mm}"), "{cls}");
     assert!(cls.contains("  \\twocolumn[{%\n  \\tl@titlepage\n"), "{cls}");
@@ -69,33 +69,33 @@ fn two_columns_span_the_title_block() {
 #[test]
 fn title_pages_stay_pages() {
     let t: Template = serde_json::from_str(include_str!("../../../templates/senior-design/template.json")).unwrap();
-    let cls = texloom_codegen::template_to_cls(&t);
+    let cls = nawl_codegen::template_to_cls(&t);
     assert!(cls.contains("\\begin{titlepage}"));
     assert!(!cls.contains("\\twocolumn"));
     assert!(cls.contains("\\pagenumbering{roman}"));
 }
 
-/// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p texloom-codegen --test articles -- --ignored
-/// Leaves the PDFs in $TEXLOOM_ARTICLE_OUT when set, to look at.
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen --test articles -- --ignored
+/// Leaves the PDFs in $NAWL_ARTICLE_OUT when set, to look at.
 #[test]
 #[ignore]
 fn article_templates_compile() {
     let doc = document().document;
-    let out = std::env::var_os("TEXLOOM_ARTICLE_OUT").map(std::path::PathBuf::from);
-    let pdflatex = texloom_compile::SystemLatex::find(texloom_compile::LatexProgram::PdfLatex);
+    let out = std::env::var_os("NAWL_ARTICLE_OUT").map(std::path::PathBuf::from);
+    let pdflatex = nawl_compile::SystemLatex::find(nawl_compile::LatexProgram::PdfLatex);
     for id in ARTICLES {
         let t = template(id);
-        let mut runs = vec![(texloom_codegen::Engine::Xe, None)];
+        let mut runs = vec![(nawl_codegen::Engine::Xe, None)];
         if let Some(l) = pdflatex.clone() {
-            runs.push((texloom_codegen::Engine::Pdf, Some(l)));
+            runs.push((nawl_codegen::Engine::Pdf, Some(l)));
         }
         for (engine, latex) in runs {
-            let g = texloom_codegen::generate_for(&t, &doc, engine);
+            let g = nawl_codegen::generate_for(&t, &doc, engine);
             let support = g.support_files();
-            let files: Vec<texloom_compile::Asset> = support.iter().map(|(p, b)| texloom_compile::Asset { path: p, bytes: b }).collect();
+            let files: Vec<nawl_compile::Asset> = support.iter().map(|(p, b)| nawl_compile::Asset { path: p, bytes: b }).collect();
             let result = match &latex {
                 Some(l) => l.compile(&g.tex, &files),
-                None => texloom_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files),
+                None => nawl_compile::Compiler::locate(&[]).expect("tectonic").compile(&g.tex, &files),
             };
             let pdf = result.unwrap_or_else(|e| panic!("{id} ({engine:?}): {e:?}")).pdf;
             assert!(pdf.starts_with(b"%PDF"), "{id} ({engine:?})");

@@ -188,7 +188,7 @@ const BUILTIN_FONTS: { value: BuiltinFont; label: MessageKey }[] = [
   { value: "amiri", label: "designer.fontAmiri" },
 ];
 
-/** A font: TeX's own, one from Texloom's library, or an installed one. With
+/** A font: TeX's own, one from Nawl's library, or an installed one. With
  *  `inheritLabel`, also "none of its own" (`undefined`: a heading takes the text's). */
 export function FontPicker({
   value,
@@ -339,7 +339,7 @@ const FONT_CATEGORIES: { key: string; label: MessageKey }[] = [
 /** A line of Arabic that shows a font's character: letters of every shape, digits. */
 const FONT_SAMPLE = "أبجد هوز حطي كلمن ١٢٣";
 
-/** The Arabic font: Amiri (built in), a family from Texloom's font library (each shown
+/** The Arabic font: Amiri (built in), a family from Nawl's font library (each shown
  *  in its own face, by style), or a font installed on this computer. */
 function ArabicFontGallery({
   value,

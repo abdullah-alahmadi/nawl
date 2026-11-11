@@ -1,4 +1,4 @@
-//! Generates LaTeX from Texloom templates and documents.
+//! Generates LaTeX from Nawl templates and documents.
 //!
 //! - [`template_to_cls`]: a template becomes a standalone LaTeX class.
 //! - [`document_to_tex`]: a document becomes a `.tex` file using that class.
@@ -18,10 +18,10 @@ mod tex;
 pub use cls::{template_to_cls, template_to_cls_for};
 pub use latex::escape;
 pub use project::{chapter_tex_path, generate_project_for};
-pub use publisher::{check_recipe, kit_override, xetex_override, Authors};
+pub use publisher::{check_recipe, Authors};
 pub use tex::{document_to_tex, document_to_tex_mapped, has_bibliography, ChapterTex};
 
-use texloom_core::{Document, DocumentKind, Template, TitleContent};
+use nawl_core::{Document, DocumentKind, Template, TitleContent};
 
 /// The TeX engine the generated files are for. Tectonic is XeTeX-based.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -66,12 +66,12 @@ pub struct Generated {
     pub chapters: Vec<ChapterTex>,
 }
 
-/// The files of a template's library fonts (see [`texloom_core::fonts`]).
+/// The files of a template's library fonts (see [`nawl_core::fonts`]).
 pub fn library_font_files(template: &Template) -> Vec<String> {
     let mut files: Vec<String> = Vec::new();
     for choice in template.all_fonts() {
-        if let texloom_core::FontChoice::Library { id } = choice
-            && let Some(font) = texloom_core::fonts::find(id)
+        if let nawl_core::FontChoice::Library { id } = choice
+            && let Some(font) = nawl_core::fonts::find(id)
         {
             for file in font.files() {
                 if !files.contains(&file) {
@@ -147,7 +147,7 @@ fn generate_with(template: &Template, doc: &Document, engine: Engine, layout: Op
         .filter_map(|(_, i)| match &i.content {
             // An image field's picture comes from the document folder (in `figures`).
             TitleContent::Image { asset, .. }
-                if template.base.is_none() && template.kind == DocumentKind::Article && texloom_core::image_field(asset).is_none() =>
+                if template.base.is_none() && template.kind == DocumentKind::Article && nawl_core::image_field(asset).is_none() =>
             {
                 Some(asset.clone())
             }

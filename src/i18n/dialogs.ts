@@ -35,7 +35,7 @@ export const en = {
   "dialogs.removeNamed": "Remove {name}",
   "dialogs.importAnyJournal": "Import a template for any journal",
   "dialogs.importAnyJournalHint":
-    "Choose the publisher’s LaTeX kit (.zip from the journal’s author guidelines), a template package someone shared, or a Texloom template (.json).",
+    "Choose the publisher’s LaTeX kit (.zip from the journal’s author guidelines), a template package someone shared, or a Nawl template (.json).",
   "dialogs.start": "Start",
   "dialogs.templatesFromTex": "Templates from your TeX installation",
   "dialogs.newFromTemplate": "New from template",
@@ -60,7 +60,7 @@ export const en = {
   "dialogs.texNote": "“TeX installation” templates use the classes installed on this computer, with a standard title block you can adjust under Design.",
   "dialogs.texNoteRestyle": " Choosing one restyles this document; its text stays.",
   "dialogs.texNoteTectonic": " They compile with your installed TeX; picking one offers to switch the engine from Tectonic to pdfLaTeX.",
-  "dialogs.texNoteWaiting": " Also installed: {list}; Texloom will offer them once it can write those kinds of documents.",
+  "dialogs.texNoteWaiting": " Also installed: {list}; Nawl will offer them once it can write those kinds of documents.",
   "dialogs.importTemplate": "Import template…",
   "dialogs.importTemplateHint": "A publisher’s LaTeX kit, a template package, or a template file. The template can be changed later from the title bar.",
 
@@ -107,7 +107,7 @@ export const en = {
   "dialogs.spellChecking": "Spell checking",
   "dialogs.spellCheckingHint": "Underline misspelled words while typing.",
   "dialogs.crashRecovery": "Crash recovery",
-  "dialogs.crashRecoveryHint": "Keep a copy of unsaved changes, offered back if Texloom closes unexpectedly.",
+  "dialogs.crashRecoveryHint": "Keep a copy of unsaved changes, offered back if Nawl closes unexpectedly.",
   "dialogs.texEngine": "TeX engine",
   "dialogs.texEngineHint":
     "Tectonic needs nothing installed and downloads packages on first use. An installed TeX Live, MiKTeX or MacTeX works offline and runs publisher kits made for pdfLaTeX as they are.",
@@ -209,7 +209,7 @@ export const ar: Record<keyof typeof en, string> = {
   "dialogs.removeNamed": "إزالة {name}",
   "dialogs.importAnyJournal": "استيراد قالب لأي مجلة",
   "dialogs.importAnyJournalHint":
-    "اختر حزمة LaTeX الخاصة بالناشر (ملف .zip من إرشادات المؤلفين في المجلة)، أو حزمة قالب شاركها أحدهم، أو قالب Texloom (.json).",
+    "اختر حزمة LaTeX الخاصة بالناشر (ملف .zip من إرشادات المؤلفين في المجلة)، أو حزمة قالب شاركها أحدهم، أو قالب نول (.json).",
   "dialogs.start": "البدء",
   "dialogs.templatesFromTex": "قوالب من TeX المثبت",
   "dialogs.newFromTemplate": "جديد من قالب",
@@ -234,7 +234,7 @@ export const ar: Record<keyof typeof en, string> = {
   "dialogs.texNote": "تستخدم قوالب «TeX المثبت» الأصناف المثبتة على هذا الجهاز، مع كتلة عنوان قياسية يمكنك تعديلها من «التصميم».",
   "dialogs.texNoteRestyle": " اختيار إحداها يعيد تنسيق هذا المستند ويبقى نصه كما هو.",
   "dialogs.texNoteTectonic": " تُحوَّل برمجيًا باستخدام TeX المثبت، واختيار أحدها يعرض تبديل المحرك من Tectonic إلى pdfLaTeX.",
-  "dialogs.texNoteWaiting": " مثبت أيضًا: {list}؛ وسيعرضها Texloom عندما يصبح قادرًا على كتابة هذه الأنواع من المستندات.",
+  "dialogs.texNoteWaiting": " مثبت أيضًا: {list}؛ وسيعرضها نول عندما يصبح قادرًا على كتابة هذه الأنواع من المستندات.",
   "dialogs.importTemplate": "استيراد قالب…",
   "dialogs.importTemplateHint": "حزمة LaTeX من ناشر، أو حزمة قالب، أو ملف قالب. يمكن تغيير القالب لاحقًا من شريط العنوان.",
 
@@ -281,7 +281,7 @@ export const ar: Record<keyof typeof en, string> = {
   "dialogs.spellChecking": "التدقيق الإملائي",
   "dialogs.spellCheckingHint": "تسطير الكلمات الخاطئة إملائيًا أثناء الكتابة.",
   "dialogs.crashRecovery": "الاسترداد بعد التعطل",
-  "dialogs.crashRecoveryHint": "الاحتفاظ بنسخة من التغييرات غير المحفوظة تُعرض عليك إذا أُغلق Texloom بشكل غير متوقع.",
+  "dialogs.crashRecoveryHint": "الاحتفاظ بنسخة من التغييرات غير المحفوظة تُعرض عليك إذا أُغلق نول بشكل غير متوقع.",
   "dialogs.texEngine": "محرك TeX",
   "dialogs.texEngineHint":
     "لا يحتاج Tectonic إلى تثبيت أي شيء، ويُنزّل الحزم عند أول استخدام. أما TeX Live أو MiKTeX أو MacTeX المثبت فيعمل دون اتصال، ويشغّل حزم الناشرين المعدّة لـ pdfLaTeX كما هي.",

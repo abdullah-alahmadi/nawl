@@ -2328,6 +2328,85 @@ dependencies = [
 ]
 
 [[package]]
+name = "nawl"
+version = "0.1.0"
+dependencies = [
+ "biblatex",
+ "nawl-codegen",
+ "nawl-compile",
+ "nawl-core",
+ "nawl-docx",
+ "notify-debouncer-mini",
+ "png",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tempfile",
+ "ttf-parser",
+ "webkit2gtk",
+ "zip",
+]
+
+[[package]]
+name = "nawl-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "nawl-codegen",
+ "nawl-compile",
+ "nawl-core",
+ "serde_json",
+]
+
+[[package]]
+name = "nawl-codegen"
+version = "0.1.0"
+dependencies = [
+ "insta",
+ "nawl-compile",
+ "nawl-core",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "nawl-compile"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "serde",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "nawl-core"
+version = "0.1.0"
+dependencies = [
+ "biblatex",
+ "icu_calendar",
+ "serde",
+ "serde_json",
+ "ts-rs",
+]
+
+[[package]]
+name = "nawl-docx"
+version = "0.1.0"
+dependencies = [
+ "nawl-codegen",
+ "nawl-core",
+ "png",
+ "quick-xml",
+ "serde_json",
+ "zip",
+]
+
+[[package]]
 name = "ndk"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4072,85 +4151,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "texloom"
-version = "0.1.0"
-dependencies = [
- "biblatex",
- "notify-debouncer-mini",
- "png",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tempfile",
- "texloom-codegen",
- "texloom-compile",
- "texloom-core",
- "texloom-docx",
- "ttf-parser",
- "webkit2gtk",
- "zip",
-]
-
-[[package]]
-name = "texloom-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "serde_json",
- "texloom-codegen",
- "texloom-compile",
- "texloom-core",
-]
-
-[[package]]
-name = "texloom-codegen"
-version = "0.1.0"
-dependencies = [
- "insta",
- "serde_json",
- "tempfile",
- "texloom-compile",
- "texloom-core",
-]
-
-[[package]]
-name = "texloom-compile"
-version = "0.1.0"
-dependencies = [
- "flate2",
- "serde",
- "tempfile",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "texloom-core"
-version = "0.1.0"
-dependencies = [
- "biblatex",
- "icu_calendar",
- "serde",
- "serde_json",
- "ts-rs",
-]
-
-[[package]]
-name = "texloom-docx"
-version = "0.1.0"
-dependencies = [
- "png",
- "quick-xml",
- "serde_json",
- "texloom-codegen",
- "texloom-core",
- "zip",
 ]
 
 [[package]]

@@ -378,7 +378,7 @@
     "abstract": "ورقة نموذجية تعرض كتابة الرياضيات بالطريقة العربية في تكس لوم: المعادلات من اليمين إلى اليسار بحروف عربية، مع عكس رموز التكامل والمجموع والجذر، وكتابة الأسس والأدلّة إلى اليسار، وأسماء الدوال العربية مثل جا وجتا ونهـا.",
     "keywords": "الرياضيات العربية، المعادلة التربيعية، النهايات، التكامل",
     "title_en": "Elements of Algebra and Calculus",
-    "abstract_en": "A sample showing mathematics written the Arabic way in Texloom: formulas run right to left with Arabic letters, the integral, sum and root are mirrored, powers and indices sit on the left, and functions have their Arabic names.",
+    "abstract_en": "A sample showing mathematics written the Arabic way in Nawl: formulas run right to left with Arabic letters, the integral, sum and root are mirrored, powers and indices sit on the left, and functions have their Arabic names.",
     "keywords_en": "Arabic mathematics, quadratic equation, limits, integration"
   },
   "bibliography": "",

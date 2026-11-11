@@ -3,10 +3,10 @@
 //!
 //! The chapters are joined into one document first ([`Project::combined`]), so
 //! everything that looks at the whole book (languages, references between chapters,
-//! the reference list Texloom writes for Arabic documents) works as for a single
+//! the reference list Nawl writes for Arabic documents) works as for a single
 //! file; only where the body's blocks are written differs.
 
-use texloom_core::{DocumentKind, Project, ProjectItem, Template};
+use nawl_core::{DocumentKind, Project, ProjectItem, Template};
 
 use crate::tex::{Layout, Piece};
 use crate::{Engine, Generated};
@@ -23,7 +23,7 @@ pub fn chapter_tex_path(n: usize) -> String {
 /// chapters) compiles just that chapter with `\includeonly`; the build folder must
 /// then still hold the other chapters' `.aux` files from a full compile.
 ///
-/// Callers should run [`Template::validate`], [`texloom_core::ProjectFile::validate`]
+/// Callers should run [`Template::validate`], [`nawl_core::ProjectFile::validate`]
 /// and [`Project::validate`] first. Presentations aren't split into files.
 pub fn generate_project_for(template: &Template, project: &Project, engine: Engine, only_chapter: Option<usize>) -> Generated {
     let doc = project.combined();

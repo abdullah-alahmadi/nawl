@@ -1,7 +1,7 @@
 //! Authors with different affiliations: numbers pair each name with its
 //! affiliations ("Name¹, Name²" over "¹Affiliation", "²Affiliation").
 
-use texloom_core::{author_entries, AuthorInfo, DocumentFile, FieldValue, Template};
+use nawl_core::{author_entries, AuthorInfo, DocumentFile, FieldValue, Template};
 
 fn author(name: &str, name_en: &str, affiliations: &[(&str, &str)]) -> AuthorInfo {
     AuthorInfo {
@@ -42,7 +42,7 @@ fn numbered_authors_in_latex() {
     let t: Template = serde_json::from_str(include_str!("../../../templates/arabic-article/template.json")).unwrap();
     let mut doc: DocumentFile = serde_json::from_str(include_str!("../../../examples/arabic-load-forecasting.loom")).unwrap();
     doc.document.metadata.insert("authors".into(), FieldValue::Authors(vec![author("عبدالله الأحمدي", "Abdullah Al-Ahmadi", &[EE]), author("سارة القحطاني", "Sarah Al-Qahtani", &[ECE])]));
-    let tex = texloom_codegen::document_to_tex(&t, &doc.document);
+    let tex = nawl_codegen::document_to_tex(&t, &doc.document);
     let field = |id: &str| tex.lines().find(|l| l.starts_with(&format!("\\texloomfield{{{id}}}"))).unwrap_or_else(|| panic!("{id} missing")).to_string();
     // Arabic names and affiliations: the template's Arabic-Indic digits.
     assert!(field("authors").contains("عبدالله الأحمدي\\textsuperscript{١}\\texloomsep سارة القحطاني\\textsuperscript{٢}"), "{}", field("authors"));
@@ -52,7 +52,7 @@ fn numbered_authors_in_latex() {
 
     // One shared affiliation: the names stay as they were.
     doc.document.metadata.insert("authors".into(), FieldValue::Authors(vec![author("عبدالله الأحمدي", "", &[EE]), author("سارة القحطاني", "", &[EE])]));
-    let tex = texloom_codegen::document_to_tex(&t, &doc.document);
+    let tex = nawl_codegen::document_to_tex(&t, &doc.document);
     let authors: Vec<&str> = tex.lines().filter(|l| l.starts_with("\\texloomfield{authors")).collect();
     assert!(!authors.is_empty() && authors.iter().all(|l| !l.contains("\\textsuperscript")), "{authors:#?}");
 }

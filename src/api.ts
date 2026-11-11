@@ -83,7 +83,7 @@ export interface BuiltinTemplate {
   id: string;
   name: string;
   description: string;
-  /** Publisher class it's built on (e.g. "IEEEtran"); null for Texloom layouts. */
+  /** Publisher class it's built on (e.g. "IEEEtran"); null for Nawl layouts. */
   class: string | null;
   kind: "article" | "presentation";
   /** The document language: Arabic templates are listed together. */
@@ -105,7 +105,7 @@ export interface InstalledTemplate {
   category: InstalledCategory;
 }
 export type InstalledCategory = "journal" | "thesis" | "book" | "general" | "letter" | "cv" | "poster" | "exam" | "presentation";
-/** What the installed TeX offers: templates, and how many classes of kinds Texloom
+/** What the installed TeX offers: templates, and how many classes of kinds Nawl
  *  can't write yet are installed. */
 export interface InstalledList {
   templates: InstalledTemplate[];
@@ -157,7 +157,7 @@ export const exportPdf = (path: string, d: DocState) => invoke<void>("export_pdf
 export const listSystemFonts = () => invoke<string[]>("list_system_fonts");
 /** Installed font families that have Arabic letters (Diwani, Thuluth…). */
 export const listArabicSystemFonts = () => invoke<string[]>("list_arabic_system_fonts");
-/** A family of Texloom's Arabic font library. */
+/** A family of Nawl's Arabic font library. */
 export interface LibraryFont {
   id: string;
   name: string;
@@ -253,7 +253,7 @@ export const importTemplate = (source: string) => invoke<TemplateInfo>("import_t
 export const removeUserTemplate = (id: string) => invoke<void>("remove_user_template", { id });
 export const exportTemplate = (path: string) => invoke<void>("export_template", { path });
 
-/** A TeX engine Texloom can compile with. */
+/** A TeX engine Nawl can compile with. */
 export interface EngineInfo {
   /** "tectonic", "pdflatex", "xelatex" or "lualatex". */
   id: string;

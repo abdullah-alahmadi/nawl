@@ -1,4 +1,4 @@
-# Texloom plan: visual LaTeX editor with a no-code template designer
+# Nawl plan: visual LaTeX editor with a no-code template designer
 
 A LyX-like structured editor built on Tauri. Its main difference from LyX: **templates
 (document classes) are designed visually**, with no code. The north-star demo is a
@@ -30,10 +30,10 @@ real PDF preview (Tectonic) shows the exact output.
 
 ```
 crates/
-  core/      texloom-core: Document + Template models, placeholders, validation. No UI, no TeX.
-  codegen/   texloom-codegen: Template → .cls, Document → .tex
-  compile/   texloom-compile: Tectonic runner, log parsing → friendly errors
-  cli/       texloom-cli: `render doc.loom -t template.json`, `export`, `check`
+  core/      nawl-core: Document + Template models, placeholders, validation. No UI, no TeX.
+  codegen/   nawl-codegen: Template → .cls, Document → .tex
+  compile/   nawl-compile: Tectonic runner, log parsing → friendly errors
+  cli/       nawl-cli: `render doc.loom -t template.json`, `export`, `check`
 templates/   built-in templates (senior-design/template.json is the reference)
 examples/    sample documents
 src-tauri/   Tauri app: commands that call the crates
@@ -47,7 +47,7 @@ scripts/     fetch-tectonic.sh (sidecar binary), copy-mathlive-assets.mjs (posti
 ## File formats
 
 - **Document** (`.loom`): currently JSON `{"format": "texloom", "version": 1, "metadata": {...}, "doc": <ProseMirror JSON>}`.
-  The `doc` JSON *is* the typed model (`texloom_core::Body`), so no conversion layer exists.
+  The `doc` JSON *is* the typed model (`nawl_core::Body`), so no conversion layer exists.
   It embeds a copy of the template. **Save as single file…** writes the same JSON as
   `document.loom` inside a zip with the images (`figures/…`); opening detects either.
 - **Template**: currently `template.json` with assets resolved relative to its folder.
@@ -102,7 +102,7 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] `cli` + snapshot tests; hand-written `senior-design` reference template + sample report
 - [x] App uses the new pipeline with the built-in template; basic "Document info" form
       (generated from the template's fields), metadata saved in `.loom` files
-- [x] App: open a `template.json` (Template menu or `TEXLOOM_TEMPLATE`), live reload on
+- [x] App: open a `template.json` (Template menu or `NAWL_TEMPLATE`), live reload on
       save, template errors shown while the last valid version stays active; documents
       save their template path + an embedded copy and reopen with it
 - Not yet: figures/tables/captions (Phase 2), mirrored headers for two-sided printing
@@ -181,9 +181,9 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] Structured authors (several affiliations, e-mail, ORCID, membership,
       corresponding author, biography + photo) with an author editor; old
       "Name | Affiliation | Email" lines still work
-- [x] IEEE Access with IEEE's own kit (removed as a built-in; still works imported: font maps and a spot-colour
-      stand-in make the pdfLaTeX kit work under XeTeX; output matches IEEE's sample)
-- [x] Author biographies (IEEEbiography, with or without photo); `\EOD` for IEEE Access
+- IEEE Access support removed (2026-11-10): its title-block style and the spot-colour
+      stand-in are gone; an IEEE Access kit imports like any other publisher kit
+- [x] Author biographies (IEEEbiography, with or without photo)
 - [x] Custom title-block recipes (`{title}`, `{#authors|sep}…{/authors}`, `{?x}…{/x}`)
       plus an optional end block, for publishers without a built-in style
 - [x] Typographic punctuation and Latin-1 symbols written as TeX commands, so they
@@ -212,7 +212,7 @@ map: caption (captions), tocloft (TOC styling), bibliography.
 - [x] Logo (image field in Document info; every slide / title slide / off), short
       title, footer (theme's own / custom left-centre-right with placeholders / none),
       shown on the slides in the editor too
-- [x] Articles in Texloom's own layout: a title block on page 1 that flows (rows placed
+- [x] Articles in Nawl's own layout: a title block on page 1 that flows (rows placed
       below the real bottom of the row above), the abstract under it, one or two
       columns (title block spanning); built-in Article, Two-column Article, Short Paper
 - [ ] Posters (tikzposter / beamerposter): a big canvas of boxes in columns
@@ -223,8 +223,8 @@ map: caption (captions), tocloft (TOC styling), bibliography.
       reordering slides by dragging
 
 ### Arabic publishing
-Goal: Arabic journals, universities and publishers write in Texloom instead of Word.
-Word is an export target only; Texloom never imports Word files.
+Goal: Arabic journals, universities and publishers write in Nawl instead of Word.
+Word is an export target only; Nawl never imports Word files.
 - [x] Language in the model: template language (main, second, digits), Arabic font,
       Amiri built in, paragraph and heading direction (`dir`)
 - [x] LaTeX: polyglossia + bidi block, automatic `\textenglish`/`\textarabic` runs,
@@ -248,7 +248,7 @@ Word is an export target only; Texloom never imports Word files.
 - [x] Abjad letters for appendices and sub-lists (editor, PDF, Word); Arabic punctuation
       as you type; equation numbers on the left in RTL
 - [x] Authors' English names and affiliations; backend messages (errors, validation) in
-      Arabic (`texloom_core::tr!`)
+      Arabic (`nawl_core::tr!`)
 - [x] Arabic letters and words in formulas (Arabic font, PDF and Word); Arabic-Indic
       digits in formulas
 - [ ] Arabic school notation: Arabic variables and function names (جا، جتا، نها) in the
@@ -269,7 +269,7 @@ Goal: formulas the way Arabic schoolbooks and universities write them (the Mashr
 style): right to left, Arabic letters for variables, mirrored integral, sum and root,
 powers and indices on the left, `نهـا`, `جا`, `جتا`… for limits and functions.
 
-How: XeTeX (Tectonic) has no right-to-left math, so Texloom lays the formula out left
+How: XeTeX (Tectonic) has no right-to-left math, so Nawl lays the formula out left
 to right, mirrors it as a whole (`\reflectbox`), and mirrors each letter, word and
 number back so it reads normally. One method for XeLaTeX and LuaLaTeX, no new
 packages or math fonts. Symbols that Arabic notation mirrors (∫ ∑ √, brackets,
@@ -308,7 +308,7 @@ out from the text, numbers and function names in the text font.
       notes go), so each Arabic formula goes in as a picture of how the PDF sets it:
       `formula_pictures` compiles one page per formula, exactly its size (sizes from
       the log); the app draws the pages with pdf.js (288 px per inch, no background)
-      and `texloom_docx::write_with` places them on the text's baseline. Without
+      and `nawl_docx::write_with` places them on the text's baseline. Without
       pictures (the compile failed) they're Word equations as before
 - [x] `examples/arabic-math.loom`: algebra, limits, derivatives, integrals, a sum,
       cases, a matrix, one international formula; compile tests for it, for a
@@ -414,7 +414,7 @@ The editor uses the index to:
 - **number citations in book order.** IEEE numbers by first citation in the whole book:
   citations in earlier chapters come first. The index provides the key order before
   the open chapter.
-- **keep ids unique across the project.** The id plugin (`TexloomIds`) also checks the
+- **keep ids unique across the project.** The id plugin (`NawlIds`) also checks the
   index, so copying a figure from one chapter to another gets a new id instead of a
   duplicate.
 
@@ -433,7 +433,7 @@ The editor uses the index to:
   - Each chapter's `.tex` comes from the existing body generator. `generate_for` gains
     a project entry point that takes the template, metadata, bibliography and the
     ordered chapter bodies.
-  - The reference list Texloom writes itself (`refs.rs`, Arabic documents) collects
+  - The reference list Nawl writes itself (`refs.rs`, Arabic documents) collects
     citations from all chapters.
 - **Just this chapter** (the default while writing a long book): the same files with
   `\includeonly{chapters/03-…}`.
@@ -479,7 +479,7 @@ The editor uses the index to:
 
 #### Steps
 
-- [x] Core: `ProjectFile` and `Project` in `texloom-core` (with TypeScript bindings),
+- [x] Core: `ProjectFile` and `Project` in `nawl-core` (with TypeScript bindings),
       `"project"` in chapter files, validation (unsafe or repeated paths, appendices
       before chapters, empty parts, ids used in two chapters, appendix markers inside
       chapters, chapters without a chapter heading), tests

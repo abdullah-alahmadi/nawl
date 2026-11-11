@@ -10,7 +10,7 @@
 //! The setup goes into the `.tex` preamble (not the class), because whether an
 //! English template's document contains Arabic is only known from the document.
 
-use texloom_core::{
+use nawl_core::{
     walk_inlines, BuiltinFont, Digits, Document, FieldValue, FontChoice, Inline, Language, Template, TextDir, TopLevel,
 };
 
@@ -69,7 +69,7 @@ impl Languages {
         self.main == Language::Arabic || self.others.contains(&Language::Arabic)
     }
 
-    /// A number Texloom writes as text (a citation's year or number) in the
+    /// A number Nawl writes as text (a citation's year or number) in the
     /// document's digits: Arabic-Indic in an Arabic document that uses them, as
     /// polyglossia writes page and heading numbers ("2016" → "٢٠١٦").
     pub fn local_digits(&self, s: &str) -> String {
@@ -118,10 +118,10 @@ fn has_arabic(doc: &Document) -> bool {
         Inline::InlineMath { attrs } => found |= attrs.latex.chars().any(is_arabic),
         _ => {}
     });
-    texloom_core::walk_blocks(&doc.body.content, &mut |b| match b {
-        texloom_core::Block::Paragraph { attrs, .. } => found |= attrs.dir == Some(TextDir::Rtl),
-        texloom_core::Block::Heading { attrs, .. } => found |= attrs.dir == Some(TextDir::Rtl),
-        texloom_core::Block::Equation { attrs } => found |= attrs.latex.chars().any(is_arabic),
+    nawl_core::walk_blocks(&doc.body.content, &mut |b| match b {
+        nawl_core::Block::Paragraph { attrs, .. } => found |= attrs.dir == Some(TextDir::Rtl),
+        nawl_core::Block::Heading { attrs, .. } => found |= attrs.dir == Some(TextDir::Rtl),
+        nawl_core::Block::Equation { attrs } => found |= attrs.latex.chars().any(is_arabic),
         _ => {}
     });
     found
@@ -134,7 +134,7 @@ fn has_arabic(doc: &Document) -> bool {
         // direction too (without them it would print as missing characters).
         || (!doc.bibliography.trim().is_empty() && {
             let cited = crate::refs::cited_keys(doc);
-            texloom_core::bib::parse(&doc.bibliography).entries.iter().any(|e| cited.contains(&e.key) && crate::refs::entry_language(e) == Language::Arabic)
+            nawl_core::bib::parse(&doc.bibliography).entries.iter().any(|e| cited.contains(&e.key) && crate::refs::entry_language(e) == Language::Arabic)
         })
 }
 
@@ -155,7 +155,7 @@ pub fn math(latex: &str, langs: &Languages) -> String {
         Text,
         Raw,
     }
-    let indic = langs.digits == texloom_core::Digits::ArabicIndic && langs.main == Language::Arabic;
+    let indic = langs.digits == nawl_core::Digits::ArabicIndic && langs.main == Language::Arabic;
     let chars: Vec<char> = latex.chars().collect();
     let mut out = String::with_capacity(latex.len());
     let mut stack = vec![Group::Math];
@@ -604,7 +604,7 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
     o.push_str(&arabic_symbol_fallbacks());
     // Arabic formulas (the template's style, or a formula's own): their commands, and
     // the variables' font, which the class defines with the fonts of headings.
-    if langs.main == Language::Arabic && t.kind != texloom_core::DocumentKind::Presentation {
+    if langs.main == Language::Arabic && t.kind != nawl_core::DocumentKind::Presentation {
         static RUQAA: std::sync::LazyLock<FontChoice> = std::sync::LazyLock::new(|| FontChoice::Library { id: "aref-ruqaa".into() });
         o.push_str(&crate::armath::preamble(&crate::latex::style_font_command(t.arabic_math_font().unwrap_or(&RUQAA))));
     }
@@ -622,7 +622,7 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
     // text (Amiri's `locl`), raised and round, exactly like the zero, so "١.١" read
     // "١٠١". Between Arabic-Indic digits the dot comes from the Latin font instead:
     // on the baseline. bidi's classes write numbers with \@SepMark.
-    if langs.main == Language::Arabic && langs.digits == Digits::ArabicIndic && t.base.is_none() && t.kind != texloom_core::DocumentKind::Presentation {
+    if langs.main == Language::Arabic && langs.digits == Digits::ArabicIndic && t.base.is_none() && t.kind != nawl_core::DocumentKind::Presentation {
         o.push_str("\\makeatletter\n\\DeclareRobustCommand\\tlnumdot{{\\englishfont .}}\n");
         o.push_str("\\providecommand\\@SepMark{.}\\renewcommand\\@SepMark{\\tlnumdot}\n");
         o.push_str("\\ifdefined\\pdfstringdefDisableCommands\\pdfstringdefDisableCommands{\\def\\tlnumdot{.}}\\fi\n\\makeatother\n");
@@ -637,7 +637,7 @@ pub fn preamble(t: &Template, langs: &Languages) -> String {
     o.push_str(&format!("\\gappto\\captions{}{{{labels}}}\n", langs.main.polyglossia()));
     // bidi (loaded by polyglossia, after the class) brings back the standard chapter
     // and section headings; the template's go on top again.
-    if t.base.is_none() && t.kind != texloom_core::DocumentKind::Presentation {
+    if t.base.is_none() && t.kind != nawl_core::DocumentKind::Presentation {
         o.push_str("\\makeatletter\n");
         o.push_str(&crate::cls::heading_formats(t, langs));
         o.push_str("\\makeatother\n");
@@ -669,9 +669,9 @@ pub(crate) const SYSTEM_ARABIC_SHAPES: &str = "ItalicFont=*,ItalicFeatures={Fake
 fn arabic_font(t: &Template) -> (String, String) {
     match &t.fonts.arabic {
         Some(FontChoice::System { family }) if !family.trim().is_empty() => (escape(family.trim()), format!(",{SYSTEM_ARABIC_SHAPES}")),
-        // From Texloom's font library: by file, from the build folder's fonts/.
-        Some(FontChoice::Library { id }) if texloom_core::fonts::find(id).is_some() => {
-            let f = texloom_core::fonts::find(id).expect("checked");
+        // From Nawl's font library: by file, from the build folder's fonts/.
+        Some(FontChoice::Library { id }) if nawl_core::fonts::find(id).is_some() => {
+            let f = nawl_core::fonts::find(id).expect("checked");
             (f.regular_file(), format!(",{}", crate::cls::library_options(f)))
         }
         // Amiri comes with every TeX distribution (Tectonic's bundle too).
@@ -692,7 +692,7 @@ fn latin_spec(choice: &FontChoice, role: Role) -> String {
     let files = |stem: &str| format!("{{{stem}}}[Extension=.otf,Ligatures=TeX,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]");
     match choice {
         FontChoice::System { family } => format!("{{{}}}[Ligatures=TeX]", escape(family)),
-        FontChoice::Library { id } => match texloom_core::fonts::find(id) {
+        FontChoice::Library { id } => match nawl_core::fonts::find(id) {
             Some(f) => format!("{{{}}}[Ligatures=TeX,{}]", f.regular_file(), crate::cls::library_options(f)),
             None => "{Amiri}[Ligatures=TeX]".into(),
         },
@@ -712,8 +712,8 @@ mod tests {
 
     #[test]
     fn arabic_and_digits_in_math() {
-        let indic = Languages { main: Language::Arabic, others: vec![Language::English], digits: texloom_core::Digits::ArabicIndic };
-        let western = Languages { digits: texloom_core::Digits::Western, ..indic.clone() };
+        let indic = Languages { main: Language::Arabic, others: vec![Language::English], digits: nawl_core::Digits::ArabicIndic };
+        let western = Languages { digits: nawl_core::Digits::Western, ..indic.clone() };
         // Arabic letters become text in the Arabic font; words stay together.
         assert_eq!(math("س + ص = ع", &western), "\\text{\\textarabic{س}} + \\text{\\textarabic{ص}} = \\text{\\textarabic{ع}}");
         assert_eq!(math("x > 0 إذا كان", &western), "x > 0 \\text{ \\textarabic{إذا كان} }");

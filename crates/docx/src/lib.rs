@@ -1,11 +1,11 @@
-//! Exports a Texloom document to Microsoft Word (.docx), for the cases where
-//! someone still asks for a Word file. Texloom never reads Word files.
+//! Exports a Nawl document to Microsoft Word (.docx), for the cases where
+//! someone still asks for a Word file. Nawl never reads Word files.
 //!
 //! The Word file follows the template as closely as Word allows: page size and
 //! margins, fonts (a Latin font and a font for Arabic), heading styles with their
 //! numbers written out as the editor shows them, captions, lists, tables (merged
 //! cells included), figures (cropped), equations as editable Word equations, the
-//! reference list Texloom formats itself, a table of contents field and page
+//! reference list Nawl formats itself, a table of contents field and page
 //! numbers. Arabic documents are right to left throughout; English passages and
 //! words in them keep their direction.
 
@@ -16,9 +16,9 @@ mod xml;
 use std::collections::HashMap;
 use std::io::Write;
 
-use texloom_codegen::language::{is_arabic, Languages};
-use texloom_codegen::refs;
-use texloom_core::{
+use nawl_codegen::language::{is_arabic, Languages};
+use nawl_codegen::refs;
+use nawl_core::{
     Align, BibStyle, Block, BuiltinFont, Digits, Document, FieldKind, FieldValue, FontChoice, FrontMatterItem, Inline, Language, LineSpacing,
     Mark, PageNumberStyle, TableFigurePart, TableRow, Template, TextDir, TitleContent, TitleItem, TopLevel,
 };
@@ -65,7 +65,7 @@ pub fn write(input: &Input) -> Result<Vec<u8>, String> {
 /// Like [`write`], with pictures for the Arabic formulas (by [`formula_key`]); an
 /// Arabic formula without one is written as a Word equation, left to right.
 pub fn write_with(input: &Input, pictures: &HashMap<String, FormulaPicture>) -> Result<Vec<u8>, String> {
-    if input.template.kind == texloom_core::DocumentKind::Presentation {
+    if input.template.kind == nawl_core::DocumentKind::Presentation {
         return Err("Word export is for documents; export slides as PDF.".into());
     }
     let mut w = Writer::new(input);
@@ -122,7 +122,7 @@ fn obfuscate(data: &[u8], key: &str) -> Vec<u8> {
 
 /// How the main text follows the front matter.
 enum Front {
-    /// No front matter of Texloom's own (a publisher class's title block, or none).
+    /// No front matter of Nawl's own (a publisher class's title block, or none).
     None,
     /// Pages of its own, in a section with its own page numbers.
     OwnSection,
@@ -191,13 +191,13 @@ fn number_document(t: &Template, doc: &Document) -> Numbers {
     let chapters = t.structure.top_level == TopLevel::Chapter;
     let per_chapter = chapters && t.structure.per_chapter_numbering;
     // Appendices are lettered: abjad letters in Arabic, as polyglossia prints them.
-    let arabic = texloom_codegen::language::Languages::of(t, doc).main == Language::Arabic;
+    let arabic = nawl_codegen::language::Languages::of(t, doc).main == Language::Arabic;
     let top = |appendix: bool, c: usize| match (appendix, arabic) {
         (false, _) => c.to_string(),
-        (true, true) => texloom_codegen::language::abjad(c),
+        (true, true) => nawl_codegen::language::abjad(c),
         (true, false) => letters(c),
     };
-    texloom_core::walk_blocks(&doc.body.content, &mut |b| match b {
+    nawl_core::walk_blocks(&doc.body.content, &mut |b| match b {
         Block::AppendixStart => {
             appendix = true;
             counters = [0; 4];
@@ -448,14 +448,14 @@ impl<'a> Writer<'a> {
         out
     }
 
-    fn formula(&mut self, attrs: &texloom_core::MathAttrs, display: bool) -> String {
+    fn formula(&mut self, attrs: &nawl_core::MathAttrs, display: bool) -> String {
         let latex = attrs.latex.trim();
         if latex.is_empty() {
             return String::new();
         }
         // The Arabic way (right to left): Word can't lay that out, so the formula goes
         // in as a picture of how the PDF sets it, sitting on the text's baseline.
-        let arabic = self.langs.main == Language::Arabic && attrs.style.unwrap_or(self.t.lang().math) == texloom_core::MathStyle::Arabic;
+        let arabic = self.langs.main == Language::Arabic && attrs.style.unwrap_or(self.t.lang().math) == nawl_core::MathStyle::Arabic;
         if arabic && let Some(p) = self.pictures.and_then(|all| all.get(&formula_key(latex, display))) {
             return self.formula_picture(p);
         }
@@ -544,7 +544,7 @@ impl<'a> Writer<'a> {
         // others, each under its own heading; numbers run on.
         let (own, other) = refs::split_by_language(&references, self.langs.main);
         let split = self.t.bibliography.split_by_language && !own.is_empty() && !other.is_empty();
-        let words = texloom_codegen::strings::words(self.langs.main);
+        let words = nawl_codegen::strings::words(self.langs.main);
         for (i, r) in references.iter().enumerate() {
             if split && (i == 0 || i == own.len()) {
                 let heading = if i == 0 { words.own_references } else { words.other_references };
@@ -584,8 +584,8 @@ impl<'a> Writer<'a> {
                         // Word's "left" and "right" mean the start and the end of the
                         // line: the other way round in a right-to-left paragraph.
                         let jc = match (align, para_rtl) {
-                            (texloom_core::TextAlign::Center, _) => "center",
-                            (texloom_core::TextAlign::Left, false) | (texloom_core::TextAlign::Right, true) => "left",
+                            (nawl_core::TextAlign::Center, _) => "center",
+                            (nawl_core::TextAlign::Left, false) | (nawl_core::TextAlign::Right, true) => "left",
                             _ => "right",
                         };
                         let pp = Pp { bidi: self.bidi(para_rtl), ind: Some("w:firstLine=\"0\"".into()), jc: Some(jc), ..Default::default() };
@@ -598,7 +598,7 @@ impl<'a> Writer<'a> {
                 self.next.0 += 1;
                 let label = self.numbers.headings.get(self.next.0 - 1).cloned().flatten();
                 let text = self.inlines(content);
-                let display = self.t.headings.levels.get(level - 1).is_some_and(|h| h.layout == texloom_core::HeadingLayout::Display);
+                let display = self.t.headings.levels.get(level - 1).is_some_and(|h| h.layout == nawl_core::HeadingLayout::Display);
                 let runs = match label {
                     Some(l) if display => format!("{}<w:r><w:br/></w:r>{text}", self.text_runs(&l, &Rp::default())),
                     Some(l) => format!("{}{text}", self.text_runs(&format!("{l}  "), &Rp::default())),
@@ -680,7 +680,7 @@ impl<'a> Writer<'a> {
                 self.bibliography(o);
                 if self.covers() {
                     // A cover page for the appendices as a whole, as in the PDF.
-                    let title = if self.langs.main == texloom_core::Language::Arabic { "الملاحق" } else { "Appendices" };
+                    let title = if self.langs.main == nawl_core::Language::Arabic { "الملاحق" } else { "Appendices" };
                     let runs = self.text_runs(title, &Rp::default());
                     o.push_str(&self.cover("Heading1", self.rtl, &runs));
                 } else {
@@ -706,7 +706,7 @@ impl<'a> Writer<'a> {
         }
     }
 
-    fn list(&mut self, items: &[texloom_core::ListItem], start: Option<u32>, o: &mut String, rtl: bool, depth: u8) {
+    fn list(&mut self, items: &[nawl_core::ListItem], start: Option<u32>, o: &mut String, rtl: bool, depth: u8) {
         let num_id = match start {
             None => 1,
             Some(s) => {
@@ -875,33 +875,33 @@ impl<'a> Writer<'a> {
         };
         // A date's Hijri form ({defense_date_hijri}), and dates in the document's language.
         // An authors field's affiliations, English names, e-mail.
-        if let Some((base, suffix)) = texloom_core::split_author_placeholder(id)
+        if let Some((base, suffix)) = nawl_core::split_author_placeholder(id)
             && self.t.field(base).is_some_and(|f| f.kind == FieldKind::Authors)
         {
-            let authors = texloom_core::AuthorInfo::from_field(self.input.doc.metadata.get(base));
-            let values = self.numbered(&texloom_core::author_entries(&authors, suffix), suffix != "_affiliations", suffix.starts_with("_affiliations"));
+            let authors = nawl_core::AuthorInfo::from_field(self.input.doc.metadata.get(base));
+            let values = self.numbered(&nawl_core::author_entries(&authors, suffix), suffix != "_affiliations", suffix.starts_with("_affiliations"));
             return (!values.is_empty()).then_some(values);
         }
-        if let Some(base) = id.strip_suffix(texloom_core::date::HIJRI_SUFFIX)
+        if let Some(base) = id.strip_suffix(nawl_core::date::HIJRI_SUFFIX)
             && let Some(v) = date(base)
         {
-            return texloom_core::date::format_hijri(&v, self.langs.main, self.langs.digits).map(|h| vec![h]);
+            return nawl_core::date::format_hijri(&v, self.langs.main, self.langs.digits).map(|h| vec![h]);
         }
         if let Some(v) = date(id) {
-            return Some(vec![texloom_core::date::format(&v, self.langs.main, self.langs.digits)]);
+            return Some(vec![nawl_core::date::format(&v, self.langs.main, self.langs.digits)]);
         }
         let v = self.input.doc.metadata.get(id).filter(|v| !v.is_empty())?;
         Some(match v {
             FieldValue::Text(s) => vec![s.clone()],
             FieldValue::List(l) => l.clone(),
-            FieldValue::Authors(a) => self.numbered(&texloom_core::author_entries(a, ""), false, false),
+            FieldValue::Authors(a) => self.numbered(&nawl_core::author_entries(a, ""), false, false),
         })
     }
 
     /// Authors' names or affiliations with their numbers marked as superscripts:
     /// after a name, before an affiliation (as in the PDF).
     fn numbered(&self, entries: &[(String, Option<Vec<usize>>)], english: bool, affiliations: bool) -> Vec<String> {
-        let arabic = !english && self.langs.main == texloom_core::Language::Arabic;
+        let arabic = !english && self.langs.main == nawl_core::Language::Arabic;
         entries
             .iter()
             .map(|(text, n)| {
@@ -919,13 +919,13 @@ impl<'a> Writer<'a> {
     /// pages, a run of names in an article's title block).
     fn fill(&self, text: &str, sep: &str) -> String {
         let mut out = String::new();
-        for piece in texloom_core::placeholder::parse(text) {
+        for piece in nawl_core::placeholder::parse(text) {
             match piece {
-                texloom_core::placeholder::Piece::Literal(l) => out.push_str(&l),
-                texloom_core::placeholder::Piece::Name(n) => {
+                nawl_core::placeholder::Piece::Literal(l) => out.push_str(&l),
+                nawl_core::placeholder::Piece::Name(n) => {
                     // English lists (an Arabic document's English author names) take an
                     // English comma where entries share a line.
-                    let english = texloom_core::split_author_placeholder(n).is_some_and(|(_, s)| s != "_affiliations");
+                    let english = nawl_core::split_author_placeholder(n).is_some_and(|(_, s)| s != "_affiliations");
                     let sep = if english && sep != "\n" { ", " } else { sep };
                     let values = self.field(n).unwrap_or_default();
                     // Numbered affiliations go one per line, as in the PDF.
@@ -1049,7 +1049,7 @@ impl<'a> Writer<'a> {
                 }
                 TitleContent::Image { asset, width_mm } => {
                     // An image field (a logo the author picked) comes from the document folder.
-                    let file = match texloom_core::image_field(asset) {
+                    let file = match nawl_core::image_field(asset) {
                         Some(id) => match self.input.doc.metadata.get(id) {
                             Some(FieldValue::Text(p)) if !p.trim().is_empty() => (self.input.image)(p.trim()).map(|b| (p.trim().to_string(), b)),
                             _ => None,
@@ -1321,7 +1321,7 @@ impl<'a> Writer<'a> {
         let mut out: Vec<(String, Vec<(&'static str, Vec<u8>)>)> = Vec::new();
         for choice in self.t.all_fonts() {
             let FontChoice::Library { id } = choice else { continue };
-            let Some(font) = texloom_core::fonts::find(id) else { continue };
+            let Some(font) = nawl_core::fonts::find(id) else { continue };
             if out.iter().any(|(n, _)| *n == font.name) {
                 continue;
             }
@@ -1380,7 +1380,7 @@ impl<'a> Writer<'a> {
         let mono = word_font(&t.fonts.mono, Role::Mono);
         let arabic = esc(&match &t.fonts.arabic {
             Some(FontChoice::System { family }) if !family.trim().is_empty() => family.clone(),
-            Some(FontChoice::Library { id }) if texloom_core::fonts::find(id).is_some() => texloom_core::fonts::find(id).expect("checked").name.clone(),
+            Some(FontChoice::Library { id }) if nawl_core::fonts::find(id).is_some() => nawl_core::fonts::find(id).expect("checked").name.clone(),
             // Amiri isn't on most Word users' machines; Traditional Arabic is
             // Windows' classic naskh.
             _ => "Traditional Arabic".into(),
@@ -1432,14 +1432,14 @@ impl<'a> Writer<'a> {
         }
         let top = t.headings.levels.first().map(|h| half_points(h.text.size_pt)).unwrap_or(size + 8);
         let cap_size = match t.captions.size {
-            texloom_core::CaptionSize::Footnote => size - 4,
-            texloom_core::CaptionSize::Small => size - 2,
-            texloom_core::CaptionSize::Normal => size,
+            nawl_core::CaptionSize::Footnote => size - 4,
+            nawl_core::CaptionSize::Small => size - 2,
+            nawl_core::CaptionSize::Normal => size,
         };
         let cap_jc = match t.captions.align {
-            texloom_core::CaptionAlign::Center => "center",
-            texloom_core::CaptionAlign::Left => "start",
-            texloom_core::CaptionAlign::Justified => "both",
+            nawl_core::CaptionAlign::Center => "center",
+            nawl_core::CaptionAlign::Left => "start",
+            nawl_core::CaptionAlign::Justified => "both",
         };
         let centred = |before: i64, after: i64| Pp { before: Some(before), after: Some(after), ind: ind0(), jc: Some("center"), ..Default::default() };
         style(&mut o, "Title", "Title", true, centred(0, 240), Rp { bold: true, size: Some(top + 4), ..Default::default() });
@@ -1460,10 +1460,10 @@ impl<'a> Writer<'a> {
 
 fn caption_sep(t: &Template) -> &'static str {
     match t.captions.separator {
-        texloom_core::CaptionSeparator::Colon => ": ",
-        texloom_core::CaptionSeparator::Period => ". ",
-        texloom_core::CaptionSeparator::Dash => " — ",
-        texloom_core::CaptionSeparator::Newline => " ",
+        nawl_core::CaptionSeparator::Colon => ": ",
+        nawl_core::CaptionSeparator::Period => ". ",
+        nawl_core::CaptionSeparator::Dash => " — ",
+        nawl_core::CaptionSeparator::Newline => " ",
     }
 }
 
@@ -1487,7 +1487,7 @@ enum Role {
 fn word_font(f: &FontChoice, role: Role) -> String {
     match f {
         FontChoice::System { family } => family.clone(),
-        FontChoice::Library { id } => texloom_core::fonts::find(id).map(|f| f.name.clone()).unwrap_or_else(|| "Traditional Arabic".into()),
+        FontChoice::Library { id } => nawl_core::fonts::find(id).map(|f| f.name.clone()).unwrap_or_else(|| "Traditional Arabic".into()),
         FontChoice::Builtin { font } => match font {
             BuiltinFont::LatinModern => match role {
                 Role::Main => "Cambria",

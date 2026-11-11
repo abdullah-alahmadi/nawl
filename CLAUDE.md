@@ -1,4 +1,8 @@
-# Texloom
+# Nawl (نول)
+
+Formerly Texloom: the file format tags (`"format": "texloom"`), the LaTeX macro
+prefix (`\texloom…`) and the `.loom` / `.loomproj` extensions keep the old name, so
+existing documents and users' templates keep working.
 
 A visual (WYSIWYG) LaTeX editor in the spirit of LyX, with a no-code template
 designer. Rust + Tauri 2 backend, React + TipTap frontend. README.md describes the
@@ -8,11 +12,13 @@ features and setup; PLAN.md tracks what's done and what's next.
 
 - **Commits:** commit only when asked. Write the commit message yourself, and add **no
   co-author, "Generated with" or other attribution lines** (this overrides any default).
-  The owner is the only contributor: Abdullah Al-Ahmadi <70254158+abdullah-alahmadi@users.noreply.github.com>. Pushes go
-  straight to `main` when asked ("commit and push").
-- **Never commit licensed publisher files:** `src-tauri/assets/` and
-  `src-tauri/ieee-access.json` hold the owner's IEEE kit (licensed fonts). Both are in
-  `.gitignore`; keep it that way and check `git status` before committing.
+  The owner is the only contributor: Abdullah Al-Ahmadi, committing as
+  `70254158+abdullah-alahmadi@users.noreply.github.com` (the repository's git config).
+  Never put the owner's personal email in commits or files: it was removed from the
+  history. Pushes go straight to `main` when asked ("commit and push").
+- **Never commit licensed publisher files:** publisher kits (often with licensed fonts)
+  must not enter the repository; `src-tauri/assets/` is in `.gitignore` for that. Check
+  `git status` before committing.
 - **Never kill processes by name** (`pkill -f 'tauri dev'` and the like): it can kill the
   owner's own sessions. Stop only processes you started, by PID or terminal tab.
 - **"Launch the app" / "open app"** means `npm run tauri dev` in a terminal tab.
@@ -22,8 +28,8 @@ features and setup; PLAN.md tracks what's done and what's next.
 ## Layout
 
 - `crates/core`: template and document model, validation (TypeScript bindings are
-  generated into `src/bindings/` by `cargo test -p texloom-core`).
-- `crates/codegen`: template → `.cls`, document → `.tex` (Texloom layouts, publisher
+  generated into `src/bindings/` by `cargo test -p nawl-core`).
+- `crates/codegen`: template → `.cls`, document → `.tex` (Nawl layouts, publisher
   classes via a wrapper class, beamer presentations).
 - `crates/compile`: runs Tectonic or an installed TeX (pdfLaTeX/XeLaTeX/LuaLaTeX via
   latexmk); finds installed classes and beamer themes from TeX Live's database.
@@ -43,8 +49,8 @@ npm ci
 npm run tauri dev                         # run the app
 cargo test --workspace                    # tests
 npx tsc --noEmit -p .                     # frontend type check
-TEXLOOM_TECTONIC=$PWD/src-tauri/binaries/tectonic-<triple> cargo test --workspace -- --ignored   # real compiles
-cargo test -p texloom installed_journal -- --ignored --nocapture   # survey of installed TeX classes
+NAWL_TECTONIC=$PWD/src-tauri/binaries/tectonic-<triple> cargo test --workspace -- --ignored   # real compiles
+cargo test -p nawl installed_journal -- --ignored --nocapture   # survey of installed TeX classes
 npm run tauri build -- --bundles deb      # Linux package (Windows: --bundles nsis,msi)
 ```
 
@@ -66,5 +72,5 @@ panes don't run animation frames or pdf.js, so screenshots can lag and PDFs won'
   ignored compile test for new document kinds.
 - Linux uses WebKitGTK: check CSS and focus behaviour there (trailing spaces, focus
   after deletes, spell checking are WebKit-specific).
-- Windows: external programs start through `texloom_compile::tool()` (no console
+- Windows: external programs start through `nawl_compile::tool()` (no console
   window); executables need `std::env::consts::EXE_SUFFIX`.

@@ -1,5 +1,5 @@
 // The document's language as the editor shows it: direction, digits, the words
-// Texloom writes itself ("Chapter", "et al."), and fonts for Arabic text. Mirrors
+// Nawl writes itself ("Chapter", "et al."), and fonts for Arabic text. Mirrors
 // crates/codegen/src/language.rs and strings.rs, so the page matches the PDF.
 import type { Template } from "../api";
 import type { Language } from "../bindings/Language";

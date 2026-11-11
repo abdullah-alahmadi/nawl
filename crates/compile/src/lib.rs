@@ -227,7 +227,7 @@ const SYSTEM_TIME_LIMIT: std::time::Duration = std::time::Duration::from_secs(18
 /// Runs a TeX program with no input and a time limit; its output is appended to
 /// `transcript`. Returns whether it succeeded.
 fn run_limited(cmd: &mut Command, root: &Path, transcript: &mut String) -> Result<bool, CompileError> {
-    let out_path = root.join("texloom-run.out");
+    let out_path = root.join("nawl-run.out");
     let out = std::fs::File::create(&out_path)?;
     let mut child = cmd
         .current_dir(root)
@@ -278,7 +278,7 @@ fn find_tex_binary(name: &str) -> Option<PathBuf> {
 
 /// A fresh build folder with the main file and the assets written into it.
 fn prepare_build_dir(tex: &str, assets: &[Asset<'_>]) -> Result<tempfile::TempDir, CompileError> {
-    let dir = tempfile::Builder::new().prefix("texloom-build-").tempdir()?;
+    let dir = tempfile::Builder::new().prefix("nawl-build-").tempdir()?;
     let root = dir.path();
     std::fs::write(root.join(format!("{MAIN}.tex")), tex)?;
     for asset in assets {
@@ -346,11 +346,11 @@ impl Compiler {
     }
 
     /// Finds Tectonic: the first existing path in `candidates`, then the
-    /// `TEXLOOM_TECTONIC` environment variable, then `tectonic` on `PATH`.
+    /// `NAWL_TECTONIC` environment variable, then `tectonic` on `PATH`.
     pub fn locate(candidates: &[PathBuf]) -> Result<Self, CompileError> {
         let mut tried: Vec<String> = Vec::new();
         let mut all: Vec<PathBuf> = candidates.to_vec();
-        if let Some(env) = std::env::var_os("TEXLOOM_TECTONIC") {
+        if let Some(env) = std::env::var_os("NAWL_TECTONIC") {
             all.push(PathBuf::from(env));
         }
         if let Some(path) = std::env::var_os("PATH") {
@@ -513,7 +513,7 @@ mod tests {
         assert!(safe_relative("assets/logo.png").is_ok());
     }
 
-    /// Needs an installed TeX distribution: cargo test -p texloom-compile -- --ignored
+    /// Needs an installed TeX distribution: cargo test -p nawl-compile -- --ignored
     #[test]
     #[ignore]
     fn compiles_with_installed_latex() {
@@ -536,7 +536,7 @@ mod tests {
     }
 
     /// Needs network on first run (Tectonic downloads its package bundle).
-    /// Run with: TEXLOOM_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p texloom-compile -- --ignored
+    /// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-compile -- --ignored
     #[test]
     #[ignore]
     fn compiles_and_reports_errors() {

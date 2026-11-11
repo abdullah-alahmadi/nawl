@@ -1,7 +1,7 @@
 //! Small LaTeX-writing helpers shared by the class and document generators.
 
-use texloom_core::placeholder::{self, Piece};
-use texloom_core::{Align, TextStyle};
+use nawl_core::placeholder::{self, Piece};
+use nawl_core::{Align, TextStyle};
 
 /// Escapes characters that are special in LaTeX text mode.
 pub fn escape(text: &str) -> String {
@@ -175,11 +175,11 @@ pub fn font_commands(s: &TextStyle) -> String {
 
 /// The command a style's own font is selected with: `tlfont` and the font's name in
 /// letters (`\tlfontcairo`, `\tlfonttermes`, `\tlfontTraditionalArabic`).
-pub fn style_font_command(f: &texloom_core::FontChoice) -> String {
+pub fn style_font_command(f: &nawl_core::FontChoice) -> String {
     let name = match f {
-        texloom_core::FontChoice::Builtin { font } => format!("{font:?}"),
-        texloom_core::FontChoice::System { family } => family.clone(),
-        texloom_core::FontChoice::Library { id } => id.clone(),
+        nawl_core::FontChoice::Builtin { font } => format!("{font:?}"),
+        nawl_core::FontChoice::System { family } => family.clone(),
+        nawl_core::FontChoice::Library { id } => id.clone(),
     };
     let letters: String = name.chars().filter(char::is_ascii_alphabetic).collect();
     format!("tlfont{letters}")

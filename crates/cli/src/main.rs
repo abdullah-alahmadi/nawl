@@ -1,19 +1,19 @@
-//! `texloom-cli`: render Texloom documents without the app.
+//! `nawl-cli`: render Nawl documents without the app.
 //!
-//!   texloom-cli render  report.loom --template templates/senior-design/template.json -o report.pdf
-//!   texloom-cli export  report.loom --template ... --out-dir build/
-//!   texloom-cli check   templates/senior-design/template.json
+//!   nawl-cli render  report.loom --template templates/senior-design/template.json -o report.pdf
+//!   nawl-cli export  report.loom --template ... --out-dir build/
+//!   nawl-cli check   templates/senior-design/template.json
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
-use texloom_codegen::Generated;
-use texloom_core::{has_errors, DocumentFile, Issue, Template, DOC_FORMAT};
+use nawl_codegen::Generated;
+use nawl_core::{has_errors, DocumentFile, Issue, Template, DOC_FORMAT};
 
 #[derive(Parser)]
-#[command(version, about = "Render Texloom documents to PDF, export LaTeX, check templates")]
+#[command(version, about = "Render Nawl documents to PDF, export LaTeX, check templates")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -68,23 +68,23 @@ fn run(cli: Cli) -> Result<()> {
         Command::Render { document, template, output, engine } => {
             let (target, program) = parse_engine(&engine)?;
             let (generated, template_dir, doc_dir) = prepare(&document, &template, target)?;
-            let assets = load_assets(&generated, &template_dir, &doc_dir, target)?;
+            let assets = load_assets(&generated, &template_dir, &doc_dir)?;
             let support = generated.support_files();
-            let files: Vec<texloom_compile::Asset> = support
+            let files: Vec<nawl_compile::Asset> = support
                 .iter()
                 .chain(assets.iter())
-                .map(|(p, b)| texloom_compile::Asset { path: p, bytes: b })
+                .map(|(p, b)| nawl_compile::Asset { path: p, bytes: b })
                 .collect();
 
             let result = match program {
-                None => texloom_compile::Compiler::locate(&tectonic_candidates())?.compile(&generated.tex, &files),
-                Some(p) => texloom_compile::SystemLatex::find(p)
+                None => nawl_compile::Compiler::locate(&tectonic_candidates())?.compile(&generated.tex, &files),
+                Some(p) => nawl_compile::SystemLatex::find(p)
                     .with_context(|| format!("{} not found; install TeX Live", p.command()))?
                     .compile(&generated.tex, &files),
             };
             let out = match result {
                 Ok(out) => out,
-                Err(texloom_compile::CompileError::Failed { errors, .. }) => {
+                Err(nawl_compile::CompileError::Failed { errors, .. }) => {
                     for e in &errors {
                         match e.line {
                             Some(l) => eprintln!("tex: line {l}: {}", e.message),
@@ -102,7 +102,7 @@ fn run(cli: Cli) -> Result<()> {
         Command::Export { document, template, out_dir, engine } => {
             let (target, _) = parse_engine(&engine)?;
             let (generated, template_dir, doc_dir) = prepare(&document, &template, target)?;
-            let assets = load_assets(&generated, &template_dir, &doc_dir, target)?;
+            let assets = load_assets(&generated, &template_dir, &doc_dir)?;
             std::fs::create_dir_all(&out_dir)?;
             let stem = document.file_stem().and_then(|s| s.to_str()).unwrap_or("document");
             let tex_path = out_dir.join(format!("{stem}.tex"));
@@ -119,7 +119,7 @@ fn run(cli: Cli) -> Result<()> {
         Command::Check { template, print_cls } => {
             let t = load_template(&template)?;
             if print_cls {
-                print!("{}", texloom_codegen::template_to_cls(&t));
+                print!("{}", nawl_codegen::template_to_cls(&t));
             }
             eprintln!("{}: template is valid", template.display());
         }
@@ -145,9 +145,9 @@ fn load_template(path: &Path) -> Result<Template> {
 }
 
 /// The generator target and, for installed engines, the program to run.
-fn parse_engine(name: &str) -> Result<(texloom_codegen::Engine, Option<texloom_compile::LatexProgram>)> {
-    use texloom_codegen::Engine;
-    use texloom_compile::LatexProgram;
+fn parse_engine(name: &str) -> Result<(nawl_codegen::Engine, Option<nawl_compile::LatexProgram>)> {
+    use nawl_codegen::Engine;
+    use nawl_compile::LatexProgram;
     Ok(match name {
         "tectonic" => (Engine::Xe, None),
         "pdflatex" => (Engine::Pdf, Some(LatexProgram::PdfLatex)),
@@ -158,22 +158,22 @@ fn parse_engine(name: &str) -> Result<(texloom_codegen::Engine, Option<texloom_c
 }
 
 /// Loads, validates and generates. Returns the output and the template's folder.
-fn prepare(document: &Path, template: &Path, engine: texloom_codegen::Engine) -> Result<(Generated, PathBuf, PathBuf)> {
+fn prepare(document: &Path, template: &Path, engine: nawl_codegen::Engine) -> Result<(Generated, PathBuf, PathBuf)> {
     let t = load_template(template)?;
     let text = std::fs::read_to_string(document).with_context(|| format!("reading {}", document.display()))?;
     let file: DocumentFile =
         serde_json::from_str(&text).with_context(|| format!("parsing document {}", document.display()))?;
     if file.format != DOC_FORMAT {
-        bail!("{} is not a Texloom document (format {:?})", document.display(), file.format);
+        bail!("{} is not a Nawl document (format {:?})", document.display(), file.format);
     }
     report(&t.check_metadata(&file.document.metadata));
     let dir = template.parent().map(Path::to_path_buf).unwrap_or_default();
     let doc_dir = document.parent().map(Path::to_path_buf).unwrap_or_default();
-    Ok((texloom_codegen::generate_for(&t, &file.document, engine), dir, doc_dir))
+    Ok((nawl_codegen::generate_for(&t, &file.document, engine), dir, doc_dir))
 }
 
 /// Template assets (relative to the template) and figure images (relative to the document).
-fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path, engine: texloom_codegen::Engine) -> Result<Vec<(String, Vec<u8>)>> {
+fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path) -> Result<Vec<(String, Vec<u8>)>> {
     let from = |dir: &Path, rel: &String, what: &str| -> Result<(String, Vec<u8>)> {
         let path = dir.join(rel);
         let bytes = std::fs::read(&path).with_context(|| format!("reading {what} {}", path.display()))?;
@@ -186,9 +186,9 @@ fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path, engine: texlo
     for rel in &g.figures {
         out.push(from(doc_dir, rel, "figure image")?);
     }
-    // Library fonts: from TEXLOOM_FONTS, or the checkout's src-tauri/fonts
+    // Library fonts: from NAWL_FONTS, or the checkout's src-tauri/fonts
     // (node scripts/fetch-fonts.mjs).
-    let fonts = std::env::var_os("TEXLOOM_FONTS")
+    let fonts = std::env::var_os("NAWL_FONTS")
         .map(PathBuf::from)
         .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src-tauri/fonts"));
     for rel in &g.fonts {
@@ -197,8 +197,7 @@ fn load_assets(g: &Generated, template_dir: &Path, doc_dir: &Path, engine: texlo
     }
     for rel in &g.kit_files {
         let (_, bytes) = from(template_dir, rel, "class kit file")?;
-        let name = texloom_codegen::kit_destination(rel);
-        let bytes = texloom_codegen::kit_override(&name, engine).map(|s| s.as_bytes().to_vec()).unwrap_or(bytes);
+        let name = nawl_codegen::kit_destination(rel);
         out.push((name, bytes));
     }
     Ok(out)

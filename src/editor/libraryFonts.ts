@@ -1,4 +1,4 @@
-// Texloom's Arabic font library on screen: each family is loaded from the app (the
+// Nawl's Arabic font library on screen: each family is loaded from the app (the
 // same files the PDF uses) into the page as "tl-<id>", regular and bold.
 import * as api from "../api";
 import type { FontChoice } from "../bindings/FontChoice";

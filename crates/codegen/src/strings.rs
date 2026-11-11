@@ -1,6 +1,6 @@
-//! Words Texloom writes itself (not from the template), in the document's language.
+//! Words Nawl writes itself (not from the template), in the document's language.
 
-use texloom_core::Language;
+use nawl_core::Language;
 
 pub struct Words {
     pub chapter: &'static str,

@@ -1,4 +1,4 @@
-// Writes a long Arabic book (about 1000 pages by default) to test how Texloom copes
+// Writes a long Arabic book (about 1000 pages by default) to test how Nawl copes
 // with large documents: the editor, LaTeX generation and compiling. The text is
 // assembled from a pool of sentences, with sections, equations, tables, figures,
 // lists, citations and English terms in realistic proportions; the same arguments
@@ -152,12 +152,12 @@ const doc = {
   templatePath: null,
   metadata: {
     title: "تاريخ العلوم والمخطوطات العربية",
-    subtitle: "كتاب اختبار طويل لـ Texloom",
+    subtitle: "كتاب اختبار طويل لنول",
     author: "مؤلف تجريبي",
     publisher: "دار المعرفة",
     place: "الرياض",
     year: "١٤٤٧هـ",
-    preface: "هذا كتاب طويل مُولَّد آليًا لاختبار قدرة Texloom على التعامل مع المستندات الكبيرة. نصّه مركّب من جمل مكررة، ومراجعه بيانات اختبار وليست مراجع حقيقية.",
+    preface: "هذا كتاب طويل مُولَّد آليًا لاختبار قدرة نول على التعامل مع المستندات الكبيرة. نصّه مركّب من جمل مكررة، ومراجعه بيانات اختبار وليست مراجع حقيقية.",
   },
   bibliography: bib,
   doc: { type: "doc", content: blocks },

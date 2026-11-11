@@ -81,14 +81,14 @@ impl ProjectFile {
     pub fn validate(&self) -> Vec<Issue> {
         let mut issues = Vec::new();
         if self.format != PROJECT_FORMAT {
-            issues.push(error("format", crate::tr!("Not a Texloom project file", "ليس ملف مشروع Texloom")));
+            issues.push(error("format", crate::tr!("Not a Nawl project file", "ليس ملف مشروع نول")));
         }
         if self.version > PROJECT_VERSION {
             issues.push(error(
                 "version",
                 crate::tr!(
-                    "The project was made by a newer Texloom (version {})",
-                    "أُنشئ المشروع بإصدار أحدث من Texloom (الإصدار {})",
+                    "The project was made by a newer Nawl (version {})",
+                    "أُنشئ المشروع بإصدار أحدث من نول (الإصدار {})",
                     self.version
                 ),
             ));

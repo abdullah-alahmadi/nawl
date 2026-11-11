@@ -5,10 +5,10 @@ import { Extension, type Editor } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
-const flashKey = new PluginKey<DecorationSet>("texloomFlash");
+const flashKey = new PluginKey<DecorationSet>("nawlFlash");
 
 export const Flash = Extension.create({
-  name: "texloomFlash",
+  name: "nawlFlash",
   addProseMirrorPlugins() {
     return [
       new Plugin<DecorationSet>({

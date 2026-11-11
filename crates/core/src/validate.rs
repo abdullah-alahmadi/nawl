@@ -185,7 +185,7 @@ impl Template {
             if let Some(crate::FontChoice::Library { id }) = f
                 && crate::fonts::find(id).is_none()
             {
-                c.error(if name.starts_with("fonts.") { format!("{name}.id") } else { name.clone() }, crate::tr!("{id:?} isn't in Texloom's font library", "{id:?} ليس من مكتبة خطوط Texloom"));
+                c.error(if name.starts_with("fonts.") { format!("{name}.id") } else { name.clone() }, crate::tr!("{id:?} isn't in Nawl's font library", "{id:?} ليس من مكتبة خطوط نول"));
             }
         }
 

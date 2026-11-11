@@ -356,7 +356,6 @@ const FRONT_STYLES: { value: FrontMatterStyle; label: MessageKey }[] = [
   { value: "acm", label: "designerContent.styleAcm" },
   { value: "lncs", label: "designerContent.styleLncs" },
   { value: "revtex", label: "designerContent.styleRevtex" },
-  { value: "ieeeAccess", label: "designerContent.styleIeeeAccess" },
   { value: "custom", label: "designerContent.styleCustom" },
 ];
 

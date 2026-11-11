@@ -1,15 +1,15 @@
 [package]
-name = "texloom-codegen"
-description = "Generates a LaTeX class from a Texloom template and LaTeX source from a document"
+name = "nawl-codegen"
+description = "Generates a LaTeX class from a Nawl template and LaTeX source from a document"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
-texloom-core = { path = "../core" }
+nawl-core = { path = "../core" }
 
 [dev-dependencies]
 serde_json.workspace = true
 insta = "1"
-texloom-compile = { path = "../compile" }
+nawl-compile = { path = "../compile" }
 tempfile.workspace = true

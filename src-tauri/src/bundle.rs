@@ -6,7 +6,7 @@
 use std::io::{Read, Write};
 use std::path::Path;
 
-use texloom_core::tr;
+use nawl_core::tr;
 
 use crate::{files, AppError};
 
@@ -50,7 +50,7 @@ pub fn write(path: &Path, json: &str, images: &[(String, Vec<u8>)]) -> Result<()
 
 /// The document's JSON and its images from a single-file `.loom`.
 pub fn read(path: &Path) -> Result<(String, Vec<(String, Vec<u8>)>), AppError> {
-    let bad = |e: zip::result::ZipError| AppError::other(tr!("Not a valid Texloom document: {e}", "ليس مستند Texloom صالحًا: {e}"));
+    let bad = |e: zip::result::ZipError| AppError::other(tr!("Not a valid Nawl document: {e}", "ليس مستند نول صالحًا: {e}"));
     let mut archive = zip::ZipArchive::new(std::fs::File::open(path)?).map_err(bad)?;
     let mut json = None;
     let mut images = Vec::new();
@@ -63,12 +63,12 @@ pub fn read(path: &Path) -> Result<(String, Vec<(String, Vec<u8>)>), AppError> {
         let mut bytes = Vec::new();
         (&mut entry).take(MAX_FILE).read_to_end(&mut bytes)?;
         if name == DOCUMENT {
-            json = Some(String::from_utf8(bytes).map_err(|_| AppError::other(tr!("Not a valid Texloom document", "ليس مستند Texloom صالحًا")))?);
+            json = Some(String::from_utf8(bytes).map_err(|_| AppError::other(tr!("Not a valid Nawl document", "ليس مستند نول صالحًا")))?);
         } else if files::is_safe_relative(&name) {
             images.push((name, bytes));
         }
     }
-    let json = json.ok_or_else(|| AppError::other(tr!("Not a Texloom document (no {DOCUMENT} inside)", "ليس مستند Texloom (لا يحتوي على {DOCUMENT})")))?;
+    let json = json.ok_or_else(|| AppError::other(tr!("Not a Nawl document (no {DOCUMENT} inside)", "ليس مستند نول (لا يحتوي على {DOCUMENT})")))?;
     Ok((json, images))
 }
 

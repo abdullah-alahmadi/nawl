@@ -79,7 +79,7 @@ export function makeKey(r: RefDraft, taken: Set<string>): string {
   return `${base}${taken.size}`;
 }
 
-/** Keys BibTeX and Texloom accept. */
+/** Keys BibTeX and Nawl accept. */
 export function validKey(key: string): boolean {
   return /^[A-Za-z0-9_:.\-/+]+$/.test(key);
 }

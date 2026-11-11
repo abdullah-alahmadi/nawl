@@ -28,7 +28,7 @@ kind: DocumentKind,
 presentation?: PresentationSettings, 
 /**
  * Build on a publisher's official class (IEEEtran, elsarticle…) instead of
- * Texloom's own layout. The class then decides page layout, fonts, headings and
+ * Nawl's own layout. The class then decides page layout, fonts, headings and
  * captions; the rest of the template only styles the on-screen editor.
  */
 base?: ClassBase, 

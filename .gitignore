@@ -31,7 +31,6 @@ dist-ssr
 
 # Templates saved from the app, with publisher kits (licensed fonts)
 /src-tauri/assets/
-/src-tauri/ieee-access.json
 /snap/local/
 
 # Tectonic package cache built for the installers (scripts/build-tex-cache.mjs)

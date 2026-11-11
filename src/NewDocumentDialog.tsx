@@ -1,4 +1,4 @@
-// "New from template": every template in one place — Texloom's own, the user's
+// "New from template": every template in one place — Nawl's own, the user's
 // (My templates) and the classes of the installed TeX distribution — filtered by
 // category chips (journals, theses, books…), shown as cards or a compact list, with
 // the recently used ones first. Choosing one starts an empty document with it. At
@@ -33,7 +33,7 @@ const CATEGORY_TITLES: Record<Category, MessageKey> = {
   mine: "dialogs.categoryMine",
 };
 
-/** Names for the kinds Texloom can't write yet. */
+/** Names for the kinds Nawl can't write yet. */
 const WAITING_NAMES: Partial<Record<InstalledCategory, MessageKey>> = {
   letter: "dialogs.waitingLetter",
   cv: "dialogs.waitingCv",
@@ -108,7 +108,7 @@ export function NewDocumentDialog({
   onImport: () => void;
   /** Templates from the installed TeX distribution. */
   installed?: InstalledTemplate[];
-  /** Installed classes of kinds Texloom can't write yet. */
+  /** Installed classes of kinds Nawl can't write yet. */
   waiting?: InstalledList["waiting"];
   /** Beamer themes the installed TeX adds to the theme picker. */
   installedThemes?: number;
@@ -305,7 +305,7 @@ export function NewDocumentDialog({
         {start && (
           <aside className="start-side">
             <div className="start-brand">
-              <strong>Texloom</strong>
+              <strong>{t("common.appName")}</strong>
               <span className="muted">{t("dialogs.tagline")}</span>
             </div>
             <button className="start-action" onClick={() => onOpen?.()}>
