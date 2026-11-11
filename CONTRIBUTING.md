@@ -19,6 +19,9 @@ Open an [issue](https://github.com/abdullah-alahmadi/nawl/issues/new/choose) and
   with its images), or a small one that shows the problem;
 - for wrong output, a screenshot of the editor and the PDF next to each other.
 
+Found a security problem? Please report it privately as [SECURITY.md](SECURITY.md)
+explains, not in a public issue.
+
 ## Asking for a feature or a template
 
 Pick **Feature request** for something Nawl should do, or **Template request** for a
@@ -108,6 +111,8 @@ that your contribution is licensed under the same terms.
 - المستند إن أمكن مشاركته (**ملف ← حفظ كملف واحد…** يعطي ملف `.nawl` واحدًا بصوره)،
   أو مستندًا صغيرًا يُظهر المشكلة؛
 - للمخرجات الخاطئة: صورة للمحرر وملف PDF متجاورين.
+
+وإن وجدت مشكلة أمنية فأبلغ عنها سرًّا كما يشرح [SECURITY.md](SECURITY.md)، لا في بلاغ عام.
 
 ### طلب ميزة أو قالب
 
