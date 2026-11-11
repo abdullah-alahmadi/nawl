@@ -110,4 +110,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           draft: true
-          files: packages/*
+          # The Windows installers sit in nsis/ and msi/ subfolders of the artifact.
+          files: |
+            packages/*.deb
+            packages/*.snap
+            packages/nsis/*.exe
+            packages/msi/*.msi
