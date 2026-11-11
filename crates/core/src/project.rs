@@ -2,7 +2,7 @@
 //!
 //! A project folder holds a project file (`.nawlproj`) with what the whole book shares
 //! (template, metadata, bibliography, chapter order) and the chapter files, which are
-//! ordinary `.nawl` documents with only a body. See PLAN.md, "Projects".
+//! ordinary `.nawl` documents with only a body.
 
 use std::collections::HashMap;
 

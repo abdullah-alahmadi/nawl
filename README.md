@@ -130,8 +130,6 @@ SmartScreen warns.
 | | English | العربية |
 |---|---|---|
 | User guide, with pictures | [docs/help.md](docs/help.md) | [docs/help.ar.md](docs/help.ar.md) |
-| Detailed notes on each feature | [docs/reference.md](docs/reference.md) | |
-| Roadmap and design notes | [PLAN.md](PLAN.md) | |
 
 In the app, **File → Help** (F1) opens the user guide in the interface's language.
 
@@ -337,8 +335,6 @@ SmartScreen.
 | | العربية | English |
 |---|---|---|
 | دليل الاستخدام بالصور | [docs/help.ar.md](docs/help.ar.md) | [docs/help.md](docs/help.md) |
-| ملاحظات مفصلة عن كل ميزة (بالإنجليزية) | | [docs/reference.md](docs/reference.md) |
-| خطة العمل وملاحظات التصميم (بالإنجليزية) | | [PLAN.md](PLAN.md) |
 
 في البرنامج: **ملف ← مساعدة** (F1) يفتح دليل الاستخدام بلغة الواجهة.
 

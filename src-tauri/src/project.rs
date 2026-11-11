@@ -1,6 +1,6 @@
 //! Projects: a book or thesis written as one `.nawl` file per chapter, listed in a
 //! `.nawlproj` file with what the whole book shares (template, metadata,
-//! bibliography). See PLAN.md, "Projects".
+//! bibliography).
 //!
 //! The backend holds the open project: its file and every chapter's body as on disk
 //! (or as last saved). The editor has one chapter open and sends its live content
