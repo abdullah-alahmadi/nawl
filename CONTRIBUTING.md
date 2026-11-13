@@ -64,7 +64,7 @@ The same checks run on GitHub for every pull request. If you changed generated L
 also run the real compiles (they need the bundled engine):
 
 ```bash
-NAWL_TECTONIC=$PWD/src-tauri/binaries/tectonic-x86_64-unknown-linux-gnu cargo test --workspace -- --ignored
+NAWL_TECTONIC=$PWD/src-tauri/binaries/nawl-tectonic-x86_64-unknown-linux-gnu cargo test --workspace -- --ignored
 ```
 
 ### Guidelines

@@ -92,7 +92,7 @@ fn missing_required_fields_show_labels() {
     assert!(!has_errors(&issues));
 }
 
-/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-codegen -- --ignored
 #[test]
 #[ignore]
 fn compiles_to_pdf() {
@@ -230,7 +230,7 @@ fn row_spans_become_multirow() {
     assert!(!nawl_codegen::document_to_tex(&template(), &document().document).contains("multirow"), "only when needed");
 }
 
-/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-codegen -- --ignored
 #[test]
 #[ignore]
 fn row_spans_compile() {
@@ -270,7 +270,7 @@ fn cropped_images_are_trimmed() {
     assert_eq!(nawl_core::Crop::default().trim(), None);
 }
 
-/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-codegen -- --ignored
 #[test]
 #[ignore]
 fn cropped_images_compile() {
@@ -333,7 +333,7 @@ fn fixed_pages_are_placed_like_the_title_page() {
     assert!(broken.validate().iter().any(|i| i.path.starts_with("frontMatter[1].items[0]")), "{:#?}", broken.validate());
 }
 
-/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-codegen -- --ignored
 #[test]
 #[ignore]
 fn fixed_pages_compile() {

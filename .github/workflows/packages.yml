@@ -4,7 +4,7 @@
 # - Windows: the installers (.exe made with NSIS, and .msi);
 # - macOS: a universal .dmg (Apple Silicon and Intel), not signed by Apple yet.
 # Run it from the Actions tab ("Run workflow"), or push a version tag
-# (git tag v0.1.1 && git push origin v0.1.1) to also get a draft GitHub release with
+# (git tag v0.1.2 && git push origin v0.1.2) to also get a draft GitHub release with
 # the packages attached.
 name: Packages
 
@@ -129,8 +129,8 @@ jobs:
         run: |
           bash scripts/fetch-tectonic.sh aarch64-apple-darwin
           bash scripts/fetch-tectonic.sh x86_64-apple-darwin
-          lipo -create -output src-tauri/binaries/tectonic-universal-apple-darwin \
-            src-tauri/binaries/tectonic-aarch64-apple-darwin src-tauri/binaries/tectonic-x86_64-apple-darwin
+          lipo -create -output src-tauri/binaries/nawl-tectonic-universal-apple-darwin \
+            src-tauri/binaries/nawl-tectonic-aarch64-apple-darwin src-tauri/binaries/nawl-tectonic-x86_64-apple-darwin
       - name: TeX packages for compiling offline
         run: node scripts/build-tex-cache.mjs
       # Homebrew's Python refuses pip installs, so use a separate one.

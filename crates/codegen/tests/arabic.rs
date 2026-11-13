@@ -473,7 +473,7 @@ fn title_page_text_runs_right_to_left() {
     assert!(!english.contains("\\RL{"), "English title pages are unchanged");
 }
 
-/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen --test arabic -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-codegen --test arabic -- --ignored
 /// Leaves the PDFs in $NAWL_ARABIC_OUT when set, to look at.
 #[test]
 #[ignore]

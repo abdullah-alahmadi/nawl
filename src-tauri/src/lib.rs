@@ -357,14 +357,16 @@ fn spell_languages() -> Vec<String> {
 
 /// Where Tectonic may live: next to the app binary (bundled sidecar, also where
 /// `tauri dev` copies it) and, in debug builds, the source tree's `binaries/` folder.
+/// The sidecar is named `nawl-tectonic`, not `tectonic`: the Linux packages install it
+/// to /usr/bin, where a plain `tectonic` would clash with any other package's.
 fn tectonic_candidates() -> Vec<PathBuf> {
     let mut v = Vec::new();
     if let Some(dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(PathBuf::from)) {
-        v.push(dir.join(format!("tectonic{}", std::env::consts::EXE_SUFFIX)));
+        v.push(dir.join(format!("nawl-tectonic{}", std::env::consts::EXE_SUFFIX)));
     }
     if cfg!(debug_assertions) {
         let triple = env!("TARGET_TRIPLE");
-        v.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("binaries/tectonic-{triple}{}", std::env::consts::EXE_SUFFIX)));
+        v.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("binaries/nawl-tectonic-{triple}{}", std::env::consts::EXE_SUFFIX)));
     }
     v
 }

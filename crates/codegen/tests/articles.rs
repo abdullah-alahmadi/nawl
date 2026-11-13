@@ -75,7 +75,7 @@ fn title_pages_stay_pages() {
     assert!(cls.contains("\\pagenumbering{roman}"));
 }
 
-/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen --test articles -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-codegen --test articles -- --ignored
 /// Leaves the PDFs in $NAWL_ARTICLE_OUT when set, to look at.
 #[test]
 #[ignore]

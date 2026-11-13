@@ -143,7 +143,7 @@ mod tectonic_previews {
     use super::*;
     use nawl_compile::{Asset, Compiler};
 
-    /// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl previews_compile -- --ignored
+    /// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl previews_compile -- --ignored
     #[test]
     #[ignore]
     fn previews_compile_with_tectonic() {

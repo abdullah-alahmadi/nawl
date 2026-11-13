@@ -6,7 +6,7 @@
 # snap, so Settings → Preview offers Tectonic only there.
 name: nawl
 base: core22
-version: '0.1.1'
+version: '0.1.2'
 title: Nawl
 summary: Visual LaTeX editor with a no-code template designer
 description: |

@@ -536,7 +536,7 @@ mod tests {
     }
 
     /// Needs network on first run (Tectonic downloads its package bundle).
-    /// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-compile -- --ignored
+    /// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-compile -- --ignored
     #[test]
     #[ignore]
     fn compiles_and_reports_errors() {

@@ -209,8 +209,8 @@ newer), a snap made from the `.deb` (`snap/snapcraft.yaml`), the Windows install
 release with the packages attached:
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 Locally, on Linux:
@@ -238,7 +238,7 @@ Every push to `main` runs the tests on GitHub (`.github/workflows/tests.yml`).
 cargo test --workspace            # also regenerates src/bindings/*.ts
 npx tsc --noEmit -p .             # frontend type check
 INSTA_UPDATE=always cargo test -p nawl-codegen   # accept changed .cls/.tex snapshots (review the diff!)
-NAWL_TECTONIC=$PWD/src-tauri/binaries/tectonic-x86_64-unknown-linux-gnu cargo test --workspace -- --ignored   # real compiles
+NAWL_TECTONIC=$PWD/src-tauri/binaries/nawl-tectonic-x86_64-unknown-linux-gnu cargo test --workspace -- --ignored   # real compiles
 cargo test -p nawl installed_journal -- --ignored --nocapture   # which installed TeX classes compile
 ```
 

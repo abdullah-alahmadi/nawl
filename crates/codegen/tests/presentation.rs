@@ -61,7 +61,7 @@ fn loose_content_and_code_get_slides() {
     assert!(tex.contains("\\title{[Title]}"), "{tex}");
 }
 
-/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-codegen -- --ignored
 #[test]
 #[ignore]
 fn deck_compiles() {

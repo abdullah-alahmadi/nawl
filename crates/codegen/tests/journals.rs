@@ -41,7 +41,7 @@ fn journal_templates_generate_publisher_front_matter() {
     assert!(els.contains("irrigation \\sep LoRa"));
 }
 
-/// Run with: NAWL_TECTONIC=src-tauri/binaries/tectonic-<triple> cargo test -p nawl-codegen -- --ignored
+/// Run with: NAWL_TECTONIC=src-tauri/binaries/nawl-tectonic-<triple> cargo test -p nawl-codegen -- --ignored
 #[test]
 #[ignore]
 fn journal_templates_compile() {
