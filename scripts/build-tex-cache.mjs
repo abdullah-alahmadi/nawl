@@ -15,7 +15,7 @@ const root = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "
 const cache = join(root, "src-tauri", "tex-cache");
 const windows = process.platform === "win32";
 const tectonic = readdirSync(join(root, "src-tauri", "binaries"))
-  .filter((f) => f.startsWith("tectonic-"))
+  .filter((f) => f.startsWith("nawl-tectonic-"))
   .map((f) => join(root, "src-tauri", "binaries", f))[0];
 if (!tectonic) throw new Error("No Tectonic in src-tauri/binaries: run scripts/fetch-tectonic.sh first");
 
